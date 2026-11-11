@@ -53,5 +53,10 @@
   "homeExpensesTotal": "إجمالي مصروفات المنزل",
   "transfersTotal": "إجمالي التحويلات إلى المنزل",
   "creditorBalance": "إجمالي المبالغ المستحقة لك",
-  "debtorBalance": "إجمالي المبالغ المستحقة عليك"
+  "debtorBalance": "إجمالي المبالغ المستحقة عليك",
+  "recordDebtPayment": "تسجيل دفعة",
+  "paymentHistory": "سجل الدفعات",
+  "paidAt": "تاريخ الدفع",
+  "paymentAmount": "مبلغ الدفعة",
+  "settled": "تمت التسوية بالكامل"
 }

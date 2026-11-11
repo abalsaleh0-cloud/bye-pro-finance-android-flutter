@@ -171,4 +171,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get debtorBalance => 'Total you owe';
+
+  @override
+  String get recordDebtPayment => 'Record payment';
+
+  @override
+  String get paymentHistory => 'Payment history';
+
+  @override
+  String get paidAt => 'Paid at';
+
+  @override
+  String get paymentAmount => 'Payment amount';
+
+  @override
+  String get settled => 'Fully settled';
 }

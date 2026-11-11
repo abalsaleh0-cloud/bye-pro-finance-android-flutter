@@ -171,4 +171,19 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get debtorBalance => 'إجمالي المبالغ المستحقة عليك';
+
+  @override
+  String get recordDebtPayment => 'تسجيل دفعة';
+
+  @override
+  String get paymentHistory => 'سجل الدفعات';
+
+  @override
+  String get paidAt => 'تاريخ الدفع';
+
+  @override
+  String get paymentAmount => 'مبلغ الدفعة';
+
+  @override
+  String get settled => 'تمت التسوية بالكامل';
 }

@@ -2,6 +2,7 @@ import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/features/debts/domain/debt_entry.dart';
+import 'package:expense_app/features/debts/domain/debt_payment.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
@@ -180,6 +181,92 @@ class DebtsScreen extends ConsumerWidget {
     }
   }
 
+  Future<void> _recordPayment(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations strings,
+    DebtEntry debt,
+  ) async {
+    final amount = TextEditingController();
+    final note = TextEditingController();
+    String? error;
+    try {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: Text(strings.recordDebtPayment),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${strings.outstandingAmount}: ${debt.outstandingAmount.minorUnits}',
+                ),
+                TextField(
+                  controller: amount,
+                  autofocus: true,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(labelText: strings.paymentAmount),
+                ),
+                TextField(
+                  controller: note,
+                  decoration: InputDecoration(labelText: strings.note),
+                ),
+                if (error != null)
+                  Text(
+                    error!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: Text(strings.cancel),
+              ),
+              FilledButton(
+                onPressed: () async {
+                  final value = int.tryParse(amount.text.trim());
+                  if (value == null ||
+                      value <= 0 ||
+                      value > debt.outstandingAmount.minorUnits) {
+                    setDialogState(() => error = strings.invalidRecord);
+                    return;
+                  }
+                  try {
+                    await ref
+                        .read(debtRepositoryProvider)
+                        .recordPayment(
+                          DebtPayment(
+                            id: DateTime.now().microsecondsSinceEpoch
+                                .toString(),
+                            debtId: debt.id,
+                            amount: Money.fromMinorUnits(value),
+                            paidAt: DateTime.now(),
+                            note: note.text.trim().isEmpty
+                                ? null
+                                : note.text.trim(),
+                          ),
+                        );
+                    if (dialogContext.mounted) Navigator.pop(dialogContext);
+                  } catch (_) {
+                    setDialogState(() => error = strings.invalidRecord);
+                  }
+                },
+                child: Text(strings.save),
+              ),
+            ],
+          ),
+        ),
+      );
+    } finally {
+      amount.dispose();
+      note.dispose();
+    }
+  }
+
   Future<void> _deleteDebt(
     BuildContext context,
     WidgetRef ref,
@@ -231,33 +318,93 @@ class DebtsScreen extends ConsumerWidget {
                       ? strings.creditor
                       : strings.debtor;
                   return Card(
-                    child: ListTile(
-                      leading: const Icon(
-                        Icons.account_balance_wallet_outlined,
-                      ),
-                      title: Text('${debt.counterparty} • $direction'),
-                      subtitle: Text(
-                        '${strings.dueMonth}: ${debt.dueMonth} | ${strings.originalAmount}: ${debt.originalAmount.minorUnits}',
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(debt.outstandingAmount.minorUnits.toString()),
-                          IconButton(
-                            tooltip: strings.editRecord,
-                            icon: const Icon(Icons.edit_outlined),
-                            onPressed: () => _editDebt(
-                              context,
-                              ref,
-                              strings,
-                              existing: debt,
+                          ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: const Icon(
+                              Icons.account_balance_wallet_outlined,
                             ),
+                            title: Text('${debt.counterparty} • $direction'),
+                            subtitle: Text(
+                              '${strings.dueMonth}: ${debt.dueMonth}\n'
+                              '${strings.originalAmount}: ${debt.originalAmount.minorUnits}\n'
+                              '${strings.outstandingAmount}: ${debt.outstandingAmount.minorUnits}',
+                            ),
+                            isThreeLine: true,
                           ),
-                          IconButton(
-                            tooltip: strings.deleteRecord,
-                            icon: const Icon(Icons.delete_outline),
-                            onPressed: () =>
-                                _deleteDebt(context, ref, strings, debt.id),
+                          Wrap(
+                            spacing: 8,
+                            children: [
+                              if (!debt.isSettled)
+                                FilledButton.tonalIcon(
+                                  onPressed: () => _recordPayment(
+                                    context,
+                                    ref,
+                                    strings,
+                                    debt,
+                                  ),
+                                  icon: const Icon(Icons.payments_outlined),
+                                  label: Text(strings.recordDebtPayment),
+                                )
+                              else
+                                Text(strings.settled),
+                              IconButton(
+                                tooltip: strings.editRecord,
+                                onPressed: () => _editDebt(
+                                  context,
+                                  ref,
+                                  strings,
+                                  existing: debt,
+                                ),
+                                icon: const Icon(Icons.edit_outlined),
+                              ),
+                              IconButton(
+                                tooltip: strings.deleteRecord,
+                                onPressed: () =>
+                                    _deleteDebt(context, ref, strings, debt.id),
+                                icon: const Icon(Icons.delete_outline),
+                              ),
+                            ],
+                          ),
+                          const Divider(),
+                          Text(strings.paymentHistory),
+                          Consumer(
+                            builder: (context, ref, child) {
+                              final payments = ref.watch(
+                                debtPaymentsProvider(debt.id),
+                              );
+                              return payments.when(
+                                loading: () => Text(strings.loading),
+                                error: (error, stackTrace) =>
+                                    Text(strings.dataError),
+                                data: (history) => history.isEmpty
+                                    ? Text(strings.noRecords)
+                                    : Column(
+                                        children: [
+                                          for (final payment in history)
+                                            ListTile(
+                                              dense: true,
+                                              contentPadding: EdgeInsets.zero,
+                                              leading: const Icon(
+                                                Icons.receipt_long_outlined,
+                                              ),
+                                              title: Text(
+                                                payment.amount.minorUnits
+                                                    .toString(),
+                                              ),
+                                              subtitle: Text(
+                                                '${strings.paidAt}: ${payment.paidAt.toLocal().toString().split(' ').first}'
+                                                '${payment.note == null ? '' : '\n${payment.note}'}',
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                              );
+                            },
                           ),
                         ],
                       ),
