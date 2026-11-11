@@ -5,9 +5,7 @@ import 'tables.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(
-  tables: [HomeExpenses, WorkEntries, WorkHomeTransfers, Debts],
-)
+@DriftDatabase(tables: [HomeExpenses, WorkEntries, WorkHomeTransfers, Debts])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'bye_pro_finance'));
 
