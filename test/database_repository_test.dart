@@ -1,6 +1,6 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:expense_app/core/database/app_database.dart';
+import 'package:expense_app/core/database/app_database.dart' show AppDatabase;
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/features/debts/data/debt_repository.dart';
