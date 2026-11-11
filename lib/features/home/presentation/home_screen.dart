@@ -102,7 +102,9 @@ class HomeScreen extends ConsumerWidget {
         ],
       ),
     );
-    if (confirmed == true) await ref.read(homeExpenseRepositoryProvider).delete(id);
+    if (confirmed == true) {
+      await ref.read(homeExpenseRepositoryProvider).delete(id);
+    }
   }
 
   @override
