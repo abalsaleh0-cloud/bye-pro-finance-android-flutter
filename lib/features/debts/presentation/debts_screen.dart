@@ -28,13 +28,17 @@ class DebtsScreen extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   DropdownButtonFormField<DebtDirection>(
-                    value: direction,
+                    initialValue: direction,
                     decoration: InputDecoration(labelText: strings.debtDirection),
                     items: [
                       DropdownMenuItem(value: DebtDirection.creditor, child: Text(strings.creditor)),
                       DropdownMenuItem(value: DebtDirection.debtor, child: Text(strings.debtor)),
                     ],
-                    onChanged: (value) { if (value != null) setDialogState(() => direction = value); },
+                    onChanged: (value) {
+                      if (value != null) {
+                        setDialogState(() => direction = value);
+                      }
+                    },
                   ),
                   TextField(controller: counterparty, decoration: InputDecoration(labelText: strings.counterparty)),
                   TextField(controller: original, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: strings.originalAmount)),
