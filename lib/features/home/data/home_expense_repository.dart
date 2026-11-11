@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
-import 'package:expense_app/core/database/app_database.dart';
+import 'package:expense_app/core/database/app_database.dart'
+    show AppDatabase, HomeExpensesCompanion, HomeExpenseRow;
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/features/home/domain/home_expense.dart';
@@ -22,8 +23,7 @@ final class HomeExpenseRepository {
             id: expense.id,
             amountMinorUnits: expense.amount.minorUnits,
             categoryId: expense.categoryId,
-            expenseDateEpochMillis:
-                expense.expenseDate.millisecondsSinceEpoch,
+            expenseDateEpochMillis: expense.expenseDate.millisecondsSinceEpoch,
             dueYear: expense.dueMonth.year,
             dueMonth: expense.dueMonth.month,
             note: Value(expense.note),
