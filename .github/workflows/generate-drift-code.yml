@@ -1,0 +1,38 @@
+name: Generate Drift code
+
+on:
+  push:
+    branches:
+      - feature/task-5-drift-database-foundation
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/task-5-drift-database-foundation
+      - uses: subosito/flutter-action@v2
+        env:
+          FLUTTER_STORAGE_BASE_URL: https://storage.flutter-io.cn
+        with:
+          channel: stable
+          flutter-version: 3.50.0
+          cache: true
+      - run: flutter pub get
+      - run: dart run build_runner build --delete-conflicting-outputs
+      - run: dart format .
+      - run: flutter analyze
+      - run: flutter test
+      - name: Commit generated Drift code
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/core/database/app_database.g.dart
+          if ! git diff --cached --quiet; then
+            git commit -m "build: generate Drift database code"
+            git push origin feature/task-5-drift-database-foundation
+          fi
