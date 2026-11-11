@@ -27,5 +27,20 @@
   "expenses": "المصروفات",
   "entries": "السجلات",
   "loading": "جارٍ التحميل",
-  "dataError": "تعذر تحميل البيانات"
+  "dataError": "تعذر تحميل البيانات",
+  "addExpense": "إضافة مصروف",
+  "addEntry": "إضافة سجل عمل",
+  "addDebt": "إضافة دين",
+  "editRecord": "تعديل السجل",
+  "deleteRecord": "حذف السجل",
+  "confirmDelete": "هل أنت متأكد من حذف هذا السجل؟",
+  "delete": "حذف",
+  "save": "حفظ",
+  "cancel": "إلغاء",
+  "category": "التصنيف",
+  "expenseDate": "تاريخ المصروف",
+  "note": "ملاحظة",
+  "entryType": "نوع السجل",
+  "debtDirection": "نوع الدين",
+  "invalidRecord": "تحقق من البيانات المدخلة والمبالغ والشهر المستحق"
 }
