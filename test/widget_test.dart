@@ -1,12 +1,13 @@
-import 'package:expense_app/main.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:expense_app/app/app.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 
 void main() {
   testWidgets('starts in Arabic with five navigation destinations', (
     tester,
   ) async {
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(const ProviderScope(child: MyApp()));
 
     expect(find.text('الرئيسية'), findsWidgets);
     expect(find.byType(NavigationDestination), findsNWidgets(5));
@@ -14,7 +15,7 @@ void main() {
   });
 
   testWidgets('settings can switch theme and language', (tester) async {
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(const ProviderScope(child: MyApp()));
 
     await tester.tap(find.byKey(const Key('open-settings')));
     await tester.pumpAndSettle();
@@ -37,7 +38,7 @@ void main() {
   });
 
   testWidgets('bottom navigation changes the active section', (tester) async {
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(const ProviderScope(child: MyApp()));
 
     await tester.tap(find.text('العمل').last);
     await tester.pumpAndSettle();
