@@ -20,7 +20,7 @@ class AppDatabase extends _$AppDatabase {
     onCreate: (Migrator migrator) => migrator.createAll(),
     onUpgrade: (Migrator migrator, int from, int to) async {
       if (from < 2) {
-        await migrator.createTable(migrator.database.debtPayments);
+        await migrator.createTable(debtPayments);
       }
     },
     beforeOpen: (OpeningDetails details) async {
