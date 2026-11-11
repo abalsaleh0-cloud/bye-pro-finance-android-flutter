@@ -36,6 +36,14 @@ jobs:
             git commit -m "chore: add Riverpod and GoRouter dependencies"
             git push origin "HEAD:${GITHUB_REF_NAME}"
           fi
-      - run: dart format --output=none --set-exit-if-changed .
+      - name: Format Dart sources
+        run: dart format .
+      - name: Commit formatting
+        run: |
+          git add lib test
+          if ! git diff --cached --quiet; then
+            git commit -m "style: format task 2 architecture sources"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
       - run: flutter analyze
       - run: flutter test
