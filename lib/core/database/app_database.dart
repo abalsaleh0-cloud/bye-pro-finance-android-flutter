@@ -5,19 +5,24 @@ import 'tables.dart';
 
 part 'app_database.g.dart';
 
-@DriftDatabase(tables: [HomeExpenses, WorkEntries, WorkHomeTransfers, Debts])
+@DriftDatabase(
+  tables: [HomeExpenses, WorkEntries, WorkHomeTransfers, Debts, DebtPayments],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'bye_pro_finance'));
-
-  /// In-memory constructor for deterministic database tests.
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (Migrator migrator) => migrator.createAll(),
+    onUpgrade: (Migrator migrator, int from, int to) async {
+      if (from < 2) {
+        await migrator.createTable(migrator.database.debtPayments);
+      }
+    },
     beforeOpen: (OpeningDetails details) async {
       await customStatement('PRAGMA foreign_keys = ON');
     },
