@@ -6,6 +6,7 @@ on:
       - main
       - feature/task-5-drift-database-foundation
       - feature/task-6-financial-ui-integration
+      - feature/task-7-financial-crud
   pull_request:
 
 permissions:
