@@ -11,6 +11,7 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(appSettingsProvider);
+    final router = ref.watch(appRouterProvider);
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
@@ -24,7 +25,7 @@ class MyApp extends ConsumerWidget {
         AppLocalizations.delegate,
         ...GlobalMaterialLocalizations.delegates,
       ],
-      routerConfig: appRouter,
+      routerConfig: router,
     );
   }
 }
