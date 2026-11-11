@@ -18,7 +18,9 @@ final class HomeExpenseRepository {
   }
 
   Future<void> save(HomeExpense expense) {
-    return _database.into(_database.homeExpenses).insertOnConflictUpdate(
+    return _database
+        .into(_database.homeExpenses)
+        .insertOnConflictUpdate(
           HomeExpensesCompanion.insert(
             id: expense.id,
             amountMinorUnits: expense.amount.minorUnits,
@@ -32,19 +34,19 @@ final class HomeExpenseRepository {
   }
 
   Future<void> delete(String id) {
-    return (_database.delete(_database.homeExpenses)
-          ..where((row) => row.id.equals(id)))
-        .go();
+    return (_database.delete(
+      _database.homeExpenses,
+    )..where((row) => row.id.equals(id))).go();
   }
 
   HomeExpense _toDomain(HomeExpenseRow row) => HomeExpense(
-        id: row.id,
-        amount: Money.fromMinorUnits(row.amountMinorUnits),
-        categoryId: row.categoryId,
-        expenseDate: DateTime.fromMillisecondsSinceEpoch(
-          row.expenseDateEpochMillis,
-        ),
-        dueMonth: MonthKey(year: row.dueYear, month: row.dueMonth),
-        note: row.note,
-      );
+    id: row.id,
+    amount: Money.fromMinorUnits(row.amountMinorUnits),
+    categoryId: row.categoryId,
+    expenseDate: DateTime.fromMillisecondsSinceEpoch(
+      row.expenseDateEpochMillis,
+    ),
+    dueMonth: MonthKey(year: row.dueYear, month: row.dueMonth),
+    note: row.note,
+  );
 }

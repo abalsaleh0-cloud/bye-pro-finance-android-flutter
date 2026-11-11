@@ -18,7 +18,9 @@ final class DebtRepository {
   }
 
   Future<void> save(DebtEntry debt) {
-    return _database.into(_database.debts).insertOnConflictUpdate(
+    return _database
+        .into(_database.debts)
+        .insertOnConflictUpdate(
           DebtsCompanion.insert(
             id: debt.id,
             direction: debt.direction.name,
@@ -34,19 +36,19 @@ final class DebtRepository {
   }
 
   Future<void> delete(String id) {
-    return (_database.delete(_database.debts)
-          ..where((row) => row.id.equals(id)))
-        .go();
+    return (_database.delete(
+      _database.debts,
+    )..where((row) => row.id.equals(id))).go();
   }
 
   DebtEntry _toDomain(DebtRow row) => DebtEntry(
-        id: row.id,
-        direction: DebtDirection.values.byName(row.direction),
-        originalAmount: Money.fromMinorUnits(row.originalAmountMinorUnits),
-        outstandingAmount: Money.fromMinorUnits(row.outstandingAmountMinorUnits),
-        dueMonth: MonthKey(year: row.dueYear, month: row.dueMonth),
-        createdAt: DateTime.fromMillisecondsSinceEpoch(row.createdAtEpochMillis),
-        counterparty: row.counterparty,
-        note: row.note,
-      );
+    id: row.id,
+    direction: DebtDirection.values.byName(row.direction),
+    originalAmount: Money.fromMinorUnits(row.originalAmountMinorUnits),
+    outstandingAmount: Money.fromMinorUnits(row.outstandingAmountMinorUnits),
+    dueMonth: MonthKey(year: row.dueYear, month: row.dueMonth),
+    createdAt: DateTime.fromMillisecondsSinceEpoch(row.createdAtEpochMillis),
+    counterparty: row.counterparty,
+    note: row.note,
+  );
 }

@@ -24,7 +24,9 @@ final class WorkRepository {
   }
 
   Future<void> saveEntry(WorkEntry entry) {
-    return _database.into(_database.workEntries).insertOnConflictUpdate(
+    return _database
+        .into(_database.workEntries)
+        .insertOnConflictUpdate(
           WorkEntriesCompanion.insert(
             id: entry.id,
             kind: entry.kind.name,
@@ -38,9 +40,9 @@ final class WorkRepository {
   }
 
   Future<void> deleteEntry(String id) {
-    return (_database.delete(_database.workEntries)
-          ..where((row) => row.id.equals(id)))
-        .go();
+    return (_database.delete(
+      _database.workEntries,
+    )..where((row) => row.id.equals(id))).go();
   }
 
   Stream<List<WorkHomeTransfer>> watchTransfers() {
@@ -65,15 +67,13 @@ final class WorkRepository {
   }
 
   WorkEntry _entryToDomain(WorkEntryRow row) => WorkEntry(
-        id: row.id,
-        kind: WorkEntryKind.values.byName(row.kind),
-        amount: Money.fromMinorUnits(row.amountMinorUnits),
-        dueMonth: MonthKey(year: row.dueYear, month: row.dueMonth),
-        recordedAt: DateTime.fromMillisecondsSinceEpoch(
-          row.recordedAtEpochMillis,
-        ),
-        note: row.note,
-      );
+    id: row.id,
+    kind: WorkEntryKind.values.byName(row.kind),
+    amount: Money.fromMinorUnits(row.amountMinorUnits),
+    dueMonth: MonthKey(year: row.dueYear, month: row.dueMonth),
+    recordedAt: DateTime.fromMillisecondsSinceEpoch(row.recordedAtEpochMillis),
+    note: row.note,
+  );
 
   WorkHomeTransfer _transferToDomain(WorkHomeTransferRow row) =>
       WorkHomeTransfer(
