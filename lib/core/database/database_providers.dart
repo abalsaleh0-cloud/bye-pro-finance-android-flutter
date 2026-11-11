@@ -35,7 +35,9 @@ final workTransfersProvider = StreamProvider<List<WorkHomeTransfer>>(
 final debtsProvider = StreamProvider<List<DebtEntry>>(
   (ref) => ref.watch(debtRepositoryProvider).watchAll(),
 );
-final debtPaymentsProvider =
-    StreamProvider.family<List<DebtPayment>, String>((ref, debtId) {
-      return ref.watch(debtRepositoryProvider).watchPayments(debtId);
-    });
+final debtPaymentsProvider = StreamProvider.family<List<DebtPayment>, String>((
+  ref,
+  debtId,
+) {
+  return ref.watch(debtRepositoryProvider).watchPayments(debtId);
+});

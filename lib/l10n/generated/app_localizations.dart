@@ -421,6 +421,36 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'إجمالي المبالغ المستحقة عليك'**
   String get debtorBalance;
+
+  /// No description provided for @recordDebtPayment.
+  ///
+  /// In ar, this message translates to:
+  /// **'تسجيل دفعة'**
+  String get recordDebtPayment;
+
+  /// No description provided for @paymentHistory.
+  ///
+  /// In ar, this message translates to:
+  /// **'سجل الدفعات'**
+  String get paymentHistory;
+
+  /// No description provided for @paidAt.
+  ///
+  /// In ar, this message translates to:
+  /// **'تاريخ الدفع'**
+  String get paidAt;
+
+  /// No description provided for @paymentAmount.
+  ///
+  /// In ar, this message translates to:
+  /// **'مبلغ الدفعة'**
+  String get paymentAmount;
+
+  /// No description provided for @settled.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمت التسوية بالكامل'**
+  String get settled;
 }
 
 class _AppLocalizationsDelegate
