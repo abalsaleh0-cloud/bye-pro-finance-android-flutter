@@ -1,6 +1,21 @@
-# Database foundation
+# قاعدة البيانات المحلية
 
-The Drift database layer is intentionally not initialized in this task.
-This directory is reserved for the future local database implementation.
-Financial tables, migrations, DAOs, and generated Drift code belong to the
-dedicated database task after the data model and migration plan are approved.
+تعتمد طبقة التخزين المحلية على Drift وSQLite، وتُبقي البيانات المالية على الجهاز.
+
+## المكونات
+
+- `app_database.dart`: نقطة الدخول لقاعدة البيانات وإصدار المخطط وسياسة الترحيل.
+- `tables.dart`: جداول مصروفات المنزل، وإيرادات العمل، وتحويلات العمل إلى المنزل، والديون.
+- مستودعات الميزات: واجهات حفظ وقراءة النماذج المالية من الجداول.
+
+## قواعد سلامة البيانات
+
+- تُخزّن المبالغ كأعداد صحيحة بأصغر وحدة نقدية، ولا تستخدم `double`.
+- يُحفظ الشهر المستحق مع كل سجل مالي ذي صلة.
+- «الباقي» في قسم العمل قيمة مشتقة ولا يُخزّن كسجل مستقل.
+- يُمثّل تحويل العمل إلى المنزل بسجل تحويل واحد، لتجنب احتساب المبلغ مرتين.
+- تُحفظ جهة الدين والرصيد الأصلي والمتبقي بصورة مستقلة.
+
+## التوليد والتحقق
+
+يُولّد ملف `app_database.g.dart` بواسطة build_runner اعتماداً على تعريفات Drift. لا تُنشئ الملف المولّد يدوياً. يجب أن تنجح عملية التوليد ثم التنسيق والتحليل والاختبارات قبل دمج هذه المهمة.
