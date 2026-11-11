@@ -10,5 +10,22 @@
   "darkTheme": "Dark mode",
   "language": "Language",
   "arabic": "Arabic",
-  "english": "English"
+  "english": "English",
+  "noRecords": "No records yet",
+  "amountMinorUnits": "Amount in minor currency units",
+  "dueMonth": "Due month",
+  "recordedAt": "Recorded",
+  "salary": "Salary",
+  "advance": "Advance",
+  "payment": "Payment",
+  "creditor": "Creditor",
+  "debtor": "Debtor",
+  "originalAmount": "Original amount",
+  "outstandingAmount": "Outstanding amount",
+  "counterparty": "Counterparty",
+  "transfers": "Transfers to household",
+  "expenses": "Expenses",
+  "entries": "Entries",
+  "loading": "Loading",
+  "dataError": "Unable to load data"
 }
