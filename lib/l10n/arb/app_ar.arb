@@ -23,6 +23,8 @@
   "originalAmount": "المبلغ الأصلي",
   "outstandingAmount": "المبلغ المتبقي",
   "counterparty": "الطرف المعني",
+  "addTransfer": "إضافة تحويل إلى المنزل",
+  "transferAmount": "مبلغ التحويل",
   "transfers": "التحويلات إلى المنزل",
   "expenses": "المصروفات",
   "entries": "السجلات",

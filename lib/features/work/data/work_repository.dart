@@ -66,6 +66,12 @@ final class WorkRepository {
         );
   }
 
+  Future<void> deleteTransfer(String id) {
+    return (_database.delete(
+      _database.workHomeTransfers,
+    )..where((row) => row.id.equals(id))).go();
+  }
+
   WorkEntry _entryToDomain(WorkEntryRow row) => WorkEntry(
     id: row.id,
     kind: WorkEntryKind.values.byName(row.kind),

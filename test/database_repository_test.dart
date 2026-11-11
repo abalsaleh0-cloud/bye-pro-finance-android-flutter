@@ -176,4 +176,30 @@ void main() {
     await repository.delete(original.id);
     expect(await database.select(database.debts).get(), isEmpty);
   });
+
+  test('supports updating and deleting a work-home transfer', () async {
+    final repository = WorkRepository(database);
+    final original = WorkHomeTransfer(
+      id: 'transfer-crud',
+      amount: Money.fromMinorUnits(300),
+      transferredAt: DateTime.utc(2026, 11, 1),
+    );
+    await repository.saveTransfer(original);
+    await repository.saveTransfer(
+      WorkHomeTransfer(
+        id: original.id,
+        amount: Money.fromMinorUnits(450),
+        transferredAt: DateTime.utc(2026, 11, 2),
+        note: 'Updated transfer',
+      ),
+    );
+
+    var rows = await database.select(database.workHomeTransfers).get();
+    expect(rows, hasLength(1));
+    expect(rows.single.amountMinorUnits, 450);
+    expect(rows.single.note, 'Updated transfer');
+
+    await repository.deleteTransfer(original.id);
+    expect(await database.select(database.workHomeTransfers).get(), isEmpty);
+  });
 }

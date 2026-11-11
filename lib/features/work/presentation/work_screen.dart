@@ -2,6 +2,7 @@ import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/features/work/domain/work_entry.dart';
+import 'package:expense_app/features/work/domain/work_home_transfer.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
@@ -149,6 +150,113 @@ class WorkScreen extends ConsumerWidget {
     }
   }
 
+  Future<void> _editTransfer(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations strings, {
+    WorkHomeTransfer? existing,
+  }) async {
+    final amount = TextEditingController(
+      text: existing?.amount.minorUnits.toString() ?? '',
+    );
+    final note = TextEditingController(text: existing?.note ?? '');
+    String? error;
+    try {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: Text(strings.addTransfer),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: amount,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: strings.transferAmount,
+                  ),
+                ),
+                TextField(
+                  controller: note,
+                  decoration: InputDecoration(labelText: strings.note),
+                ),
+                if (error != null)
+                  Text(
+                    error!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: Text(strings.cancel),
+              ),
+              FilledButton(
+                onPressed: () async {
+                  final value = int.tryParse(amount.text.trim());
+                  if (value == null || value <= 0) {
+                    setDialogState(() => error = strings.invalidRecord);
+                    return;
+                  }
+                  try {
+                    await ref.read(workRepositoryProvider).saveTransfer(
+                      WorkHomeTransfer(
+                        id: existing?.id ??
+                            DateTime.now().microsecondsSinceEpoch.toString(),
+                        amount: Money.fromMinorUnits(value),
+                        transferredAt: existing?.transferredAt ?? DateTime.now(),
+                        note: note.text.trim().isEmpty ? null : note.text.trim(),
+                      ),
+                    );
+                    if (dialogContext.mounted) Navigator.pop(dialogContext);
+                  } catch (_) {
+                    setDialogState(() => error = strings.invalidRecord);
+                  }
+                },
+                child: Text(strings.save),
+              ),
+            ],
+          ),
+        ),
+      );
+    } finally {
+      amount.dispose();
+      note.dispose();
+    }
+  }
+
+  Future<void> _deleteTransfer(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations strings,
+    String id,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(strings.deleteRecord),
+        content: Text(strings.confirmDelete),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(strings.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(strings.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await ref.read(workRepositoryProvider).deleteTransfer(id);
+    }
+  }
+
   Future<void> _deleteEntry(
     BuildContext context,
     WidgetRef ref,
@@ -264,8 +372,31 @@ class WorkScreen extends ConsumerWidget {
                                   .split(' ')
                                   .first,
                             ),
-                            trailing: Text(
-                              transfer.amount.minorUnits.toString(),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(transfer.amount.minorUnits.toString()),
+                                IconButton(
+                                  tooltip: strings.editRecord,
+                                  icon: const Icon(Icons.edit_outlined),
+                                  onPressed: () => _editTransfer(
+                                    context,
+                                    ref,
+                                    strings,
+                                    existing: transfer,
+                                  ),
+                                ),
+                                IconButton(
+                                  tooltip: strings.deleteRecord,
+                                  icon: const Icon(Icons.delete_outline),
+                                  onPressed: () => _deleteTransfer(
+                                    context,
+                                    ref,
+                                    strings,
+                                    transfer.id,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),

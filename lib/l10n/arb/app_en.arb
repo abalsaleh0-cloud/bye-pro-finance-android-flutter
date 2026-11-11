@@ -23,6 +23,8 @@
   "originalAmount": "Original amount",
   "outstandingAmount": "Outstanding amount",
   "counterparty": "Counterparty",
+  "addTransfer": "Add transfer to household",
+  "transferAmount": "Transfer amount",
   "transfers": "Transfers to household",
   "expenses": "Expenses",
   "entries": "Entries",

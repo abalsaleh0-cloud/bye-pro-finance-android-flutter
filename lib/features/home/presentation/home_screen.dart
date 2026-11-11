@@ -175,60 +175,98 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final strings = AppLocalizations.of(context)!;
     final expenses = ref.watch(homeExpensesProvider);
+    final transfers = ref.watch(workTransfersProvider);
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         onPressed: () => _editExpense(context, ref, strings),
         tooltip: strings.addExpense,
         child: const Icon(Icons.add),
       ),
-      body: expenses.when(
-        loading: () => Center(child: Text(strings.loading)),
-        error: (error, stackTrace) => Center(child: Text(strings.dataError)),
-        data: (items) => items.isEmpty
-            ? Center(child: Text(strings.noRecords))
-            : ListView.separated(
-                padding: const EdgeInsets.all(16),
-                itemCount: items.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 8),
-                itemBuilder: (context, index) {
-                  final expense = items[index];
-                  return Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.receipt_long_outlined),
-                      title: Text(expense.categoryId),
-                      subtitle: Text(
-                        '${strings.dueMonth}: ${expense.dueMonth}',
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(expense.amount.minorUnits.toString()),
-                          IconButton(
-                            tooltip: strings.editRecord,
-                            icon: const Icon(Icons.edit_outlined),
-                            onPressed: () => _editExpense(
-                              context,
-                              ref,
-                              strings,
-                              existing: expense,
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Text(strings.expenses, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 8),
+          expenses.when(
+            loading: () => Text(strings.loading),
+            error: (error, stackTrace) => Text(strings.dataError),
+            data: (items) => items.isEmpty
+                ? Text(strings.noRecords)
+                : Column(
+                    children: [
+                      for (final expense in items)
+                        Card(
+                          child: ListTile(
+                            leading: const Icon(Icons.receipt_long_outlined),
+                            title: Text(expense.categoryId),
+                            subtitle: Text(
+                              '${strings.dueMonth}: ${expense.dueMonth}',
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(expense.amount.minorUnits.toString()),
+                                IconButton(
+                                  tooltip: strings.editRecord,
+                                  icon: const Icon(Icons.edit_outlined),
+                                  onPressed: () => _editExpense(
+                                    context,
+                                    ref,
+                                    strings,
+                                    existing: expense,
+                                  ),
+                                ),
+                                IconButton(
+                                  tooltip: strings.deleteRecord,
+                                  icon: const Icon(Icons.delete_outline),
+                                  onPressed: () => _deleteExpense(
+                                    context,
+                                    ref,
+                                    strings,
+                                    expense.id,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          IconButton(
-                            tooltip: strings.deleteRecord,
-                            icon: const Icon(Icons.delete_outline),
-                            onPressed: () => _deleteExpense(
-                              context,
-                              ref,
-                              strings,
-                              expense.id,
+                        ),
+                    ],
+                  ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            strings.transfers,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          transfers.when(
+            loading: () => Text(strings.loading),
+            error: (error, stackTrace) => Text(strings.dataError),
+            data: (items) => items.isEmpty
+                ? Text(strings.noRecords)
+                : Column(
+                    children: [
+                      for (final transfer in items)
+                        Card(
+                          child: ListTile(
+                            leading: const Icon(Icons.swap_horiz),
+                            title: Text(strings.transfers),
+                            subtitle: Text(
+                              transfer.transferredAt
+                                  .toLocal()
+                                  .toString()
+                                  .split(' ')
+                                  .first,
+                            ),
+                            trailing: Text(
+                              transfer.amount.minorUnits.toString(),
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
+                        ),
+                    ],
+                  ),
+          ),
+        ],
       ),
     );
   }
