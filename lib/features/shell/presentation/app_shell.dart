@@ -3,11 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 class AppShell extends StatelessWidget {
-  const AppShell({
-    required this.location,
-    required this.child,
-    super.key,
-  });
+  const AppShell({required this.location, required this.child, super.key});
 
   final String location;
   final Widget child;

@@ -40,45 +40,33 @@ GoRouter createAppRouter() {
     initialLocation: '/dashboard',
     routes: [
       ShellRoute(
-        builder: (context, state, child) => AppShell(
-          location: state.uri.path,
-          child: child,
-        ),
+        builder: (context, state, child) =>
+            AppShell(location: state.uri.path, child: child),
         routes: [
           GoRoute(
             path: '/dashboard',
-            pageBuilder: (context, state) => _sectionPage(
-              state: state,
-              child: const DashboardScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                _sectionPage(state: state, child: const DashboardScreen()),
           ),
           GoRoute(
             path: '/work',
-            pageBuilder: (context, state) => _sectionPage(
-              state: state,
-              child: const WorkScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                _sectionPage(state: state, child: const WorkScreen()),
           ),
           GoRoute(
             path: '/home',
-            pageBuilder: (context, state) => _sectionPage(
-              state: state,
-              child: const HomeScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                _sectionPage(state: state, child: const HomeScreen()),
           ),
           GoRoute(
             path: '/debts',
-            pageBuilder: (context, state) => _sectionPage(
-              state: state,
-              child: const DebtsScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                _sectionPage(state: state, child: const DebtsScreen()),
           ),
           GoRoute(
             path: '/ai',
-            pageBuilder: (context, state) => _sectionPage(
-              state: state,
-              child: const AiScreen(),
-            ),
+            pageBuilder: (context, state) =>
+                _sectionPage(state: state, child: const AiScreen()),
           ),
         ],
       ),
