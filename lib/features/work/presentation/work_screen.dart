@@ -203,15 +203,22 @@ class WorkScreen extends ConsumerWidget {
                     return;
                   }
                   try {
-                    await ref.read(workRepositoryProvider).saveTransfer(
-                      WorkHomeTransfer(
-                        id: existing?.id ??
-                            DateTime.now().microsecondsSinceEpoch.toString(),
-                        amount: Money.fromMinorUnits(value),
-                        transferredAt: existing?.transferredAt ?? DateTime.now(),
-                        note: note.text.trim().isEmpty ? null : note.text.trim(),
-                      ),
-                    );
+                    await ref
+                        .read(workRepositoryProvider)
+                        .saveTransfer(
+                          WorkHomeTransfer(
+                            id:
+                                existing?.id ??
+                                DateTime.now().microsecondsSinceEpoch
+                                    .toString(),
+                            amount: Money.fromMinorUnits(value),
+                            transferredAt:
+                                existing?.transferredAt ?? DateTime.now(),
+                            note: note.text.trim().isEmpty
+                                ? null
+                                : note.text.trim(),
+                          ),
+                        );
                     if (dialogContext.mounted) Navigator.pop(dialogContext);
                   } catch (_) {
                     setDialogState(() => error = strings.invalidRecord);

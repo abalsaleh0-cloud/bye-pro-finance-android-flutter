@@ -44,5 +44,14 @@
   "note": "Note",
   "entryType": "Entry type",
   "debtDirection": "Debt direction",
-  "invalidRecord": "Check the entered values, amounts, and due month"
+  "invalidRecord": "Check the entered values, amounts, and due month",
+  "monthlyOverview": "Current month overview",
+  "workRecordsTotal": "Total work entries",
+  "salaryTotal": "Total salary",
+  "advancesTotal": "Total advances",
+  "paymentsTotal": "Total payments",
+  "homeExpensesTotal": "Total household expenses",
+  "transfersTotal": "Total transfers to household",
+  "creditorBalance": "Total owed to you",
+  "debtorBalance": "Total you owe"
 }

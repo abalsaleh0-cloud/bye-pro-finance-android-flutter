@@ -44,5 +44,14 @@
   "note": "ملاحظة",
   "entryType": "نوع السجل",
   "debtDirection": "نوع الدين",
-  "invalidRecord": "تحقق من البيانات المدخلة والمبالغ والشهر المستحق"
+  "invalidRecord": "تحقق من البيانات المدخلة والمبالغ والشهر المستحق",
+  "monthlyOverview": "ملخص الشهر الحالي",
+  "workRecordsTotal": "إجمالي سجلات العمل",
+  "salaryTotal": "إجمالي الرواتب",
+  "advancesTotal": "إجمالي السلف",
+  "paymentsTotal": "إجمالي الدفعات",
+  "homeExpensesTotal": "إجمالي مصروفات المنزل",
+  "transfersTotal": "إجمالي التحويلات إلى المنزل",
+  "creditorBalance": "إجمالي المبالغ المستحقة لك",
+  "debtorBalance": "إجمالي المبالغ المستحقة عليك"
 }

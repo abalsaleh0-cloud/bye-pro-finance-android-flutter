@@ -236,6 +236,18 @@ abstract class AppLocalizations {
   /// **'الطرف المعني'**
   String get counterparty;
 
+  /// No description provided for @addTransfer.
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة تحويل إلى المنزل'**
+  String get addTransfer;
+
+  /// No description provided for @transferAmount.
+  ///
+  /// In ar, this message translates to:
+  /// **'مبلغ التحويل'**
+  String get transferAmount;
+
   /// No description provided for @transfers.
   ///
   /// In ar, this message translates to:
@@ -355,6 +367,60 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'تحقق من البيانات المدخلة والمبالغ والشهر المستحق'**
   String get invalidRecord;
+
+  /// No description provided for @monthlyOverview.
+  ///
+  /// In ar, this message translates to:
+  /// **'ملخص الشهر الحالي'**
+  String get monthlyOverview;
+
+  /// No description provided for @workRecordsTotal.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي سجلات العمل'**
+  String get workRecordsTotal;
+
+  /// No description provided for @salaryTotal.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي الرواتب'**
+  String get salaryTotal;
+
+  /// No description provided for @advancesTotal.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي السلف'**
+  String get advancesTotal;
+
+  /// No description provided for @paymentsTotal.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي الدفعات'**
+  String get paymentsTotal;
+
+  /// No description provided for @homeExpensesTotal.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي مصروفات المنزل'**
+  String get homeExpensesTotal;
+
+  /// No description provided for @transfersTotal.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي التحويلات إلى المنزل'**
+  String get transfersTotal;
+
+  /// No description provided for @creditorBalance.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي المبالغ المستحقة لك'**
+  String get creditorBalance;
+
+  /// No description provided for @debtorBalance.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي المبالغ المستحقة عليك'**
+  String get debtorBalance;
 }
 
 class _AppLocalizationsDelegate
