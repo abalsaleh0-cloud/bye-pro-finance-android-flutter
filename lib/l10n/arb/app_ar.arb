@@ -10,5 +10,22 @@
   "darkTheme": "الوضع الداكن",
   "language": "اللغة",
   "arabic": "العربية",
-  "english": "الإنجليزية"
+  "english": "الإنجليزية",
+  "noRecords": "لا توجد سجلات بعد",
+  "amountMinorUnits": "المبلغ بأصغر وحدة نقدية",
+  "dueMonth": "الشهر المستحق",
+  "recordedAt": "تاريخ التسجيل",
+  "salary": "راتب",
+  "advance": "سلفة",
+  "payment": "دفعة",
+  "creditor": "دائن",
+  "debtor": "مدين",
+  "originalAmount": "المبلغ الأصلي",
+  "outstandingAmount": "المبلغ المتبقي",
+  "counterparty": "الطرف المعني",
+  "transfers": "التحويلات إلى المنزل",
+  "expenses": "المصروفات",
+  "entries": "السجلات",
+  "loading": "جارٍ التحميل",
+  "dataError": "تعذر تحميل البيانات"
 }

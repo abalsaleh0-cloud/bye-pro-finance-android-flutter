@@ -41,4 +41,55 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get english => 'English';
+
+  @override
+  String get noRecords => 'No records yet';
+
+  @override
+  String get amountMinorUnits => 'Amount in minor currency units';
+
+  @override
+  String get dueMonth => 'Due month';
+
+  @override
+  String get recordedAt => 'Recorded';
+
+  @override
+  String get salary => 'Salary';
+
+  @override
+  String get advance => 'Advance';
+
+  @override
+  String get payment => 'Payment';
+
+  @override
+  String get creditor => 'Creditor';
+
+  @override
+  String get debtor => 'Debtor';
+
+  @override
+  String get originalAmount => 'Original amount';
+
+  @override
+  String get outstandingAmount => 'Outstanding amount';
+
+  @override
+  String get counterparty => 'Counterparty';
+
+  @override
+  String get transfers => 'Transfers to household';
+
+  @override
+  String get expenses => 'Expenses';
+
+  @override
+  String get entries => 'Entries';
+
+  @override
+  String get loading => 'Loading';
+
+  @override
+  String get dataError => 'Unable to load data';
 }

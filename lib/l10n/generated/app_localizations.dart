@@ -163,6 +163,108 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'الإنجليزية'**
   String get english;
+
+  /// No description provided for @noRecords.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد سجلات بعد'**
+  String get noRecords;
+
+  /// No description provided for @amountMinorUnits.
+  ///
+  /// In ar, this message translates to:
+  /// **'المبلغ بأصغر وحدة نقدية'**
+  String get amountMinorUnits;
+
+  /// No description provided for @dueMonth.
+  ///
+  /// In ar, this message translates to:
+  /// **'الشهر المستحق'**
+  String get dueMonth;
+
+  /// No description provided for @recordedAt.
+  ///
+  /// In ar, this message translates to:
+  /// **'تاريخ التسجيل'**
+  String get recordedAt;
+
+  /// No description provided for @salary.
+  ///
+  /// In ar, this message translates to:
+  /// **'راتب'**
+  String get salary;
+
+  /// No description provided for @advance.
+  ///
+  /// In ar, this message translates to:
+  /// **'سلفة'**
+  String get advance;
+
+  /// No description provided for @payment.
+  ///
+  /// In ar, this message translates to:
+  /// **'دفعة'**
+  String get payment;
+
+  /// No description provided for @creditor.
+  ///
+  /// In ar, this message translates to:
+  /// **'دائن'**
+  String get creditor;
+
+  /// No description provided for @debtor.
+  ///
+  /// In ar, this message translates to:
+  /// **'مدين'**
+  String get debtor;
+
+  /// No description provided for @originalAmount.
+  ///
+  /// In ar, this message translates to:
+  /// **'المبلغ الأصلي'**
+  String get originalAmount;
+
+  /// No description provided for @outstandingAmount.
+  ///
+  /// In ar, this message translates to:
+  /// **'المبلغ المتبقي'**
+  String get outstandingAmount;
+
+  /// No description provided for @counterparty.
+  ///
+  /// In ar, this message translates to:
+  /// **'الطرف المعني'**
+  String get counterparty;
+
+  /// No description provided for @transfers.
+  ///
+  /// In ar, this message translates to:
+  /// **'التحويلات إلى المنزل'**
+  String get transfers;
+
+  /// No description provided for @expenses.
+  ///
+  /// In ar, this message translates to:
+  /// **'المصروفات'**
+  String get expenses;
+
+  /// No description provided for @entries.
+  ///
+  /// In ar, this message translates to:
+  /// **'السجلات'**
+  String get entries;
+
+  /// No description provided for @loading.
+  ///
+  /// In ar, this message translates to:
+  /// **'جارٍ التحميل'**
+  String get loading;
+
+  /// No description provided for @dataError.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذر تحميل البيانات'**
+  String get dataError;
 }
 
 class _AppLocalizationsDelegate
