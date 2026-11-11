@@ -98,13 +98,15 @@ void main() {
       dueMonth: MonthKey(year: 2026, month: 11),
     );
     await repository.save(original);
-    await repository.save(HomeExpense(
-      id: original.id,
-      amount: Money.fromMinorUnits(250),
-      categoryId: 'utilities',
-      expenseDate: DateTime.utc(2026, 11, 2),
-      dueMonth: MonthKey(year: 2026, month: 12),
-    ));
+    await repository.save(
+      HomeExpense(
+        id: original.id,
+        amount: Money.fromMinorUnits(250),
+        categoryId: 'utilities',
+        expenseDate: DateTime.utc(2026, 11, 2),
+        dueMonth: MonthKey(year: 2026, month: 12),
+      ),
+    );
     var rows = await database.select(database.homeExpenses).get();
     expect(rows, hasLength(1));
     expect(rows.single.amountMinorUnits, 250);
@@ -124,13 +126,15 @@ void main() {
       recordedAt: DateTime.utc(2026, 11, 1),
     );
     await repository.saveEntry(original);
-    await repository.saveEntry(WorkEntry(
-      id: original.id,
-      kind: WorkEntryKind.payment,
-      amount: Money.fromMinorUnits(750),
-      dueMonth: MonthKey(year: 2026, month: 12),
-      recordedAt: DateTime.utc(2026, 11, 2),
-    ));
+    await repository.saveEntry(
+      WorkEntry(
+        id: original.id,
+        kind: WorkEntryKind.payment,
+        amount: Money.fromMinorUnits(750),
+        dueMonth: MonthKey(year: 2026, month: 12),
+        recordedAt: DateTime.utc(2026, 11, 2),
+      ),
+    );
     var rows = await database.select(database.workEntries).get();
     expect(rows, hasLength(1));
     expect(rows.single.kind, 'payment');
@@ -152,15 +156,17 @@ void main() {
       counterparty: 'First',
     );
     await repository.save(original);
-    await repository.save(DebtEntry(
-      id: original.id,
-      direction: DebtDirection.creditor,
-      originalAmount: Money.fromMinorUnits(1200),
-      outstandingAmount: Money.fromMinorUnits(300),
-      dueMonth: MonthKey(year: 2026, month: 12),
-      createdAt: DateTime.utc(2026, 11, 2),
-      counterparty: 'Updated',
-    ));
+    await repository.save(
+      DebtEntry(
+        id: original.id,
+        direction: DebtDirection.creditor,
+        originalAmount: Money.fromMinorUnits(1200),
+        outstandingAmount: Money.fromMinorUnits(300),
+        dueMonth: MonthKey(year: 2026, month: 12),
+        createdAt: DateTime.utc(2026, 11, 2),
+        counterparty: 'Updated',
+      ),
+    );
     var rows = await database.select(database.debts).get();
     expect(rows, hasLength(1));
     expect(rows.single.direction, 'creditor');
@@ -170,5 +176,4 @@ void main() {
     await repository.delete(original.id);
     expect(await database.select(database.debts).get(), isEmpty);
   });
-
 }

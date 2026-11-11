@@ -23,7 +23,8 @@ class HomeScreen extends ConsumerWidget {
       text: _dateText(existing?.expenseDate ?? DateTime.now()),
     );
     final due = TextEditingController(
-      text: existing?.dueMonth.toString() ??
+      text:
+          existing?.dueMonth.toString() ??
           '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}',
     );
     final note = TextEditingController(text: existing?.note ?? '');
@@ -33,36 +34,88 @@ class HomeScreen extends ConsumerWidget {
         context: context,
         builder: (dialogContext) => StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
-            title: Text(existing == null ? strings.addExpense : strings.editRecord),
+            title: Text(
+              existing == null ? strings.addExpense : strings.editRecord,
+            ),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  TextField(controller: amount, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: strings.amountMinorUnits)),
-                  TextField(controller: category, decoration: InputDecoration(labelText: strings.category)),
-                  TextField(controller: date, decoration: InputDecoration(labelText: strings.expenseDate, hintText: 'YYYY-MM-DD')),
-                  TextField(controller: due, decoration: InputDecoration(labelText: strings.dueMonth, hintText: 'YYYY-MM')),
-                  TextField(controller: note, decoration: InputDecoration(labelText: strings.note)),
-                  if (error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(error!, style: TextStyle(color: Theme.of(context).colorScheme.error))),
+                  TextField(
+                    controller: amount,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: strings.amountMinorUnits,
+                    ),
+                  ),
+                  TextField(
+                    controller: category,
+                    decoration: InputDecoration(labelText: strings.category),
+                  ),
+                  TextField(
+                    controller: date,
+                    decoration: InputDecoration(
+                      labelText: strings.expenseDate,
+                      hintText: 'YYYY-MM-DD',
+                    ),
+                  ),
+                  TextField(
+                    controller: due,
+                    decoration: InputDecoration(
+                      labelText: strings.dueMonth,
+                      hintText: 'YYYY-MM',
+                    ),
+                  ),
+                  TextField(
+                    controller: note,
+                    decoration: InputDecoration(labelText: strings.note),
+                  ),
+                  if (error != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        error!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text(strings.cancel)),
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: Text(strings.cancel),
+              ),
               FilledButton(
                 onPressed: () async {
                   final parsedAmount = int.tryParse(amount.text.trim());
                   final parsedDate = DateTime.tryParse(date.text.trim());
                   final dueParts = due.text.trim().split('-');
-                  final year = dueParts.length == 2 ? int.tryParse(dueParts[0]) : null;
-                  final month = dueParts.length == 2 ? int.tryParse(dueParts[1]) : null;
-                  if (parsedAmount == null || parsedAmount <= 0 || category.text.trim().isEmpty || parsedDate == null || year == null || month == null || month < 1 || month > 12 || year < 1) {
+                  final year = dueParts.length == 2
+                      ? int.tryParse(dueParts[0])
+                      : null;
+                  final month = dueParts.length == 2
+                      ? int.tryParse(dueParts[1])
+                      : null;
+                  if (parsedAmount == null ||
+                      parsedAmount <= 0 ||
+                      category.text.trim().isEmpty ||
+                      parsedDate == null ||
+                      year == null ||
+                      month == null ||
+                      month < 1 ||
+                      month > 12 ||
+                      year < 1) {
                     setDialogState(() => error = strings.invalidRecord);
                     return;
                   }
                   try {
                     final expense = HomeExpense(
-                      id: existing?.id ?? DateTime.now().microsecondsSinceEpoch.toString(),
+                      id:
+                          existing?.id ??
+                          DateTime.now().microsecondsSinceEpoch.toString(),
                       amount: Money.fromMinorUnits(parsedAmount),
                       categoryId: category.text.trim(),
                       expenseDate: parsedDate,
@@ -90,15 +143,26 @@ class HomeScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _deleteExpense(BuildContext context, WidgetRef ref, AppLocalizations strings, String id) async {
+  Future<void> _deleteExpense(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations strings,
+    String id,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(strings.deleteRecord),
         content: Text(strings.confirmDelete),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(strings.cancel)),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: Text(strings.delete)),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(strings.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(strings.delete),
+          ),
         ],
       ),
     );
@@ -132,13 +196,33 @@ class HomeScreen extends ConsumerWidget {
                     child: ListTile(
                       leading: const Icon(Icons.receipt_long_outlined),
                       title: Text(expense.categoryId),
-                      subtitle: Text('${strings.dueMonth}: ${expense.dueMonth}'),
+                      subtitle: Text(
+                        '${strings.dueMonth}: ${expense.dueMonth}',
+                      ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(expense.amount.minorUnits.toString()),
-                          IconButton(tooltip: strings.editRecord, icon: const Icon(Icons.edit_outlined), onPressed: () => _editExpense(context, ref, strings, existing: expense)),
-                          IconButton(tooltip: strings.deleteRecord, icon: const Icon(Icons.delete_outline), onPressed: () => _deleteExpense(context, ref, strings, expense.id)),
+                          IconButton(
+                            tooltip: strings.editRecord,
+                            icon: const Icon(Icons.edit_outlined),
+                            onPressed: () => _editExpense(
+                              context,
+                              ref,
+                              strings,
+                              existing: expense,
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: strings.deleteRecord,
+                            icon: const Icon(Icons.delete_outline),
+                            onPressed: () => _deleteExpense(
+                              context,
+                              ref,
+                              strings,
+                              expense.id,
+                            ),
+                          ),
                         ],
                       ),
                     ),

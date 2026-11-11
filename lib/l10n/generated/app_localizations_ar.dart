@@ -92,4 +92,50 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get dataError => 'تعذر تحميل البيانات';
+
+  @override
+  String get addExpense => 'إضافة مصروف';
+
+  @override
+  String get addEntry => 'إضافة سجل عمل';
+
+  @override
+  String get addDebt => 'إضافة دين';
+
+  @override
+  String get editRecord => 'تعديل السجل';
+
+  @override
+  String get deleteRecord => 'حذف السجل';
+
+  @override
+  String get confirmDelete => 'هل أنت متأكد من حذف هذا السجل؟';
+
+  @override
+  String get delete => 'حذف';
+
+  @override
+  String get save => 'حفظ';
+
+  @override
+  String get cancel => 'إلغاء';
+
+  @override
+  String get category => 'التصنيف';
+
+  @override
+  String get expenseDate => 'تاريخ المصروف';
+
+  @override
+  String get note => 'ملاحظة';
+
+  @override
+  String get entryType => 'نوع السجل';
+
+  @override
+  String get debtDirection => 'نوع الدين';
+
+  @override
+  String get invalidRecord =>
+      'تحقق من البيانات المدخلة والمبالغ والشهر المستحق';
 }
