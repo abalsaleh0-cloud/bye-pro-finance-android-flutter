@@ -47,5 +47,5 @@ jobs:
           git add lib test
           if ! git diff --cached --quiet; then
             git commit -m "build: generate and format Drift database sources"
-            git push origin HEAD:feature/task-5-drift-database-foundation
+            git push origin "HEAD:${GITHUB_REF_NAME}"
           fi
