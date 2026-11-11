@@ -1,0 +1,14 @@
+{
+  "@@locale": "en",
+  "appName": "Expenses",
+  "dashboard": "Home",
+  "work": "Work",
+  "homeSection": "Household",
+  "debts": "Debts",
+  "ai": "AI Assistant",
+  "settings": "Settings",
+  "darkTheme": "Dark mode",
+  "language": "Language",
+  "arabic": "Arabic",
+  "english": "English"
+}
