@@ -92,4 +92,50 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dataError => 'Unable to load data';
+
+  @override
+  String get addExpense => 'Add expense';
+
+  @override
+  String get addEntry => 'Add work entry';
+
+  @override
+  String get addDebt => 'Add debt';
+
+  @override
+  String get editRecord => 'Edit record';
+
+  @override
+  String get deleteRecord => 'Delete record';
+
+  @override
+  String get confirmDelete => 'Are you sure you want to delete this record?';
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String get save => 'Save';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String get category => 'Category';
+
+  @override
+  String get expenseDate => 'Expense date';
+
+  @override
+  String get note => 'Note';
+
+  @override
+  String get entryType => 'Entry type';
+
+  @override
+  String get debtDirection => 'Debt direction';
+
+  @override
+  String get invalidRecord =>
+      'Check the entered values, amounts, and due month';
 }

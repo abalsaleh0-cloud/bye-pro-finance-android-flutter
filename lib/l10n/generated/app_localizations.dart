@@ -265,6 +265,96 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'تعذر تحميل البيانات'**
   String get dataError;
+
+  /// No description provided for @addExpense.
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة مصروف'**
+  String get addExpense;
+
+  /// No description provided for @addEntry.
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة سجل عمل'**
+  String get addEntry;
+
+  /// No description provided for @addDebt.
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة دين'**
+  String get addDebt;
+
+  /// No description provided for @editRecord.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعديل السجل'**
+  String get editRecord;
+
+  /// No description provided for @deleteRecord.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف السجل'**
+  String get deleteRecord;
+
+  /// No description provided for @confirmDelete.
+  ///
+  /// In ar, this message translates to:
+  /// **'هل أنت متأكد من حذف هذا السجل؟'**
+  String get confirmDelete;
+
+  /// No description provided for @delete.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف'**
+  String get delete;
+
+  /// No description provided for @save.
+  ///
+  /// In ar, this message translates to:
+  /// **'حفظ'**
+  String get save;
+
+  /// No description provided for @cancel.
+  ///
+  /// In ar, this message translates to:
+  /// **'إلغاء'**
+  String get cancel;
+
+  /// No description provided for @category.
+  ///
+  /// In ar, this message translates to:
+  /// **'التصنيف'**
+  String get category;
+
+  /// No description provided for @expenseDate.
+  ///
+  /// In ar, this message translates to:
+  /// **'تاريخ المصروف'**
+  String get expenseDate;
+
+  /// No description provided for @note.
+  ///
+  /// In ar, this message translates to:
+  /// **'ملاحظة'**
+  String get note;
+
+  /// No description provided for @entryType.
+  ///
+  /// In ar, this message translates to:
+  /// **'نوع السجل'**
+  String get entryType;
+
+  /// No description provided for @debtDirection.
+  ///
+  /// In ar, this message translates to:
+  /// **'نوع الدين'**
+  String get debtDirection;
+
+  /// No description provided for @invalidRecord.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحقق من البيانات المدخلة والمبالغ والشهر المستحق'**
+  String get invalidRecord;
 }
 
 class _AppLocalizationsDelegate

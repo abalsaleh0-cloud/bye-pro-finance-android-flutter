@@ -87,4 +87,93 @@ void main() {
     expect(rows.single.originalAmountMinorUnits, 9000);
     expect(rows.single.outstandingAmountMinorUnits, 4000);
   });
+
+  test('supports updating and deleting home expenses', () async {
+    final repository = HomeExpenseRepository(database);
+    final original = HomeExpense(
+      id: 'home-crud',
+      amount: Money.fromMinorUnits(100),
+      categoryId: 'food',
+      expenseDate: DateTime.utc(2026, 11, 1),
+      dueMonth: MonthKey(year: 2026, month: 11),
+    );
+    await repository.save(original);
+    await repository.save(
+      HomeExpense(
+        id: original.id,
+        amount: Money.fromMinorUnits(250),
+        categoryId: 'utilities',
+        expenseDate: DateTime.utc(2026, 11, 2),
+        dueMonth: MonthKey(year: 2026, month: 12),
+      ),
+    );
+    var rows = await database.select(database.homeExpenses).get();
+    expect(rows, hasLength(1));
+    expect(rows.single.amountMinorUnits, 250);
+    expect(rows.single.categoryId, 'utilities');
+    expect(rows.single.dueMonth, 12);
+    await repository.delete(original.id);
+    expect(await database.select(database.homeExpenses).get(), isEmpty);
+  });
+
+  test('supports updating and deleting work entries', () async {
+    final repository = WorkRepository(database);
+    final original = WorkEntry(
+      id: 'work-crud',
+      kind: WorkEntryKind.advance,
+      amount: Money.fromMinorUnits(500),
+      dueMonth: MonthKey(year: 2026, month: 11),
+      recordedAt: DateTime.utc(2026, 11, 1),
+    );
+    await repository.saveEntry(original);
+    await repository.saveEntry(
+      WorkEntry(
+        id: original.id,
+        kind: WorkEntryKind.payment,
+        amount: Money.fromMinorUnits(750),
+        dueMonth: MonthKey(year: 2026, month: 12),
+        recordedAt: DateTime.utc(2026, 11, 2),
+      ),
+    );
+    var rows = await database.select(database.workEntries).get();
+    expect(rows, hasLength(1));
+    expect(rows.single.kind, 'payment');
+    expect(rows.single.amountMinorUnits, 750);
+    expect(rows.single.dueMonth, 12);
+    await repository.deleteEntry(original.id);
+    expect(await database.select(database.workEntries).get(), isEmpty);
+  });
+
+  test('supports updating and deleting debts', () async {
+    final repository = DebtRepository(database);
+    final original = DebtEntry(
+      id: 'debt-crud',
+      direction: DebtDirection.debtor,
+      originalAmount: Money.fromMinorUnits(1000),
+      outstandingAmount: Money.fromMinorUnits(800),
+      dueMonth: MonthKey(year: 2026, month: 11),
+      createdAt: DateTime.utc(2026, 11, 1),
+      counterparty: 'First',
+    );
+    await repository.save(original);
+    await repository.save(
+      DebtEntry(
+        id: original.id,
+        direction: DebtDirection.creditor,
+        originalAmount: Money.fromMinorUnits(1200),
+        outstandingAmount: Money.fromMinorUnits(300),
+        dueMonth: MonthKey(year: 2026, month: 12),
+        createdAt: DateTime.utc(2026, 11, 2),
+        counterparty: 'Updated',
+      ),
+    );
+    var rows = await database.select(database.debts).get();
+    expect(rows, hasLength(1));
+    expect(rows.single.direction, 'creditor');
+    expect(rows.single.originalAmountMinorUnits, 1200);
+    expect(rows.single.outstandingAmountMinorUnits, 300);
+    expect(rows.single.counterparty, 'Updated');
+    await repository.delete(original.id);
+    expect(await database.select(database.debts).get(), isEmpty);
+  });
 }
