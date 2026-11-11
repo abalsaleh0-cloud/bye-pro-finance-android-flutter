@@ -10,6 +10,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: flutter-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
     runs-on: ubuntu-24.04
@@ -27,17 +31,18 @@ jobs:
           cache: true
       - run: flutter pub get
       - name: Generate Drift database code
-        run: dart run build_runner build --delete-conflicting-outputs
-      - run: dart format --output=none --set-exit-if-changed .
+        run: dart run build_runner build
+      - name: Format Dart sources
+        run: dart format .
       - run: flutter analyze
       - run: flutter test
-      - name: Commit generated Drift code
+      - name: Commit generated and formatted sources
         if: github.event_name == 'push' && github.ref == 'refs/heads/feature/task-5-drift-database-foundation'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add lib/core/database/app_database.g.dart
+          git add lib test
           if ! git diff --cached --quiet; then
-            git commit -m "build: generate Drift database code"
-            git push origin feature/task-5-drift-database-foundation
+            git commit -m "build: generate and format Drift database sources"
+            git push origin HEAD:feature/task-5-drift-database-foundation
           fi
