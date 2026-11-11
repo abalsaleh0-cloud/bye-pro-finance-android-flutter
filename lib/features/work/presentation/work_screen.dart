@@ -31,10 +31,14 @@ class WorkScreen extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<WorkEntryKind>(
-                  value: kind,
+                  initialValue: kind,
                   decoration: InputDecoration(labelText: strings.entryType),
                   items: WorkEntryKind.values.map((value) => DropdownMenuItem(value: value, child: Text(_kindLabel(strings, value)))).toList(),
-                  onChanged: (value) { if (value != null) setDialogState(() => kind = value); },
+                  onChanged: (value) {
+                    if (value != null) {
+                      setDialogState(() => kind = value);
+                    }
+                  },
                 ),
                 TextField(controller: amount, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: strings.amountMinorUnits)),
                 TextField(controller: due, decoration: InputDecoration(labelText: strings.dueMonth, hintText: 'YYYY-MM')),
@@ -93,7 +97,9 @@ class WorkScreen extends ConsumerWidget {
         ],
       ),
     );
-    if (confirmed == true) await ref.read(workRepositoryProvider).deleteEntry(id);
+    if (confirmed == true) {
+      await ref.read(workRepositoryProvider).deleteEntry(id);
+    }
   }
 
   @override
