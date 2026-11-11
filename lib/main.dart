@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 
 void main() {
@@ -50,7 +51,12 @@ class _MyAppState extends State<MyApp> {
       ),
       locale: _locale,
       supportedLocales: AppLocalizations.supportedLocales,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ],
       home: HomeShell(
         themeMode: _themeMode,
         locale: _locale,
