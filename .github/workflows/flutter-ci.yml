@@ -9,6 +9,7 @@ on:
       - feature/task-7-financial-crud
       - feature/task-8-work-home-transfers
       - feature/task-9-monthly-dashboard
+      - feature/task-10-debt-payment-history
   pull_request:
 
 permissions:
