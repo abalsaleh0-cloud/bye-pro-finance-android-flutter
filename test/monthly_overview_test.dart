@@ -8,7 +8,7 @@ import 'package:expense_app/features/work/domain/work_home_transfer.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  const month = MonthKey(year: 2026, month: 11);
+  final month = MonthKey(year: 2026, month: 11);
 
   test('calculates month-scoped work, home and transfer totals', () {
     final overview = MonthlyOverview.calculate(
