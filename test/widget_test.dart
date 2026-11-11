@@ -8,6 +8,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await tester.pumpAndSettle();
 
     expect(find.text('الرئيسية'), findsWidgets);
     expect(find.byType(NavigationDestination), findsNWidgets(5));
