@@ -15,7 +15,11 @@ final class HomeExpense {
       throw ArgumentError.value(id, 'id', 'ID cannot be empty.');
     }
     if (amount.isZero) {
-      throw ArgumentError.value(amount, 'amount', 'Amount must be greater than zero.');
+      throw ArgumentError.value(
+        amount,
+        'amount',
+        'Amount must be greater than zero.',
+      );
     }
     if (categoryId.trim().isEmpty) {
       throw ArgumentError.value(
