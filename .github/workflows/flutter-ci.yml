@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - feature/task-5-drift-database-foundation
+      - feature/task-6-financial-ui-integration
   pull_request:
 
 permissions:
@@ -30,6 +31,8 @@ jobs:
           flutter-version: 3.50.0
           cache: true
       - run: flutter pub get
+      - name: Generate localization sources
+        run: flutter gen-l10n
       - name: Generate Drift database code
         run: dart run build_runner build
       - name: Format Dart sources
@@ -37,7 +40,7 @@ jobs:
       - run: flutter analyze
       - run: flutter test
       - name: Commit generated and formatted sources
-        if: github.event_name == 'push' && github.ref == 'refs/heads/feature/task-5-drift-database-foundation'
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/feature/task-')
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
