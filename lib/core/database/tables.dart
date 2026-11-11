@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 /// Home expenses are stored once and assigned to their due month.
+@DataClassName('HomeExpenseRow')
 class HomeExpenses extends Table {
   TextColumn get id => text()();
   IntColumn get amountMinorUnits => integer()();
@@ -15,6 +16,7 @@ class HomeExpenses extends Table {
 }
 
 /// Work income records. The monthly remainder is derived, never persisted.
+@DataClassName('WorkEntryRow')
 class WorkEntries extends Table {
   TextColumn get id => text()();
   TextColumn get kind => text()();
@@ -29,6 +31,7 @@ class WorkEntries extends Table {
 }
 
 /// A single row represents a work-to-home transfer on both sides.
+@DataClassName('WorkHomeTransferRow')
 class WorkHomeTransfers extends Table {
   TextColumn get id => text()();
   IntColumn get amountMinorUnits => integer()();
@@ -40,6 +43,7 @@ class WorkHomeTransfers extends Table {
 }
 
 /// Outstanding debt is kept as an integer amount in the smallest unit.
+@DataClassName('DebtRow')
 class Debts extends Table {
   TextColumn get id => text()();
   TextColumn get direction => text()();
