@@ -27,5 +27,20 @@
   "expenses": "Expenses",
   "entries": "Entries",
   "loading": "Loading",
-  "dataError": "Unable to load data"
+  "dataError": "Unable to load data",
+  "addExpense": "Add expense",
+  "addEntry": "Add work entry",
+  "addDebt": "Add debt",
+  "editRecord": "Edit record",
+  "deleteRecord": "Delete record",
+  "confirmDelete": "Are you sure you want to delete this record?",
+  "delete": "Delete",
+  "save": "Save",
+  "cancel": "Cancel",
+  "category": "Category",
+  "expenseDate": "Expense date",
+  "note": "Note",
+  "entryType": "Entry type",
+  "debtDirection": "Debt direction",
+  "invalidRecord": "Check the entered values, amounts, and due month"
 }
