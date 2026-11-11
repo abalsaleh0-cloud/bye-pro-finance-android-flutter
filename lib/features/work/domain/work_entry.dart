@@ -15,18 +15,10 @@ final class WorkEntry {
     this.note,
   }) {
     if (id.trim().isEmpty) {
-      throw ArgumentError.value(
-        id,
-        'id',
-        'ID cannot be empty.',
-      );
+      throw ArgumentError.value(id, 'id', 'ID cannot be empty.');
     }
     if (amount.isZero) {
-      throw ArgumentError.value(
-        amount,
-        'amount',
-        'Amount must be greater than zero.',
-      );
+      throw ArgumentError.value(amount, 'amount', 'Amount must be greater than zero.');
     }
   }
 
