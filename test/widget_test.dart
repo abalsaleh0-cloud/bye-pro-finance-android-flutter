@@ -30,7 +30,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('language-selector')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('English').last);
+    await tester.tap(find.text('الإنجليزية').last);
     await tester.pumpAndSettle();
 
     expect(find.text('Settings'), findsOneWidget);
