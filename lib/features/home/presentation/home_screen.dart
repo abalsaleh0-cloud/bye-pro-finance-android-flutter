@@ -185,7 +185,10 @@ class HomeScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text(strings.expenses, style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            strings.expenses,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: 8),
           expenses.when(
             loading: () => Text(strings.loading),

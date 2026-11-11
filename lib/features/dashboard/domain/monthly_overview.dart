@@ -54,7 +54,9 @@ final class MonthlyOverview {
     }
 
     var homeTotal = Money.zero;
-    for (final expense in homeExpenses.where((item) => item.dueMonth == month)) {
+    for (final expense in homeExpenses.where(
+      (item) => item.dueMonth == month,
+    )) {
       homeTotal += expense.amount;
     }
 

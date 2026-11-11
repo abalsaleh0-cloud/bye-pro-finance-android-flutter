@@ -79,6 +79,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get counterparty => 'Counterparty';
 
   @override
+  String get addTransfer => 'Add transfer to household';
+
+  @override
+  String get transferAmount => 'Transfer amount';
+
+  @override
   String get transfers => 'Transfers to household';
 
   @override
@@ -138,4 +144,31 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get invalidRecord =>
       'Check the entered values, amounts, and due month';
+
+  @override
+  String get monthlyOverview => 'Current month overview';
+
+  @override
+  String get workRecordsTotal => 'Total work entries';
+
+  @override
+  String get salaryTotal => 'Total salary';
+
+  @override
+  String get advancesTotal => 'Total advances';
+
+  @override
+  String get paymentsTotal => 'Total payments';
+
+  @override
+  String get homeExpensesTotal => 'Total household expenses';
+
+  @override
+  String get transfersTotal => 'Total transfers to household';
+
+  @override
+  String get creditorBalance => 'Total owed to you';
+
+  @override
+  String get debtorBalance => 'Total you owe';
 }

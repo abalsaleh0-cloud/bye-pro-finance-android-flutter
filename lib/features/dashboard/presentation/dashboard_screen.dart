@@ -16,10 +16,16 @@ class DashboardScreen extends ConsumerWidget {
     final transfers = ref.watch(workTransfersProvider);
     final debts = ref.watch(debtsProvider);
 
-    if (work.isLoading || home.isLoading || transfers.isLoading || debts.isLoading) {
+    if (work.isLoading ||
+        home.isLoading ||
+        transfers.isLoading ||
+        debts.isLoading) {
       return Scaffold(body: Center(child: Text(strings.loading)));
     }
-    if (work.hasError || home.hasError || transfers.hasError || debts.hasError) {
+    if (work.hasError ||
+        home.hasError ||
+        transfers.hasError ||
+        debts.hasError) {
       return Scaffold(body: Center(child: Text(strings.dataError)));
     }
 
@@ -37,19 +43,46 @@ class DashboardScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text(strings.monthlyOverview, style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            strings.monthlyOverview,
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 4),
-          Text(month.toString(), style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            month.toString(),
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
           const SizedBox(height: 12),
-          _summaryCard(context, strings.workRecordsTotal, overview.workRecordsTotal.minorUnits, [
-            (strings.salaryTotal, overview.salary.minorUnits),
-            (strings.advancesTotal, overview.advances.minorUnits),
-            (strings.paymentsTotal, overview.payments.minorUnits),
-          ]),
-          _summaryCard(context, strings.homeExpensesTotal, overview.homeExpenses.minorUnits),
-          _summaryCard(context, strings.transfersTotal, overview.transfers.minorUnits),
-          _summaryCard(context, strings.creditorBalance, overview.creditorBalance.minorUnits),
-          _summaryCard(context, strings.debtorBalance, overview.debtorBalance.minorUnits),
+          _summaryCard(
+            context,
+            strings.workRecordsTotal,
+            overview.workRecordsTotal.minorUnits,
+            [
+              (strings.salaryTotal, overview.salary.minorUnits),
+              (strings.advancesTotal, overview.advances.minorUnits),
+              (strings.paymentsTotal, overview.payments.minorUnits),
+            ],
+          ),
+          _summaryCard(
+            context,
+            strings.homeExpensesTotal,
+            overview.homeExpenses.minorUnits,
+          ),
+          _summaryCard(
+            context,
+            strings.transfersTotal,
+            overview.transfers.minorUnits,
+          ),
+          _summaryCard(
+            context,
+            strings.creditorBalance,
+            overview.creditorBalance.minorUnits,
+          ),
+          _summaryCard(
+            context,
+            strings.debtorBalance,
+            overview.debtorBalance.minorUnits,
+          ),
         ],
       ),
     );
@@ -58,9 +91,9 @@ class DashboardScreen extends ConsumerWidget {
   Widget _summaryCard(
     BuildContext context,
     String title,
-    int amount,
-    [List<(String, int)> details = const []]
-  ) {
+    int amount, [
+    List<(String, int)> details = const [],
+  ]) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -69,7 +102,10 @@ class DashboardScreen extends ConsumerWidget {
           children: [
             Text(title, style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 6),
-            Text(amount.toString(), style: Theme.of(context).textTheme.headlineSmall),
+            Text(
+              amount.toString(),
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
             for (final detail in details)
               ListTile(
                 dense: true,

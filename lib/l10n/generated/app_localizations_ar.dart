@@ -79,6 +79,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get counterparty => 'الطرف المعني';
 
   @override
+  String get addTransfer => 'إضافة تحويل إلى المنزل';
+
+  @override
+  String get transferAmount => 'مبلغ التحويل';
+
+  @override
   String get transfers => 'التحويلات إلى المنزل';
 
   @override
@@ -138,4 +144,31 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get invalidRecord =>
       'تحقق من البيانات المدخلة والمبالغ والشهر المستحق';
+
+  @override
+  String get monthlyOverview => 'ملخص الشهر الحالي';
+
+  @override
+  String get workRecordsTotal => 'إجمالي سجلات العمل';
+
+  @override
+  String get salaryTotal => 'إجمالي الرواتب';
+
+  @override
+  String get advancesTotal => 'إجمالي السلف';
+
+  @override
+  String get paymentsTotal => 'إجمالي الدفعات';
+
+  @override
+  String get homeExpensesTotal => 'إجمالي مصروفات المنزل';
+
+  @override
+  String get transfersTotal => 'إجمالي التحويلات إلى المنزل';
+
+  @override
+  String get creditorBalance => 'إجمالي المبالغ المستحقة لك';
+
+  @override
+  String get debtorBalance => 'إجمالي المبالغ المستحقة عليك';
 }
