@@ -53,5 +53,10 @@
   "homeExpensesTotal": "Total household expenses",
   "transfersTotal": "Total transfers to household",
   "creditorBalance": "Total owed to you",
-  "debtorBalance": "Total you owe"
+  "debtorBalance": "Total you owe",
+  "recordDebtPayment": "Record payment",
+  "paymentHistory": "Payment history",
+  "paidAt": "Paid at",
+  "paymentAmount": "Payment amount",
+  "settled": "Fully settled"
 }
