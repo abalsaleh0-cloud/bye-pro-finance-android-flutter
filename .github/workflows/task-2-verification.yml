@@ -1,0 +1,41 @@
+name: Task 2 verification
+
+on:
+  push:
+    branches:
+      - feature/task-2-app-architecture
+    paths:
+      - .github/workflows/task-2-verification.yml
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: subosito/flutter-action@v2
+        env:
+          FLUTTER_STORAGE_BASE_URL: https://storage.flutter-io.cn
+        with:
+          channel: stable
+          flutter-version: 3.50.0
+          cache: true
+      - run: flutter pub get
+      - name: Format Dart sources
+        run: dart format .
+      - name: Commit formatting
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib test
+          if ! git diff --cached --quiet; then
+            git commit -m "style: format task 2 sources"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+      - run: flutter analyze
+      - run: flutter test
