@@ -2,10 +2,18 @@
 final class MonthKey implements Comparable<MonthKey> {
   MonthKey({required this.year, required this.month}) {
     if (year < 1 || year > 9999) {
-      throw ArgumentError.value(year, 'year', 'Year must be between 1 and 9999.');
+      throw ArgumentError.value(
+        year,
+        'year',
+        'Year must be between 1 and 9999.',
+      );
     }
     if (month < 1 || month > 12) {
-      throw ArgumentError.value(month, 'month', 'Month must be between 1 and 12.');
+      throw ArgumentError.value(
+        month,
+        'month',
+        'Month must be between 1 and 12.',
+      );
     }
   }
 
