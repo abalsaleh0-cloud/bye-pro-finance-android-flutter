@@ -28,3 +28,16 @@ class AppDatabase extends _$AppDatabase {
     },
   );
 }
+
+/// Immutable payment history linked to a debt.
+@DataClassName('DebtPaymentRow')
+class DebtPayments extends Table {
+  TextColumn get id => text()();
+  TextColumn get debtId =>
+      text().references(Debts, #id, onDelete: KeyAction.cascade)();
+  IntColumn get amountMinorUnits => integer()();
+  IntColumn get paidAtEpochMillis => integer()();
+  TextColumn get note => text().nullable()();
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
