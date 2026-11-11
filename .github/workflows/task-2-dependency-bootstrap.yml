@@ -1,4 +1,4 @@
-name: Task 2 dependency bootstrap
+name: Task 2 dependency bootstrap and validation
 
 on:
   push:
