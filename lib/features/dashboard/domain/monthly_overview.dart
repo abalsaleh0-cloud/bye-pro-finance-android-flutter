@@ -43,10 +43,13 @@ final class MonthlyOverview {
       switch (entry.kind) {
         case WorkEntryKind.salary:
           salary += entry.amount;
+          break;
         case WorkEntryKind.advance:
           advances += entry.amount;
+          break;
         case WorkEntryKind.payment:
           payments += entry.amount;
+          break;
       }
     }
 
