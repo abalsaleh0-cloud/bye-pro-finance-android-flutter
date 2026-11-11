@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
-import 'package:expense_app/core/database/app_database.dart';
+import 'package:expense_app/core/database/app_database.dart'
+    show AppDatabase, DebtsCompanion, DebtRow;
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/features/debts/domain/debt_entry.dart';
@@ -42,12 +43,9 @@ final class DebtRepository {
         id: row.id,
         direction: DebtDirection.values.byName(row.direction),
         originalAmount: Money.fromMinorUnits(row.originalAmountMinorUnits),
-        outstandingAmount:
-            Money.fromMinorUnits(row.outstandingAmountMinorUnits),
+        outstandingAmount: Money.fromMinorUnits(row.outstandingAmountMinorUnits),
         dueMonth: MonthKey(year: row.dueYear, month: row.dueMonth),
-        createdAt: DateTime.fromMillisecondsSinceEpoch(
-          row.createdAtEpochMillis,
-        ),
+        createdAt: DateTime.fromMillisecondsSinceEpoch(row.createdAtEpochMillis),
         counterparty: row.counterparty,
         note: row.note,
       );
