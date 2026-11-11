@@ -3,7 +3,11 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 class AppShell extends StatelessWidget {
-  const AppShell({required this.location, required this.child, super.key});
+  const AppShell({
+    required this.location,
+    required this.child,
+    super.key,
+  });
 
   final String location;
   final Widget child;
@@ -45,22 +49,7 @@ class AppShell extends StatelessWidget {
           ),
         ],
       ),
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 240),
-        switchInCurve: Curves.easeOutCubic,
-        switchOutCurve: Curves.easeInCubic,
-        transitionBuilder: (child, animation) {
-          final offset = Tween<Offset>(
-            begin: const Offset(0.035, 0),
-            end: Offset.zero,
-          ).animate(animation);
-          return FadeTransition(
-            opacity: animation,
-            child: SlideTransition(position: offset, child: child),
-          );
-        },
-        child: KeyedSubtree(key: ValueKey(location), child: child),
-      ),
+      body: child,
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) => context.go(_paths[index]),
