@@ -54,7 +54,9 @@ class DebtsScreen extends ConsumerWidget {
                       ),
                     ],
                     onChanged: (value) {
-                      if (value != null) setDialogState(() => direction = value);
+                      if (value != null) {
+                        setDialogState(() => direction = value);
+                      }
                     },
                   ),
                   TextField(
