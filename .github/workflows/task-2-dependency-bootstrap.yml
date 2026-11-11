@@ -1,0 +1,41 @@
+name: Task 2 dependency bootstrap
+
+on:
+  push:
+    branches:
+      - feature/task-2-app-architecture
+    paths:
+      - .github/workflows/task-2-dependency-bootstrap.yml
+
+permissions:
+  contents: write
+
+jobs:
+  add-approved-dependencies:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: subosito/flutter-action@v2
+        env:
+          FLUTTER_STORAGE_BASE_URL: https://storage.flutter-io.cn
+        with:
+          channel: stable
+          flutter-version: 3.50.0
+          cache: true
+      - name: Add approved packages with Flutter Pub
+        run: flutter pub add flutter_riverpod go_router
+      - name: Commit dependency resolution
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pubspec.yaml pubspec.lock
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: add Riverpod and GoRouter dependencies"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+      - run: dart format --output=none --set-exit-if-changed .
+      - run: flutter analyze
+      - run: flutter test
