@@ -7,6 +7,8 @@ on:
       - feature/task-5-drift-database-foundation
       - feature/task-6-financial-ui-integration
       - feature/task-7-financial-crud
+      - feature/task-8-work-home-transfers
+      - feature/task-9-monthly-dashboard
   pull_request:
 
 permissions:
