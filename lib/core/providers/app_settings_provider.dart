@@ -35,5 +35,5 @@ class AppSettingsController extends Notifier<AppSettings> {
 
 final appSettingsProvider =
     NotifierProvider<AppSettingsController, AppSettings>(
-  AppSettingsController.new,
-);
+      AppSettingsController.new,
+    );

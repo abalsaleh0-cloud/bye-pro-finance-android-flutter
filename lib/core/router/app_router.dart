@@ -19,10 +19,8 @@ GoRouter createAppRouter() {
     initialLocation: '/dashboard',
     routes: [
       ShellRoute(
-        builder: (context, state, child) => AppShell(
-          location: state.uri.path,
-          child: child,
-        ),
+        builder: (context, state, child) =>
+            AppShell(location: state.uri.path, child: child),
         routes: [
           GoRoute(
             path: '/dashboard',
@@ -40,10 +38,7 @@ GoRouter createAppRouter() {
             path: '/debts',
             builder: (context, state) => const DebtsScreen(),
           ),
-          GoRoute(
-            path: '/ai',
-            builder: (context, state) => const AiScreen(),
-          ),
+          GoRoute(path: '/ai', builder: (context, state) => const AiScreen()),
         ],
       ),
       GoRoute(

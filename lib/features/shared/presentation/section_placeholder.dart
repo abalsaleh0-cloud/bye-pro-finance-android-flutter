@@ -16,11 +16,7 @@ class SectionPlaceholder extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 42,
-            color: Theme.of(context).colorScheme.outline,
-          ),
+          Icon(icon, size: 42, color: Theme.of(context).colorScheme.outline),
           const SizedBox(height: 12),
           Text(title, style: Theme.of(context).textTheme.titleMedium),
         ],

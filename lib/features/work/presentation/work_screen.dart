@@ -8,9 +8,6 @@ class WorkScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
-    return SectionPlaceholder(
-      icon: Icons.work_outline,
-      title: strings.work,
-    );
+    return SectionPlaceholder(icon: Icons.work_outline, title: strings.work);
   }
 }
