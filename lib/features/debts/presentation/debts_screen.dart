@@ -35,9 +35,7 @@ class DebtsScreen extends ConsumerWidget {
                   '${strings.dueMonth}: ${debt.dueMonth} | '
                   '${strings.originalAmount}: ${debt.originalAmount.minorUnits}',
                 ),
-                trailing: Text(
-                  debt.outstandingAmount.minorUnits.toString(),
-                ),
+                trailing: Text(debt.outstandingAmount.minorUnits.toString()),
               ),
             );
           },

@@ -41,4 +41,55 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get english => 'الإنجليزية';
+
+  @override
+  String get noRecords => 'لا توجد سجلات بعد';
+
+  @override
+  String get amountMinorUnits => 'المبلغ بأصغر وحدة نقدية';
+
+  @override
+  String get dueMonth => 'الشهر المستحق';
+
+  @override
+  String get recordedAt => 'تاريخ التسجيل';
+
+  @override
+  String get salary => 'راتب';
+
+  @override
+  String get advance => 'سلفة';
+
+  @override
+  String get payment => 'دفعة';
+
+  @override
+  String get creditor => 'دائن';
+
+  @override
+  String get debtor => 'مدين';
+
+  @override
+  String get originalAmount => 'المبلغ الأصلي';
+
+  @override
+  String get outstandingAmount => 'المبلغ المتبقي';
+
+  @override
+  String get counterparty => 'الطرف المعني';
+
+  @override
+  String get transfers => 'التحويلات إلى المنزل';
+
+  @override
+  String get expenses => 'المصروفات';
+
+  @override
+  String get entries => 'السجلات';
+
+  @override
+  String get loading => 'جارٍ التحميل';
+
+  @override
+  String get dataError => 'تعذر تحميل البيانات';
 }

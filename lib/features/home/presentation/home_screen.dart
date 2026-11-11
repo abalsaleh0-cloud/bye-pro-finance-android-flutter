@@ -27,9 +27,7 @@ class HomeScreen extends ConsumerWidget {
               child: ListTile(
                 leading: const Icon(Icons.receipt_long_outlined),
                 title: Text(expense.categoryId),
-                subtitle: Text(
-                  '${strings.dueMonth}: ${expense.dueMonth}',
-                ),
+                subtitle: Text('${strings.dueMonth}: ${expense.dueMonth}'),
                 trailing: Text(expense.amount.minorUnits.toString()),
               ),
             );

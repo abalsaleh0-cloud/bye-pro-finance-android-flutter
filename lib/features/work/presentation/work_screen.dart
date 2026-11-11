@@ -48,10 +48,7 @@ class WorkScreen extends ConsumerWidget {
                 ),
         ),
         const SizedBox(height: 20),
-        Text(
-          strings.transfers,
-          style: Theme.of(context).textTheme.titleMedium,
-        ),
+        Text(strings.transfers, style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         transfers.when(
           loading: () => Text(strings.loading),
@@ -66,7 +63,11 @@ class WorkScreen extends ConsumerWidget {
                           leading: const Icon(Icons.swap_horiz),
                           title: Text(strings.transfers),
                           subtitle: Text(
-                            transfer.transferredAt.toLocal().toString().split(' ').first,
+                            transfer.transferredAt
+                                .toLocal()
+                                .toString()
+                                .split(' ')
+                                .first,
                           ),
                           trailing: Text(transfer.amount.minorUnits.toString()),
                         ),
