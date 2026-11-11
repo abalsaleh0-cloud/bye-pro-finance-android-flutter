@@ -1,6 +1,5 @@
 import 'package:drift/drift.dart';
 
-/// Home expenses are stored once and assigned to their due month.
 @DataClassName('HomeExpenseRow')
 class HomeExpenses extends Table {
   TextColumn get id => text()();
@@ -10,12 +9,10 @@ class HomeExpenses extends Table {
   IntColumn get dueYear => integer()();
   IntColumn get dueMonth => integer()();
   TextColumn get note => text().nullable()();
-
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
 
-/// Work income records. The monthly remainder is derived, never persisted.
 @DataClassName('WorkEntryRow')
 class WorkEntries extends Table {
   TextColumn get id => text()();
@@ -25,24 +22,20 @@ class WorkEntries extends Table {
   IntColumn get dueMonth => integer()();
   IntColumn get recordedAtEpochMillis => integer()();
   TextColumn get note => text().nullable()();
-
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
 
-/// A single row represents a work-to-home transfer on both sides.
 @DataClassName('WorkHomeTransferRow')
 class WorkHomeTransfers extends Table {
   TextColumn get id => text()();
   IntColumn get amountMinorUnits => integer()();
   IntColumn get transferredAtEpochMillis => integer()();
   TextColumn get note => text().nullable()();
-
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
 
-/// Outstanding debt is kept as an integer amount in the smallest unit.
 @DataClassName('DebtRow')
 class Debts extends Table {
   TextColumn get id => text()();
@@ -54,7 +47,19 @@ class Debts extends Table {
   IntColumn get createdAtEpochMillis => integer()();
   TextColumn get counterparty => text()();
   TextColumn get note => text().nullable()();
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
 
+/// Immutable payment history linked to a debt.
+@DataClassName('DebtPaymentRow')
+class DebtPayments extends Table {
+  TextColumn get id => text()();
+  TextColumn get debtId =>
+      text().references(Debts, #id, onDelete: KeyAction.cascade)();
+  IntColumn get amountMinorUnits => integer()();
+  IntColumn get paidAtEpochMillis => integer()();
+  TextColumn get note => text().nullable()();
   @override
   Set<Column<Object>> get primaryKey => {id};
 }
