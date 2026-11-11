@@ -7,6 +7,7 @@ import 'package:expense_app/features/shell/presentation/app_shell.dart';
 import 'package:expense_app/features/work/presentation/work_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final router = createAppRouter();
@@ -14,31 +15,71 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   return router;
 });
 
+CustomTransitionPage<void> _sectionPage({
+  required GoRouterState state,
+  required Widget child,
+}) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final offset = Tween<Offset>(
+        begin: const Offset(0.025, 0),
+        end: Offset.zero,
+      ).animate(animation);
+      return FadeTransition(
+        opacity: animation,
+        child: SlideTransition(position: offset, child: child),
+      );
+    },
+  );
+}
+
 GoRouter createAppRouter() {
   return GoRouter(
     initialLocation: '/dashboard',
     routes: [
       ShellRoute(
-        builder: (context, state, child) =>
-            AppShell(location: state.uri.path, child: child),
+        builder: (context, state, child) => AppShell(
+          location: state.uri.path,
+          child: child,
+        ),
         routes: [
           GoRoute(
             path: '/dashboard',
-            builder: (context, state) => const DashboardScreen(),
+            pageBuilder: (context, state) => _sectionPage(
+              state: state,
+              child: const DashboardScreen(),
+            ),
           ),
           GoRoute(
             path: '/work',
-            builder: (context, state) => const WorkScreen(),
+            pageBuilder: (context, state) => _sectionPage(
+              state: state,
+              child: const WorkScreen(),
+            ),
           ),
           GoRoute(
             path: '/home',
-            builder: (context, state) => const HomeScreen(),
+            pageBuilder: (context, state) => _sectionPage(
+              state: state,
+              child: const HomeScreen(),
+            ),
           ),
           GoRoute(
             path: '/debts',
-            builder: (context, state) => const DebtsScreen(),
+            pageBuilder: (context, state) => _sectionPage(
+              state: state,
+              child: const DebtsScreen(),
+            ),
           ),
-          GoRoute(path: '/ai', builder: (context, state) => const AiScreen()),
+          GoRoute(
+            path: '/ai',
+            pageBuilder: (context, state) => _sectionPage(
+              state: state,
+              child: const AiScreen(),
+            ),
+          ),
         ],
       ),
       GoRoute(
