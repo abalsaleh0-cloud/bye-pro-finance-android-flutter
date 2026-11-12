@@ -17,6 +17,8 @@ final class MonthlyOverview {
     required this.transfers,
     required this.creditorBalance,
     required this.debtorBalance,
+    required this.previousWorkOutstandingMinorUnits,
+    required this.totalWorkOutstandingMinorUnits,
   });
 
   final MonthKey month;
@@ -27,6 +29,8 @@ final class MonthlyOverview {
   final Money transfers;
   final Money creditorBalance;
   final Money debtorBalance;
+  final int previousWorkOutstandingMinorUnits;
+  final int totalWorkOutstandingMinorUnits;
 
   Money get workRecordsTotal => salary + advances + payments;
 
@@ -61,9 +65,8 @@ final class MonthlyOverview {
       }
     }
 
-    payments = Money.fromMinorUnits(
-      WorkBalanceAllocation.calculate(entries).paymentsFor(month),
-    );
+    final allocation = WorkBalanceAllocation.calculate(entries);
+    payments = Money.fromMinorUnits(allocation.paymentsFor(month));
 
     var homeTotal = Money.zero;
     for (final expense in homeExpenses.where(
@@ -99,6 +102,8 @@ final class MonthlyOverview {
       transfers: transferTotal,
       creditorBalance: creditor,
       debtorBalance: debtor,
+      previousWorkOutstandingMinorUnits: allocation.outstandingBefore(month),
+      totalWorkOutstandingMinorUnits: allocation.outstandingThrough(month),
     );
   }
 }
