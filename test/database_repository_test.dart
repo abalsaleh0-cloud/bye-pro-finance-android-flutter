@@ -356,6 +356,73 @@ void main() {
     expect(await database.select(database.workHomeTransfers).get(), isEmpty);
   });
 
+  test('editing a bill preserves its payment history', () async {
+    await WorkRepository(database).saveTransfer(
+      WorkHomeTransfer(
+        id: 'bill-edit-funding',
+        amount: Money.fromMinorUnits(2000),
+        transferredAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
+    final repository = HomeBillRepository(database);
+    final original = HomeBill(
+      id: 'bill-edit-history',
+      title: 'Internet',
+      kind: HomeBillKind.monthly,
+      amount: Money.fromMinorUnits(800),
+      dueMonth: MonthKey(year: 2026, month: 11),
+      note: 'Original note',
+    );
+    await repository.saveBill(original);
+    await repository.recordPayment(
+      HomeBillPayment(
+        id: 'bill-edit-payment-1',
+        billId: original.id,
+        amount: Money.fromMinorUnits(300),
+        paidAt: DateTime.utc(2026, 11, 10),
+        note: 'First partial payment',
+      ),
+    );
+
+    await repository.saveBill(
+      HomeBill(
+        id: original.id,
+        title: 'Internet updated',
+        kind: HomeBillKind.monthly,
+        amount: Money.fromMinorUnits(900),
+        dueMonth: MonthKey(year: 2026, month: 12),
+        note: 'Updated note',
+      ),
+    );
+
+    final updated = (await repository.getBills()).single;
+    final payments = await repository.paymentsFor(original.id);
+    expect(updated.title, 'Internet updated');
+    expect(updated.amount.minorUnits, 900);
+    expect(updated.dueMonth, MonthKey(year: 2026, month: 12));
+    expect(updated.paidMinorUnits, 300);
+    expect(updated.remainingMinorUnits, 600);
+    expect(payments, hasLength(1));
+    expect(payments.single.id, 'bill-edit-payment-1');
+    expect(payments.single.amount.minorUnits, 300);
+    expect(payments.single.note, 'First partial payment');
+
+    await expectLater(
+      repository.saveBill(
+        HomeBill(
+          id: original.id,
+          title: 'Internet updated',
+          kind: HomeBillKind.monthly,
+          amount: Money.fromMinorUnits(299),
+          dueMonth: MonthKey(year: 2026, month: 12),
+        ),
+      ),
+      throwsArgumentError,
+    );
+    expect(await repository.paymentsFor(original.id), hasLength(1));
+    expect((await repository.getBills()).single.amount.minorUnits, 900);
+  });
+
   test('monthly bills remain obligations until payments are made', () async {
     await WorkRepository(database).saveTransfer(
       WorkHomeTransfer(
