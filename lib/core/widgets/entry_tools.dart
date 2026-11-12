@@ -68,7 +68,8 @@ Future<String?> showAmountCalculator(
               onPressed: () {
                 final a = BigInt.tryParse(first.text.trim());
                 final b = BigInt.tryParse(second.text.trim());
-                if (a == null || b == null || (operation == '÷' && b == BigInt.zero)) {
+                if (a == null || b == null ||
+                    (operation == '÷' && (b == BigInt.zero || a.remainder(b) != BigInt.zero))) {
                   setState(() {
                     result = null;
                     error = strings.invalidCalculation;
@@ -117,6 +118,9 @@ Widget calculatorSuffix(
     if (value != null) controller.text = value;
   },
 );
+
+String formatCalendarDate(DateTime value) =>
+    '${value.year}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
 
 Widget calendarSuffix(
   BuildContext context,
