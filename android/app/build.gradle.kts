@@ -20,6 +20,32 @@ val releaseStoreFile = releaseSigningValue("KEYSTORE_PATH", "storeFile")
 val releaseStorePassword = releaseSigningValue("KEYSTORE_PASSWORD", "storePassword")
 val releaseKeyPassword = releaseSigningValue("KEY_PASSWORD", "keyPassword")
 val releaseKeyAlias = releaseSigningValue("KEY_ALIAS", "keyAlias")
+val releaseSigningConfigured = listOf(
+    releaseStoreFile,
+    releaseStorePassword,
+    releaseKeyPassword,
+    releaseKeyAlias,
+).all { !it.isNullOrBlank() }
+
+val validateReleaseSigning = tasks.register("validateReleaseSigning") {
+    doLast {
+        if (!releaseSigningConfigured) {
+            throw GradleException(
+                "Release signing is not configured. Set KEYSTORE_PATH, KEYSTORE_PASSWORD, KEY_PASSWORD, and KEY_ALIAS environment variables, or configure android/key.properties."
+            )
+        }
+        val storePath = requireNotNull(releaseStoreFile)
+        if (!file(storePath).isFile) {
+            throw GradleException("Release keystore file does not exist at the configured KEYSTORE_PATH/storeFile.")
+        }
+    }
+}
+
+tasks.configureEach {
+    if (name == "assembleRelease" || name == "bundleRelease") {
+        dependsOn(validateReleaseSigning)
+    }
+}
 
 android {
     namespace = "com.example.expense_app"
@@ -39,28 +65,22 @@ android {
         versionName = flutter.versionName
     }
 
-    signingConfigs {
-        create("release") {
-            if (
-                releaseStoreFile.isNullOrBlank() ||
-                releaseStorePassword.isNullOrBlank() ||
-                releaseKeyPassword.isNullOrBlank() ||
-                releaseKeyAlias.isNullOrBlank()
-            ) {
-                throw GradleException(
-                    "Release signing is not configured. Set KEYSTORE_PATH, KEYSTORE_PASSWORD, KEY_PASSWORD, and KEY_ALIAS environment variables, or configure android/key.properties."
-                )
+    if (releaseSigningConfigured) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(requireNotNull(releaseStoreFile))
+                storePassword = requireNotNull(releaseStorePassword)
+                keyPassword = requireNotNull(releaseKeyPassword)
+                keyAlias = requireNotNull(releaseKeyAlias)
             }
-            storeFile = file(releaseStoreFile)
-            storePassword = releaseStorePassword
-            keyPassword = releaseKeyPassword
-            keyAlias = releaseKeyAlias
         }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("release")
+            if (releaseSigningConfigured) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 }
