@@ -197,7 +197,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gemmaModelManagement => 'Gemma model management';
 
   @override
-  String get gemmaModelDetails => 'Gemma 4 E2B · 2.59 GB · Requires at least 8 GB device memory. Wi-Fi is recommended.';
+  String get gemmaModelDetails => 'Gemma 4 E2B · 2.59 GB model file · Stored in app data, not inside the APK. Requires at least 8 GB device memory.';
 
   @override
   String get gemmaNotDownloaded => 'Model not downloaded';
@@ -215,7 +215,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gemmaDownloadModel => 'Download model';
 
   @override
-  String get gemmaResumeDownload => 'Resume / retry download';
+  String get gemmaResumeDownload => 'Retry download';
 
   @override
   String get gemmaCancelDownload => 'Cancel download';
@@ -224,13 +224,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gemmaDeleteModel => 'Delete model';
 
   @override
-  String get gemmaDownloadResumeNote => 'A retry may restart from the beginning; the Hugging Face CDN does not guarantee byte-range resume.';
+  String get gemmaDownloadResumeNote => 'The download runs in the background with a notification. If interrupted, retrying may start from the beginning; the Hugging Face CDN does not support partial resume.';
 
   @override
   String get gemmaWifiTitle => 'Download warning';
 
   @override
-  String get gemmaWifiWarning => 'The model is about 2.59 GB. Use Wi-Fi, a stable connection, and sufficient free storage; keep the app open while downloading.';
+  String get gemmaWifiWarning => 'The model file is about 2.59 GB. Use Wi-Fi and ensure enough free storage. The download runs in the background with a phone notification, so you can turn off the screen. If interrupted, it may restart from the beginning because the Hugging Face server does not support partial resume.';
 
 
 }
