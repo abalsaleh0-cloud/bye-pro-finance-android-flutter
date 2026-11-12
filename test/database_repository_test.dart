@@ -396,6 +396,15 @@ void main() {
         transferredAt: DateTime.utc(2026, 11, 1),
       ),
     );
+    await HomeExpenseRepository(database).save(
+      HomeExpense(
+        id: 'rent-test-daily-expense',
+        amount: Money.fromMinorUnits(500),
+        categoryId: 'food',
+        expenseDate: DateTime.utc(2026, 11, 2),
+        dueMonth: MonthKey(year: 2026, month: 11),
+      ),
+    );
     final repository = HomeBillRepository(database);
     final rent = HomeBill(
       id: 'rent-november',
@@ -418,7 +427,7 @@ void main() {
         HomeBillPayment(
           id: 'rent-payment-2',
           billId: rent.id,
-          amount: Money.fromMinorUnits(601),
+          amount: Money.fromMinorUnits(101),
           paidAt: DateTime.utc(2026, 11, 12),
         ),
       ),
