@@ -1,6 +1,7 @@
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
+import 'package:expense_app/features/home/data/home_expense_repository.dart';
 import 'package:expense_app/features/home/domain/home_expense.dart';
 import 'package:expense_app/features/work/domain/work_home_transfer.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
@@ -145,6 +146,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     );
                     await ref.read(homeExpenseRepositoryProvider).save(expense);
                     if (dialogContext.mounted) Navigator.pop(dialogContext);
+                  } on InsufficientHomeBalanceException catch (exception) {
+                    setDialogState(
+                      () => error = strings.insufficientHomeBalance(
+                        exception.availableMinorUnits.toString(),
+                        exception.requestedMinorUnits.toString(),
+                      ),
+                    );
                   } catch (_) {
                     setDialogState(() => error = strings.invalidRecord);
                   }
@@ -206,6 +214,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final date = item.transferredAt.toLocal();
       return date.year == now.year && date.month == now.month;
     }).fold<int>(0, (sum, item) => sum + item.amount.minorUnits);
+    final lifetimeExpenses = expenses.fold<int>(
+      0,
+      (sum, item) => sum + item.amount.minorUnits,
+    );
+    final lifetimeTransfers = transfers.fold<int>(
+      0,
+      (sum, item) => sum + item.amount.minorUnits,
+    );
+    final availableBalance = lifetimeTransfers - lifetimeExpenses;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -217,6 +235,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             Row(children: [Expanded(child: Text(strings.totalExpenses)), Text(expenseTotal.toString())]),
             const SizedBox(height: 6),
             Row(children: [Expanded(child: Text(strings.receivedFromWork)), Text(transferTotal.toString())]),
+            const Divider(height: 20),
+            Row(
+              children: [
+                Expanded(child: Text(strings.homeAvailableBalance)),
+                Text(
+                  availableBalance.toString(),
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ],
+            ),
           ],
         ),
       ),

@@ -82,5 +82,13 @@
   "totalExpenses": "إجمالي المصروفات",
   "totalCreditor": "إجمالي الدائن",
   "totalDebtor": "إجمالي المدين",
-  "currentMonth": "الشهر الحالي"
+  "currentMonth": "الشهر الحالي",
+  "homeAvailableBalance": "الرصيد المتاح في المنزل",
+  "insufficientHomeBalance": "الرصيد غير كافٍ. المتاح: {available}، المطلوب: {requested}",
+  "@insufficientHomeBalance": {
+    "placeholders": {
+      "available": {},
+      "requested": {}
+    }
+  }
 }

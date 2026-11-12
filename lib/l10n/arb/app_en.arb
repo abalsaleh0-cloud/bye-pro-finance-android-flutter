@@ -82,5 +82,13 @@
   "totalExpenses": "Total expenses",
   "totalCreditor": "Total creditor balance",
   "totalDebtor": "Total debtor balance",
-  "currentMonth": "Current month"
+  "currentMonth": "Current month",
+  "homeAvailableBalance": "Available household balance",
+  "insufficientHomeBalance": "Insufficient balance. Available: {available}; requested: {requested}",
+  "@insufficientHomeBalance": {
+    "placeholders": {
+      "available": {},
+      "requested": {}
+    }
+  }
 }

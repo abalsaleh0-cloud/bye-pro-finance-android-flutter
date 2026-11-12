@@ -141,6 +141,7 @@ void main() {
     });
 
     test('creates and undoes home expense', () async {
+      await registry.execute('save_work_home_transfer', {'amountMinorUnits':500});
       final result = await registry.execute('save_home_expense', {
         'amountMinorUnits':250,'categoryId':'food','date':'2026-11-12',
         'year':2026,'month':11,
@@ -151,6 +152,7 @@ void main() {
     });
 
     test('deletes and undoes home expense', () async {
+      await registry.execute('save_work_home_transfer', {'amountMinorUnits':500});
       await registry.execute('save_home_expense', {
         'amountMinorUnits':250,'categoryId':'food','date':'2026-11-12',
         'year':2026,'month':11,'id':'h1',
