@@ -15,6 +15,11 @@ final class WorkBalanceAllocation {
 
   int remainingFor(MonthKey month) => _remainingByMonth[month] ?? 0;
 
+  int outstandingFor(MonthKey month) {
+    final remaining = remainingFor(month);
+    return remaining > 0 ? remaining : 0;
+  }
+
   int outstandingBefore(MonthKey month) => _remainingByMonth.entries
       .where((entry) => entry.key.compareTo(month) < 0 && entry.value > 0)
       .fold(0, (total, entry) => total + entry.value);
