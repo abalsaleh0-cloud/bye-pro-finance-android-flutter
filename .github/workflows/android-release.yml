@@ -1,0 +1,97 @@
+name: Android Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-release:
+    name: Build signed Android APK
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        env:
+          FLUTTER_STORAGE_BASE_URL: https://storage.flutter-io.cn
+        with:
+          channel: stable
+          flutter-version: 3.50.0
+          cache: true
+
+      - name: Restore and validate release keystore
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEYSTORE_PATH: ${{ runner.temp }}/bye-pro-release-keystore.jks
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${KEYSTORE_BASE64:-}" || -z "${KEYSTORE_PASSWORD:-}" || -z "${KEY_PASSWORD:-}" || -z "${KEY_ALIAS:-}" ]]; then
+            echo "::error::Android release signing secrets are missing. Configure KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_PASSWORD, and KEY_ALIAS."
+            exit 1
+          fi
+
+          if ! printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"; then
+            echo "::error::The Base64 keystore secret could not be decoded."
+            exit 1
+          fi
+
+          chmod 600 "$KEYSTORE_PATH"
+
+          if [[ ! -s "$KEYSTORE_PATH" ]]; then
+            echo "::error::The decoded keystore file is empty."
+            exit 1
+          fi
+
+          if ! keytool -list -keystore "$KEYSTORE_PATH" -storepass "$KEYSTORE_PASSWORD" -alias "$KEY_ALIAS" > /dev/null 2>&1; then
+            echo "::error::The keystore is invalid, the password is incorrect, or the configured alias does not exist."
+            exit 1
+          fi
+
+          echo "Release keystore and alias validated successfully."
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate localization sources
+        run: flutter gen-l10n
+
+      - name: Generate Drift database code
+        run: dart run build_runner build
+
+      - name: Format Dart sources
+        run: dart format .
+
+      - name: Analyze Dart sources
+        run: flutter analyze
+
+      - name: Run Flutter tests
+        run: flutter test
+
+      - name: Build signed release APK
+        shell: bash
+        env:
+          KEYSTORE_PATH: ${{ runner.temp }}/bye-pro-release-keystore.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          flutter build apk --release --build-number=${{ github.run_number }}
+
+      - name: Upload release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: bye-pro-finance-android-${{ github.run_number }}
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 30

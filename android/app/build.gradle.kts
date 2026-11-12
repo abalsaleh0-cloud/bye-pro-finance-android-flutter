@@ -1,7 +1,50 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+val releaseSigningProperties = Properties()
+val releaseSigningPropertiesFile = rootProject.file("key.properties")
+if (releaseSigningPropertiesFile.exists()) {
+    releaseSigningPropertiesFile.inputStream().use(releaseSigningProperties::load)
+}
+
+fun releaseSigningValue(environmentName: String, propertiesName: String): String? =
+    System.getenv(environmentName)?.takeIf { it.isNotBlank() }
+        ?: releaseSigningProperties.getProperty(propertiesName)?.takeIf { it.isNotBlank() }
+
+val releaseStoreFile = releaseSigningValue("KEYSTORE_PATH", "storeFile")
+val releaseStorePassword = releaseSigningValue("KEYSTORE_PASSWORD", "storePassword")
+val releaseKeyPassword = releaseSigningValue("KEY_PASSWORD", "keyPassword")
+val releaseKeyAlias = releaseSigningValue("KEY_ALIAS", "keyAlias")
+val releaseSigningConfigured = listOf(
+    releaseStoreFile,
+    releaseStorePassword,
+    releaseKeyPassword,
+    releaseKeyAlias,
+).all { !it.isNullOrBlank() }
+
+val validateReleaseSigning = tasks.register("validateReleaseSigning") {
+    doLast {
+        if (!releaseSigningConfigured) {
+            throw GradleException(
+                "Release signing is not configured. Set KEYSTORE_PATH, KEYSTORE_PASSWORD, KEY_PASSWORD, and KEY_ALIAS environment variables, or configure android/key.properties."
+            )
+        }
+        val storePath = requireNotNull(releaseStoreFile)
+        if (!file(storePath).isFile) {
+            throw GradleException("Release keystore file does not exist at the configured KEYSTORE_PATH/storeFile.")
+        }
+    }
+}
+
+tasks.configureEach {
+    if (name == "assembleRelease" || name == "bundleRelease") {
+        dependsOn(validateReleaseSigning)
+    }
 }
 
 android {
@@ -15,25 +58,29 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.expense_app"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+        applicationId = "com.byepro.bye_pro_finance"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
-        // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
-        // You can force using the value of versionCode by specifying the `-P force-version-code-ignoring-abi=true`
-        // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
+    if (releaseSigningConfigured) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(requireNotNull(releaseStoreFile))
+                storePassword = requireNotNull(releaseStorePassword)
+                keyPassword = requireNotNull(releaseKeyPassword)
+                keyAlias = requireNotNull(releaseKeyAlias)
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            if (releaseSigningConfigured) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 }
