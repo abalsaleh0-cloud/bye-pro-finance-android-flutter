@@ -1,3 +1,5 @@
+// ignore_for_file: curly_braces_in_flow_control_structures, prefer_interpolation_to_compose_strings
+
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/features/ai/domain/action_registry.dart';
 import 'package:expense_app/features/ai/domain/assistant_engine.dart';
