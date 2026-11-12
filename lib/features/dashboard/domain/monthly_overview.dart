@@ -36,6 +36,12 @@ final class MonthlyOverview {
 
   Money get workRecordsTotal => salary + advances + payments;
 
+  int get currentSalaryOutstandingMinorUnits {
+    final remaining =
+        salary.minorUnits - advances.minorUnits - salaryPaymentsApplied.minorUnits;
+    return remaining > 0 ? remaining : 0;
+  }
+
   /// Remaining work amount; a negative value represents an overdrawn balance.
   int get workRemainingMinorUnits =>
       salary.minorUnits -
