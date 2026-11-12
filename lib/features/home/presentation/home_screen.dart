@@ -6,8 +6,28 @@ import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
-class HomeScreen extends ConsumerWidget {
-  const HomeScreen({super.key});
+class HomeScreen extends ConsumerStatefulWidget {
+  const HomeScreen({super.key, this.openManualEntry = false});
+
+  final bool openManualEntry;
+
+  @override
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  bool _manualEntryOpened = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (widget.openManualEntry && !_manualEntryOpened) {
+      _manualEntryOpened = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _editExpense(context, ref, AppLocalizations.of(context)!);
+      });
+    }
+  }
 
   Future<void> _editExpense(
     BuildContext context,
@@ -172,7 +192,7 @@ class HomeScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
     final expenses = ref.watch(homeExpensesProvider);
     final transfers = ref.watch(workTransfersProvider);
