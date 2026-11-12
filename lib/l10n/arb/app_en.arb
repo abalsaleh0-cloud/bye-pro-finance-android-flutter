@@ -58,5 +58,22 @@
   "paymentHistory": "Payment history",
   "paidAt": "Paid at",
   "paymentAmount": "Payment amount",
-  "settled": "Fully settled"
+  "settled": "Fully settled",
+  "assistantHint": "Write a request… e.g. Add salary 1500 for 2026-11",
+  "assistantSend": "Send",
+  "assistantWelcome": "Describe a record or ask a question. No financial write happens before your approval.",
+  "assistantReview": "Review the operation details before execution.",
+  "assistantNotUnderstood": "I didn't understand. Nothing was saved. You can open manual entry.",
+  "assistantConfirm": "Confirm operation",
+  "assistantSection": "Section",
+  "assistantOperation": "Operation",
+  "assistantAmount": "Amount",
+  "assistantMonth": "Month",
+  "assistantDate": "Date",
+  "assistantApprove": "Approve and execute",
+  "assistantUndo": "Undo last operation",
+  "assistantUndone": "The operation was undone.",
+  "assistantUndoFailed": "Unable to undo the operation.",
+  "assistantManual": "Open manual entry",
+  "assistantRead": "Read-only query"
 }
