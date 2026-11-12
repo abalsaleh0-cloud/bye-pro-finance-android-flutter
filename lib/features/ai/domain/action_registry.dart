@@ -1,3 +1,5 @@
+// ignore_for_file: curly_braces_in_flow_control_structures, prefer_interpolation_to_compose_strings, prefer_initializing_formals
+
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/features/work/data/work_repository.dart';
@@ -79,7 +81,7 @@ final class ActionRegistry {
         WorkEntry? old; for(final e in all) { if(e.id == id) old=e; }
         final item = WorkEntry(id:id, kind:WorkEntryKind.values.byName(p['kind']! as String), amount:Money.fromMinorUnits(p['amountMinorUnits']! as int), dueMonth:MonthKey(year:p['year']! as int,month:p['month']! as int), recordedAt:old?.recordedAt ?? DateTime.now(),note:p['note'] as String?);
         await _work.saveEntry(item);
-        return ActionExecution(message:'تم حفظ سجل العمل',undo:() async { if(old==null) { await _work.deleteEntry(id); } else { await _work.saveEntry(old); } });
+        return ActionExecution(message:'تم حفظ سجل العمل',undo:() async { if(old==null) { await _work.deleteEntry(id); } else { await _work.saveEntry(old!); } });
       case 'delete_work_entry':
         final all=await _work.watchEntries().first; WorkEntry? old; for(final e in all) { if(e.id==p['id']) old=e; }
         if(old==null) throw StateError('Work entry not found'); await _work.deleteEntry(old.id);
@@ -87,14 +89,14 @@ final class ActionRegistry {
       case 'save_home_expense':
         final id=p['id'] as String? ?? _id(); final all=await _home.watchAll().first; HomeExpense? old; for(final e in all) { if(e.id==id) old=e; }
         final item=HomeExpense(id:id,amount:Money.fromMinorUnits(p['amountMinorUnits']! as int),categoryId:p['categoryId']! as String,expenseDate:DateTime.parse(p['date']! as String),dueMonth:MonthKey(year:p['year']! as int,month:p['month']! as int),note:p['note'] as String?);
-        await _home.save(item); return ActionExecution(message:'تم حفظ مصروف المنزل',undo:() async { if(old==null) { await _home.delete(id); } else { await _home.save(old); } });
+        await _home.save(item); return ActionExecution(message:'تم حفظ مصروف المنزل',undo:() async { if(old==null) { await _home.delete(id); } else { await _home.save(old!); } });
       case 'delete_home_expense':
         final all=await _home.watchAll().first; HomeExpense? old; for(final e in all) { if(e.id==p['id']) old=e; }
         if(old==null) throw StateError('Home expense not found'); await _home.delete(old.id); return ActionExecution(message:'تم حذف مصروف المنزل',undo:()=>_home.save(old));
       case 'save_work_home_transfer':
         final id=p['id'] as String? ?? _id(); final all=await _work.watchTransfers().first; WorkHomeTransfer? old; for(final e in all) { if(e.id==id) old=e; }
         final item=WorkHomeTransfer(id:id,amount:Money.fromMinorUnits(p['amountMinorUnits']! as int),transferredAt:p['date'] is String ? DateTime.parse(p['date']! as String) : DateTime.now(),note:p['note'] as String?);
-        await _work.saveTransfer(item); return ActionExecution(message:'تم تسجيل التحويل إلى المنزل',undo:() async { if(old==null) { await _work.deleteTransfer(id); } else { await _work.saveTransfer(old); } });
+        await _work.saveTransfer(item); return ActionExecution(message:'تم تسجيل التحويل إلى المنزل',undo:() async { if(old==null) { await _work.deleteTransfer(id); } else { await _work.saveTransfer(old!); } });
       case 'delete_work_home_transfer':
         final all=await _work.watchTransfers().first; WorkHomeTransfer? old; for(final e in all) { if(e.id==p['id']) old=e; }
         if(old==null) throw StateError('Transfer not found'); await _work.deleteTransfer(old.id); return ActionExecution(message:'تم حذف التحويل',undo:()=>_work.saveTransfer(old));
@@ -102,11 +104,11 @@ final class ActionRegistry {
         final id=p['id'] as String? ?? _id(); final all=await _debts.watchAll().first; DebtEntry? old; for(final e in all) { if(e.id==id) old=e; }
         final amount=Money.fromMinorUnits(p['amountMinorUnits']! as int);
         final item=DebtEntry(id:id,direction:DebtDirection.values.byName(p['direction']! as String),originalAmount:amount,outstandingAmount:old?.outstandingAmount ?? amount,dueMonth:MonthKey(year:p['year']! as int,month:p['month']! as int),createdAt:old?.createdAt ?? DateTime.now(),counterparty:p['counterparty']! as String,note:p['note'] as String?);
-        await _debts.save(item); return ActionExecution(message:'تم حفظ الدين',undo:() async { if(old==null) { await _debts.delete(id); } else { await _debts.save(old); } });
+        await _debts.save(item); return ActionExecution(message:'تم حفظ الدين',undo:() async { if(old==null) { await _debts.delete(id); } else { await _debts.save(old!); } });
       case 'delete_debt':
         final all=await _debts.watchAll().first; DebtEntry? old; for(final e in all) { if(e.id==p['id']) old=e; }
         if(old==null) throw StateError('Debt not found'); final payments=await _debts.watchPayments(old.id).first; await _debts.delete(old.id);
-        return ActionExecution(message:'تم حذف الدين',undo:() async { await _debts.restoreDebt(old,payments); });
+        return ActionExecution(message:'تم حذف الدين',undo:() async { await _debts.restoreDebt(old!,payments); });
       case 'record_debt_payment':
         final payment=DebtPayment(id:_id(),debtId:p['debtId']! as String,amount:Money.fromMinorUnits(p['amountMinorUnits']! as int),paidAt:DateTime.now(),note:p['note'] as String?);
         await _debts.recordPayment(payment); return ActionExecution(message:'تم تسجيل دفعة الدين',undo:()=>_debts.undoPayment(payment.id));
