@@ -51,17 +51,17 @@ GoRouter createAppRouter() {
           GoRoute(
             path: '/work',
             pageBuilder: (context, state) =>
-                _sectionPage(state: state, child: const WorkScreen()),
+                _sectionPage(state: state, child: WorkScreen(openManualEntry: state.extra == true)),
           ),
           GoRoute(
             path: '/home',
             pageBuilder: (context, state) =>
-                _sectionPage(state: state, child: const HomeScreen()),
+                _sectionPage(state: state, child: HomeScreen(openManualEntry: state.extra == true)),
           ),
           GoRoute(
             path: '/debts',
             pageBuilder: (context, state) =>
-                _sectionPage(state: state, child: const DebtsScreen()),
+                _sectionPage(state: state, child: DebtsScreen(openManualEntry: state.extra == true)),
           ),
           GoRoute(
             path: '/ai',

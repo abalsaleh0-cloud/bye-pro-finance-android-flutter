@@ -85,6 +85,60 @@ final class DebtRepository {
     _database.debts,
   )..where((row) => row.id.equals(id))).go();
 
+  /// Restores a deleted debt together with its immutable payment history.
+  Future<void> restoreDebt(DebtEntry debt, List<DebtPayment> payments) {
+    return _database.transaction(() async {
+      await _database.into(_database.debts).insert(
+        DebtsCompanion.insert(
+          id: debt.id,
+          direction: debt.direction.name,
+          originalAmountMinorUnits: debt.originalAmount.minorUnits,
+          outstandingAmountMinorUnits: debt.outstandingAmount.minorUnits,
+          dueYear: debt.dueMonth.year,
+          dueMonth: debt.dueMonth.month,
+          createdAtEpochMillis: debt.createdAt.millisecondsSinceEpoch,
+          counterparty: debt.counterparty,
+          note: Value(debt.note),
+        ),
+      );
+      for (final payment in payments) {
+        await _database.into(_database.debtPayments).insert(
+          DebtPaymentsCompanion.insert(
+            id: payment.id,
+            debtId: payment.debtId,
+            amountMinorUnits: payment.amount.minorUnits,
+            paidAtEpochMillis: payment.paidAt.millisecondsSinceEpoch,
+            note: Value(payment.note),
+          ),
+        );
+      }
+    });
+  }
+
+  /// Reverts a recorded payment and restores its amount atomically.
+  Future<void> undoPayment(String paymentId) {
+    return _database.transaction(() async {
+      final payment = await (_database.select(_database.debtPayments)
+            ..where((row) => row.id.equals(paymentId)))
+          .getSingleOrNull();
+      if (payment == null) throw StateError('Payment not found: $paymentId');
+      final debt = await (_database.select(_database.debts)
+            ..where((row) => row.id.equals(payment.debtId)))
+          .getSingleOrNull();
+      if (debt == null) throw StateError('Debt not found: ${payment.debtId}');
+      await (_database.delete(_database.debtPayments)
+            ..where((row) => row.id.equals(paymentId)))
+          .go();
+      await (_database.update(_database.debts)
+            ..where((row) => row.id.equals(payment.debtId)))
+          .write(DebtsCompanion(
+        outstandingAmountMinorUnits: Value(
+          debt.outstandingAmountMinorUnits + payment.amountMinorUnits,
+        ),
+      ));
+    });
+  }
+
   DebtEntry _toDomain(DebtRow row) => DebtEntry(
     id: row.id,
     direction: DebtDirection.values.byName(row.direction),
