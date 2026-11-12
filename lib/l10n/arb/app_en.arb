@@ -128,7 +128,7 @@
   "gemmaEngine": "Use on-device Gemma",
   "gemmaEngineDescription": "Uses Gemma when the model is ready; otherwise the experimental assistant is used.",
   "gemmaModelManagement": "Gemma model management",
-  "gemmaModelDetails": "Gemma 4 E2B · 2.59 GB model file · Stored in app data, not inside the APK. Requires at least 8 GB device memory.",
+  "gemmaModelDetails": "Gemma 4 E2B · 2.59 GB model file · Stored in app data, not inside the APK. Requires at least 6 GB RAM; additional free memory may be needed while loading.",
   "gemmaNotDownloaded": "Model not downloaded",
   "gemmaDownloading": "Downloading model",
   "gemmaReady": "Model ready",
