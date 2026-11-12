@@ -54,6 +54,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
           existing?.dueMonth.toString() ??
           '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}',
     );
+    final recordedAt = TextEditingController(text: formatCalendarDate(existing?.recordedAt ?? DateTime.now()));
     final note = TextEditingController(text: existing?.note ?? '');
     var kind = existing?.kind ?? WorkEntryKind.salary;
     final selectableKinds = <WorkEntryKind>[
@@ -110,6 +111,20 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                   ),
                 ),
                 TextField(
+                  controller: recordedAt,
+                  decoration: InputDecoration(
+                    labelText: strings.recordedAt,
+                    suffixIcon: calendarSuffix(context, recordedAt, strings, monthOnly: false),
+                  ),
+                ),
+                TextField(
+                  controller: transferredAt,
+                  decoration: InputDecoration(
+                    labelText: strings.recordedAt,
+                    suffixIcon: calendarSuffix(context, transferredAt, strings, monthOnly: false),
+                  ),
+                ),
+                TextField(
                   controller: note,
                   decoration: InputDecoration(labelText: strings.note),
                 ),
@@ -130,6 +145,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
               FilledButton(
                 onPressed: () async {
                   final parsedAmount = int.tryParse(amount.text.trim());
+                  final recordedDate = DateTime.tryParse(recordedAt.text.trim());
                   final parts = due.text.trim().split('-');
                   final year = parts.length == 2
                       ? int.tryParse(parts[0])
@@ -143,7 +159,8 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                       year < 1 ||
                       month == null ||
                       month < 1 ||
-                      month > 12) {
+                      month > 12 ||
+                      recordedDate == null) {
                     setDialogState(() => error = strings.invalidRecord);
                     return;
                   }
@@ -159,7 +176,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                             kind: kind,
                             amount: Money.fromMinorUnits(parsedAmount),
                             dueMonth: MonthKey(year: year, month: month),
-                            recordedAt: existing?.recordedAt ?? DateTime.now(),
+                            recordedAt: recordedDate,
                             note: note.text.trim().isEmpty
                                 ? null
                                 : note.text.trim(),
@@ -179,6 +196,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
     } finally {
       amount.dispose();
       due.dispose();
+      recordedAt.dispose();
       note.dispose();
     }
   }
@@ -192,6 +210,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
     final amount = TextEditingController(
       text: existing?.amount.minorUnits.toString() ?? '',
     );
+    final transferredAt = TextEditingController(text: formatCalendarDate(existing?.transferredAt ?? DateTime.now()));
     final note = TextEditingController(text: existing?.note ?? '');
     String? error;
     try {
@@ -232,7 +251,8 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
               FilledButton(
                 onPressed: () async {
                   final value = int.tryParse(amount.text.trim());
-                  if (value == null || value <= 0) {
+                  final transferDate = DateTime.tryParse(transferredAt.text.trim());
+                  if (value == null || value <= 0 || transferDate == null) {
                     setDialogState(() => error = strings.invalidRecord);
                     return;
                   }
@@ -246,8 +266,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                                 DateTime.now().microsecondsSinceEpoch
                                     .toString(),
                             amount: Money.fromMinorUnits(value),
-                            transferredAt:
-                                existing?.transferredAt ?? DateTime.now(),
+                            transferredAt: transferDate,
                             note: note.text.trim().isEmpty
                                 ? null
                                 : note.text.trim(),
@@ -266,6 +285,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
       );
     } finally {
       amount.dispose();
+      transferredAt.dispose();
       note.dispose();
     }
   }
