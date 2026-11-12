@@ -18,6 +18,14 @@ void main() {
   tearDown(() async => database.close());
 
   test('persists home expenses with integer money and due month', () async {
+    final workRepository = WorkRepository(database);
+    await workRepository.saveTransfer(
+      WorkHomeTransfer(
+        id: 'fund-home-1',
+        amount: Money.fromMinorUnits(2000),
+        transferredAt: DateTime.utc(2026, 11, 9),
+      ),
+    );
     final repository = HomeExpenseRepository(database);
     await repository.save(
       HomeExpense(
@@ -156,6 +164,13 @@ void main() {
   );
 
   test('supports updating and deleting home expenses', () async {
+    await WorkRepository(database).saveTransfer(
+      WorkHomeTransfer(
+        id: 'fund-home-crud',
+        amount: Money.fromMinorUnits(300),
+        transferredAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
     final repository = HomeExpenseRepository(database);
     final original = HomeExpense(
       id: 'home-crud',
@@ -181,6 +196,77 @@ void main() {
     expect(rows.single.dueMonth, 12);
     await repository.delete(original.id);
     expect(await database.select(database.homeExpenses).get(), isEmpty);
+  });
+
+  test('rejects an expense above transferred balance without saving it', () async {
+    await WorkRepository(database).saveTransfer(
+      WorkHomeTransfer(
+        id: 'fund-home-limit',
+        amount: Money.fromMinorUnits(1000),
+        transferredAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
+    final repository = HomeExpenseRepository(database);
+    await expectLater(
+      repository.save(
+        HomeExpense(
+          id: 'expense-too-large',
+          amount: Money.fromMinorUnits(1100),
+          categoryId: 'food',
+          expenseDate: DateTime.utc(2026, 11, 2),
+          dueMonth: MonthKey(year: 2026, month: 11),
+        ),
+      ),
+      throwsA(
+        isA<InsufficientHomeBalanceException>()
+            .having((error) => error.availableMinorUnits, 'available', 1000)
+            .having((error) => error.requestedMinorUnits, 'requested', 1100),
+      ),
+    );
+    expect(await database.select(database.homeExpenses).get(), isEmpty);
+  });
+
+  test('editing an expense restores its old amount before balance check', () async {
+    await WorkRepository(database).saveTransfer(
+      WorkHomeTransfer(
+        id: 'fund-home-edit',
+        amount: Money.fromMinorUnits(1000),
+        transferredAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
+    final repository = HomeExpenseRepository(database);
+    final original = HomeExpense(
+      id: 'expense-edit',
+      amount: Money.fromMinorUnits(800),
+      categoryId: 'food',
+      expenseDate: DateTime.utc(2026, 11, 1),
+      dueMonth: MonthKey(year: 2026, month: 11),
+    );
+    await repository.save(original);
+    await repository.save(
+      HomeExpense(
+        id: original.id,
+        amount: Money.fromMinorUnits(1000),
+        categoryId: 'food',
+        expenseDate: DateTime.utc(2026, 11, 2),
+        dueMonth: MonthKey(year: 2026, month: 11),
+      ),
+    );
+    await expectLater(
+      repository.save(
+        HomeExpense(
+          id: original.id,
+          amount: Money.fromMinorUnits(1001),
+          categoryId: 'food',
+          expenseDate: DateTime.utc(2026, 11, 3),
+          dueMonth: MonthKey(year: 2026, month: 11),
+        ),
+      ),
+      throwsA(isA<InsufficientHomeBalanceException>()),
+    );
+    final rows = await database.select(database.homeExpenses).get();
+    expect(rows, hasLength(1));
+    expect(rows.single.amountMinorUnits, 1000);
   });
 
   test('supports updating and deleting work entries', () async {
