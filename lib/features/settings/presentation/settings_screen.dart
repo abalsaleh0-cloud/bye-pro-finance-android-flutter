@@ -46,6 +46,15 @@ class SettingsScreen extends ConsumerWidget {
               },
             ),
           ),
+          const Divider(height: 1),
+          SwitchListTile(
+            key: const Key('gemma-engine-switch'),
+            secondary: const Icon(Icons.auto_awesome_outlined),
+            title: Text(strings.gemmaEngine),
+            subtitle: Text(strings.gemmaEngineDescription),
+            value: settings.useGemma,
+            onChanged: controller.setGemmaEnabled,
+          ),
         ],
       ),
     );

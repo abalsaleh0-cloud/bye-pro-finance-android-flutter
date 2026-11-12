@@ -1,15 +1,28 @@
 // ignore_for_file: curly_braces_in_flow_control_structures, prefer_interpolation_to_compose_strings
 
+import 'dart:async';
+
 import 'package:expense_app/core/database/database_providers.dart';
+import 'package:expense_app/core/providers/app_settings_provider.dart';
+import 'package:expense_app/features/ai/data/gemma_model_manager.dart';
 import 'package:expense_app/features/ai/domain/action_registry.dart';
 import 'package:expense_app/features/ai/domain/assistant_confirmation.dart';
 import 'package:expense_app/features/ai/domain/assistant_engine.dart';
+import 'package:expense_app/features/ai/domain/gemma_assistant_engine.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
-final assistantEngineProvider = Provider<AssistantEngine>((ref) => const FakeAssistantEngine());
+final assistantEngineProvider = Provider<AssistantEngine>((ref) {
+  final settings = ref.watch(appSettingsProvider);
+  final modelState = ref.watch(gemmaModelManagerProvider);
+  final manager = ref.watch(gemmaModelManagerProvider.notifier);
+  if (settings.useGemma && modelState.status == GemmaModelStatus.ready) {
+    return GemmaAssistantEngine(manager);
+  }
+  return const FakeAssistantEngine();
+});
 
 final class _ChatMessage {
   const _ChatMessage(this.text, {this.fromUser = false});
@@ -31,7 +44,11 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   bool _busy = false;
 
   @override
-  void dispose() { _input.dispose(); super.dispose(); }
+  void dispose() {
+    _input.dispose();
+    unawaited(ref.read(gemmaModelManagerProvider.notifier).releaseModel());
+    super.dispose();
+  }
 
   ActionRegistry _registry() => ActionRegistry(
     work: ref.read(workRepositoryProvider),
@@ -66,7 +83,10 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         }
       }
     } catch (_) {
-      if (mounted) setState(() => _messages.add(_ChatMessage(AppLocalizations.of(context)!.assistantNotUnderstood)));
+      if (mounted) {
+        setState(() => _messages.add(_ChatMessage(AppLocalizations.of(context)!.assistantNotUnderstood)));
+        await _openManual();
+      }
     } finally { if (mounted) setState(() => _busy = false); }
   }
 
@@ -133,6 +153,95 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     return now.year.toString() + '-' + now.month.toString().padLeft(2, '0');
   }
 
+  Future<void> _confirmDownload() async {
+    final strings = AppLocalizations.of(context)!;
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(strings.gemmaWifiTitle),
+        content: Text(strings.gemmaWifiWarning),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(strings.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(strings.gemmaDownloadModel),
+          ),
+        ],
+      ),
+    );
+    if (accepted == true && mounted) {
+      await ref.read(gemmaModelManagerProvider.notifier).download();
+    }
+  }
+
+  Widget _modelManagementCard(AppLocalizations strings) {
+    final model = ref.watch(gemmaModelManagerProvider);
+    final manager = ref.read(gemmaModelManagerProvider.notifier);
+    final status = switch (model.status) {
+      GemmaModelStatus.notDownloaded => strings.gemmaNotDownloaded,
+      GemmaModelStatus.downloading => strings.gemmaDownloading,
+      GemmaModelStatus.ready => strings.gemmaReady,
+      GemmaModelStatus.error => strings.gemmaError,
+    };
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(strings.gemmaModelManagement, style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 6),
+            Text(strings.gemmaModelDetails),
+            const SizedBox(height: 8),
+            Text(status),
+            if (model.status == GemmaModelStatus.downloading) ...[
+              const SizedBox(height: 8),
+              LinearProgressIndicator(value: model.progress / 100),
+              Text('${model.progress.toStringAsFixed(0)}%'),
+            ],
+            if (model.error != null) Text(model.error!),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: [
+                if (model.status == GemmaModelStatus.downloading)
+                  OutlinedButton(
+                    onPressed: manager.cancelDownload,
+                    child: Text(strings.gemmaCancelDownload),
+                  )
+                else if (model.status == GemmaModelStatus.ready)
+                  OutlinedButton(
+                    onPressed: manager.deleteModel,
+                    child: Text(strings.gemmaDeleteModel),
+                  )
+                else ...[
+                  FilledButton(
+                    onPressed: _confirmDownload,
+                    child: Text(
+                      model.cancelled || model.status == GemmaModelStatus.error
+                          ? strings.gemmaResumeDownload
+                          : strings.gemmaDownloadModel,
+                    ),
+                  ),
+                  if (model.status == GemmaModelStatus.error)
+                    OutlinedButton(
+                      onPressed: manager.deleteModel,
+                      child: Text(strings.gemmaDeleteModel),
+                    ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(strings.gemmaDownloadResumeNote, style: Theme.of(context).textTheme.bodySmall),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
@@ -140,6 +249,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     return Scaffold(
       body: Column(children: [
         Expanded(child: ListView(padding: const EdgeInsets.all(16), children: [
+          _modelManagementCard(strings),
           if (_messages.isEmpty) Card(child: Padding(padding: const EdgeInsets.all(16), child: Text(strings.assistantWelcome))),
           for (var i = 0; i < _messages.length; i++)
             Align(alignment: _messages[i].fromUser ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart,
