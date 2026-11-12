@@ -47,6 +47,7 @@
   "invalidRecord": "تحقق من البيانات المدخلة والمبالغ والشهر المستحق",
   "monthlyOverview": "ملخص الشهر الحالي",
   "workRecordsTotal": "إجمالي سجلات العمل",
+  "workRemaining": "الباقي في العمل",
   "salaryTotal": "إجمالي الرواتب",
   "advancesTotal": "إجمالي السلف",
   "paymentsTotal": "إجمالي الدفعات",

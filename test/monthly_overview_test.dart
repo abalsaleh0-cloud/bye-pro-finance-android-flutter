@@ -71,8 +71,43 @@ void main() {
     expect(overview.advances.minorUnits, 10000);
     expect(overview.payments.minorUnits, 0);
     expect(overview.workRecordsTotal.minorUnits, 110000);
+    expect(overview.workRemainingMinorUnits, 90000);
     expect(overview.homeExpenses.minorUnits, 2500);
     expect(overview.transfers.minorUnits, 7000);
+  });
+
+  test('allows a negative remaining work balance without storing money', () {
+    final overview = MonthlyOverview.calculate(
+      month: month,
+      workEntries: [
+        WorkEntry(
+          id: 'salary',
+          kind: WorkEntryKind.salary,
+          amount: Money.fromMinorUnits(500),
+          dueMonth: month,
+          recordedAt: DateTime(2026, 11, 1),
+        ),
+        WorkEntry(
+          id: 'advance',
+          kind: WorkEntryKind.advance,
+          amount: Money.fromMinorUnits(300),
+          dueMonth: month,
+          recordedAt: DateTime(2026, 11, 2),
+        ),
+        WorkEntry(
+          id: 'payment',
+          kind: WorkEntryKind.payment,
+          amount: Money.fromMinorUnits(250),
+          dueMonth: month,
+          recordedAt: DateTime(2026, 11, 3),
+        ),
+      ],
+      homeExpenses: const [],
+      transfers: const [],
+      debts: const [],
+    );
+
+    expect(overview.workRemainingMinorUnits, -50);
   });
 
   test('separates outstanding creditor and debtor balances', () {
