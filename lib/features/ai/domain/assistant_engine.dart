@@ -69,10 +69,18 @@ final class FakeAssistantEngine implements AssistantEngine {
     return const AssistantResult.notUnderstood();
   }
   static int? _amount(String text) {
-    final match=RegExp(r'(?<![A-Za-z\u0600-\u06FF])([0-9٠-٩۰-۹,٬]+)(?![A-Za-z\u0600-\u06FF])').firstMatch(text);
-    if(match!=null) return _numbers.parseInteger(match.group(1)!);
-    final words=RegExp(r'(?:ألف|الف|خمسمئة|خمسمائة|خمسمية|مئة|مائة|خمسة|خمس|واحد|واحدة|اثنين|ثلاثة|ثلاث|أربعة|اربعة|عشرة|عشرون|ثلاثون|أربعون|خمسون)(?:\s*و?\s*(?:ألف|الف|خمسمئة|خمسمائة|خمسمية|مئة|مائة|خمسة|خمس|واحد|واحدة|اثنين|ثلاثة|ثلاث|أربعة|اربعة))*').firstMatch(text)?.group(0);
-    return words==null?null:_numbers.parseInteger(words);
+    final withoutMonth = text.replaceAll(
+      RegExp(r'20\d{2}[-/](?:0?[1-9]|1[0-2])'),
+      ' ',
+    );
+    final match = RegExp(
+      r'(?<![A-Za-z\u0600-\u06FF])([0-9٠-٩۰-۹,٬]+)(?![A-Za-z\u0600-\u06FF])',
+    ).firstMatch(withoutMonth);
+    if (match != null) return _numbers.parseInteger(match.group(1)!);
+    final words = RegExp(
+      r'(?:ألف|الف|خمسمئة|خمسمائة|خمسمية|مئة|مائة|خمسة|خمس|واحد|واحدة|اثنين|ثلاثة|ثلاث|أربعة|اربعة|عشرة|عشرون|ثلاثون|أربعون|خمسون)(?:\s*و?\s*(?:ألف|الف|خمسمئة|خمسمائة|خمسمية|مئة|مائة|خمسة|خمس|واحد|واحدة|اثنين|ثلاثة|ثلاث|أربعة|اربعة))*',
+    ).firstMatch(withoutMonth)?.group(0);
+    return words == null ? null : _numbers.parseInteger(words);
   }
   static (int,int)? _month(String text) {
     final m=RegExp(r'\b(20\d{2})[-/](0?[1-9]|1[0-2])\b').firstMatch(text);
