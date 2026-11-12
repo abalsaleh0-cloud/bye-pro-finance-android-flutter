@@ -1,6 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:expense_app/core/database/app_database.dart';
 import 'package:expense_app/features/ai/domain/action_registry.dart';
+import 'package:expense_app/features/ai/domain/assistant_confirmation.dart';
 import 'package:expense_app/features/ai/domain/assistant_engine.dart';
 import 'package:expense_app/features/ai/domain/number_normalizer.dart';
 import 'package:expense_app/features/debts/data/debt_repository.dart';
@@ -9,6 +10,47 @@ import 'package:expense_app/features/work/data/work_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  group('AssistantConfirmation', () {
+    const command = AssistantCommand(
+      name: 'save_work_entry',
+      parameters: {'kind': 'salary', 'amountMinorUnits': 500},
+    );
+
+    test('does not execute a write until explicit approval', () async {
+      final confirmation = AssistantConfirmation();
+      var executions = 0;
+      confirmation.request(command);
+
+      expect(confirmation.pending, same(command));
+      expect(executions, 0);
+
+      final result = await confirmation.approve((approved) async {
+        executions++;
+        expect(approved, same(command));
+        return const ActionExecution(message: 'saved');
+      });
+
+      expect(executions, 1);
+      expect(result?.message, 'saved');
+      expect(confirmation.hasPending, isFalse);
+    });
+
+    test('cancelled write cannot be approved or executed', () async {
+      final confirmation = AssistantConfirmation();
+      var executions = 0;
+      confirmation.request(command);
+      confirmation.cancel();
+
+      final result = await confirmation.approve((_) async {
+        executions++;
+        return const ActionExecution(message: 'saved');
+      });
+
+      expect(result, isNull);
+      expect(executions, 0);
+    });
+  });
+
   group('NumberNormalizer', () {
     const normalizer = NumberNormalizer();
     test('normalizes Arabic-Indic and Persian digits', () {
