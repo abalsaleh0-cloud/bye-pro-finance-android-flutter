@@ -97,14 +97,14 @@ void main() {
       ),
       WorkEntry(
         id: 'october-receipt',
-        kind: WorkEntryKind.payment,
+        kind: WorkEntryKind.salaryPayment,
         amount: Money.fromMinorUnits(1000),
         dueMonth: october,
         recordedAt: DateTime(2026, 10, 10),
       ),
       WorkEntry(
         id: 'november-receipt',
-        kind: WorkEntryKind.payment,
+        kind: WorkEntryKind.salaryPayment,
         amount: Money.fromMinorUnits(500),
         dueMonth: november,
         recordedAt: DateTime(2026, 11, 10),
@@ -200,7 +200,7 @@ void main() {
       ),
       WorkEntry(
         id: 'november-payment',
-        kind: WorkEntryKind.payment,
+        kind: WorkEntryKind.salaryPayment,
         amount: Money.fromMinorUnits(500),
         dueMonth: november,
         recordedAt: DateTime(2026, 11, 15),
