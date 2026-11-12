@@ -350,6 +350,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
       (strings.paymentsTotal, payments),
       (strings.salaryPaymentsApplied, salaryPaymentsApplied),
       (strings.transferredToHome, transferred),
+      (strings.currentSalaryOutstanding, allocation.outstandingFor(currentMonth)),
       (strings.workRemaining, salary - advances - salaryPaymentsApplied - transferred),
     ];
     return Card(
