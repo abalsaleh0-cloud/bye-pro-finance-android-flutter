@@ -67,7 +67,7 @@ final class FakeAssistantEngine implements AssistantEngine {
     return const AssistantResult.notUnderstood();
   }
   static int? _amount(String text) {
-    final match=RegExp(r'(?<![\p{L}])([0-9٠-٩۰-۹,٬]+)(?![\p{L}])').firstMatch(text);
+    final match=RegExp(r'(?<![A-Za-z\u0600-\u06FF])([0-9٠-٩۰-۹,٬]+)(?![A-Za-z\u0600-\u06FF])').firstMatch(text);
     if(match!=null) return _numbers.parseInteger(match.group(1)!);
     final words=RegExp(r'(?:ألف|الف|خمسمئة|خمسمائة|خمسمية|مئة|مائة|خمسة|خمس|واحد|واحدة|اثنين|ثلاثة|ثلاث|أربعة|اربعة|عشرة|عشرون|ثلاثون|أربعون|خمسون)(?:\s*و?\s*(?:ألف|الف|خمسمئة|خمسمائة|خمسمية|مئة|مائة|خمسة|خمس|واحد|واحدة|اثنين|ثلاثة|ثلاث|أربعة|اربعة))*').firstMatch(text)?.group(0);
     return words==null?null:_numbers.parseInteger(words);
