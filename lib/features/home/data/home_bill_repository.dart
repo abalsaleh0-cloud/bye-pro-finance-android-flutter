@@ -20,7 +20,10 @@ final class HomeBillRepository {
 
   Future<List<HomeBill>> getBills() async {
     await ensureTables();
-    final rows = await _database.customSelect('SELECT b.id, b.title, b.kind, b.amount_minor_units, b.due_year, b.due_month, b.note, COALESCE(SUM(p.amount_minor_units), 0) AS paid_minor_units FROM home_bills b LEFT JOIN home_bill_payments p ON p.bill_id = b.id GROUP BY b.id ORDER BY b.due_year DESC, b.due_month DESC, b.title COLLATE NOCASE').watch().map((rows) => rows.map((row) => HomeBill(
+    final rows = await _database.customSelect(
+      'SELECT b.id, b.title, b.kind, b.amount_minor_units, b.due_year, b.due_month, b.note, COALESCE(SUM(p.amount_minor_units), 0) AS paid_minor_units FROM home_bills b LEFT JOIN home_bill_payments p ON p.bill_id = b.id GROUP BY b.id ORDER BY b.due_year DESC, b.due_month DESC, b.title COLLATE NOCASE',
+    ).get();
+    return rows.map((row) => HomeBill(
       id: row.read<String>('id'),
       title: row.read<String>('title'),
       kind: row.read<String>('kind') == 'rent' ? HomeBillKind.rent : HomeBillKind.monthly,
