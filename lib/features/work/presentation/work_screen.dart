@@ -312,6 +312,60 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
     }
   }
 
+  Widget _workSummaryCard(
+    BuildContext context,
+    AppLocalizations strings,
+    List<WorkEntry> entries,
+    List<WorkHomeTransfer> transfers,
+  ) {
+    final now = DateTime.now();
+    final monthEntries = entries.where((entry) =>
+      entry.dueMonth.year == now.year && entry.dueMonth.month == now.month);
+    var salary = 0;
+    var advances = 0;
+    var payments = 0;
+    for (final entry in monthEntries) {
+      switch (entry.kind) {
+        case WorkEntryKind.salary:
+          salary += entry.amount.minorUnits;
+        case WorkEntryKind.advance:
+          advances += entry.amount.minorUnits;
+        case WorkEntryKind.payment:
+          payments += entry.amount.minorUnits;
+      }
+    }
+    final transferred = transfers.where((item) {
+      final date = item.transferredAt.toLocal();
+      return date.year == now.year && date.month == now.month;
+    }).fold<int>(0, (sum, item) => sum + item.amount.minorUnits);
+    final rows = <(String, int)>[
+      (strings.salaryTotal, salary),
+      (strings.advancesTotal, advances),
+      (strings.paymentsTotal, payments),
+      (strings.transferredToHome, transferred),
+      (strings.workRemaining, salary - advances - payments - transferred),
+    ];
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(strings.currentMonth, style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            for (final row in rows)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [Expanded(child: Text(row.$1)), Text(row.$2.toString())],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
@@ -331,6 +385,8 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
             icon: const Icon(Icons.swap_horiz),
             label: Text(strings.addTransfer),
           ),
+          const SizedBox(height: 12),
+          _workSummaryCard(context, strings, entries.value ?? const [], transfers.value ?? const []),
           const SizedBox(height: 16),
           Text(strings.entries, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
@@ -397,7 +453,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                         Card(
                           child: ListTile(
                             leading: const Icon(Icons.swap_horiz),
-                            title: Text(strings.transfers),
+                            title: Text(strings.transferredToHome),
                             subtitle: Text(
                               transfer.transferredAt
                                   .toLocal()
