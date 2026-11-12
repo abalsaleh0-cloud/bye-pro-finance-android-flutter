@@ -108,5 +108,6 @@
   "noBills": "No bills recorded",
   "billHistory": "Bill payment history",
   "dailyExpenses": "Daily expenses",
-  "totalBillsOutstanding": "Outstanding bills and rent"
+  "totalBillsOutstanding": "Outstanding bills and rent",
+  "paymentReceivedMonth": "Payment received in month"
 }
