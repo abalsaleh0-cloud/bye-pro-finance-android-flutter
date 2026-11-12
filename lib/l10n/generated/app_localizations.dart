@@ -466,6 +466,10 @@ abstract class AppLocalizations {
   String get gemmaDeleteModel;
   String get gemmaDownloadResumeNote;
 
+  String get gemmaWifiTitle;
+  String get gemmaWifiWarning;
+
+
 }
 
 class _AppLocalizationsDelegate

@@ -83,6 +83,8 @@ final class GemmaAssistantEngine implements AssistantEngine {
         final question = output.text?.trim() ?? '';
         if (question.isNotEmpty &&
             question.length <= 140 &&
+            !RegExp(r'[0-9٠-٩۰-۹]').hasMatch(question) &&
+            !question.startsWith('{') &&
             (question.endsWith('؟') || question.endsWith('?'))) {
           return AssistantResult.clarification(question);
         }
@@ -95,7 +97,8 @@ final class GemmaAssistantEngine implements AssistantEngine {
         final question = arguments['question'];
         if (question is String &&
             question.trim().isNotEmpty &&
-            question.trim().length <= 140) {
+            question.trim().length <= 140 &&
+            !RegExp(r'[0-9٠-٩۰-۹]').hasMatch(question)) {
           return AssistantResult.clarification(question.trim());
         }
         return const AssistantResult.notUnderstood();

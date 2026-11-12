@@ -226,4 +226,11 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get gemmaDownloadResumeNote => 'قد يبدأ التنزيل من البداية عند الاستئناف؛ خادم Hugging Face لا يضمن استكمال الجزء المتبقي.';
 
+  @override
+  String get gemmaWifiTitle => 'تنبيه التنزيل';
+
+  @override
+  String get gemmaWifiWarning => 'حجم النموذج نحو 2.59 GB. استخدم شبكة Wi-Fi واتصالاً مستقراً ومساحة تخزين كافية قبل البدء.';
+
+
 }

@@ -226,4 +226,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get gemmaDownloadResumeNote => 'A retry may restart from the beginning; the Hugging Face CDN does not guarantee byte-range resume.';
 
+  @override
+  String get gemmaWifiTitle => 'Download warning';
+
+  @override
+  String get gemmaWifiWarning => 'The model is about 2.59 GB. Use Wi-Fi, a stable connection, and sufficient free storage before downloading.';
+
+
 }

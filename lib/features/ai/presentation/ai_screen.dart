@@ -153,6 +153,30 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     return now.year.toString() + '-' + now.month.toString().padLeft(2, '0');
   }
 
+  Future<void> _confirmDownload() async {
+    final strings = AppLocalizations.of(context)!;
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(strings.gemmaWifiTitle),
+        content: Text(strings.gemmaWifiWarning),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(strings.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(strings.gemmaDownloadModel),
+          ),
+        ],
+      ),
+    );
+    if (accepted == true && mounted) {
+      await ref.read(gemmaModelManagerProvider.notifier).download();
+    }
+  }
+
   Widget _modelManagementCard(AppLocalizations strings) {
     final model = ref.watch(gemmaModelManagerProvider);
     final manager = ref.read(gemmaModelManagerProvider.notifier);
@@ -195,7 +219,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                   )
                 else
                   FilledButton(
-                    onPressed: manager.download,
+                    onPressed: _confirmDownload,
                     child: Text(model.cancelled ? strings.gemmaResumeDownload : strings.gemmaDownloadModel),
                   ),
               ],

@@ -196,17 +196,17 @@ class GemmaModelManager extends Notifier<GemmaModelState>
             ))
         .toList(growable: false);
 
-    final chat = await model.openChat(
-      systemInstruction: systemInstruction,
-      tools: tools,
-      supportsFunctionCalls: true,
-      toolChoice: ToolChoice.auto,
-      maxOutputTokens: 48,
-      temperature: 0,
-      topK: 1,
-    );
-
+    InferenceChat? chat;
     try {
+      chat = await model.openChat(
+        systemInstruction: systemInstruction,
+        tools: tools,
+        supportsFunctionCalls: true,
+        toolChoice: ToolChoice.auto,
+        maxOutputTokens: 48,
+        temperature: 0,
+        topK: 1,
+      );
       await chat.addQueryChunk(Message.text(text: userText, isUser: true));
       String? functionName;
       Map<String, Object?>? arguments;
@@ -236,7 +236,7 @@ class GemmaModelManager extends Notifier<GemmaModelState>
       }
       return GemmaModelOutput.text(text.toString());
     } finally {
-      await chat.close();
+      if (chat != null) await chat.close();
       _scheduleIdleRelease();
     }
   }
