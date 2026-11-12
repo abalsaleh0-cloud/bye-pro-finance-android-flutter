@@ -32,7 +32,7 @@ final class NumberNormalizer {
     final tokens = value.replaceAll('خمسمئة',' خمسمئة ')
       .replaceAll('خمسمائة',' خمسمئة ').replaceAll('خمسمية',' خمسمئة ')
       .replaceAll('ألف',' ألف ').replaceAll('الف',' ألف ')
-      .replaceAll('مائة',' مئة ').replaceAll('و',' و ')
+      .replaceAll('مائة',' مئة ').replaceAll('ألف و','ألف ').replaceAll('الف و','الف ').replaceAll('مئة و','مئة ').replaceAll('مائة و','مائة ')
       .replaceAll(RegExp(r'\s+'),' ').trim().split(' ')
       .where((e)=>e.isNotEmpty && e!='و');
     var total=0, group=0;
