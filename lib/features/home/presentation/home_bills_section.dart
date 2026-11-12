@@ -142,8 +142,12 @@ class HomeBillsSection extends ConsumerWidget {
                 isThreeLine: true,
                 trailing: bill.isSettled ? IconButton(tooltip: strings.billHistory, onPressed: () => _showHistory(context, ref, strings, bill), icon: const Icon(Icons.history)) : PopupMenuButton<String>(
                   onSelected: (value) {
-                    if (value == 'pay') _payBill(context, ref, strings, bill);
-                    if (value == 'history') _showHistory(context, ref, strings, bill);
+                    if (value == 'pay') {
+                      _payBill(context, ref, strings, bill);
+                    }
+                    if (value == 'history') {
+                      _showHistory(context, ref, strings, bill);
+                    }
                   },
                   itemBuilder: (context) => [
                     PopupMenuItem(value: 'pay', child: Text(strings.payBill)),
