@@ -386,6 +386,18 @@ void main() {
     expect(saved.paidMinorUnits, 200);
     expect(saved.remainingMinorUnits, 300);
     expect(saved.isSettled, isFalse);
+    await expectLater(
+      HomeExpenseRepository(database).save(
+        HomeExpense(
+          id: 'daily-expense-after-bill-payment',
+          amount: Money.fromMinorUnits(801),
+          categoryId: 'shopping',
+          expenseDate: DateTime.utc(2026, 11, 11),
+          dueMonth: MonthKey(year: 2026, month: 11),
+        ),
+      ),
+      throwsA(isA<InsufficientHomeBalanceException>()),
+    );
   });
 
   test('rent can be paid in installments and cannot exceed home cash balance', () async {
