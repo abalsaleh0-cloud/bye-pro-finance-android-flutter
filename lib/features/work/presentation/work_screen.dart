@@ -326,8 +326,9 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
       entry.dueMonth.year == now.year && entry.dueMonth.month == now.month);
     var salary = 0;
     var advances = 0;
-    var payments = WorkBalanceAllocation.calculate(entries)
-        .paymentsFor(MonthKey(year: now.year, month: now.month));
+    final currentMonth = MonthKey(year: now.year, month: now.month);
+    final allocation = WorkBalanceAllocation.calculate(entries);
+    var payments = allocation.paymentsFor(currentMonth);
     for (final entry in monthEntries) {
       switch (entry.kind) {
         case WorkEntryKind.salary:
