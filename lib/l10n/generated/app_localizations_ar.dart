@@ -186,4 +186,44 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get settled => 'تمت التسوية بالكامل';
+
+  @override
+  String get gemmaEngine => 'استخدام Gemma على الجهاز';
+
+  @override
+  String get gemmaEngineDescription => 'يستخدم Gemma عند جاهزية النموذج، وإلا يعمل المساعد التجريبي.';
+
+  @override
+  String get gemmaModelManagement => 'إدارة نموذج Gemma';
+
+  @override
+  String get gemmaModelDetails => 'Gemma 4 E2B · 2.59 GB · يتطلب ذاكرة جهاز 8 GB على الأقل. يفضّل استخدام Wi-Fi.';
+
+  @override
+  String get gemmaNotDownloaded => 'النموذج غير منزّل';
+
+  @override
+  String get gemmaDownloading => 'جارٍ تنزيل النموذج';
+
+  @override
+  String get gemmaReady => 'النموذج جاهز';
+
+  @override
+  String get gemmaError => 'حدث خطأ في النموذج';
+
+  @override
+  String get gemmaDownloadModel => 'تنزيل النموذج';
+
+  @override
+  String get gemmaResumeDownload => 'استئناف / إعادة المحاولة';
+
+  @override
+  String get gemmaCancelDownload => 'إلغاء التنزيل';
+
+  @override
+  String get gemmaDeleteModel => 'حذف النموذج';
+
+  @override
+  String get gemmaDownloadResumeNote => 'قد يبدأ التنزيل من البداية عند الاستئناف؛ خادم Hugging Face لا يضمن استكمال الجزء المتبقي.';
+
 }

@@ -9,15 +9,22 @@ class AppSettings {
   const AppSettings({
     this.themeMode = ThemeMode.light,
     this.locale = const Locale('ar'),
+    this.useGemma = false,
   });
 
   final ThemeMode themeMode;
   final Locale locale;
+  final bool useGemma;
 
-  AppSettings copyWith({ThemeMode? themeMode, Locale? locale}) {
+  AppSettings copyWith({
+    ThemeMode? themeMode,
+    Locale? locale,
+    bool? useGemma,
+  }) {
     return AppSettings(
       themeMode: themeMode ?? this.themeMode,
       locale: locale ?? this.locale,
+      useGemma: useGemma ?? this.useGemma,
     );
   }
 }
@@ -37,11 +44,13 @@ class AppSettingsController extends Notifier<AppSettings> {
       final values = await Future.wait<String?>([
         database.readSetting('theme_mode'),
         database.readSetting('locale'),
+        database.readSetting('ai_engine'),
       ]);
       if (_revision != 0) return;
       state = AppSettings(
         themeMode: values[0] == 'dark' ? ThemeMode.dark : ThemeMode.light,
         locale: Locale(values[1] == 'en' ? 'en' : 'ar'),
+        useGemma: values[2] == 'gemma',
       );
     } catch (_) {
       // Keep safe defaults if the local settings table cannot be read.
@@ -63,6 +72,14 @@ class AppSettingsController extends Notifier<AppSettings> {
     state = state.copyWith(locale: locale);
     unawaited(ref.read(appDatabaseProvider).writeSetting(
       'locale', locale.languageCode == 'en' ? 'en' : 'ar',
+    ));
+  }
+
+  void setGemmaEnabled(bool enabled) {
+    _revision++;
+    state = state.copyWith(useGemma: enabled);
+    unawaited(ref.read(appDatabaseProvider).writeSetting(
+      'ai_engine', enabled ? 'gemma' : 'fake',
     ));
   }
 }

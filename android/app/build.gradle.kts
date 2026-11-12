@@ -59,7 +59,7 @@ android {
 
     defaultConfig {
         applicationId = "com.byepro.bye_pro_finance"
-        minSdk = flutter.minSdkVersion
+        minSdk = 30
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

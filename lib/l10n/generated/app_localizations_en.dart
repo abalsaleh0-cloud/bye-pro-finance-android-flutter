@@ -186,4 +186,44 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settled => 'Fully settled';
+
+  @override
+  String get gemmaEngine => 'Use on-device Gemma';
+
+  @override
+  String get gemmaEngineDescription => 'Uses Gemma when the model is ready; otherwise the experimental assistant is used.';
+
+  @override
+  String get gemmaModelManagement => 'Gemma model management';
+
+  @override
+  String get gemmaModelDetails => 'Gemma 4 E2B · 2.59 GB · Requires at least 8 GB device memory. Wi-Fi is recommended.';
+
+  @override
+  String get gemmaNotDownloaded => 'Model not downloaded';
+
+  @override
+  String get gemmaDownloading => 'Downloading model';
+
+  @override
+  String get gemmaReady => 'Model ready';
+
+  @override
+  String get gemmaError => 'Model error';
+
+  @override
+  String get gemmaDownloadModel => 'Download model';
+
+  @override
+  String get gemmaResumeDownload => 'Resume / retry download';
+
+  @override
+  String get gemmaCancelDownload => 'Cancel download';
+
+  @override
+  String get gemmaDeleteModel => 'Delete model';
+
+  @override
+  String get gemmaDownloadResumeNote => 'A retry may restart from the beginning; the Hugging Face CDN does not guarantee byte-range resume.';
+
 }

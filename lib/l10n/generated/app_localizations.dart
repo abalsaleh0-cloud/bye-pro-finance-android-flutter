@@ -451,6 +451,21 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'تمت التسوية بالكامل'**
   String get settled;
+
+  String get gemmaEngine;
+  String get gemmaEngineDescription;
+  String get gemmaModelManagement;
+  String get gemmaModelDetails;
+  String get gemmaNotDownloaded;
+  String get gemmaDownloading;
+  String get gemmaReady;
+  String get gemmaError;
+  String get gemmaDownloadModel;
+  String get gemmaResumeDownload;
+  String get gemmaCancelDownload;
+  String get gemmaDeleteModel;
+  String get gemmaDownloadResumeNote;
+
 }
 
 class _AppLocalizationsDelegate
