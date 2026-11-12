@@ -7,8 +7,28 @@ import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
-class DebtsScreen extends ConsumerWidget {
-  const DebtsScreen({super.key});
+class DebtsScreen extends ConsumerStatefulWidget {
+  const DebtsScreen({super.key, this.openManualEntry = false});
+
+  final bool openManualEntry;
+
+  @override
+  ConsumerState<DebtsScreen> createState() => _DebtsScreenState();
+}
+
+class _DebtsScreenState extends ConsumerState<DebtsScreen> {
+  bool _manualEntryOpened = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (widget.openManualEntry && !_manualEntryOpened) {
+      _manualEntryOpened = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _editDebt(context, ref, AppLocalizations.of(context)!);
+      });
+    }
+  }
 
   Future<void> _editDebt(
     BuildContext context,
@@ -294,7 +314,7 @@ class DebtsScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
     final debts = ref.watch(debtsProvider);
     return Scaffold(
