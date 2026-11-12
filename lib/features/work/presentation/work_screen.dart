@@ -36,6 +36,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
         WorkEntryKind.salary => strings.salary,
         WorkEntryKind.advance => strings.advance,
         WorkEntryKind.payment => strings.payment,
+        WorkEntryKind.salaryPayment => strings.payment,
       };
 
   Future<void> _editEntry(
@@ -54,6 +55,12 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
     );
     final note = TextEditingController(text: existing?.note ?? '');
     var kind = existing?.kind ?? WorkEntryKind.salary;
+    final selectableKinds = <WorkEntryKind>[
+      WorkEntryKind.salary,
+      WorkEntryKind.advance,
+      WorkEntryKind.salaryPayment,
+      if (existing?.kind == WorkEntryKind.payment) WorkEntryKind.payment,
+    ];
     String? error;
     try {
       await showDialog<void>(
@@ -69,7 +76,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                 DropdownButtonFormField<WorkEntryKind>(
                   initialValue: kind,
                   decoration: InputDecoration(labelText: strings.entryType),
-                  items: WorkEntryKind.values
+                  items: selectableKinds
                       .map(
                         (value) => DropdownMenuItem(
                           value: value,
@@ -93,7 +100,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                 TextField(
                   controller: due,
                   decoration: InputDecoration(
-                    labelText: kind == WorkEntryKind.payment
+                    labelText: kind == WorkEntryKind.salaryPayment
                         ? strings.paymentReceivedMonth
                         : strings.dueMonth,
                     hintText: 'YYYY-MM',
@@ -337,6 +344,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
         case WorkEntryKind.advance:
           advances += entry.amount.minorUnits;
         case WorkEntryKind.payment:
+        case WorkEntryKind.salaryPayment:
           payments += entry.amount.minorUnits;
       }
     }
@@ -411,7 +419,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                             leading: const Icon(Icons.work_outline),
                             title: Text(_kindLabel(strings, entry.kind)),
                             subtitle: Text(
-                              '${entry.kind == WorkEntryKind.payment ? strings.paymentReceivedMonth : strings.dueMonth}: ${entry.dueMonth}',
+                              '${entry.kind == WorkEntryKind.salaryPayment ? strings.paymentReceivedMonth : strings.dueMonth}: ${entry.dueMonth}',
                             ),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
