@@ -197,7 +197,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get gemmaModelManagement => 'إدارة نموذج Gemma';
 
   @override
-  String get gemmaModelDetails => 'Gemma 4 E2B · 2.59 GB · يتطلب ذاكرة جهاز 8 GB على الأقل. يفضّل استخدام Wi-Fi.';
+  String get gemmaModelDetails => 'Gemma 4 E2B · ملف النموذج 2.59 GB · يُخزَّن ضمن بيانات التطبيق وليس داخل ملف APK. يتطلب ذاكرة جهاز 8 GB على الأقل.';
 
   @override
   String get gemmaNotDownloaded => 'النموذج غير منزّل';
@@ -215,7 +215,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get gemmaDownloadModel => 'تنزيل النموذج';
 
   @override
-  String get gemmaResumeDownload => 'استئناف / إعادة المحاولة';
+  String get gemmaResumeDownload => 'إعادة المحاولة';
 
   @override
   String get gemmaCancelDownload => 'إلغاء التنزيل';
@@ -224,13 +224,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get gemmaDeleteModel => 'حذف النموذج';
 
   @override
-  String get gemmaDownloadResumeNote => 'قد يبدأ التنزيل من البداية عند الاستئناف؛ خادم Hugging Face لا يضمن استكمال الجزء المتبقي.';
+  String get gemmaDownloadResumeNote => 'يعمل التنزيل في الخلفية مع إشعار. إذا انقطع، فقد تبدأ إعادة المحاولة من البداية؛ خادم Hugging Face لا يدعم الاستكمال الجزئي.';
 
   @override
   String get gemmaWifiTitle => 'تنبيه التنزيل';
 
   @override
-  String get gemmaWifiWarning => 'حجم النموذج نحو 2.59 GB. استخدم شبكة Wi-Fi واتصالاً مستقراً ومساحة تخزين كافية، وأبقِ التطبيق مفتوحاً أثناء التنزيل.';
+  String get gemmaWifiWarning => 'حجم ملف النموذج نحو 2.59 GB. استخدم Wi-Fi ومساحة تخزين كافية. سيستمر التنزيل في الخلفية مع إشعار على الهاتف، ويمكنك إطفاء الشاشة. إذا انقطع التنزيل فقد يبدأ من البداية لأن خادم Hugging Face لا يدعم استكمال الجزء المتبقي.';
 
 
 }
