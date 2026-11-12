@@ -129,6 +129,10 @@ void main() {
       transfers: const [],
       debts: const [],
     );
+    expect(octoberOverview.payments.minorUnits, 1000);
+    expect(novemberOverview.payments.minorUnits, 500);
+    expect(octoberOverview.salaryPaymentsApplied.minorUnits, 1500);
+    expect(novemberOverview.salaryPaymentsApplied.minorUnits, 0);
     expect(octoberOverview.workRemainingMinorUnits, 1500);
     expect(novemberOverview.workRemainingMinorUnits, 2000);
     expect(novemberOverview.previousWorkOutstandingMinorUnits, 1500);
