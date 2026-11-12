@@ -1,5 +1,6 @@
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
+import 'package:expense_app/core/widgets/entry_tools.dart';
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/features/home/data/home_bill_repository.dart';
 import 'package:expense_app/features/home/domain/home_bill.dart';
@@ -22,8 +23,8 @@ class HomeBillsSection extends ConsumerWidget {
         title: Text(kind == HomeBillKind.rent ? strings.addRent : strings.addMonthlyBill),
         content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
           TextField(controller: title, decoration: InputDecoration(labelText: strings.billName)),
-          TextField(controller: amount, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: strings.billAmount)),
-          TextField(controller: month, decoration: InputDecoration(labelText: strings.dueMonth, hintText: 'YYYY-MM')),
+          TextField(controller: amount, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: strings.billAmount, suffixIcon: calculatorSuffix(context, amount, strings))),
+          TextField(controller: month, decoration: InputDecoration(labelText: strings.dueMonth, hintText: 'YYYY-MM', suffixIcon: calendarSuffix(context, month, strings, monthOnly: true))),
           TextField(controller: note, decoration: InputDecoration(labelText: strings.note)),
           if (error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(error!, style: TextStyle(color: Theme.of(context).colorScheme.error))),
         ])),
@@ -68,7 +69,7 @@ class HomeBillsSection extends ConsumerWidget {
         title: Text(strings.addBillPayment),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           Text('${strings.billRemaining}: ${bill.remainingMinorUnits}'),
-          TextField(controller: amount, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: strings.paymentAmount)),
+          TextField(controller: amount, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: strings.paymentAmount, suffixIcon: calculatorSuffix(context, amount, strings))),
           if (error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(error!, style: TextStyle(color: Theme.of(context).colorScheme.error))),
         ]),
         actions: [
