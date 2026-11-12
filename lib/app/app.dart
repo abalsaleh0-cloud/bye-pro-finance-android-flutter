@@ -25,6 +25,10 @@ class MyApp extends ConsumerWidget {
         AppLocalizations.delegate,
         ...GlobalMaterialLocalizations.delegates,
       ],
+      builder: (context, child) => Directionality(
+        textDirection: TextDirection.rtl,
+        child: child ?? const SizedBox.shrink(),
+      ),
       routerConfig: router,
     );
   }
