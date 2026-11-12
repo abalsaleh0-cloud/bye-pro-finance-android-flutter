@@ -230,7 +230,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gemmaWifiTitle => 'Download warning';
 
   @override
-  String get gemmaWifiWarning => 'The model file is about 2.59 GB. Use Wi-Fi and ensure enough free storage. The download runs in the background with a phone notification, so you can turn off the screen. If interrupted, it may restart from the beginning because the Hugging Face server does not support partial resume.';
+  String get gemmaWifiWarning => 'The model file is about 2.59 GB. Use Wi-Fi and ensure enough free storage. The download runs in the background with a notification; allow notification permission when prompted, then you can turn off the screen. If interrupted, it may restart from the beginning because the Hugging Face server does not support partial resume.';
 
 
 }
