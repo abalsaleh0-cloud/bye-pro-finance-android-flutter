@@ -1,3 +1,7 @@
+import 'dart:async';
+
+import 'package:expense_app/core/database/app_database.dart';
+import 'package:expense_app/core/database/database_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -19,17 +23,47 @@ class AppSettings {
 }
 
 class AppSettingsController extends Notifier<AppSettings> {
+  int _revision = 0;
+
   @override
-  AppSettings build() => const AppSettings();
+  AppSettings build() {
+    final database = ref.watch(appDatabaseProvider);
+    unawaited(_restore(database));
+    return const AppSettings();
+  }
+
+  Future<void> _restore(AppDatabase database) async {
+    try {
+      final values = await Future.wait<String?>([
+        database.readSetting('theme_mode'),
+        database.readSetting('locale'),
+      ]);
+      if (_revision != 0) return;
+      state = AppSettings(
+        themeMode: values[0] == 'dark' ? ThemeMode.dark : ThemeMode.light,
+        locale: Locale(values[1] == 'en' ? 'en' : 'ar'),
+      );
+    } catch (_) {
+      // Keep safe defaults if the local settings table cannot be read.
+    }
+  }
 
   void setDarkMode(bool enabled) {
+    _revision++;
     state = state.copyWith(
       themeMode: enabled ? ThemeMode.dark : ThemeMode.light,
     );
+    unawaited(ref.read(appDatabaseProvider).writeSetting(
+      'theme_mode', enabled ? 'dark' : 'light',
+    ));
   }
 
   void setLocale(Locale locale) {
+    _revision++;
     state = state.copyWith(locale: locale);
+    unawaited(ref.read(appDatabaseProvider).writeSetting(
+      'locale', locale.languageCode == 'en' ? 'en' : 'ar',
+    ));
   }
 }
 

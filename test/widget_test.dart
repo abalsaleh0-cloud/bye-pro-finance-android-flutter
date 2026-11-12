@@ -36,6 +36,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Settings'), findsOneWidget);
+    expect(
+      tester.widget<Directionality>(find.byType(Directionality).last).textDirection,
+      TextDirection.rtl,
+    );
   });
 
   testWidgets('bottom navigation changes the active section', (tester) async {
@@ -45,6 +49,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('العمل'), findsWidgets);
+    expect(find.text('إضافة تحويل إلى المنزل'), findsOneWidget);
+    expect(find.byType(Card), findsWidgets);
     expect(find.byType(NavigationBar), findsOneWidget);
   });
 }

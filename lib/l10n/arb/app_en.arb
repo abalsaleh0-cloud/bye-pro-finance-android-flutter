@@ -76,5 +76,11 @@
   "assistantUndone": "The operation was undone.",
   "assistantUndoFailed": "Unable to undo the operation.",
   "assistantManual": "Open manual entry",
-  "assistantRead": "Read-only query"
+  "assistantRead": "Read-only query",
+  "transferredToHome": "Transfer to household",
+  "receivedFromWork": "Received from work",
+  "totalExpenses": "Total expenses",
+  "totalCreditor": "Total creditor balance",
+  "totalDebtor": "Total debtor balance",
+  "currentMonth": "Current month"
 }

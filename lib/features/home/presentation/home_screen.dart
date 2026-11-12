@@ -2,6 +2,7 @@ import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/features/home/domain/home_expense.dart';
+import 'package:expense_app/features/work/domain/work_home_transfer.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
@@ -191,6 +192,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
+  Widget _homeSummaryCard(
+    BuildContext context,
+    AppLocalizations strings,
+    List<HomeExpense> expenses,
+    List<WorkHomeTransfer> transfers,
+  ) {
+    final now = DateTime.now();
+    final expenseTotal = expenses.where((item) =>
+      item.dueMonth.year == now.year && item.dueMonth.month == now.month)
+      .fold<int>(0, (sum, item) => sum + item.amount.minorUnits);
+    final transferTotal = transfers.where((item) {
+      final date = item.transferredAt.toLocal();
+      return date.year == now.year && date.month == now.month;
+    }).fold<int>(0, (sum, item) => sum + item.amount.minorUnits);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(strings.currentMonth, style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Row(children: [Expanded(child: Text(strings.totalExpenses)), Text(expenseTotal.toString())]),
+            const SizedBox(height: 6),
+            Row(children: [Expanded(child: Text(strings.receivedFromWork)), Text(transferTotal.toString())]),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
@@ -205,6 +237,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          _homeSummaryCard(context, strings, expenses.value ?? const [], transfers.value ?? const []),
+          const SizedBox(height: 16),
           Text(
             strings.expenses,
             style: Theme.of(context).textTheme.titleMedium,
@@ -273,7 +307,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         Card(
                           child: ListTile(
                             leading: const Icon(Icons.swap_horiz),
-                            title: Text(strings.transfers),
+                            title: Text(strings.receivedFromWork),
                             subtitle: Text(
                               transfer.transferredAt
                                   .toLocal()
