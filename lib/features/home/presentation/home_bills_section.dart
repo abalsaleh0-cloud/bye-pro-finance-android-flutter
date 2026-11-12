@@ -46,6 +46,7 @@ class HomeBillsSection extends ConsumerWidget {
                 dueMonth: MonthKey(year: year, month: monthValue),
                 note: note.text.trim().isEmpty ? null : note.text.trim(),
               ));
+              ref.invalidate(homeBillsProvider);
               if (dialogContext.mounted) Navigator.pop(dialogContext);
             } catch (_) {
               setState(() => error = strings.invalidRecord);
@@ -84,6 +85,7 @@ class HomeBillsSection extends ConsumerWidget {
                 amount: Money.fromMinorUnits(value),
                 paidAt: DateTime.now(),
               ));
+              ref.invalidate(homeBillsProvider);
               if (dialogContext.mounted) Navigator.pop(dialogContext);
             } on InsufficientBillPaymentBalanceException catch (exception) {
               setState(() => error = strings.insufficientHomeBalance(exception.availableMinorUnits.toString(), value.toString()));
