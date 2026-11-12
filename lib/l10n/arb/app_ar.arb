@@ -58,5 +58,22 @@
   "paymentHistory": "سجل الدفعات",
   "paidAt": "تاريخ الدفع",
   "paymentAmount": "مبلغ الدفعة",
-  "settled": "تمت التسوية بالكامل"
+  "settled": "تمت التسوية بالكامل",
+  "assistantHint": "اكتب طلبك هنا… مثال: أضف راتب 1500 لشهر 2026-11",
+  "assistantSend": "إرسال",
+  "assistantWelcome": "اكتب ما تريد تسجيله أو الاستعلام عنه. لن تُنفَّذ أي عملية مالية قبل موافقتك.",
+  "assistantReview": "راجِع تفاصيل العملية قبل تنفيذها.",
+  "assistantNotUnderstood": "لم أفهم. لم يتم تسجيل أي شيء. يمكنك فتح الإدخال اليدوي.",
+  "assistantConfirm": "تأكيد العملية",
+  "assistantSection": "القسم",
+  "assistantOperation": "العملية",
+  "assistantAmount": "المبلغ",
+  "assistantMonth": "الشهر",
+  "assistantDate": "التاريخ",
+  "assistantApprove": "موافقة وتنفيذ",
+  "assistantUndo": "تراجع عن آخر عملية",
+  "assistantUndone": "تم التراجع عن العملية.",
+  "assistantUndoFailed": "تعذر التراجع عن العملية.",
+  "assistantManual": "فتح الإدخال اليدوي",
+  "assistantRead": "استعلام للقراءة فقط"
 }
