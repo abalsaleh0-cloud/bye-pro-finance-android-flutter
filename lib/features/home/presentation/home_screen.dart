@@ -239,6 +239,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             Row(children: [Expanded(child: Text(strings.totalExpenses)), Text(expenseTotal.toString())]),
             const SizedBox(height: 6),
             Row(children: [Expanded(child: Text(strings.receivedFromWork)), Text(transferTotal.toString())]),
+            const SizedBox(height: 6),
+            Row(children: [Expanded(child: Text(strings.totalBillsOutstanding)), Text(bills.fold<int>(0, (sum, bill) => sum + bill.remainingMinorUnits).toString())]),
             const Divider(height: 20),
             Row(
               children: [
@@ -275,7 +277,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           const HomeBillsSection(),
           const SizedBox(height: 16),
           Text(
-            strings.expenses,
+            strings.dailyExpenses,
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
