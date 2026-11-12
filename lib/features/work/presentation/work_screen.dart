@@ -2,6 +2,7 @@ import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/features/work/domain/work_entry.dart';
+import 'package:expense_app/features/work/domain/work_balance_allocation.dart';
 import 'package:expense_app/features/work/domain/work_home_transfer.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -92,7 +93,9 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                 TextField(
                   controller: due,
                   decoration: InputDecoration(
-                    labelText: strings.dueMonth,
+                    labelText: kind == WorkEntryKind.payment
+                        ? strings.paymentReceivedMonth
+                        : strings.dueMonth,
                     hintText: 'YYYY-MM',
                   ),
                 ),
@@ -323,7 +326,8 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
       entry.dueMonth.year == now.year && entry.dueMonth.month == now.month);
     var salary = 0;
     var advances = 0;
-    var payments = 0;
+    var payments = WorkBalanceAllocation.calculate(entries)
+        .paymentsFor(MonthKey(year: now.year, month: now.month));
     for (final entry in monthEntries) {
       switch (entry.kind) {
         case WorkEntryKind.salary:
@@ -331,7 +335,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
         case WorkEntryKind.advance:
           advances += entry.amount.minorUnits;
         case WorkEntryKind.payment:
-          payments += entry.amount.minorUnits;
+          break;
       }
     }
     final transferred = transfers.where((item) {
@@ -403,7 +407,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                             leading: const Icon(Icons.work_outline),
                             title: Text(_kindLabel(strings, entry.kind)),
                             subtitle: Text(
-                              '${strings.dueMonth}: ${entry.dueMonth}',
+                              '${entry.kind == WorkEntryKind.payment ? strings.paymentReceivedMonth : strings.dueMonth}: ${entry.dueMonth}',
                             ),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
