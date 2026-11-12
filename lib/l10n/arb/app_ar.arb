@@ -108,5 +108,6 @@
   "noBills": "لا توجد فواتير مسجلة",
   "billHistory": "سجل سداد الفاتورة",
   "dailyExpenses": "المصروفات اليومية",
-  "totalBillsOutstanding": "إجمالي الفواتير والإيجار المتبقي"
+  "totalBillsOutstanding": "إجمالي الفواتير والإيجار المتبقي",
+  "paymentReceivedMonth": "شهر استلام الدفعة"
 }
