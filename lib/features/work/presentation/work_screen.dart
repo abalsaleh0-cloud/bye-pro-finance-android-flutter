@@ -118,13 +118,6 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                   ),
                 ),
                 TextField(
-                  controller: transferredAt,
-                  decoration: InputDecoration(
-                    labelText: strings.recordedAt,
-                    suffixIcon: calendarSuffix(context, transferredAt, strings, monthOnly: false),
-                  ),
-                ),
-                TextField(
                   controller: note,
                   decoration: InputDecoration(labelText: strings.note),
                 ),
@@ -228,6 +221,13 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                   decoration: InputDecoration(
                     labelText: strings.transferAmount,
                     suffixIcon: calculatorSuffix(context, amount, strings),
+                  ),
+                ),
+                TextField(
+                  controller: transferredAt,
+                  decoration: InputDecoration(
+                    labelText: strings.recordedAt,
+                    suffixIcon: calendarSuffix(context, transferredAt, strings, monthOnly: false),
                   ),
                 ),
                 TextField(
