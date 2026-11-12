@@ -18,9 +18,9 @@ final class HomeBillRepository {
     await _database.customStatement('CREATE TABLE IF NOT EXISTS home_bill_payments (id TEXT PRIMARY KEY NOT NULL, bill_id TEXT NOT NULL REFERENCES home_bills(id) ON DELETE CASCADE, amount_minor_units INTEGER NOT NULL CHECK (amount_minor_units > 0), paid_at_epoch_millis INTEGER NOT NULL, note TEXT)');
   }
 
-  Stream<List<HomeBill>> watchBills() async* {
+  Future<List<HomeBill>> getBills() async {
     await ensureTables();
-    yield* _database.customSelect('SELECT b.id, b.title, b.kind, b.amount_minor_units, b.due_year, b.due_month, b.note, COALESCE(SUM(p.amount_minor_units), 0) AS paid_minor_units FROM home_bills b LEFT JOIN home_bill_payments p ON p.bill_id = b.id GROUP BY b.id ORDER BY b.due_year DESC, b.due_month DESC, b.title COLLATE NOCASE').watch().map((rows) => rows.map((row) => HomeBill(
+    final rows = await _database.customSelect('SELECT b.id, b.title, b.kind, b.amount_minor_units, b.due_year, b.due_month, b.note, COALESCE(SUM(p.amount_minor_units), 0) AS paid_minor_units FROM home_bills b LEFT JOIN home_bill_payments p ON p.bill_id = b.id GROUP BY b.id ORDER BY b.due_year DESC, b.due_month DESC, b.title COLLATE NOCASE').watch().map((rows) => rows.map((row) => HomeBill(
       id: row.read<String>('id'),
       title: row.read<String>('title'),
       kind: row.read<String>('kind') == 'rent' ? HomeBillKind.rent : HomeBillKind.monthly,
@@ -28,7 +28,7 @@ final class HomeBillRepository {
       dueMonth: MonthKey(year: row.read<int>('due_year'), month: row.read<int>('due_month')),
       note: row.read<String?>('note'),
       paidMinorUnits: row.read<int>('paid_minor_units'),
-    )).toList(growable: false));
+    )).toList(growable: false);
   }
 
   Future<void> saveBill(HomeBill bill) async {
