@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:expense_app/core/database/app_database.dart';
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
@@ -31,11 +32,11 @@ class AppSettingsController extends Notifier<AppSettings> {
     return const AppSettings();
   }
 
-  Future<void> _restore(dynamic database) async {
+  Future<void> _restore(AppDatabase database) async {
     try {
       final values = await Future.wait<String?>([
-        database.readSetting('theme_mode') as Future<String?>,
-        database.readSetting('locale') as Future<String?>,
+        database.readSetting('theme_mode'),
+        database.readSetting('locale'),
       ]);
       if (_revision != 0) return;
       state = AppSettings(
