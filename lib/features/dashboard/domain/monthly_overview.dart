@@ -13,6 +13,7 @@ final class MonthlyOverview {
     required this.salary,
     required this.advances,
     required this.payments,
+    required this.salaryPaymentsApplied,
     required this.homeExpenses,
     required this.transfers,
     required this.creditorBalance,
@@ -25,6 +26,7 @@ final class MonthlyOverview {
   final Money salary;
   final Money advances;
   final Money payments;
+  final Money salaryPaymentsApplied;
   final Money homeExpenses;
   final Money transfers;
   final Money creditorBalance;
@@ -38,7 +40,7 @@ final class MonthlyOverview {
   int get workRemainingMinorUnits =>
       salary.minorUnits -
       advances.minorUnits -
-      payments.minorUnits -
+      salaryPaymentsApplied.minorUnits -
       transfers.minorUnits;
 
   factory MonthlyOverview.calculate({
@@ -61,12 +63,15 @@ final class MonthlyOverview {
           advances += entry.amount;
           break;
         case WorkEntryKind.payment:
+          payments += entry.amount;
           break;
       }
     }
 
     final allocation = WorkBalanceAllocation.calculate(entries);
-    payments = Money.fromMinorUnits(allocation.paymentsFor(month));
+    final salaryPaymentsApplied = Money.fromMinorUnits(
+      allocation.paymentsFor(month),
+    );
 
     var homeTotal = Money.zero;
     for (final expense in homeExpenses.where(
@@ -98,6 +103,7 @@ final class MonthlyOverview {
       salary: salary,
       advances: advances,
       payments: payments,
+      salaryPaymentsApplied: salaryPaymentsApplied,
       homeExpenses: homeTotal,
       transfers: transferTotal,
       creditorBalance: creditor,
