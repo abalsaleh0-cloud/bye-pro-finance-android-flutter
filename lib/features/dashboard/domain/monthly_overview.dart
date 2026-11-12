@@ -3,6 +3,7 @@ import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/features/debts/domain/debt_entry.dart';
 import 'package:expense_app/features/home/domain/home_expense.dart';
 import 'package:expense_app/features/work/domain/work_entry.dart';
+import 'package:expense_app/features/work/domain/work_balance_allocation.dart';
 import 'package:expense_app/features/work/domain/work_home_transfer.dart';
 
 /// Read-only totals for one calendar month.
@@ -45,8 +46,9 @@ final class MonthlyOverview {
   }) {
     var salary = Money.zero;
     var advances = Money.zero;
+    final entries = workEntries.toList(growable: false);
     var payments = Money.zero;
-    for (final entry in workEntries.where((entry) => entry.dueMonth == month)) {
+    for (final entry in entries.where((entry) => entry.dueMonth == month)) {
       switch (entry.kind) {
         case WorkEntryKind.salary:
           salary += entry.amount;
@@ -55,10 +57,13 @@ final class MonthlyOverview {
           advances += entry.amount;
           break;
         case WorkEntryKind.payment:
-          payments += entry.amount;
           break;
       }
     }
+
+    payments = Money.fromMinorUnits(
+      WorkBalanceAllocation.calculate(entries).paymentsFor(month),
+    );
 
     var homeTotal = Money.zero;
     for (final expense in homeExpenses.where(
