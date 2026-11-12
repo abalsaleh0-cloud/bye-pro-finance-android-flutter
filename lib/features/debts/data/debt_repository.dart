@@ -85,6 +85,30 @@ final class DebtRepository {
     _database.debts,
   )..where((row) => row.id.equals(id))).go();
 
+  /// Reverts a recorded payment and restores its amount atomically.
+  Future<void> undoPayment(String paymentId) {
+    return _database.transaction(() async {
+      final payment = await (_database.select(_database.debtPayments)
+            ..where((row) => row.id.equals(paymentId)))
+          .getSingleOrNull();
+      if (payment == null) throw StateError('Payment not found: $paymentId');
+      final debt = await (_database.select(_database.debts)
+            ..where((row) => row.id.equals(payment.debtId)))
+          .getSingleOrNull();
+      if (debt == null) throw StateError('Debt not found: ${payment.debtId}');
+      await (_database.delete(_database.debtPayments)
+            ..where((row) => row.id.equals(paymentId)))
+          .go();
+      await (_database.update(_database.debts)
+            ..where((row) => row.id.equals(payment.debtId)))
+          .write(DebtsCompanion(
+        outstandingAmountMinorUnits: Value(
+          debt.outstandingAmountMinorUnits + payment.amountMinorUnits,
+        ),
+      ));
+    });
+  }
+
   DebtEntry _toDomain(DebtRow row) => DebtEntry(
     id: row.id,
     direction: DebtDirection.values.byName(row.direction),
