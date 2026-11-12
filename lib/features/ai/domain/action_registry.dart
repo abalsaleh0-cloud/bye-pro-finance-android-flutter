@@ -63,6 +63,11 @@ final class ActionRegistry {
     if (name == 'save_work_entry' && !{'salary','advance','payment'}.contains(p['kind'])) return 'invalid kind';
     if (name == 'save_debt' && !{'creditor','debtor'}.contains(p['direction'])) return 'invalid direction';
     if (name == 'read_month_total' && !{'work','home','debts'}.contains(p['section'])) return 'invalid section';
+    if (name == 'save_home_expense' && (p['categoryId']! as String).trim().isEmpty) return 'missing category';
+    if (name == 'save_home_expense' && DateTime.tryParse(p['date']! as String) == null) return 'invalid date';
+    if (name == 'save_work_home_transfer' && p['date'] is String && DateTime.tryParse(p['date']! as String) == null) return 'invalid date';
+    if (name == 'save_debt' && (p['counterparty']! as String).trim().isEmpty) return 'missing counterparty';
+    if (name == 'record_debt_payment' && (p['debtId']! as String).trim().isEmpty) return 'missing debt';
     return null;
   }
   Future<ActionExecution> execute(String name, Map<String,Object?> p) async {
