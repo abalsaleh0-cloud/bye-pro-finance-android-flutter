@@ -5,106 +5,124 @@ import 'package:material_ui/material_ui.dart';
 Future<String?> showAmountCalculator(
   BuildContext context,
   AppLocalizations strings,
-) async {
+) => showDialog<String>(
+  context: context,
+  builder: (_) => _AmountCalculatorDialog(strings: strings),
+);
+
+class _AmountCalculatorDialog extends StatefulWidget {
+  const _AmountCalculatorDialog({required this.strings});
+
+  final AppLocalizations strings;
+
+  @override
+  State<_AmountCalculatorDialog> createState() =>
+      _AmountCalculatorDialogState();
+}
+
+class _AmountCalculatorDialogState extends State<_AmountCalculatorDialog> {
   final first = TextEditingController();
   final second = TextEditingController();
-  var operation = '+';
+  String operation = '+';
   String? result;
   String? error;
 
-  try {
-    return await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: Text(strings.calculator),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: first,
-                autofocus: true,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: strings.firstNumber),
-              ),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                initialValue: operation,
-                decoration: InputDecoration(labelText: strings.operation),
-                items: ['+', '-', '×', '÷']
-                    .map((value) => DropdownMenuItem(
-                          value: value,
-                          child: Text(value),
-                        ))
-                    .toList(),
-                onChanged: (value) {
-                  if (value != null) setState(() => operation = value);
-                },
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: second,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(labelText: strings.secondNumber),
-              ),
-              if (result != null) ...[
-                const SizedBox(height: 12),
-                SelectableText('${strings.result}: $result'),
-              ],
-              if (error != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(error!, style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
-                  )),
-                ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text(strings.cancel),
-            ),
-            TextButton(
-              onPressed: () {
-                final a = BigInt.tryParse(first.text.trim());
-                final b = BigInt.tryParse(second.text.trim());
-                if (a == null || b == null ||
-                    (operation == '÷' && (b == BigInt.zero || a.remainder(b) != BigInt.zero))) {
-                  setState(() {
-                    result = null;
-                    error = strings.invalidCalculation;
-                  });
-                  return;
-                }
-                final value = calculateIntegerAmount(a, b, operation);
-                if (value == null) {
-                  setState(() {
-                    result = null;
-                    error = strings.invalidCalculation;
-                  });
-                  return;
-                }
-                setState(() {
-                  result = value.toString();
-                  error = null;
-                });
-              },
-              child: Text(strings.calculate),
-            ),
-            FilledButton(
-              onPressed: result == null
-                  ? null
-                  : () => Navigator.pop(dialogContext, result),
-              child: Text(strings.useResult),
-            ),
-          ],
-        ),
-      ),
-    );
-  } finally {
+  @override
+  void dispose() {
     first.dispose();
     second.dispose();
+    super.dispose();
+  }
+
+  void calculate() {
+    final a = BigInt.tryParse(first.text.trim());
+    final b = BigInt.tryParse(second.text.trim());
+    if (a == null || b == null) {
+      setState(() {
+        result = null;
+        error = widget.strings.invalidCalculation;
+      });
+      return;
+    }
+    final value = calculateIntegerAmount(a, b, operation);
+    if (value == null) {
+      setState(() {
+        result = null;
+        error = widget.strings.invalidCalculation;
+      });
+      return;
+    }
+    setState(() {
+      result = value.toString();
+      error = null;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = widget.strings;
+    return AlertDialog(
+      title: Text(strings.calculator),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: first,
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(labelText: strings.firstNumber),
+          ),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            initialValue: operation,
+            decoration: InputDecoration(labelText: strings.operation),
+            items: ['+', '-', '×', '÷']
+                .map((value) => DropdownMenuItem(
+                      value: value,
+                      child: Text(value),
+                    ))
+                .toList(),
+            onChanged: (value) {
+              if (value != null) setState(() => operation = value);
+            },
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: second,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(labelText: strings.secondNumber),
+          ),
+          if (result != null) ...[
+            const SizedBox(height: 12),
+            SelectableText('${strings.result}: $result'),
+          ],
+          if (error != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(strings.cancel),
+        ),
+        TextButton(
+          onPressed: calculate,
+          child: Text(strings.calculate),
+        ),
+        FilledButton(
+          onPressed: result == null
+              ? null
+              : () => Navigator.pop(context, result),
+          child: Text(strings.useResult),
+        ),
+      ],
+    );
   }
 }
 
@@ -136,7 +154,9 @@ Widget calendarSuffix(
     final parts = controller.text.trim().split('-');
     final year = parts.isNotEmpty ? int.tryParse(parts[0]) : null;
     final month = parts.length > 1 ? int.tryParse(parts[1]) : null;
-    final day = !monthOnly && parts.length > 2 ? int.tryParse(parts[2]) : null;
+    final day = !monthOnly && parts.length > 2
+        ? int.tryParse(parts[2])
+        : null;
     final now = DateTime.now();
     final safeYear = (year ?? now.year).clamp(1900, 2100).toInt();
     final safeMonth = (month ?? now.month).clamp(1, 12).toInt();
