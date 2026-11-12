@@ -328,7 +328,8 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
     var advances = 0;
     final currentMonth = MonthKey(year: now.year, month: now.month);
     final allocation = WorkBalanceAllocation.calculate(entries);
-    var payments = allocation.paymentsFor(currentMonth);
+    var payments = 0;
+    final salaryPaymentsApplied = allocation.paymentsFor(currentMonth);
     for (final entry in monthEntries) {
       switch (entry.kind) {
         case WorkEntryKind.salary:
@@ -336,7 +337,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
         case WorkEntryKind.advance:
           advances += entry.amount.minorUnits;
         case WorkEntryKind.payment:
-          break;
+          payments += entry.amount.minorUnits;
       }
     }
     final transferred = transfers.where((item) {
@@ -347,8 +348,9 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
       (strings.salaryTotal, salary),
       (strings.advancesTotal, advances),
       (strings.paymentsTotal, payments),
+      (strings.salaryPaymentsApplied, salaryPaymentsApplied),
       (strings.transferredToHome, transferred),
-      (strings.workRemaining, salary - advances - payments - transferred),
+      (strings.workRemaining, salary - advances - salaryPaymentsApplied - transferred),
     ];
     return Card(
       child: Padding(
