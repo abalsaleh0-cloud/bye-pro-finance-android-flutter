@@ -90,5 +90,21 @@
       "available": {},
       "requested": {}
     }
-  }
+  },
+  "monthlyBills": "الفواتير الشهرية",
+  "rent": "إيجار المنزل",
+  "addMonthlyBill": "إضافة فاتورة شهرية",
+  "addRent": "إضافة إيجار",
+  "billName": "اسم الفاتورة",
+  "billAmount": "قيمة الفاتورة",
+  "billStatusUnpaid": "غير مدفوعة",
+  "billStatusPartial": "مدفوعة جزئياً",
+  "billStatusPaid": "مدفوعة بالكامل",
+  "billRemaining": "المتبقي",
+  "billPaid": "المدفوع",
+  "payBill": "تسديد",
+  "addBillPayment": "تسجيل دفعة",
+  "billPaymentTooLarge": "قيمة الدفعة أكبر من المبلغ المتبقي",
+  "noBills": "لا توجد فواتير مسجلة",
+  "billHistory": "سجل سداد الفاتورة"
 }
