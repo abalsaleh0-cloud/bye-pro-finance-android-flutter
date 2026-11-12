@@ -1,3 +1,4 @@
+import 'package:expense_app/core/money/integer_calculator.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -76,13 +77,14 @@ Future<String?> showAmountCalculator(
                   });
                   return;
                 }
-                final value = switch (operation) {
-                  '+' => a + b,
-                  '-' => a - b,
-                  '×' => a * b,
-                  '÷' => a ~/ b,
-                  _ => BigInt.zero,
-                };
+                final value = calculateIntegerAmount(a, b, operation);
+                if (value == null) {
+                  setState(() {
+                    result = null;
+                    error = strings.invalidCalculation;
+                  });
+                  return;
+                }
                 setState(() {
                   result = value.toString();
                   error = null;
@@ -131,7 +133,7 @@ Widget calendarSuffix(
   tooltip: strings.calendar,
   icon: const Icon(Icons.calendar_month_outlined),
   onPressed: () async {
-    final parts = controller.text.trim().split(monthOnly ? '-' : '-');
+    final parts = controller.text.trim().split('-');
     final year = parts.isNotEmpty ? int.tryParse(parts[0]) : null;
     final month = parts.length > 1 ? int.tryParse(parts[1]) : null;
     final day = !monthOnly && parts.length > 2 ? int.tryParse(parts[2]) : null;
