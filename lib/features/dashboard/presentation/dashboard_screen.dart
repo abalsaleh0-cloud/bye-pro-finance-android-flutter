@@ -70,6 +70,15 @@ class DashboardScreen extends ConsumerWidget {
           ),
           _summaryCard(
             context,
+            strings.totalWorkOutstanding,
+            overview.totalWorkOutstandingMinorUnits,
+            [
+              (strings.previousWorkOutstanding, overview.previousWorkOutstandingMinorUnits),
+              (strings.workRemaining, overview.workRemainingMinorUnits),
+            ],
+          ),
+          _summaryCard(
+            context,
             strings.homeExpensesTotal,
             overview.homeExpenses.minorUnits,
           ),
