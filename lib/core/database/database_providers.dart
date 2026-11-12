@@ -20,7 +20,7 @@ final homeExpenseRepositoryProvider = Provider<HomeExpenseRepository>(
   (ref) => HomeExpenseRepository(ref.watch(appDatabaseProvider)),
 );
 final homeBillRepositoryProvider = Provider<HomeBillRepository>((ref) => HomeBillRepository(ref.watch(appDatabaseProvider)));
-final homeBillsProvider = StreamProvider<List<HomeBill>>((ref) => ref.watch(homeBillRepositoryProvider).watchBills());
+final homeBillsProvider = FutureProvider<List<HomeBill>>((ref) => ref.watch(homeBillRepositoryProvider).getBills());
 final workRepositoryProvider = Provider<WorkRepository>(
   (ref) => WorkRepository(ref.watch(appDatabaseProvider)),
 );
