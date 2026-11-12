@@ -48,6 +48,7 @@ final class WorkBalanceAllocation {
             ifAbsent: () => entry.amount.minorUnits,
           );
         case WorkEntryKind.payment:
+        case WorkEntryKind.salaryPayment:
           break;
       }
     }
@@ -57,8 +58,30 @@ final class WorkBalanceAllocation {
         month: (salaryByMonth[month] ?? 0) - (advancesByMonth[month] ?? 0),
     };
     final paymentsByMonth = <MonthKey, int>{};
-    final payments = allEntries
+    final legacyPayments = allEntries
         .where((entry) => entry.kind == WorkEntryKind.payment)
+        .toList()
+      ..sort((a, b) {
+        final monthOrder = a.dueMonth.compareTo(b.dueMonth);
+        if (monthOrder != 0) return monthOrder;
+        final dateOrder = a.recordedAt.compareTo(b.recordedAt);
+        return dateOrder != 0 ? dateOrder : a.id.compareTo(b.id);
+      });
+    for (final payment in legacyPayments) {
+      remainingByMonth.update(
+        payment.dueMonth,
+        (value) => value - payment.amount.minorUnits,
+        ifAbsent: () => -payment.amount.minorUnits,
+      );
+      paymentsByMonth.update(
+        payment.dueMonth,
+        (value) => value + payment.amount.minorUnits,
+        ifAbsent: () => payment.amount.minorUnits,
+      );
+    }
+
+    final payments = allEntries
+        .where((entry) => entry.kind == WorkEntryKind.salaryPayment)
         .toList()
       ..sort((a, b) {
         final monthOrder = a.dueMonth.compareTo(b.dueMonth);
