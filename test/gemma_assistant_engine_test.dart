@@ -8,6 +8,16 @@ import 'package:expense_app/features/home/data/home_expense_repository.dart';
 import 'package:expense_app/features/work/data/work_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+class _ThrowingGemmaGenerator implements GemmaTurnGenerator {
+  @override
+  Future<GemmaModelOutput> generate(
+    String userText,
+    List<GemmaFunctionSpec> functions,
+  ) async {
+    throw StateError('model failed');
+  }
+}
+
 class _FakeGemmaGenerator implements GemmaTurnGenerator {
   _FakeGemmaGenerator(this.output);
   final GemmaModelOutput output;
@@ -112,6 +122,14 @@ void main() {
           .interpret('سجل راتب', actions);
 
       expect(result.kind, AssistantResultKind.notUnderstood);
+    });
+
+    test('converts model failures to not-understood without a command', () async {
+      final result = await GemmaAssistantEngine(_ThrowingGemmaGenerator())
+          .interpret('كم الباقي؟', actions);
+
+      expect(result.kind, AssistantResultKind.notUnderstood);
+      expect(result.command, isNull);
     });
 
     test('returns a short clarification question from the model', () async {

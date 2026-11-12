@@ -175,6 +175,7 @@ class GemmaModelManager extends Notifier<GemmaModelState>
   }
 
   @override
+  @override
   Future<GemmaModelOutput> generate(
     String userText,
     List<GemmaFunctionSpec> functions,
@@ -182,61 +183,75 @@ class GemmaModelManager extends Notifier<GemmaModelState>
     if (state.status != GemmaModelStatus.ready) {
       throw StateError('Gemma model is not ready');
     }
-    final model = await _getModel();
-    final tools = functions
-        .map((function) => Tool(
-              name: function.name,
-              description: function.description,
-              parameters: {
-                'type': 'object',
-                'properties': function.properties,
-                'required': function.required,
-              },
-            ))
-        .toList(growable: false);
 
-    InferenceChat? chat;
     try {
-      chat = await model.openChat(
-        systemInstruction: systemInstruction,
-        tools: tools,
-        supportsFunctionCalls: true,
-        toolChoice: ToolChoice.auto,
-        maxOutputTokens: 48,
-        temperature: 0,
-        topK: 1,
-      );
-      await chat.addQueryChunk(Message.text(text: userText, isUser: true));
-      String? functionName;
-      Map<String, Object?>? arguments;
-      var hasMultipleCalls = false;
-      final text = StringBuffer();
+      final model = await _getModel();
+      final tools = functions
+          .map((function) => Tool(
+                name: function.name,
+                description: function.description,
+                parameters: {
+                  'type': 'object',
+                  'properties': function.properties,
+                  'required': function.required,
+                },
+              ))
+          .toList(growable: false);
 
-      await for (final response in chat.generateChatResponseAsync().timeout(
-            const Duration(seconds: 25),
-          )) {
-        if (response is FunctionCallResponse) {
-          if (functionName != null) {
+      InferenceChat? chat;
+      try {
+        chat = await model.openChat(
+          systemInstruction: systemInstruction,
+          tools: tools,
+          supportsFunctionCalls: true,
+          toolChoice: ToolChoice.auto,
+          maxOutputTokens: 48,
+          temperature: 0,
+          topK: 1,
+        );
+        await chat.addQueryChunk(Message.text(text: userText, isUser: true));
+        String? functionName;
+        Map<String, Object?>? arguments;
+        var hasMultipleCalls = false;
+        final text = StringBuffer();
+
+        await for (final response in chat.generateChatResponseAsync().timeout(
+              const Duration(seconds: 25),
+            )) {
+          if (response is FunctionCallResponse) {
+            if (functionName != null) {
+              hasMultipleCalls = true;
+            } else {
+              functionName = response.name;
+              arguments = Map<String, Object?>.from(response.args);
+            }
+          } else if (response is ParallelFunctionCallResponse) {
             hasMultipleCalls = true;
-          } else {
-            functionName = response.name;
-            arguments = Map<String, Object?>.from(response.args);
+          } else if (response is TextResponse) {
+            text.write(response.token);
           }
-        } else if (response is ParallelFunctionCallResponse) {
-          hasMultipleCalls = true;
-        } else if (response is TextResponse) {
-          text.write(response.token);
         }
-      }
 
-      if (hasMultipleCalls) return const GemmaModelOutput.multiple();
-      if (functionName != null && arguments != null) {
-        return GemmaModelOutput.call(functionName, arguments);
+        if (hasMultipleCalls) return const GemmaModelOutput.multiple();
+        if (functionName != null && arguments != null) {
+          return GemmaModelOutput.call(functionName, arguments);
+        }
+        return GemmaModelOutput.text(text.toString());
+      } finally {
+        if (chat != null) await chat.close();
+        _scheduleIdleRelease();
       }
-      return GemmaModelOutput.text(text.toString());
-    } finally {
-      if (chat != null) await chat.close();
-      _scheduleIdleRelease();
+    } catch (_) {
+      state = const GemmaModelState(
+        status: GemmaModelStatus.error,
+        error: 'تعذر تشغيل Gemma؛ سيعمل المساعد التجريبي بدلاً منه.',
+      );
+      try {
+        await releaseModel();
+      } catch (_) {
+        // Preserve the inference error and let the app use its fallback.
+      }
+      rethrow;
     }
   }
 

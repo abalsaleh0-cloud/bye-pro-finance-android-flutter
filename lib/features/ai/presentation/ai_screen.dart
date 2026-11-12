@@ -217,11 +217,21 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                     onPressed: manager.deleteModel,
                     child: Text(strings.gemmaDeleteModel),
                   )
-                else
+                else ...[
                   FilledButton(
                     onPressed: _confirmDownload,
-                    child: Text(model.cancelled ? strings.gemmaResumeDownload : strings.gemmaDownloadModel),
+                    child: Text(
+                      model.cancelled || model.status == GemmaModelStatus.error
+                          ? strings.gemmaResumeDownload
+                          : strings.gemmaDownloadModel,
+                    ),
                   ),
+                  if (model.status == GemmaModelStatus.error)
+                    OutlinedButton(
+                      onPressed: manager.deleteModel,
+                      child: Text(strings.gemmaDeleteModel),
+                    ),
+                ],
               ],
             ),
             const SizedBox(height: 4),
