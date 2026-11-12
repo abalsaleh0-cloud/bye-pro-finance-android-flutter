@@ -106,7 +106,7 @@ final class ActionRegistry {
         final payment=DebtPayment(id:_id(),debtId:p['debtId']! as String,amount:Money.fromMinorUnits(p['amountMinorUnits']! as int),paidAt:DateTime.now(),note:p['note'] as String?);
         await _debts.recordPayment(payment); return ActionExecution(message:'تم تسجيل دفعة الدين',undo:()=>_debts.undoPayment(payment.id));
       case 'read_work_remaining':
-        final all=await _work.watchEntries().first; var salary=0; var used=0; for(final e in all) { if(e.kind==WorkEntryKind.salary) { salary+=e.amount.minorUnits; } else { used+=e.amount.minorUnits; } }
+        final all=await _work.watchEntries().first; final now=DateTime.now(); final current=MonthKey(year:now.year,month:now.month); var salary=0; var used=0; for(final e in all) { if(e.dueMonth==current) { if(e.kind==WorkEntryKind.salary) { salary+=e.amount.minorUnits; } else { used+=e.amount.minorUnits; } } }
         return ActionExecution(message:'الباقي في العمل: ' + (salary-used).toString());
       case 'read_month_total':
         final month=MonthKey(year:p['year']! as int,month:p['month']! as int); final section=p['section']! as String; var total=0;
