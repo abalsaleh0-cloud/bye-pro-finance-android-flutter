@@ -106,5 +106,7 @@
   "addBillPayment": "تسجيل دفعة",
   "billPaymentTooLarge": "قيمة الدفعة أكبر من المبلغ المتبقي",
   "noBills": "لا توجد فواتير مسجلة",
-  "billHistory": "سجل سداد الفاتورة"
+  "billHistory": "سجل سداد الفاتورة",
+  "dailyExpenses": "المصروفات اليومية",
+  "totalBillsOutstanding": "إجمالي الفواتير والإيجار المتبقي"
 }
