@@ -1,3 +1,4 @@
+import 'package:expense_app/core/widgets/entry_tools.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
@@ -37,6 +38,18 @@ class AppShell extends StatelessWidget {
       appBar: AppBar(
         title: Text(labels[_selectedIndex]),
         actions: [
+          IconButton(
+            key: const Key('open-calculator'),
+            tooltip: strings.calculator,
+            icon: const Icon(Icons.calculate_outlined),
+            onPressed: () async {
+              final value = await showAmountCalculator(context, strings);
+              if (!context.mounted || value == null) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('${strings.result}: $value')),
+              );
+            },
+          ),
           IconButton(
             key: const Key('open-settings'),
             tooltip: strings.settings,
