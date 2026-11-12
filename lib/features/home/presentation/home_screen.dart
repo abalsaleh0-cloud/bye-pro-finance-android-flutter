@@ -80,6 +80,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   TextField(
                     controller: date,
+                    readOnly: true,
                     decoration: InputDecoration(
                       labelText: strings.expenseDate,
                       hintText: 'YYYY-MM-DD',
@@ -88,6 +89,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   TextField(
                     controller: due,
+                    readOnly: true,
                     decoration: InputDecoration(
                       labelText: strings.dueMonth,
                       hintText: 'YYYY-MM',
