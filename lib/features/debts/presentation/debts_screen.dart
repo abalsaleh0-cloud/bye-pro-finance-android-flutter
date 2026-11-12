@@ -1,6 +1,7 @@
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
+import 'package:expense_app/core/widgets/entry_tools.dart';
 import 'package:expense_app/features/debts/domain/debt_entry.dart';
 import 'package:expense_app/features/debts/domain/debt_payment.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
@@ -97,6 +98,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
                       labelText: strings.originalAmount,
+                      suffixIcon: calculatorSuffix(context, original, strings),
                     ),
                   ),
                   TextField(
@@ -104,6 +106,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
                       labelText: strings.outstandingAmount,
+                      suffixIcon: calculatorSuffix(context, outstanding, strings),
                     ),
                   ),
                   TextField(
@@ -111,6 +114,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                     decoration: InputDecoration(
                       labelText: strings.dueMonth,
                       hintText: 'YYYY-MM',
+                      suffixIcon: calendarSuffix(context, due, strings, monthOnly: true),
                     ),
                   ),
                   TextField(
@@ -226,7 +230,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                   controller: amount,
                   autofocus: true,
                   keyboardType: TextInputType.number,
-                  decoration: InputDecoration(labelText: strings.paymentAmount),
+                  decoration: InputDecoration(labelText: strings.paymentAmount, suffixIcon: calculatorSuffix(context, amount, strings)),
                 ),
                 TextField(
                   controller: note,
