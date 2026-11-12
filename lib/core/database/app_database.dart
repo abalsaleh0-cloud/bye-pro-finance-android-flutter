@@ -15,6 +15,21 @@ class AppDatabase extends _$AppDatabase {
   @override
   int get schemaVersion => 2;
 
+  Future<String?> readSetting(String key) async {
+    final rows = await customSelect(
+      'SELECT setting_value FROM app_settings WHERE setting_key = ?',
+      variables: [Variable.withString(key)],
+    ).get();
+    return rows.isEmpty ? null : rows.first.read<String>('setting_value');
+  }
+
+  Future<void> writeSetting(String key, String value) async {
+    await customStatement(
+      'INSERT OR REPLACE INTO app_settings (setting_key, setting_value) VALUES (?, ?)',
+      [key, value],
+    );
+  }
+
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (Migrator migrator) => migrator.createAll(),
@@ -25,6 +40,12 @@ class AppDatabase extends _$AppDatabase {
     },
     beforeOpen: (OpeningDetails details) async {
       await customStatement('PRAGMA foreign_keys = ON');
+      await customStatement('''
+        CREATE TABLE IF NOT EXISTS app_settings (
+          setting_key TEXT PRIMARY KEY NOT NULL,
+          setting_value TEXT NOT NULL
+        )
+      ''');
     },
   );
 }
