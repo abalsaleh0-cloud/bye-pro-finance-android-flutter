@@ -3,11 +3,25 @@ import 'package:expense_app/features/work/domain/work_entry.dart';
 
 /// Allocates received salary payments to the oldest eligible salary month first.
 final class WorkBalanceAllocation {
-  WorkBalanceAllocation._(this._paymentsBySalaryMonth);
+  WorkBalanceAllocation._(
+    this._paymentsBySalaryMonth,
+    this._remainingByMonth,
+  );
 
   final Map<MonthKey, int> _paymentsBySalaryMonth;
+  final Map<MonthKey, int> _remainingByMonth;
 
   int paymentsFor(MonthKey month) => _paymentsBySalaryMonth[month] ?? 0;
+
+  int remainingFor(MonthKey month) => _remainingByMonth[month] ?? 0;
+
+  int outstandingBefore(MonthKey month) => _remainingByMonth.entries
+      .where((entry) => entry.key.compareTo(month) < 0 && entry.value > 0)
+      .fold(0, (total, entry) => total + entry.value);
+
+  int outstandingThrough(MonthKey month) => _remainingByMonth.entries
+      .where((entry) => entry.key.compareTo(month) <= 0 && entry.value > 0)
+      .fold(0, (total, entry) => total + entry.value);
 
   factory WorkBalanceAllocation.calculate(Iterable<WorkEntry> entries) {
     final allEntries = entries.toList(growable: false);
@@ -88,6 +102,9 @@ final class WorkBalanceAllocation {
       }
     }
 
-    return WorkBalanceAllocation._(Map.unmodifiable(paymentsByMonth));
+    return WorkBalanceAllocation._(
+      Map.unmodifiable(paymentsByMonth),
+      Map.unmodifiable(remainingByMonth),
+    );
   }
 }
