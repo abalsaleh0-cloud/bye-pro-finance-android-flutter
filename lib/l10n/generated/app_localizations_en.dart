@@ -230,7 +230,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gemmaWifiTitle => 'Download warning';
 
   @override
-  String get gemmaWifiWarning => 'The model is about 2.59 GB. Use Wi-Fi, a stable connection, and sufficient free storage before downloading.';
+  String get gemmaWifiWarning => 'The model is about 2.59 GB. Use Wi-Fi, a stable connection, and sufficient free storage; keep the app open while downloading.';
 
 
 }

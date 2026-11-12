@@ -230,7 +230,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get gemmaWifiTitle => 'تنبيه التنزيل';
 
   @override
-  String get gemmaWifiWarning => 'حجم النموذج نحو 2.59 GB. استخدم شبكة Wi-Fi واتصالاً مستقراً ومساحة تخزين كافية قبل البدء.';
+  String get gemmaWifiWarning => 'حجم النموذج نحو 2.59 GB. استخدم شبكة Wi-Fi واتصالاً مستقراً ومساحة تخزين كافية، وأبقِ التطبيق مفتوحاً أثناء التنزيل.';
 
 
 }

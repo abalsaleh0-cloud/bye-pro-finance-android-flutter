@@ -109,7 +109,7 @@ class GemmaModelManager extends Notifier<GemmaModelState>
         modelType: ModelType.gemma4,
         fileType: ModelFileType.litertlm,
       )
-          .fromNetwork(modelUrl, expectedSize: expectedSize, foreground: true)
+          .fromNetwork(modelUrl, expectedSize: expectedSize)
           .withCancelToken(_cancelToken!)
           .withProgress((progress) {
             state = state.copyWith(

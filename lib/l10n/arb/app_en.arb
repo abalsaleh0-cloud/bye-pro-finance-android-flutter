@@ -124,5 +124,5 @@
   "invalidCalculation": "Enter two valid integers and check division",
   "calendar": "Calendar",
   "gemmaWifiTitle": "Download warning",
-  "gemmaWifiWarning": "The model is about 2.59 GB. Use Wi-Fi, a stable connection, and sufficient free storage before downloading."
+  "gemmaWifiWarning": "The model is about 2.59 GB. Use Wi-Fi, a stable connection, and sufficient free storage; keep the app open while downloading."
 }
