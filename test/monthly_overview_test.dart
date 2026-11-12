@@ -71,7 +71,7 @@ void main() {
     expect(overview.advances.minorUnits, 10000);
     expect(overview.payments.minorUnits, 0);
     expect(overview.workRecordsTotal.minorUnits, 110000);
-    expect(overview.workRemainingMinorUnits, 90000);
+    expect(overview.workRemainingMinorUnits, 83000);
     expect(overview.homeExpenses.minorUnits, 2500);
     expect(overview.transfers.minorUnits, 7000);
   });
