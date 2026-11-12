@@ -45,7 +45,12 @@ final class HomeExpenseRepository {
         0,
         (sum, row) => sum + row.amountMinorUnits,
       );
-      final available = transferredTotal - expenseTotal + previousAmount;
+      final billPaymentRows = await _database.customSelect(
+        'SELECT COALESCE(SUM(amount_minor_units), 0) AS total FROM home_bill_payments',
+      ).get();
+      final billPaymentTotal = billPaymentRows.single.read<int>('total');
+      final available =
+          transferredTotal - expenseTotal - billPaymentTotal + previousAmount;
 
       if (expense.amount.minorUnits > available) {
         throw InsufficientHomeBalanceException(
