@@ -25,7 +25,6 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   final List<_ChatMessage> _messages = [];
   AssistantCommand? _pending;
   UndoOperation? _undo;
-  String? _lastResult;
   bool _busy = false;
 
   @override
@@ -75,7 +74,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     try {
       final execution = await _registry().execute(command.name, command.parameters);
       if (!mounted) return;
-      setState(() { _pending = null; _undo = execution.undo; _lastResult = execution.message; _messages.add(_ChatMessage(execution.message)); });
+      setState(() { _pending = null; _undo = execution.undo; _messages.add(_ChatMessage(execution.message)); });
     } catch (_) {
       if (mounted) setState(() { _pending = null; _messages.add(_ChatMessage(AppLocalizations.of(context)!.assistantNotUnderstood)); });
       await _openManual();
@@ -126,7 +125,8 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   String _displayMonth(AssistantCommand command) {
     final year = command.parameters['year']; final month = command.parameters['month'];
     if (year is int && month is int) return year.toString() + '-' + month.toString().padLeft(2, '0');
-    return '—';
+    final now = DateTime.now();
+    return now.year.toString() + '-' + now.month.toString().padLeft(2, '0');
   }
 
   @override
