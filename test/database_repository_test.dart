@@ -7,7 +7,9 @@ import 'package:expense_app/features/debts/data/debt_repository.dart';
 import 'package:expense_app/features/debts/domain/debt_entry.dart';
 import 'package:expense_app/features/debts/domain/debt_payment.dart';
 import 'package:expense_app/features/home/data/home_expense_repository.dart';
+import 'package:expense_app/features/home/data/home_bill_repository.dart';
 import 'package:expense_app/features/home/domain/home_expense.dart';
+import 'package:expense_app/features/home/domain/home_bill.dart';
 import 'package:expense_app/features/work/data/work_repository.dart';
 import 'package:expense_app/features/work/domain/work_entry.dart';
 import 'package:expense_app/features/work/domain/work_home_transfer.dart';
@@ -353,4 +355,118 @@ void main() {
     await repository.deleteTransfer(original.id);
     expect(await database.select(database.workHomeTransfers).get(), isEmpty);
   });
+
+  test('monthly bills remain obligations until payments are made', () async {
+    await WorkRepository(database).saveTransfer(
+      WorkHomeTransfer(
+        id: 'bill-funding',
+        amount: Money.fromMinorUnits(1000),
+        transferredAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
+    final repository = HomeBillRepository(database);
+    final bill = HomeBill(
+      id: 'internet-november',
+      title: 'Internet',
+      kind: HomeBillKind.monthly,
+      amount: Money.fromMinorUnits(500),
+      dueMonth: MonthKey(year: 2026, month: 11),
+    );
+    await repository.saveBill(bill);
+    expect((await repository.getBills()).single.remainingMinorUnits, 500);
+    await repository.recordPayment(
+      HomeBillPayment(
+        id: 'internet-payment-1',
+        billId: bill.id,
+        amount: Money.fromMinorUnits(200),
+        paidAt: DateTime.utc(2026, 11, 10),
+      ),
+    );
+    final saved = (await repository.getBills()).single;
+    expect(saved.paidMinorUnits, 200);
+    expect(saved.remainingMinorUnits, 300);
+    expect(saved.isSettled, isFalse);
+  });
+
+  test('rent can be paid in installments and cannot exceed home cash balance', () async {
+    await WorkRepository(database).saveTransfer(
+      WorkHomeTransfer(
+        id: 'rent-funding',
+        amount: Money.fromMinorUnits(1000),
+        transferredAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
+    final repository = HomeBillRepository(database);
+    final rent = HomeBill(
+      id: 'rent-november',
+      title: 'Rent',
+      kind: HomeBillKind.rent,
+      amount: Money.fromMinorUnits(900),
+      dueMonth: MonthKey(year: 2026, month: 11),
+    );
+    await repository.saveBill(rent);
+    await repository.recordPayment(
+      HomeBillPayment(
+        id: 'rent-payment-1',
+        billId: rent.id,
+        amount: Money.fromMinorUnits(400),
+        paidAt: DateTime.utc(2026, 11, 5),
+      ),
+    );
+    await expectLater(
+      repository.recordPayment(
+        HomeBillPayment(
+          id: 'rent-payment-2',
+          billId: rent.id,
+          amount: Money.fromMinorUnits(601),
+          paidAt: DateTime.utc(2026, 11, 12),
+        ),
+      ),
+      throwsA(isA<InsufficientBillPaymentBalanceException>()),
+    );
+    final saved = (await repository.getBills()).single;
+    expect(saved.paidMinorUnits, 400);
+    expect(saved.remainingMinorUnits, 500);
+    expect(await repository.paymentsFor(rent.id), hasLength(1));
+  });
+
+  test('bill payments cannot exceed the outstanding bill amount', () async {
+    await WorkRepository(database).saveTransfer(
+      WorkHomeTransfer(
+        id: 'bill-overpay-funding',
+        amount: Money.fromMinorUnits(1000),
+        transferredAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
+    final repository = HomeBillRepository(database);
+    final bill = HomeBill(
+      id: 'water-november',
+      title: 'Water',
+      kind: HomeBillKind.monthly,
+      amount: Money.fromMinorUnits(300),
+      dueMonth: MonthKey(year: 2026, month: 11),
+    );
+    await repository.saveBill(bill);
+    await repository.recordPayment(
+      HomeBillPayment(
+        id: 'water-payment-1',
+        billId: bill.id,
+        amount: Money.fromMinorUnits(200),
+        paidAt: DateTime.utc(2026, 11, 5),
+      ),
+    );
+    await expectLater(
+      repository.recordPayment(
+        HomeBillPayment(
+          id: 'water-payment-over',
+          billId: bill.id,
+          amount: Money.fromMinorUnits(101),
+          paidAt: DateTime.utc(2026, 11, 6),
+        ),
+      ),
+      throwsArgumentError,
+    );
+    expect((await repository.getBills()).single.remainingMinorUnits, 100);
+  });
+
 }
