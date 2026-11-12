@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:expense_app/features/ai/domain/gemma_assistant_engine.dart';
 import 'package:flutter_edge_ai/flutter_edge_ai.dart';
-import 'package:flutter_edge_ai_litertlm/flutter_edge_ai_litertlm.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum GemmaModelStatus { notDownloaded, downloading, ready, error }

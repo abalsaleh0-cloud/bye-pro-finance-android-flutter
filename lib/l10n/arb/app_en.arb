@@ -124,5 +124,18 @@
   "invalidCalculation": "Enter two valid integers and check division",
   "calendar": "Calendar",
   "gemmaWifiTitle": "Download warning",
-  "gemmaWifiWarning": "The model is about 2.59 GB. Use Wi-Fi, a stable connection, and sufficient free storage; keep the app open while downloading."
+  "gemmaWifiWarning": "The model is about 2.59 GB. Use Wi-Fi, a stable connection, and sufficient free storage; keep the app open while downloading.",
+  "gemmaEngine": "Use on-device Gemma",
+  "gemmaEngineDescription": "Uses Gemma when the model is ready; otherwise the experimental assistant is used.",
+  "gemmaModelManagement": "Gemma model management",
+  "gemmaModelDetails": "Gemma 4 E2B · 2.59 GB · Requires at least 8 GB device memory. Wi-Fi is recommended.",
+  "gemmaNotDownloaded": "Model not downloaded",
+  "gemmaDownloading": "Downloading model",
+  "gemmaReady": "Model ready",
+  "gemmaError": "Model error",
+  "gemmaDownloadModel": "Download model",
+  "gemmaResumeDownload": "Resume / retry download",
+  "gemmaCancelDownload": "Cancel download",
+  "gemmaDeleteModel": "Delete model",
+  "gemmaDownloadResumeNote": "A retry may restart from the beginning; the Hugging Face CDN does not guarantee byte-range resume."
 }
