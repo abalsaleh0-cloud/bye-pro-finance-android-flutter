@@ -323,7 +323,10 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
         tooltip: strings.addDebt,
         child: const Icon(Icons.add),
       ),
-      body: debts.when(
+      body: Column(
+        children: [
+          if (debts.hasValue) _debtSummaryCard(context, strings, debts.value ?? const []),
+          Expanded(child: debts.when(
         loading: () => Center(child: Text(strings.loading)),
         error: (error, stackTrace) => Center(child: Text(strings.dataError)),
         data: (items) => items.isEmpty
@@ -432,6 +435,26 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                   );
                 },
               ),
+      )),
+        ],
+      ),
+    );
+  }
+
+  Widget _debtSummaryCard(BuildContext context, AppLocalizations strings, List<DebtEntry> items) {
+    final creditor = items.where((item) => item.direction == DebtDirection.creditor)
+      .fold<int>(0, (sum, item) => sum + item.outstandingAmount.minorUnits);
+    final debtor = items.where((item) => item.direction == DebtDirection.debtor)
+      .fold<int>(0, (sum, item) => sum + item.outstandingAmount.minorUnits);
+    return Card(
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(children: [
+          Row(children: [Expanded(child: Text(strings.totalCreditor)), Text(creditor.toString())]),
+          const SizedBox(height: 6),
+          Row(children: [Expanded(child: Text(strings.totalDebtor)), Text(debtor.toString())]),
+        ]),
       ),
     );
   }
