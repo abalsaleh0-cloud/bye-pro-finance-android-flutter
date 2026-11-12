@@ -111,5 +111,6 @@
   "totalBillsOutstanding": "إجمالي الفواتير والإيجار المتبقي",
   "paymentReceivedMonth": "شهر استلام الدفعة",
   "previousWorkOutstanding": "المستحق من الأشهر السابقة",
-  "totalWorkOutstanding": "إجمالي المستحق حتى هذا الشهر"
+  "totalWorkOutstanding": "إجمالي المستحق حتى هذا الشهر",
+  "salaryPaymentsApplied": "دفعات خُصمت من راتب هذا الشهر"
 }
