@@ -106,5 +106,7 @@
   "addBillPayment": "Record payment",
   "billPaymentTooLarge": "Payment exceeds the remaining amount",
   "noBills": "No bills recorded",
-  "billHistory": "Bill payment history"
+  "billHistory": "Bill payment history",
+  "dailyExpenses": "Daily expenses",
+  "totalBillsOutstanding": "Outstanding bills and rent"
 }
