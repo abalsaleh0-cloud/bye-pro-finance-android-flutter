@@ -7,8 +7,28 @@ import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
-class WorkScreen extends ConsumerWidget {
-  const WorkScreen({super.key});
+class WorkScreen extends ConsumerStatefulWidget {
+  const WorkScreen({super.key, this.openManualEntry = false});
+
+  final bool openManualEntry;
+
+  @override
+  ConsumerState<WorkScreen> createState() => _WorkScreenState();
+}
+
+class _WorkScreenState extends ConsumerState<WorkScreen> {
+  bool _manualEntryOpened = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (widget.openManualEntry && !_manualEntryOpened) {
+      _manualEntryOpened = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _editEntry(context, ref, AppLocalizations.of(context)!);
+      });
+    }
+  }
 
   String _kindLabel(AppLocalizations strings, WorkEntryKind kind) =>
       switch (kind) {
@@ -293,7 +313,7 @@ class WorkScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
     final entries = ref.watch(workEntriesProvider);
     final transfers = ref.watch(workTransfersProvider);
