@@ -109,5 +109,7 @@
   "billHistory": "Bill payment history",
   "dailyExpenses": "Daily expenses",
   "totalBillsOutstanding": "Outstanding bills and rent",
-  "paymentReceivedMonth": "Payment received in month"
+  "paymentReceivedMonth": "Payment received in month",
+  "previousWorkOutstanding": "Outstanding from previous months",
+  "totalWorkOutstanding": "Total outstanding through this month"
 }
