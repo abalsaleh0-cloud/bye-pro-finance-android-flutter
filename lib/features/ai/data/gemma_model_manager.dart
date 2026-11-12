@@ -170,15 +170,15 @@ class GemmaModelManager extends Notifier<GemmaModelState>
     _idleTimer?.cancel();
     if (_model == null || _model!.isClosed) {
       _model = await FlutterEdgeAi.getActiveModel(
-        maxTokens: 1024,
-        preferredBackend: PreferredBackend.gpu,
+        maxTokens: 512,
+        // Prefer CPU on memory-constrained phones: Android GPUs share system RAM.
+        preferredBackend: PreferredBackend.cpu,
         maxConcurrentSessions: 1,
       );
     }
     return _model!;
   }
 
-  @override
   @override
   Future<GemmaModelOutput> generate(
     String userText,
@@ -245,10 +245,10 @@ class GemmaModelManager extends Notifier<GemmaModelState>
         if (chat != null) await chat.close();
         _scheduleIdleRelease();
       }
-    } catch (_) {
-      state = const GemmaModelState(
+    } catch (error) {
+      state = GemmaModelState(
         status: GemmaModelStatus.error,
-        error: 'تعذر تشغيل Gemma؛ سيعمل المساعد التجريبي بدلاً منه.',
+        error: 'تعذر تشغيل Gemma (${error.runtimeType}). تم الاحتفاظ بالنموذج؛ أغلق التطبيقات الأخرى وأعد المحاولة.',
       );
       try {
         await releaseModel();

@@ -128,7 +128,7 @@
   "gemmaEngine": "استخدام Gemma على الجهاز",
   "gemmaEngineDescription": "يستخدم Gemma عند جاهزية النموذج، وإلا يعمل المساعد التجريبي.",
   "gemmaModelManagement": "إدارة نموذج Gemma",
-  "gemmaModelDetails": "Gemma 4 E2B · ملف النموذج 2.59 GB · يُخزَّن ضمن بيانات التطبيق وليس داخل ملف APK. يتطلب ذاكرة جهاز 8 GB على الأقل.",
+  "gemmaModelDetails": "Gemma 4 E2B · ملف النموذج 2.59 GB · يُخزَّن ضمن بيانات التطبيق وليس داخل ملف APK. يتطلب ذاكرة RAM بسعة 6 GB على الأقل، وقد يحتاج إلى ذاكرة متاحة إضافية أثناء التشغيل.",
   "gemmaNotDownloaded": "النموذج غير منزّل",
   "gemmaDownloading": "جارٍ تنزيل النموذج",
   "gemmaReady": "النموذج جاهز",
