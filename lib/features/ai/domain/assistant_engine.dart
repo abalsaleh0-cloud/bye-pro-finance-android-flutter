@@ -42,7 +42,7 @@ final class FakeAssistantEngine implements AssistantEngine {
     if(RegExp(r'راتب|سلفة|سلفه|دفعة|دفعه').hasMatch(text)) {
       if(amount==null) return const AssistantResult.clarification('ما المبلغ؟ لن أفترض أي قيمة.');
       if(month==null) return const AssistantResult.clarification('ما الشهر المستحق؟ اكتب السنة والشهر مثل 2026-11.');
-      final kind=text.contains('راتب')?'salary':RegExp(r'سلفة|سلفه').hasMatch(text)?'advance':'payment';
+      final kind=text.contains('راتب')?'salary':RegExp(r'سلفة|سلفه').hasMatch(text)?'advance':'salaryPayment';
       return AssistantResult.command(AssistantCommand(name:'save_work_entry',parameters:{'kind':kind,'amountMinorUnits':amount,'year':month.$1,'month':month.$2}));
     }
     if(RegExp(r'مصروف|المنزل').hasMatch(text)) {
