@@ -101,13 +101,12 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     final section = await showModalBottomSheet<String>(
       context: context,
       builder: (context) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        ListTile(title: Text(strings.assistantManual), onTap: () => Navigator.pop(context, '/dashboard')),
         ListTile(leading: const Icon(Icons.work_outline), title: Text(strings.work), onTap: () => Navigator.pop(context, '/work')),
         ListTile(leading: const Icon(Icons.home_outlined), title: Text(strings.homeSection), onTap: () => Navigator.pop(context, '/home')),
         ListTile(leading: const Icon(Icons.account_balance_wallet_outlined), title: Text(strings.debts), onTap: () => Navigator.pop(context, '/debts')),
       ])),
     );
-    if (section != null && mounted) context.go(section);
+    if (section != null && mounted) context.go(section, extra: true);
   }
 
   String _sectionName(String action, AppLocalizations s) {
