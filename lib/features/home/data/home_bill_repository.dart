@@ -39,7 +39,33 @@ final class HomeBillRepository {
     if (bill.title.trim().isEmpty || bill.amount.minorUnits <= 0) {
       throw ArgumentError('Invalid bill details');
     }
-    await _database.customStatement('INSERT OR REPLACE INTO home_bills (id, title, kind, amount_minor_units, due_year, due_month, note) VALUES (?, ?, ?, ?, ?, ?, ?)', [bill.id, bill.title.trim(), bill.kind.name, bill.amount.minorUnits, bill.dueMonth.year, bill.dueMonth.month, bill.note]);
+    await _database.transaction(() async {
+      final existing = await _database.customSelect(
+        'SELECT id FROM home_bills WHERE id = ?',
+        variables: [Variable.withString(bill.id)],
+      ).get();
+      if (existing.isEmpty) {
+        await _database.customStatement(
+          'INSERT INTO home_bills (id, title, kind, amount_minor_units, due_year, due_month, note) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [bill.id, bill.title.trim(), bill.kind.name, bill.amount.minorUnits, bill.dueMonth.year, bill.dueMonth.month, bill.note],
+        );
+        return;
+      }
+
+      final paymentRows = await _database.customSelect(
+        'SELECT COALESCE(SUM(amount_minor_units), 0) AS paid FROM home_bill_payments WHERE bill_id = ?',
+        variables: [Variable.withString(bill.id)],
+      ).get();
+      final paid = paymentRows.single.read<int>('paid');
+      if (bill.amount.minorUnits < paid) {
+        throw ArgumentError('Bill amount cannot be lower than its recorded payments');
+      }
+
+      await _database.customStatement(
+        'UPDATE home_bills SET title = ?, kind = ?, amount_minor_units = ?, due_year = ?, due_month = ?, note = ? WHERE id = ?',
+        [bill.title.trim(), bill.kind.name, bill.amount.minorUnits, bill.dueMonth.year, bill.dueMonth.month, bill.note, bill.id],
+      );
+    });
   }
 
   Future<void> recordPayment(HomeBillPayment payment) async {
