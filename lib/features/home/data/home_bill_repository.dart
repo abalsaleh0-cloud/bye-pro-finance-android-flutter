@@ -36,7 +36,9 @@ final class HomeBillRepository {
 
   Future<void> saveBill(HomeBill bill) async {
     await ensureTables();
-    if (bill.title.trim().isEmpty || bill.amount.minorUnits <= 0) throw ArgumentError('Invalid bill details');
+    if (bill.title.trim().isEmpty || bill.amount.minorUnits <= 0) {
+      throw ArgumentError('Invalid bill details');
+    }
     await _database.customStatement('INSERT OR REPLACE INTO home_bills (id, title, kind, amount_minor_units, due_year, due_month, note) VALUES (?, ?, ?, ?, ?, ?, ?)', [bill.id, bill.title.trim(), bill.kind.name, bill.amount.minorUnits, bill.dueMonth.year, bill.dueMonth.month, bill.note]);
   }
 
@@ -44,16 +46,22 @@ final class HomeBillRepository {
     await ensureTables();
     await _database.transaction(() async {
       final billRows = await _database.customSelect('SELECT amount_minor_units FROM home_bills WHERE id = ?', variables: [Variable.withString(payment.billId)]).get();
-      if (billRows.isEmpty) throw ArgumentError('Bill not found');
+      if (billRows.isEmpty) {
+        throw ArgumentError('Bill not found');
+      }
       final billAmount = billRows.single.read<int>('amount_minor_units');
       final paidRows = await _database.customSelect('SELECT COALESCE(SUM(amount_minor_units), 0) AS paid FROM home_bill_payments WHERE bill_id = ?', variables: [Variable.withString(payment.billId)]).get();
       final paid = paidRows.single.read<int>('paid');
-      if (payment.amount.minorUnits <= 0 || paid + payment.amount.minorUnits > billAmount) throw ArgumentError('Payment exceeds outstanding bill amount');
+      if (payment.amount.minorUnits <= 0 || paid + payment.amount.minorUnits > billAmount) {
+        throw ArgumentError('Payment exceeds outstanding bill amount');
+      }
       final transfers = await _database.customSelect('SELECT COALESCE(SUM(amount_minor_units), 0) AS total FROM work_home_transfers').get();
       final dailyExpenses = await _database.customSelect('SELECT COALESCE(SUM(amount_minor_units), 0) AS total FROM home_expenses').get();
       final billPayments = await _database.customSelect('SELECT COALESCE(SUM(amount_minor_units), 0) AS total FROM home_bill_payments').get();
       final available = transfers.single.read<int>('total') - dailyExpenses.single.read<int>('total') - billPayments.single.read<int>('total');
-      if (payment.amount.minorUnits > available) throw InsufficientBillPaymentBalanceException(available);
+      if (payment.amount.minorUnits > available) {
+        throw InsufficientBillPaymentBalanceException(available);
+      }
       await _database.customStatement('INSERT INTO home_bill_payments (id, bill_id, amount_minor_units, paid_at_epoch_millis, note) VALUES (?, ?, ?, ?, ?)', [payment.id, payment.billId, payment.amount.minorUnits, payment.paidAt.millisecondsSinceEpoch, payment.note]);
     });
   }
