@@ -131,6 +131,8 @@ void main() {
     );
     expect(octoberOverview.workRemainingMinorUnits, 1500);
     expect(novemberOverview.workRemainingMinorUnits, 2000);
+    expect(novemberOverview.previousWorkOutstandingMinorUnits, 1500);
+    expect(novemberOverview.totalWorkOutstandingMinorUnits, 3500);
   });
 
   test('splits a payment across oldest salary months without duplication', () {
