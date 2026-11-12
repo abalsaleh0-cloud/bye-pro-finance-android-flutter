@@ -2,6 +2,7 @@
 
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/features/ai/domain/action_registry.dart';
+import 'package:expense_app/features/ai/domain/assistant_confirmation.dart';
 import 'package:expense_app/features/ai/domain/assistant_engine.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,7 +26,7 @@ class AiScreen extends ConsumerStatefulWidget {
 class _AiScreenState extends ConsumerState<AiScreen> {
   final _input = TextEditingController();
   final List<_ChatMessage> _messages = [];
-  AssistantCommand? _pending;
+  final AssistantConfirmation _confirmation = AssistantConfirmation();
   UndoOperation? _undo;
   bool _busy = false;
 
@@ -41,7 +42,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   Future<void> _send() async {
     final text = _input.text.trim();
     if (text.isEmpty || _busy) return;
-    setState(() { _busy = true; _messages.add(_ChatMessage(text, fromUser: true)); _input.clear(); _pending = null; _undo = null; });
+    setState(() { _busy = true; _messages.add(_ChatMessage(text, fromUser: true)); _input.clear(); _confirmation.cancel(); _undo = null; });
     final registry = _registry();
     try {
       final result = await ref.read(assistantEngineProvider).interpret(text, registry.actionNames);
@@ -61,7 +62,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
           final execution = await registry.execute(command.name, command.parameters);
           if (mounted) setState(() => _messages.add(_ChatMessage(execution.message)));
         } else {
-          setState(() { _pending = command; _messages.add(_ChatMessage(AppLocalizations.of(context)!.assistantReview)); });
+          setState(() { _confirmation.request(command); _messages.add(_ChatMessage(AppLocalizations.of(context)!.assistantReview)); });
         }
       }
     } catch (_) {
@@ -70,15 +71,17 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   }
 
   Future<void> _confirm() async {
-    final command = _pending;
-    if (command == null || _busy) return;
+    if (!_confirmation.hasPending || _busy) return;
     setState(() => _busy = true);
     try {
-      final execution = await _registry().execute(command.name, command.parameters);
+      final execution = await _confirmation.approve(
+        (command) => _registry().execute(command.name, command.parameters),
+      );
+      if (execution == null) return;
       if (!mounted) return;
-      setState(() { _pending = null; _undo = execution.undo; _messages.add(_ChatMessage(execution.message)); });
+      setState(() { _undo = execution.undo; _messages.add(_ChatMessage(execution.message)); });
     } catch (_) {
-      if (mounted) setState(() { _pending = null; _messages.add(_ChatMessage(AppLocalizations.of(context)!.assistantNotUnderstood)); });
+      if (mounted) setState(() { _confirmation.cancel(); _messages.add(_ChatMessage(AppLocalizations.of(context)!.assistantNotUnderstood)); });
       await _openManual();
     } finally { if (mounted) setState(() => _busy = false); }
   }
@@ -134,7 +137,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
-    final pending = _pending;
+    final pending = _confirmation.pending;
     return Scaffold(
       body: Column(children: [
         Expanded(child: ListView(padding: const EdgeInsets.all(16), children: [
@@ -159,7 +162,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
               const SizedBox(height: 12),
               Wrap(spacing: 8, children: [
                 FilledButton(onPressed: _busy ? null : _confirm, child: Text(strings.assistantApprove)),
-                TextButton(onPressed: _busy ? null : () => setState(() => _pending = null), child: Text(strings.cancel)),
+                TextButton(onPressed: _busy ? null : () => setState(_confirmation.cancel), child: Text(strings.cancel)),
               ]),
             ])),
           )),
