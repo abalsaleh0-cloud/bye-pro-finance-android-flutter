@@ -245,8 +245,8 @@ class GemmaModelManager extends Notifier<GemmaModelState>
         if (chat != null) await chat.close();
         _scheduleIdleRelease();
       }
-    } catch (_) {
-      state = const GemmaModelState(
+    } catch (error) {
+      state = GemmaModelState(
         status: GemmaModelStatus.error,
         error: 'تعذر تشغيل Gemma (${error.runtimeType}). تم الاحتفاظ بالنموذج؛ أغلق التطبيقات الأخرى وأعد المحاولة.',
       );
