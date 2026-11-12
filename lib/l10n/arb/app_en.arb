@@ -113,5 +113,14 @@
   "previousWorkOutstanding": "Outstanding from previous months",
   "totalWorkOutstanding": "Total outstanding through this month",
   "salaryPaymentsApplied": "Payments applied to this month’s salary",
-  "currentSalaryOutstanding": "Outstanding from this month’s salary"
+  "currentSalaryOutstanding": "Outstanding from this month’s salary",
+  "calculator": "Calculator",
+  "firstNumber": "First number",
+  "secondNumber": "Second number",
+  "operation": "Operation",
+  "calculate": "Calculate",
+  "result": "Result",
+  "useResult": "Use result",
+  "invalidCalculation": "Enter two valid integers and check division",
+  "calendar": "Calendar"
 }
