@@ -4,6 +4,7 @@ import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/features/work/data/work_repository.dart';
 import 'package:expense_app/features/work/domain/work_entry.dart';
+import 'package:expense_app/features/work/domain/work_balance_allocation.dart';
 import 'package:expense_app/features/work/domain/work_home_transfer.dart';
 import 'package:expense_app/features/home/data/home_expense_repository.dart';
 import 'package:expense_app/features/home/domain/home_expense.dart';
@@ -62,7 +63,7 @@ final class ActionRegistry {
     final year = p['year']; final month = p['month'];
     if (year != null && (year is! int || year < 1 || year > 9999)) return 'invalid year';
     if (month != null && (month is! int || month < 1 || month > 12)) return 'invalid month';
-    if (name == 'save_work_entry' && !{'salary','advance','payment'}.contains(p['kind'])) return 'invalid kind';
+    if (name == 'save_work_entry' && !{'salary','advance','payment','salaryPayment'}.contains(p['kind'])) return 'invalid kind';
     if (name == 'save_debt' && !{'creditor','debtor'}.contains(p['direction'])) return 'invalid direction';
     if (name == 'read_month_total' && !{'work','home','debts'}.contains(p['section'])) return 'invalid section';
     if (name == 'save_home_expense' && (p['categoryId']! as String).trim().isEmpty) return 'missing category';
@@ -117,8 +118,27 @@ final class ActionRegistry {
         final payment=DebtPayment(id:_id(),debtId:p['debtId']! as String,amount:Money.fromMinorUnits(p['amountMinorUnits']! as int),paidAt:DateTime.now(),note:p['note'] as String?);
         await _debts.recordPayment(payment); return ActionExecution(message:'تم تسجيل دفعة الدين',undo:()=>_debts.undoPayment(payment.id));
       case 'read_work_remaining':
-        final all=await _work.watchEntries().first; final now=DateTime.now(); final current=MonthKey(year:now.year,month:now.month); var salary=0; var used=0; for(final e in all) { if(e.dueMonth==current) { if(e.kind==WorkEntryKind.salary) { salary+=e.amount.minorUnits; } else { used+=e.amount.minorUnits; } } }
-        return ActionExecution(message:'الباقي في العمل: ' + (salary-used).toString());
+        final all = await _work.watchEntries().first;
+        final now = DateTime.now();
+        final current = MonthKey(year: now.year, month: now.month);
+        var salary = 0;
+        var advances = 0;
+        for (final entry in all.where((entry) => entry.dueMonth == current)) {
+          if (entry.kind == WorkEntryKind.salary) {
+            salary += entry.amount.minorUnits;
+          } else if (entry.kind == WorkEntryKind.advance) {
+            advances += entry.amount.minorUnits;
+          }
+        }
+        final applied = WorkBalanceAllocation.calculate(all).paymentsFor(current);
+        final transfers = await _work.watchTransfers().first;
+        final transferred = transfers.where((item) {
+          final date = item.transferredAt.toLocal();
+          return date.year == current.year && date.month == current.month;
+        }).fold<int>(0, (total, item) => total + item.amount.minorUnits);
+        return ActionExecution(
+          message: 'الباقي في العمل: ' + (salary - advances - applied - transferred).toString(),
+        );
       case 'read_month_total':
         final month=MonthKey(year:p['year']! as int,month:p['month']! as int); final section=p['section']! as String; var total=0;
         if(section=='work') { for(final e in await _work.watchEntries().first) { if(e.dueMonth==month) total+=e.amount.minorUnits; } }
