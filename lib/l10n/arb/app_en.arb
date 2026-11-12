@@ -124,7 +124,7 @@
   "invalidCalculation": "Enter two valid integers and check division",
   "calendar": "Calendar",
   "gemmaWifiTitle": "Download warning",
-  "gemmaWifiWarning": "The model file is about 2.59 GB. Use Wi-Fi and ensure enough free storage. The download runs in the background with a phone notification, so you can turn off the screen. If interrupted, it may restart from the beginning because the Hugging Face server does not support partial resume.",
+  "gemmaWifiWarning": "The model file is about 2.59 GB. Use Wi-Fi and ensure enough free storage. The download runs in the background with a notification; allow notification permission when prompted, then you can turn off the screen. If interrupted, it may restart from the beginning because the Hugging Face server does not support partial resume.",
   "gemmaEngine": "Use on-device Gemma",
   "gemmaEngineDescription": "Uses Gemma when the model is ready; otherwise the experimental assistant is used.",
   "gemmaModelManagement": "Gemma model management",
