@@ -139,6 +139,47 @@ void main() {
     expect(novemberOverview.totalWorkOutstandingMinorUnits, 3500);
   });
 
+  test('preserves historical payments against their original salary month', () {
+    final september = MonthKey(year: 2026, month: 9);
+    final october = MonthKey(year: 2026, month: 10);
+    final november = MonthKey(year: 2026, month: 11);
+    final allocation = WorkBalanceAllocation.calculate([
+      WorkEntry(
+        id: 'september-salary',
+        kind: WorkEntryKind.salary,
+        amount: Money.fromMinorUnits(500),
+        dueMonth: september,
+        recordedAt: DateTime(2026, 9, 1),
+      ),
+      WorkEntry(
+        id: 'october-salary',
+        kind: WorkEntryKind.salary,
+        amount: Money.fromMinorUnits(300),
+        dueMonth: october,
+        recordedAt: DateTime(2026, 10, 1),
+      ),
+      WorkEntry(
+        id: 'historical-october-payment',
+        kind: WorkEntryKind.payment,
+        amount: Money.fromMinorUnits(100),
+        dueMonth: october,
+        recordedAt: DateTime(2026, 10, 15),
+      ),
+      WorkEntry(
+        id: 'new-november-payment',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(200),
+        dueMonth: november,
+        recordedAt: DateTime(2026, 11, 15),
+      ),
+    ]);
+
+    expect(allocation.paymentsFor(september), 200);
+    expect(allocation.paymentsFor(october), 100);
+    expect(allocation.outstandingFor(september), 300);
+    expect(allocation.outstandingFor(october), 200);
+  });
+
   test('splits a payment across oldest salary months without duplication', () {
     final october = MonthKey(year: 2026, month: 10);
     final november = MonthKey(year: 2026, month: 11);
