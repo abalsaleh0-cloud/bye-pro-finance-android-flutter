@@ -102,6 +102,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                 ),
                 TextField(
                   controller: due,
+                  readOnly: true,
                   decoration: InputDecoration(
                     labelText: kind == WorkEntryKind.salaryPayment
                         ? strings.paymentReceivedMonth
@@ -112,6 +113,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                 ),
                 TextField(
                   controller: recordedAt,
+                  readOnly: true,
                   decoration: InputDecoration(
                     labelText: strings.recordedAt,
                     suffixIcon: calendarSuffix(context, recordedAt, strings, monthOnly: false),
@@ -225,6 +227,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                 ),
                 TextField(
                   controller: transferredAt,
+                  readOnly: true,
                   decoration: InputDecoration(
                     labelText: strings.recordedAt,
                     suffixIcon: calendarSuffix(context, transferredAt, strings, monthOnly: false),
