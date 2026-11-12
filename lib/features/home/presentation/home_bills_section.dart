@@ -24,7 +24,7 @@ class HomeBillsSection extends ConsumerWidget {
         content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
           TextField(controller: title, decoration: InputDecoration(labelText: strings.billName)),
           TextField(controller: amount, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: strings.billAmount, suffixIcon: calculatorSuffix(context, amount, strings))),
-          TextField(controller: month, decoration: InputDecoration(labelText: strings.dueMonth, hintText: 'YYYY-MM', suffixIcon: calendarSuffix(context, month, strings, monthOnly: true))),
+          TextField(controller: month, readOnly: true, decoration: InputDecoration(labelText: strings.dueMonth, hintText: 'YYYY-MM', suffixIcon: calendarSuffix(context, month, strings, monthOnly: true))),
           TextField(controller: note, decoration: InputDecoration(labelText: strings.note)),
           if (error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(error!, style: TextStyle(color: Theme.of(context).colorScheme.error))),
         ])),
@@ -71,7 +71,7 @@ class HomeBillsSection extends ConsumerWidget {
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           Text('${strings.billRemaining}: ${bill.remainingMinorUnits}'),
           TextField(controller: amount, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: strings.paymentAmount, suffixIcon: calculatorSuffix(context, amount, strings))),
-          TextField(controller: paidAt, decoration: InputDecoration(labelText: strings.paidAt, suffixIcon: calendarSuffix(context, paidAt, strings, monthOnly: false))),
+          TextField(controller: paidAt, readOnly: true, decoration: InputDecoration(labelText: strings.paidAt, suffixIcon: calendarSuffix(context, paidAt, strings, monthOnly: false))),
           if (error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(error!, style: TextStyle(color: Theme.of(context).colorScheme.error))),
         ]),
         actions: [
