@@ -31,7 +31,10 @@ final class MonthlyOverview {
 
   /// Remaining work amount; a negative value represents an overdrawn balance.
   int get workRemainingMinorUnits =>
-      salary.minorUnits - advances.minorUnits - payments.minorUnits;
+      salary.minorUnits -
+      advances.minorUnits -
+      payments.minorUnits -
+      transfers.minorUnits;
 
   factory MonthlyOverview.calculate({
     required MonthKey month,

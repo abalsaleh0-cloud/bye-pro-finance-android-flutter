@@ -326,6 +326,12 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          FilledButton.icon(
+            onPressed: () => _editTransfer(context, ref, strings),
+            icon: const Icon(Icons.swap_horiz),
+            label: Text(strings.addTransfer),
+          ),
+          const SizedBox(height: 16),
           Text(strings.entries, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           entries.when(
