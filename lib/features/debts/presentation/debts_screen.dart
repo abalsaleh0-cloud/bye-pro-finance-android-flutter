@@ -111,6 +111,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                   ),
                   TextField(
                     controller: due,
+                    readOnly: true,
                     decoration: InputDecoration(
                       labelText: strings.dueMonth,
                       hintText: 'YYYY-MM',
@@ -235,6 +236,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                 ),
                 TextField(
                   controller: paidAt,
+                  readOnly: true,
                   decoration: InputDecoration(
                     labelText: strings.paidAt,
                     suffixIcon: calendarSuffix(context, paidAt, strings, monthOnly: false),
