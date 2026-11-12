@@ -166,7 +166,7 @@ void main() {
     expect(allocation.paymentsFor(november), 200);
   });
 
-  test('allows a negative remaining work balance without storing money', {
+  test('allows a negative remaining work balance without storing money', () {
     final overview = MonthlyOverview.calculate(
       month: month,
       workEntries: [
