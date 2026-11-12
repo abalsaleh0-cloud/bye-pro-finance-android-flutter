@@ -90,5 +90,21 @@
       "available": {},
       "requested": {}
     }
-  }
+  },
+  "monthlyBills": "Monthly bills",
+  "rent": "Home rent",
+  "addMonthlyBill": "Add monthly bill",
+  "addRent": "Add rent",
+  "billName": "Bill name",
+  "billAmount": "Bill amount",
+  "billStatusUnpaid": "Unpaid",
+  "billStatusPartial": "Partially paid",
+  "billStatusPaid": "Fully paid",
+  "billRemaining": "Remaining",
+  "billPaid": "Paid",
+  "payBill": "Pay",
+  "addBillPayment": "Record payment",
+  "billPaymentTooLarge": "Payment exceeds the remaining amount",
+  "noBills": "No bills recorded",
+  "billHistory": "Bill payment history"
 }
