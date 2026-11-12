@@ -4,6 +4,7 @@ import 'package:expense_app/features/dashboard/domain/monthly_overview.dart';
 import 'package:expense_app/features/debts/domain/debt_entry.dart';
 import 'package:expense_app/features/home/domain/home_expense.dart';
 import 'package:expense_app/features/work/domain/work_entry.dart';
+import 'package:expense_app/features/work/domain/work_balance_allocation.dart';
 import 'package:expense_app/features/work/domain/work_home_transfer.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -76,7 +77,94 @@ void main() {
     expect(overview.transfers.minorUnits, 7000);
   });
 
-  test('allows a negative remaining work balance without storing money', () {
+  test('allocates later partial salary payments to the oldest unpaid month', () {
+    final october = MonthKey(year: 2026, month: 10);
+    final november = MonthKey(year: 2026, month: 11);
+    final entries = [
+      WorkEntry(
+        id: 'october-salary',
+        kind: WorkEntryKind.salary,
+        amount: Money.fromMinorUnits(3000),
+        dueMonth: october,
+        recordedAt: DateTime(2026, 10, 1),
+      ),
+      WorkEntry(
+        id: 'november-salary',
+        kind: WorkEntryKind.salary,
+        amount: Money.fromMinorUnits(2000),
+        dueMonth: november,
+        recordedAt: DateTime(2026, 11, 1),
+      ),
+      WorkEntry(
+        id: 'october-receipt',
+        kind: WorkEntryKind.payment,
+        amount: Money.fromMinorUnits(1000),
+        dueMonth: october,
+        recordedAt: DateTime(2026, 10, 10),
+      ),
+      WorkEntry(
+        id: 'november-receipt',
+        kind: WorkEntryKind.payment,
+        amount: Money.fromMinorUnits(500),
+        dueMonth: november,
+        recordedAt: DateTime(2026, 11, 10),
+      ),
+    ];
+
+    final allocation = WorkBalanceAllocation.calculate(entries);
+    expect(allocation.paymentsFor(october), 1500);
+    expect(allocation.paymentsFor(november), 0);
+
+    final octoberOverview = MonthlyOverview.calculate(
+      month: october,
+      workEntries: entries,
+      homeExpenses: const [],
+      transfers: const [],
+      debts: const [],
+    );
+    final novemberOverview = MonthlyOverview.calculate(
+      month: november,
+      workEntries: entries,
+      homeExpenses: const [],
+      transfers: const [],
+      debts: const [],
+    );
+    expect(octoberOverview.workRemainingMinorUnits, 1500);
+    expect(novemberOverview.workRemainingMinorUnits, 2000);
+  });
+
+  test('splits a payment across oldest salary months without duplication', () {
+    final october = MonthKey(year: 2026, month: 10);
+    final november = MonthKey(year: 2026, month: 11);
+    final allocation = WorkBalanceAllocation.calculate([
+      WorkEntry(
+        id: 'october-salary',
+        kind: WorkEntryKind.salary,
+        amount: Money.fromMinorUnits(300),
+        dueMonth: october,
+        recordedAt: DateTime(2026, 10, 1),
+      ),
+      WorkEntry(
+        id: 'november-salary',
+        kind: WorkEntryKind.salary,
+        amount: Money.fromMinorUnits(400),
+        dueMonth: november,
+        recordedAt: DateTime(2026, 11, 1),
+      ),
+      WorkEntry(
+        id: 'november-payment',
+        kind: WorkEntryKind.payment,
+        amount: Money.fromMinorUnits(500),
+        dueMonth: november,
+        recordedAt: DateTime(2026, 11, 15),
+      ),
+    ]);
+
+    expect(allocation.paymentsFor(october), 300);
+    expect(allocation.paymentsFor(november), 200);
+  });
+
+  test('allows a negative remaining work balance without storing money', {
     final overview = MonthlyOverview.calculate(
       month: month,
       workEntries: [
