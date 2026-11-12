@@ -136,11 +136,11 @@ Widget calendarSuffix(
     final month = parts.length > 1 ? int.tryParse(parts[1]) : null;
     final day = !monthOnly && parts.length > 2 ? int.tryParse(parts[2]) : null;
     final now = DateTime.now();
-    final initial = DateTime(
-      year != null && year > 0 ? year : now.year,
-      month != null && month >= 1 && month <= 12 ? month : now.month,
-      day != null && day >= 1 && day <= 31 ? day : 1,
-    );
+    final safeYear = (year ?? now.year).clamp(1900, 2100).toInt();
+    final safeMonth = (month ?? now.month).clamp(1, 12).toInt();
+    final maxDay = DateTime(safeYear, safeMonth + 1, 0).day;
+    final safeDay = (day ?? 1).clamp(1, maxDay).toInt();
+    final initial = DateTime(safeYear, safeMonth, safeDay);
     final picked = await showDatePicker(
       context: context,
       initialDate: initial,
