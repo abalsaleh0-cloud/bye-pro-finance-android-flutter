@@ -111,5 +111,6 @@
   "totalBillsOutstanding": "Outstanding bills and rent",
   "paymentReceivedMonth": "Payment received in month",
   "previousWorkOutstanding": "Outstanding from previous months",
-  "totalWorkOutstanding": "Total outstanding through this month"
+  "totalWorkOutstanding": "Total outstanding through this month",
+  "salaryPaymentsApplied": "Payments applied to this month’s salary"
 }
