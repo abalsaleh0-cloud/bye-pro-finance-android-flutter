@@ -1,6 +1,7 @@
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
+import 'package:expense_app/core/widgets/entry_tools.dart';
 import 'package:expense_app/features/home/data/home_expense_repository.dart';
 import 'package:expense_app/features/home/domain/home_expense.dart';
 import 'package:expense_app/features/home/domain/home_bill.dart';
@@ -70,6 +71,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
                       labelText: strings.amountMinorUnits,
+                      suffixIcon: calculatorSuffix(context, amount, strings),
                     ),
                   ),
                   TextField(
@@ -78,16 +80,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   TextField(
                     controller: date,
+                    readOnly: true,
                     decoration: InputDecoration(
                       labelText: strings.expenseDate,
                       hintText: 'YYYY-MM-DD',
+                      suffixIcon: calendarSuffix(context, date, strings, monthOnly: false),
                     ),
                   ),
                   TextField(
                     controller: due,
+                    readOnly: true,
                     decoration: InputDecoration(
                       labelText: strings.dueMonth,
                       hintText: 'YYYY-MM',
+                      suffixIcon: calendarSuffix(context, due, strings, monthOnly: true),
                     ),
                   ),
                   TextField(

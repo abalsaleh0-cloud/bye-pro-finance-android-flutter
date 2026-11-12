@@ -113,5 +113,14 @@
   "previousWorkOutstanding": "المستحق من الأشهر السابقة",
   "totalWorkOutstanding": "إجمالي المستحق حتى هذا الشهر",
   "salaryPaymentsApplied": "دفعات خُصمت من راتب هذا الشهر",
-  "currentSalaryOutstanding": "المتبقي من راتب هذا الشهر"
+  "currentSalaryOutstanding": "المتبقي من راتب هذا الشهر",
+  "calculator": "الحاسبة",
+  "firstNumber": "الرقم الأول",
+  "secondNumber": "الرقم الثاني",
+  "operation": "العملية",
+  "calculate": "احسب",
+  "result": "النتيجة",
+  "useResult": "استخدام النتيجة",
+  "invalidCalculation": "أدخل رقمين صحيحين وتأكد من عملية القسمة",
+  "calendar": "التقويم"
 }

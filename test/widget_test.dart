@@ -13,6 +13,24 @@ void main() {
     expect(find.text('الرئيسية'), findsWidgets);
     expect(find.byType(NavigationDestination), findsNWidgets(5));
     expect(find.byKey(const Key('open-settings')), findsOneWidget);
+    expect(find.byKey(const Key('open-calculator')), findsOneWidget);
+  });
+
+  testWidgets('global calculator is available and returns a result', (tester) async {
+    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await tester.tap(find.byKey(const Key('open-calculator')));
+    await tester.pumpAndSettle();
+
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.at(0), '12');
+    await tester.enterText(fields.at(1), '30');
+    await tester.tap(find.text('احسب'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('النتيجة: 42'), findsOneWidget);
+    await tester.tap(find.text('استخدام النتيجة'));
+    await tester.pumpAndSettle();
+    expect(find.text('النتيجة: 42'), findsOneWidget);
   });
 
   testWidgets('settings can switch theme and language', (tester) async {

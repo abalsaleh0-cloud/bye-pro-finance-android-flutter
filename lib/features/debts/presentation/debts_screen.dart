@@ -1,6 +1,7 @@
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
+import 'package:expense_app/core/widgets/entry_tools.dart';
 import 'package:expense_app/features/debts/domain/debt_entry.dart';
 import 'package:expense_app/features/debts/domain/debt_payment.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
@@ -97,6 +98,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
                       labelText: strings.originalAmount,
+                      suffixIcon: calculatorSuffix(context, original, strings),
                     ),
                   ),
                   TextField(
@@ -104,13 +106,16 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
                       labelText: strings.outstandingAmount,
+                      suffixIcon: calculatorSuffix(context, outstanding, strings),
                     ),
                   ),
                   TextField(
                     controller: due,
+                    readOnly: true,
                     decoration: InputDecoration(
                       labelText: strings.dueMonth,
                       hintText: 'YYYY-MM',
+                      suffixIcon: calendarSuffix(context, due, strings, monthOnly: true),
                     ),
                   ),
                   TextField(
@@ -208,6 +213,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
     DebtEntry debt,
   ) async {
     final amount = TextEditingController();
+    final paidAt = TextEditingController(text: formatCalendarDate(DateTime.now()));
     final note = TextEditingController();
     String? error;
     try {
@@ -226,7 +232,15 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                   controller: amount,
                   autofocus: true,
                   keyboardType: TextInputType.number,
-                  decoration: InputDecoration(labelText: strings.paymentAmount),
+                  decoration: InputDecoration(labelText: strings.paymentAmount, suffixIcon: calculatorSuffix(context, amount, strings)),
+                ),
+                TextField(
+                  controller: paidAt,
+                  readOnly: true,
+                  decoration: InputDecoration(
+                    labelText: strings.paidAt,
+                    suffixIcon: calendarSuffix(context, paidAt, strings, monthOnly: false),
+                  ),
                 ),
                 TextField(
                   controller: note,
@@ -249,7 +263,8 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
               FilledButton(
                 onPressed: () async {
                   final value = int.tryParse(amount.text.trim());
-                  if (value == null ||
+                  final paymentDate = DateTime.tryParse(paidAt.text.trim());
+                  if (paymentDate == null || value == null ||
                       value <= 0 ||
                       value > debt.outstandingAmount.minorUnits) {
                     setDialogState(() => error = strings.invalidRecord);
@@ -264,7 +279,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                                 .toString(),
                             debtId: debt.id,
                             amount: Money.fromMinorUnits(value),
-                            paidAt: DateTime.now(),
+                            paidAt: paymentDate,
                             note: note.text.trim().isEmpty
                                 ? null
                                 : note.text.trim(),
@@ -283,6 +298,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
       );
     } finally {
       amount.dispose();
+      paidAt.dispose();
       note.dispose();
     }
   }
