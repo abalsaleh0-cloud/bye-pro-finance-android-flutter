@@ -78,7 +78,7 @@ class DashboardScreen extends ConsumerWidget {
             overview.totalWorkOutstandingMinorUnits,
             [
               (strings.previousWorkOutstanding, overview.previousWorkOutstandingMinorUnits),
-              (strings.workRemaining, overview.workRemainingMinorUnits),
+              (strings.currentSalaryOutstanding, overview.currentSalaryOutstandingMinorUnits),
             ],
           ),
           _summaryCard(
