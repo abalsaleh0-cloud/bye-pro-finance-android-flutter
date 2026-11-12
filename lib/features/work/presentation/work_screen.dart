@@ -1,6 +1,7 @@
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
+import 'package:expense_app/core/widgets/entry_tools.dart';
 import 'package:expense_app/features/work/domain/work_entry.dart';
 import 'package:expense_app/features/work/domain/work_balance_allocation.dart';
 import 'package:expense_app/features/work/domain/work_home_transfer.dart';
@@ -95,6 +96,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
                     labelText: strings.amountMinorUnits,
+                    suffixIcon: calculatorSuffix(context, amount, strings),
                   ),
                 ),
                 TextField(
@@ -104,6 +106,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                         ? strings.paymentReceivedMonth
                         : strings.dueMonth,
                     hintText: 'YYYY-MM',
+                    suffixIcon: calendarSuffix(context, due, strings, monthOnly: true),
                   ),
                 ),
                 TextField(
@@ -205,6 +208,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
                     labelText: strings.transferAmount,
+                    suffixIcon: calculatorSuffix(context, amount, strings),
                   ),
                 ),
                 TextField(
