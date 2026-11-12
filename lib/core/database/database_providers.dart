@@ -3,7 +3,9 @@ import 'package:expense_app/features/debts/data/debt_repository.dart';
 import 'package:expense_app/features/debts/domain/debt_entry.dart';
 import 'package:expense_app/features/debts/domain/debt_payment.dart';
 import 'package:expense_app/features/home/data/home_expense_repository.dart';
+import 'package:expense_app/features/home/data/home_bill_repository.dart';
 import 'package:expense_app/features/home/domain/home_expense.dart';
+import 'package:expense_app/features/home/domain/home_bill.dart';
 import 'package:expense_app/features/work/data/work_repository.dart';
 import 'package:expense_app/features/work/domain/work_entry.dart';
 import 'package:expense_app/features/work/domain/work_home_transfer.dart';
@@ -17,6 +19,8 @@ final appDatabaseProvider = Provider<AppDatabase>((ref) {
 final homeExpenseRepositoryProvider = Provider<HomeExpenseRepository>(
   (ref) => HomeExpenseRepository(ref.watch(appDatabaseProvider)),
 );
+final homeBillRepositoryProvider = Provider<HomeBillRepository>((ref) => HomeBillRepository(ref.watch(appDatabaseProvider)));
+final homeBillsProvider = FutureProvider<List<HomeBill>>((ref) => ref.watch(homeBillRepositoryProvider).getBills());
 final workRepositoryProvider = Provider<WorkRepository>(
   (ref) => WorkRepository(ref.watch(appDatabaseProvider)),
 );

@@ -3,6 +3,8 @@ import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/features/home/data/home_expense_repository.dart';
 import 'package:expense_app/features/home/domain/home_expense.dart';
+import 'package:expense_app/features/home/domain/home_bill.dart';
+import 'package:expense_app/features/home/presentation/home_bills_section.dart';
 import 'package:expense_app/features/work/domain/work_home_transfer.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -205,6 +207,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     AppLocalizations strings,
     List<HomeExpense> expenses,
     List<WorkHomeTransfer> transfers,
+    List<HomeBill> bills,
   ) {
     final now = DateTime.now();
     final expenseTotal = expenses.where((item) =>
@@ -222,7 +225,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       0,
       (sum, item) => sum + item.amount.minorUnits,
     );
-    final availableBalance = lifetimeTransfers - lifetimeExpenses;
+    final lifetimeBillPayments = bills.fold<int>(0, (sum, bill) => sum + bill.paidMinorUnits);
+    final availableBalance = lifetimeTransfers - lifetimeExpenses - lifetimeBillPayments;
 
     return Card(
       child: Padding(
@@ -235,6 +239,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             Row(children: [Expanded(child: Text(strings.totalExpenses)), Text(expenseTotal.toString())]),
             const SizedBox(height: 6),
             Row(children: [Expanded(child: Text(strings.receivedFromWork)), Text(transferTotal.toString())]),
+            const SizedBox(height: 6),
+            Row(children: [Expanded(child: Text(strings.totalBillsOutstanding)), Text(bills.fold<int>(0, (sum, bill) => sum + bill.remainingMinorUnits).toString())]),
             const Divider(height: 20),
             Row(
               children: [
@@ -256,6 +262,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final strings = AppLocalizations.of(context)!;
     final expenses = ref.watch(homeExpensesProvider);
     final transfers = ref.watch(workTransfersProvider);
+    final bills = ref.watch(homeBillsProvider);
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         onPressed: () => _editExpense(context, ref, strings),
@@ -265,10 +272,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _homeSummaryCard(context, strings, expenses.value ?? const [], transfers.value ?? const []),
+          _homeSummaryCard(context, strings, expenses.value ?? const [], transfers.value ?? const [], bills.value ?? const []),
+          const SizedBox(height: 12),
+          const HomeBillsSection(),
           const SizedBox(height: 16),
           Text(
-            strings.expenses,
+            strings.dailyExpenses,
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 8),
