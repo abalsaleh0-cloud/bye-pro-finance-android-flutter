@@ -47,6 +47,7 @@
   "invalidRecord": "Check the entered values, amounts, and due month",
   "monthlyOverview": "Current month overview",
   "workRecordsTotal": "Total work entries",
+  "workRemaining": "Remaining work balance",
   "salaryTotal": "Total salary",
   "advancesTotal": "Total advances",
   "paymentsTotal": "Total payments",
