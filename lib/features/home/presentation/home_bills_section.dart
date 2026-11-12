@@ -62,6 +62,7 @@ class HomeBillsSection extends ConsumerWidget {
 
   Future<void> _payBill(BuildContext context, WidgetRef ref, AppLocalizations strings, HomeBill bill) async {
     final amount = TextEditingController();
+    final paidAt = TextEditingController(text: formatCalendarDate(DateTime.now()));
     String? error;
     await showDialog<void>(
       context: context,
@@ -70,13 +71,15 @@ class HomeBillsSection extends ConsumerWidget {
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           Text('${strings.billRemaining}: ${bill.remainingMinorUnits}'),
           TextField(controller: amount, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: strings.paymentAmount, suffixIcon: calculatorSuffix(context, amount, strings))),
+          TextField(controller: paidAt, decoration: InputDecoration(labelText: strings.paidAt, suffixIcon: calendarSuffix(context, paidAt, strings, monthOnly: false))),
           if (error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(error!, style: TextStyle(color: Theme.of(context).colorScheme.error))),
         ]),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text(strings.cancel)),
           FilledButton(onPressed: () async {
             final value = int.tryParse(amount.text.trim());
-            if (value == null || value <= 0 || value > bill.remainingMinorUnits) {
+            final paymentDate = DateTime.tryParse(paidAt.text.trim());
+            if (value == null || value <= 0 || value > bill.remainingMinorUnits || paymentDate == null) {
               setState(() => error = strings.billPaymentTooLarge);
               return;
             }
@@ -85,7 +88,7 @@ class HomeBillsSection extends ConsumerWidget {
                 id: DateTime.now().microsecondsSinceEpoch.toString(),
                 billId: bill.id,
                 amount: Money.fromMinorUnits(value),
-                paidAt: DateTime.now(),
+                paidAt: paymentDate,
               ));
               ref.invalidate(homeBillsProvider);
               if (dialogContext.mounted) Navigator.pop(dialogContext);
@@ -99,6 +102,7 @@ class HomeBillsSection extends ConsumerWidget {
       )),
     );
     amount.dispose();
+    paidAt.dispose();
   }
 
   Future<void> _showHistory(BuildContext context, WidgetRef ref, AppLocalizations strings, HomeBill bill) async {
