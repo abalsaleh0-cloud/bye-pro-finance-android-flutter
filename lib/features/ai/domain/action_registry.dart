@@ -48,6 +48,12 @@ final class ActionRegistry {
   String? validate(String name, Map<String,Object?> p) {
     final d = descriptor(name);
     if (d == null) return 'unknown action';
+    final types = _typesFor(name);
+    for (final entry in p.entries) {
+      final expected = types[entry.key];
+      if (expected == null) return 'unexpected parameter: ' + entry.key;
+      if (entry.value != null && entry.value.runtimeType != expected) return 'invalid parameter type: ' + entry.key;
+    }
     for (final key in d.requiredParameters) { if (p[key] == null) return 'missing parameter: ' + key; }
     final amount = p['amountMinorUnits'];
     if (amount != null && (amount is! int || amount <= 0)) return 'invalid amount';
@@ -111,5 +117,16 @@ final class ActionRegistry {
       default: throw StateError('Unsupported action');
     }
   }
+  Map<String, Type> _typesFor(String name) => switch (name) {
+    'save_work_entry' => const {'kind': String, 'amountMinorUnits': int, 'year': int, 'month': int, 'id': String, 'note': String},
+    'delete_work_entry' || 'delete_home_expense' || 'delete_work_home_transfer' || 'delete_debt' => const {'id': String},
+    'save_home_expense' => const {'amountMinorUnits': int, 'categoryId': String, 'date': String, 'year': int, 'month': int, 'id': String, 'note': String},
+    'save_work_home_transfer' => const {'amountMinorUnits': int, 'id': String, 'date': String, 'note': String},
+    'save_debt' => const {'amountMinorUnits': int, 'direction': String, 'counterparty': String, 'year': int, 'month': int, 'id': String, 'note': String},
+    'record_debt_payment' => const {'debtId': String, 'amountMinorUnits': int, 'note': String},
+    'read_work_remaining' => const {},
+    'read_month_total' => const {'section': String, 'year': int, 'month': int},
+    _ => const {},
+  };
   static String _id()=>DateTime.now().microsecondsSinceEpoch.toString();
 }
