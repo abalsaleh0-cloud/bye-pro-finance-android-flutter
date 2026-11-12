@@ -76,5 +76,11 @@
   "assistantUndone": "تم التراجع عن العملية.",
   "assistantUndoFailed": "تعذر التراجع عن العملية.",
   "assistantManual": "فتح الإدخال اليدوي",
-  "assistantRead": "استعلام للقراءة فقط"
+  "assistantRead": "استعلام للقراءة فقط",
+  "transferredToHome": "تحويل إلى المنزل",
+  "receivedFromWork": "مستلم من العمل",
+  "totalExpenses": "إجمالي المصروفات",
+  "totalCreditor": "إجمالي الدائن",
+  "totalDebtor": "إجمالي المدين",
+  "currentMonth": "الشهر الحالي"
 }
