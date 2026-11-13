@@ -2,6 +2,19 @@ import 'package:expense_app/features/ai/data/gemma_model_manager.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  group('Gemma multimodal memory guard', () {
+    test('blocks devices below 6 GB RAM', () {
+      expect(supportsGemmaMultimodalMemory(4096), isFalse);
+      expect(supportsGemmaMultimodalMemory(6143), isFalse);
+    });
+
+    test('allows devices with at least 6 GB RAM or unknown RAM', () {
+      expect(supportsGemmaMultimodalMemory(6144), isTrue);
+      expect(supportsGemmaMultimodalMemory(8192), isTrue);
+      expect(supportsGemmaMultimodalMemory(0), isTrue);
+    });
+  });
+
   group('ModelReleaseCoordinator', () {
     test('defers release until the active inference operation finishes', () async {
       final coordinator = ModelReleaseCoordinator();
