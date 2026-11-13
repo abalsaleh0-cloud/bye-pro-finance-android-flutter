@@ -153,6 +153,9 @@ final class GemmaAssistantEngine implements AssistantEngine {
         'delete_home_bill' => 'Delete a household bill or rent by its identifier.',
         'record_home_bill_payment' => 'Record a payment or partial payment for an existing household bill or rent.',
         'read_home_bills' => 'List household bills and rent with their remaining unpaid amounts.',
+        'read_work_records' => 'List saved work salary, advance, and payment records with identifiers.',
+        'read_home_expenses' => 'List household daily expenses with identifiers.',
+        'read_debts' => 'List debts, counterparties, outstanding amounts, and identifiers.',
         'save_work_home_transfer' => 'Transfer money from work to household.',
         'delete_work_home_transfer' => 'Delete a work-to-household transfer.',
         'save_debt' => 'Create a debt record.',
@@ -205,7 +208,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
           'amountMinorUnits': integer,
           'note': note,
         },
-      'read_home_bills' => <String, Map<String, Object>>{},
+      'read_home_bills' || 'read_work_records' || 'read_home_expenses' || 'read_debts' => <String, Map<String, Object>>{},
       'save_home_expense' => {
           'amountMinorUnits': integer,
           'categoryId': string,
