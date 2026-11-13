@@ -152,13 +152,7 @@ final class ActionRegistry {
           note: p['note'] as String?,
         );
         await _bills.recordPayment(payment);
-        return ActionExecution(
-          message: 'تم تسجيل دفعة الفاتورة',
-          undo: () async {
-            // Payment history is immutable through the repository API; do not
-            // offer an unsafe undo that could desynchronize the bill balance.
-          },
-        );
+        return const ActionExecution(message: 'تم تسجيل دفعة الفاتورة');
       case 'read_home_bills':
         final bills = await _bills.getBills();
         if (bills.isEmpty) {
