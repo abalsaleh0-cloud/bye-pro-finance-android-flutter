@@ -65,6 +65,18 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     selectedMonth: ref.read(selectedMonthProvider),
   );
 
+  Future<void> _chooseAttachment() async {
+    final strings = AppLocalizations.of(context)!;
+    final image = await showModalBottomSheet<bool>(
+      context: context,
+      builder: (context) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [
+        ListTile(leading: const Icon(Icons.image_outlined), title: Text(strings.aiAttachImage), onTap: () => Navigator.pop(context, true)),
+        ListTile(leading: const Icon(Icons.audio_file_outlined), title: Text(strings.aiAttachWav), onTap: () => Navigator.pop(context, false)),
+      ])),
+    );
+    if (image != null && mounted) await _pickAttachment(image: image);
+  }
+
   Future<void> _pickAttachment({required bool image}) async {
     if (_busy || _recording) return;
     try {
@@ -77,11 +89,11 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       if (result == null || result.files.isEmpty) return;
       final file = result.files.single;
       final limit = image ? 12 * 1024 * 1024 : 20 * 1024 * 1024;
-      if (file.size > limit) throw StateError(image ? 'حجم الصورة يتجاوز 12MB.' : 'حجم الصوت يتجاوز 20MB.');
+      if (file.size > limit) throw StateError(image ? AppLocalizations.of(context)!.aiImageTooLarge : AppLocalizations.of(context)!.aiAudioTooLarge);
       final bytes = file.bytes ?? (file.path == null ? null : await File(file.path!).readAsBytes());
-      if (bytes == null || bytes.isEmpty) throw StateError('تعذر قراءة الملف.');
+      if (bytes == null || bytes.isEmpty) throw StateError(AppLocalizations.of(context)!.aiReadFileFailed);
       if (bytes.length > limit) throw StateError(image ? 'حجم الصورة يتجاوز 12MB.' : 'حجم الصوت يتجاوز 20MB.');
-      if (!image && !_isValidWav(bytes)) throw StateError('اختر ملف WAV بصيغة 16 kHz أحادي القناة.');
+      if (!image && !_isValidWav(bytes)) throw StateError(AppLocalizations.of(context)!.aiInvalidWav);
       if (!mounted) return;
       setState(() {
         _attachmentBytes = bytes;
@@ -108,7 +120,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     try {
       if (!_recording) {
         if (!await _recorder.hasPermission()) {
-          throw StateError('يلزم السماح باستخدام الميكروفون لتسجيل الصوت.');
+          throw StateError(AppLocalizations.of(context)!.aiMicrophonePermission);
         }
         final directory = await Directory.systemTemp.createTemp('bye-pro-audio-');
         final path = '${directory.path}/voice.wav';
@@ -119,13 +131,13 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         if (mounted) setState(() { _recording = true; });
       } else {
         final path = await _recorder.stop();
-        if (path == null) throw StateError('تعذر حفظ التسجيل الصوتي.');
+        if (path == null) throw StateError(AppLocalizations.of(context)!.aiRecordingSaveFailed);
         final recordingFile = File(path);
         final bytes = await recordingFile.readAsBytes();
         await recordingFile.delete();
         try { await recordingFile.parent.delete(); } catch (_) {}
-        if (!_isValidWav(bytes)) throw StateError('التسجيل الناتج ليس WAV صالحاً بدقة 16 kHz.');
-        if (bytes.length > 20 * 1024 * 1024) throw StateError('التسجيل يتجاوز الحد المسموح 20MB.');
+        if (!_isValidWav(bytes)) throw StateError(AppLocalizations.of(context)!.aiInvalidRecording);
+        if (bytes.length > 20 * 1024 * 1024) throw StateError(AppLocalizations.of(context)!.aiAudioTooLarge);
         if (mounted) setState(() {
           _recording = false;
           _attachmentBytes = bytes;
@@ -311,14 +323,13 @@ class _AiScreenState extends ConsumerState<AiScreen> {
             child: Row(children: [
               Icon(_recording ? Icons.mic : (_attachmentIsImage ? Icons.image : Icons.audio_file)),
               const SizedBox(width: 8),
-              Expanded(child: Text(_recording ? 'جارٍ تسجيل الصوت…' : _attachmentName!)),
-              if (!_recording) IconButton(onPressed: _busy ? null : _removeAttachment, icon: const Icon(Icons.close), tooltip: 'إزالة المرفق'),
+              Expanded(child: Text(_recording ? strings.aiRecording : _attachmentName!)),
+              if (!_recording) IconButton(onPressed: _busy ? null : _removeAttachment, icon: const Icon(Icons.close), tooltip: strings.aiRemoveAttachment),
             ]),
           ),
         SafeArea(top: false, child: Padding(padding: const EdgeInsets.fromLTRB(8, 8, 8, 12), child: Row(children: [
-          IconButton(onPressed: _busy || _recording ? null : () => _pickAttachment(image: true), icon: const Icon(Icons.image_outlined), tooltip: 'إرفاق صورة'),
-          IconButton(onPressed: _busy ? null : () => _pickAttachment(image: false), icon: const Icon(Icons.audio_file_outlined), tooltip: 'إرفاق WAV'),
-          IconButton(onPressed: _busy ? null : _toggleRecording, icon: Icon(_recording ? Icons.stop_circle_outlined : Icons.mic_none), tooltip: _recording ? 'إيقاف التسجيل' : 'تسجيل صوت'),
+          IconButton(onPressed: _busy || _recording ? null : _chooseAttachment, icon: const Icon(Icons.attach_file), tooltip: strings.aiAttachImage),
+          IconButton(onPressed: _busy ? null : _toggleRecording, icon: Icon(_recording ? Icons.stop_circle_outlined : Icons.mic_none), tooltip: _recording ? strings.aiStopRecording : strings.aiRecordAudio),
           Expanded(child: TextField(controller: _input, textInputAction: TextInputAction.send, onSubmitted: (_) => _send(), decoration: InputDecoration(
             hintText: strings.assistantHint,
             isDense: true,
