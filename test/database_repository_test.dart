@@ -557,4 +557,109 @@ void main() {
     expect((await repository.getBills()).single.remainingMinorUnits, 100);
   });
 
+
+  test('rejects transfers above cash actually received at work', () async {
+    final repository = WorkRepository(database);
+    await repository.saveEntry(
+      WorkEntry(
+        id: 'cash-received',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(500),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
+    await repository.saveTransfer(
+      WorkHomeTransfer(
+        id: 'valid-transfer',
+        amount: Money.fromMinorUnits(400),
+        transferredAt: DateTime.utc(2026, 11, 2),
+      ),
+    );
+    await expectLater(
+      repository.saveTransfer(
+        WorkHomeTransfer(
+          id: 'over-transfer',
+          amount: Money.fromMinorUnits(101),
+          transferredAt: DateTime.utc(2026, 11, 3),
+        ),
+      ),
+      throwsA(isA<InsufficientWorkBalanceException>()),
+    );
+    expect(await database.select(database.workHomeTransfers).get(), hasLength(1));
+  });
+
+  test('cannot reduce or delete transfers already committed to home expenses', () async {
+    final work = WorkRepository(database);
+    await work.saveEntry(
+      WorkEntry(
+        id: 'home-funding-income',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(1000),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
+    await work.saveTransfer(
+      WorkHomeTransfer(
+        id: 'home-funding-transfer',
+        amount: Money.fromMinorUnits(600),
+        transferredAt: DateTime.utc(2026, 11, 2),
+      ),
+    );
+    await HomeExpenseRepository(database).save(
+      HomeExpense(
+        id: 'committed-home-expense',
+        amount: Money.fromMinorUnits(500),
+        categoryId: 'food',
+        expenseDate: DateTime.utc(2026, 11, 3),
+        dueMonth: MonthKey(year: 2026, month: 11),
+      ),
+    );
+
+    await expectLater(
+      work.saveTransfer(
+        WorkHomeTransfer(
+          id: 'home-funding-transfer',
+          amount: Money.fromMinorUnits(400),
+          transferredAt: DateTime.utc(2026, 11, 2),
+        ),
+      ),
+      throwsA(isA<TransferWouldOverdrawHomeException>()),
+    );
+    await expectLater(
+      work.deleteTransfer('home-funding-transfer'),
+      throwsA(isA<TransferWouldOverdrawHomeException>()),
+    );
+    expect(
+      (await database.select(database.workHomeTransfers).get()).single.amountMinorUnits,
+      600,
+    );
+  });
+
+  test('cannot delete work cash already transferred to home', () async {
+    final repository = WorkRepository(database);
+    await repository.saveEntry(
+      WorkEntry(
+        id: 'income-protect',
+        kind: WorkEntryKind.advance,
+        amount: Money.fromMinorUnits(800),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
+    await repository.saveTransfer(
+      WorkHomeTransfer(
+        id: 'transfer-protect',
+        amount: Money.fromMinorUnits(700),
+        transferredAt: DateTime.utc(2026, 11, 2),
+      ),
+    );
+    await expectLater(
+      repository.deleteEntry('income-protect'),
+      throwsA(isA<InsufficientWorkBalanceException>()),
+    );
+    expect(await database.select(database.workEntries).get(), hasLength(1));
+  });
+
 }
