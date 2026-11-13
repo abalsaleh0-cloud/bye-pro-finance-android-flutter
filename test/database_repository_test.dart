@@ -564,6 +564,76 @@ void main() {
     );
   });
 
+  test('reserves unpaid rent and counts it only once after payment', () async {
+    final month = MonthKey(year: 2026, month: 11);
+    await WorkRepository(database).saveEntry(
+      WorkEntry(
+        id: 'reserved-rent-cash',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(750),
+        dueMonth: month,
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
+    await WorkRepository(database).saveTransfer(
+      WorkHomeTransfer(
+        id: 'reserved-rent-transfer',
+        amount: Money.fromMinorUnits(750),
+        transferredAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
+
+    final bills = HomeBillRepository(database);
+    final rent = HomeBill(
+      id: 'reserved-rent',
+      title: 'Rent',
+      kind: HomeBillKind.rent,
+      amount: Money.fromMinorUnits(580),
+      dueMonth: month,
+    );
+    await bills.saveBill(rent);
+    expect(await bills.outstandingForMonth(month), 580);
+
+    final expenses = HomeExpenseRepository(database);
+    await expectLater(
+      expenses.save(
+        HomeExpense(
+          id: 'over-budget-expense',
+          amount: Money.fromMinorUnits(171),
+          categoryId: 'shopping',
+          expenseDate: DateTime.utc(2026, 11, 2),
+          dueMonth: month,
+        ),
+      ),
+      throwsA(isA<InsufficientHomeBalanceException>()),
+    );
+    await expenses.save(
+      HomeExpense(
+        id: 'allowed-daily-expense',
+        amount: Money.fromMinorUnits(150),
+        categoryId: 'food',
+        expenseDate: DateTime.utc(2026, 11, 2),
+        dueMonth: month,
+      ),
+    );
+
+    await bills.recordPayment(
+      HomeBillPayment(
+        id: 'reserved-rent-payment',
+        billId: rent.id,
+        amount: Money.fromMinorUnits(580),
+        paidAt: DateTime.utc(2026, 11, 3),
+      ),
+    );
+    expect(await bills.paymentsTotalForMonth(month), 580);
+    expect(await bills.outstandingForMonth(month), 0);
+
+    final availableBalance =
+        750 - 150 - await bills.paymentsTotalForMonth(month) -
+        await bills.outstandingForMonth(month);
+    expect(availableBalance, 20);
+  });
+
   test('rent can be paid in installments and cannot exceed home cash balance', () async {
     await WorkRepository(database).saveEntry(
       WorkEntry(

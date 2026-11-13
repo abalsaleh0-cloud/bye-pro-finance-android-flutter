@@ -71,11 +71,15 @@ final class HomeBillRepository {
   Future<void> recordPayment(HomeBillPayment payment) async {
     await ensureTables();
     await _database.transaction(() async {
-      final billRows = await _database.customSelect('SELECT amount_minor_units FROM home_bills WHERE id = ?', variables: [Variable.withString(payment.billId)]).get();
+      final billRows = await _database.customSelect('SELECT amount_minor_units, due_year, due_month FROM home_bills WHERE id = ?', variables: [Variable.withString(payment.billId)]).get();
       if (billRows.isEmpty) {
         throw ArgumentError('Bill not found');
       }
       final billAmount = billRows.single.read<int>('amount_minor_units');
+      final billDueMonth = MonthKey(
+        year: billRows.single.read<int>('due_year'),
+        month: billRows.single.read<int>('due_month'),
+      );
       final paidRows = await _database.customSelect('SELECT COALESCE(SUM(amount_minor_units), 0) AS paid FROM home_bill_payments WHERE bill_id = ?', variables: [Variable.withString(payment.billId)]).get();
       final paid = paidRows.single.read<int>('paid');
       if (payment.amount.minorUnits <= 0 || paid + payment.amount.minorUnits > billAmount) {
@@ -96,14 +100,49 @@ final class HomeBillRepository {
         'SELECT COALESCE(SUM(amount_minor_units), 0) AS total FROM home_bill_payments WHERE paid_at_epoch_millis >= ? AND paid_at_epoch_millis < ?',
         variables: [Variable.withInt(monthStart), Variable.withInt(nextMonthStart)],
       ).get();
+      final paymentMonth = MonthKey(
+        year: paymentDate.year,
+        month: paymentDate.month,
+      );
+      final otherOutstandingBills = await outstandingForMonth(
+        paymentMonth,
+        excludingBillId: billDueMonth == paymentMonth ? payment.billId : null,
+      );
       final available = transfers.single.read<int>('total') -
           dailyExpenses.single.read<int>('total') -
-          billPayments.single.read<int>('total');
+          billPayments.single.read<int>('total') -
+          otherOutstandingBills;
       if (payment.amount.minorUnits > available) {
         throw InsufficientBillPaymentBalanceException(available);
       }
       await _database.customStatement('INSERT INTO home_bill_payments (id, bill_id, amount_minor_units, paid_at_epoch_millis, note) VALUES (?, ?, ?, ?, ?)', [payment.id, payment.billId, payment.amount.minorUnits, payment.paidAt.millisecondsSinceEpoch, payment.note]);
     });
+  }
+
+  /// Returns the unpaid portion of bills due in [month].
+  ///
+  /// Payments are already counted as cash outflow in the month they were made,
+  /// so callers combine this value with that month's recorded bill payments.
+  Future<int> outstandingForMonth(
+    MonthKey month, {
+    String? excludingBillId,
+  }) async {
+    await ensureTables();
+    final exclusion = excludingBillId == null ? '' : ' AND b.id != ?';
+    final variables = <Variable<Object>>[
+      Variable.withInt(month.year),
+      Variable.withInt(month.month),
+      if (excludingBillId != null) Variable.withString(excludingBillId),
+    ];
+    final rows = await _database.customSelect(
+      'SELECT COALESCE(SUM(b.amount_minor_units - COALESCE(p.paid_minor_units, 0)), 0) AS total '
+      'FROM home_bills b '
+      'LEFT JOIN (SELECT bill_id, SUM(amount_minor_units) AS paid_minor_units '
+      'FROM home_bill_payments GROUP BY bill_id) p ON p.bill_id = b.id '
+      'WHERE b.due_year = ? AND b.due_month = ?$exclusion',
+      variables: variables,
+    ).get();
+    return rows.single.read<int>('total');
   }
 
   Future<int> paymentsTotalForMonth(MonthKey month) async {

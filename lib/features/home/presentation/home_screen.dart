@@ -239,9 +239,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final date = item.transferredAt.toLocal();
       return date.year == month.year && date.month == month.month;
     }).fold<int>(0, (sum, item) => sum + item.amount.minorUnits);
-    final availableBalance = transferTotal - expenseTotal - billPaymentsThisMonth;
     final outstandingBills = bills.where((bill) => bill.dueMonth == month)
       .fold<int>(0, (sum, bill) => sum + bill.remainingMinorUnits);
+    // Reserve unpaid bills as well as amounts already paid this month.
+    // A partially paid bill is therefore counted exactly once in total.
+    final availableBalance =
+        transferTotal - expenseTotal - billPaymentsThisMonth - outstandingBills;
 
     return Card(
       child: Padding(

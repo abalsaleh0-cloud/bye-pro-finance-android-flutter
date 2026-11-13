@@ -4,6 +4,7 @@ import 'package:expense_app/core/database/app_database.dart'
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/features/home/domain/home_expense.dart';
+import 'package:expense_app/features/home/data/home_bill_repository.dart';
 
 final class InsufficientHomeBalanceException implements Exception {
   const InsufficientHomeBalanceException({
@@ -60,7 +61,14 @@ final class HomeExpenseRepository {
         variables: [Variable.withInt(monthStart), Variable.withInt(nextMonthStart)],
       ).get();
       final billPaymentTotal = billPaymentRows.single.read<int>('total');
-      final available = transferredTotal - expenseTotal - billPaymentTotal + previousInMonth;
+      final outstandingBills = await HomeBillRepository(
+        _database,
+      ).outstandingForMonth(MonthKey(year: year, month: month));
+      final available = transferredTotal -
+          expenseTotal -
+          billPaymentTotal -
+          outstandingBills +
+          previousInMonth;
 
       if (expense.amount.minorUnits > available) {
         throw InsufficientHomeBalanceException(
