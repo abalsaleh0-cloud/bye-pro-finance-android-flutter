@@ -215,6 +215,31 @@ void main() {
       expect(await database.select(database.debtPayments).get(), isEmpty);
     });
 
+    test('assistant can create, list, and record a household bill payment', () async {
+      await registry.execute('save_work_home_transfer', {
+        'amountMinorUnits': 500,
+      });
+      await registry.execute('save_home_bill', {
+        'title': 'Internet',
+        'kind': 'monthly',
+        'amountMinorUnits': 400,
+        'year': 2026,
+        'month': 11,
+        'id': 'internet-nov',
+      });
+
+      final bills = await registry.execute('read_home_bills', {});
+      expect(bills.message, contains('Internet'));
+      expect(bills.message, contains('400'));
+
+      final payment = await registry.execute('record_home_bill_payment', {
+        'billId': 'internet-nov',
+        'amountMinorUnits': 100,
+      });
+      expect(payment.undo, isNull);
+      expect((await HomeBillRepository(database).getBills()).single.remainingMinorUnits, 300);
+    });
+
     test('read-only actions do not expose undo and run without approval metadata', () async {
       final descriptor = registry.descriptor('read_work_remaining')!;
       expect(descriptor.readOnly, isTrue);
