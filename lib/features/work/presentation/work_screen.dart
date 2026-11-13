@@ -579,6 +579,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
               : null,
       body: ListView(padding: const EdgeInsets.all(16), children: [
         DropdownButtonFormField<MonthKey>(
+          key: const Key('work-selected-month-picker'),
           initialValue: selectedMonth,
           decoration: InputDecoration(labelText: strings.currentMonth),
           items: allMonths.map((month) => DropdownMenuItem(value: month, child: Text(month.toString()))).toList(),
