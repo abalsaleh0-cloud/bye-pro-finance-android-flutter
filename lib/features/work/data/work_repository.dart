@@ -100,10 +100,9 @@ final class WorkRepository {
       if (target == null) return;
       final transfers = await _database.select(_database.workHomeTransfers).get();
       if (_isCashReceived(target.kind)) {
-        final date = DateTime.fromMillisecondsSinceEpoch(target.recordedAtEpochMillis).toLocal();
-        final receivedAfter = _receivedCashForMonth(entries, date.year, date.month) -
+        final receivedAfter = _receivedCashForMonth(entries, target.dueYear, target.dueMonth) -
             target.amountMinorUnits;
-        final transferred = _transferTotalForMonth(transfers, date.year, date.month);
+        final transferred = _transferTotalForMonth(transfers, target.dueYear, target.dueMonth);
         if (receivedAfter < transferred) {
           throw InsufficientWorkBalanceException(
             availableMinorUnits: receivedAfter - transferred,
