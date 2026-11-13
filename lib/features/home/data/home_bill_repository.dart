@@ -106,6 +106,17 @@ final class HomeBillRepository {
     });
   }
 
+  Future<int> paymentsTotalForMonth(MonthKey month) async {
+    await ensureTables();
+    final start = DateTime(month.year, month.month).millisecondsSinceEpoch;
+    final finish = DateTime(month.year, month.month + 1).millisecondsSinceEpoch;
+    final rows = await _database.customSelect(
+      'SELECT COALESCE(SUM(amount_minor_units), 0) AS total FROM home_bill_payments WHERE paid_at_epoch_millis >= ? AND paid_at_epoch_millis < ?',
+      variables: [Variable.withInt(start), Variable.withInt(finish)],
+    ).get();
+    return rows.single.read<int>('total');
+  }
+
   Future<List<HomeBillPayment>> paymentsFor(String billId) async {
     await ensureTables();
     final rows = await _database.customSelect('SELECT id, bill_id, amount_minor_units, paid_at_epoch_millis, note FROM home_bill_payments WHERE bill_id = ? ORDER BY paid_at_epoch_millis', variables: [Variable.withString(billId)]).get();
