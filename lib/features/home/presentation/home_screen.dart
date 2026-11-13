@@ -272,6 +272,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final availableMonths = <MonthKey>{
       currentMonth,
       ...(expenses.value ?? const <HomeExpense>[]).map((item) => item.dueMonth),
+      ...(expenses.value ?? const <HomeExpense>[]).map((item) {
+        final date = item.expenseDate.toLocal();
+        return MonthKey(year: date.year, month: date.month);
+      }),
       ...(bills.value ?? const <HomeBill>[]).map((item) => item.dueMonth),
       ...(transfers.value ?? const <WorkHomeTransfer>[]).map((item) {
         final date = item.transferredAt.toLocal();
