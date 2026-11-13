@@ -1,19 +1,58 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:expense_app/features/ai/domain/assistant_engine.dart';
+
 import 'package:expense_app/features/ai/domain/gemma_assistant_engine.dart';
 import 'package:flutter_edge_ai/flutter_edge_ai.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+bool supportsGemmaMultimodalMemory(int physicalRamMegabytes) =>
+    physicalRamMegabytes >= 6 * 1024;
+
 enum GemmaModelStatus { notDownloaded, downloading, ready, error }
 
-Future<void> cleanupGemmaInterruptedStorage({
-  Future<void> Function()? cleanup,
-}) async {
-  try {
-    await (cleanup ?? FlutterEdgeAi.performCleanup)();
-  } catch (_) {
-    // Cleanup is best-effort and must never block model recovery or retries.
+class ModelReleaseCoordinator {
+  int _activeOperations = 0;
+  bool _releaseRequested = false;
+  Completer<void>? _pendingRelease;
+
+  void beginOperation() {
+    _activeOperations++;
+  }
+
+  Future<void> requestRelease(Future<void> Function() release) async {
+    if (_activeOperations == 0) {
+      await release();
+      return;
+    }
+    _releaseRequested = true;
+    return (_pendingRelease ??= Completer<void>()).future;
+  }
+
+  Future<void> finishOperation(Future<void> Function() release) async {
+    if (_activeOperations == 0) {
+      return;
+    }
+    _activeOperations--;
+    if (_activeOperations != 0 || !_releaseRequested) {
+      return;
+    }
+    final pending = _pendingRelease;
+    _pendingRelease = null;
+    _releaseRequested = false;
+    try {
+      await release();
+      if (pending != null && !pending.isCompleted) {
+          pending.complete();
+        }
+    } catch (error, stackTrace) {
+      if (pending != null && !pending.isCompleted) {
+          pending.completeError(error, stackTrace);
+        }
+      rethrow;
+    }
   }
 }
 
@@ -67,21 +106,21 @@ class GemmaModelManager extends Notifier<GemmaModelState>
   CancelToken? _cancelToken;
   InferenceModel? _model;
   Timer? _idleTimer;
+  bool _modelSupportsImage = false;
+  bool _modelSupportsAudio = false;
+  final ModelReleaseCoordinator _releaseCoordinator = ModelReleaseCoordinator();
 
   @override
   GemmaModelState build() {
     unawaited(refresh());
     ref.onDispose(() {
       _idleTimer?.cancel();
-      final model = _model;
-      _model = null;
-      if (model != null) unawaited(model.close());
+      unawaited(releaseModel());
     });
     return const GemmaModelState();
   }
 
   Future<void> refresh() async {
-    await cleanupGemmaInterruptedStorage();
     try {
       final installed = await FlutterEdgeAi.isModelInstalled(modelFileName);
       if (!installed) {
@@ -107,7 +146,9 @@ class GemmaModelManager extends Notifier<GemmaModelState>
   }
 
   Future<void> download() async {
-    if (state.status == GemmaModelStatus.downloading) return;
+    if (state.status == GemmaModelStatus.downloading) {
+      return;
+    }
     _cancelToken = CancelToken();
     state = const GemmaModelState(
       status: GemmaModelStatus.downloading,
@@ -143,7 +184,6 @@ class GemmaModelManager extends Notifier<GemmaModelState>
         progress: 100,
       );
     } catch (error) {
-      await cleanupGemmaInterruptedStorage();
       if (CancelToken.isCancel(error)) {
         state = const GemmaModelState(
           status: GemmaModelStatus.notDownloaded,
@@ -177,7 +217,20 @@ class GemmaModelManager extends Notifier<GemmaModelState>
     }
   }
 
-  Future<InferenceModel> _getModel() async {
+  Future<void> _checkMultimodalMemory(AssistantMedia? media) async {
+    if (media == null || (!media.hasImage && !media.hasAudio)) {
+      return;
+    }
+    final info = await DeviceInfoPlugin().androidInfo;
+    if (!supportsGemmaMultimodalMemory(info.physicalRamSize)) {
+      throw const AssistantInputException('تحليل الصور والصوت يحتاج هاتفاً بذاكرة RAM لا تقل عن 6GB. يمكنك متابعة المحادثة النصية.');
+    }
+  }
+
+  Future<InferenceModel> _getModel({
+    required bool supportImage,
+    required bool supportAudio,
+  }) async {
     _idleTimer?.cancel();
     if (_model == null || _model!.isClosed) {
       _model = await FlutterEdgeAi.getActiveModel(
@@ -188,7 +241,11 @@ class GemmaModelManager extends Notifier<GemmaModelState>
         // Prefer CPU on memory-constrained phones: Android GPUs share system RAM.
         preferredBackend: PreferredBackend.cpu,
         maxConcurrentSessions: 1,
+        supportImage: supportImage,
+        supportAudio: supportAudio,
       );
+      _modelSupportsImage = supportImage;
+      _modelSupportsAudio = supportAudio;
     }
     return _model!;
   }
@@ -196,14 +253,23 @@ class GemmaModelManager extends Notifier<GemmaModelState>
   @override
   Future<GemmaModelOutput> generate(
     String userText,
-    List<GemmaFunctionSpec> functions,
-  ) async {
+    List<GemmaFunctionSpec> functions, {
+    AssistantMedia? media,
+  }) async {
     if (state.status != GemmaModelStatus.ready) {
       throw StateError('Gemma model is not ready');
     }
 
+    await _checkMultimodalMemory(media);
+    final supportImage = media?.hasImage ?? false;
+    final supportAudio = media?.hasAudio ?? false;
+    if (_model != null && !_model!.isClosed &&
+        (_modelSupportsImage != supportImage || _modelSupportsAudio != supportAudio)) {
+      await releaseModel();
+    }
+    _releaseCoordinator.beginOperation();
     try {
-      final model = await _getModel();
+      final model = await _getModel(supportImage: supportImage, supportAudio: supportAudio);
       final tools = functions
           .map((function) => Tool(
                 name: function.name,
@@ -222,12 +288,20 @@ class GemmaModelManager extends Notifier<GemmaModelState>
           systemInstruction: systemInstruction,
           tools: tools,
           supportsFunctionCalls: true,
+          supportImage: supportImage,
+          supportAudio: supportAudio,
           toolChoice: ToolChoice.auto,
           maxOutputTokens: 256,
           temperature: 0,
           topK: 1,
         );
-        await chat.addQueryChunk(Message.text(text: userText, isUser: true));
+        if (media?.imageBytes != null) {
+          await chat.addQueryChunk(Message.withImage(text: userText, imageBytes: media!.imageBytes!, isUser: true));
+        } else if (media?.audioBytes != null) {
+          await chat.addQueryChunk(Message.withAudio(text: userText, audioBytes: media!.audioBytes!, isUser: true));
+        } else {
+          await chat.addQueryChunk(Message.text(text: userText, isUser: true));
+        }
         String? functionName;
         Map<String, Object?>? arguments;
         var hasMultipleCalls = false;
@@ -250,13 +324,17 @@ class GemmaModelManager extends Notifier<GemmaModelState>
           }
         }
 
-        if (hasMultipleCalls) return const GemmaModelOutput.multiple();
+        if (hasMultipleCalls) {
+          return const GemmaModelOutput.multiple();
+        }
         if (functionName != null && arguments != null) {
           return GemmaModelOutput.call(functionName, arguments);
         }
         return GemmaModelOutput.text(text.toString());
       } finally {
-        if (chat != null) await chat.close();
+        if (chat != null) {
+          await chat.close();
+        }
         _scheduleIdleRelease();
       }
     } catch (error) {
@@ -274,12 +352,14 @@ class GemmaModelManager extends Notifier<GemmaModelState>
           error: 'تعذر تشغيل Gemma (${error.runtimeType}). تم الاحتفاظ بالنموذج؛ أغلق التطبيقات الأخرى وأعد المحاولة.',
         );
         try {
-          await releaseModel();
+          unawaited(releaseModel());
         } catch (_) {
           // Preserve the inference error and let the app use its fallback.
         }
       }
       rethrow;
+    } finally {
+      await _releaseCoordinator.finishOperation(_closeModel);
     }
   }
 
@@ -292,8 +372,14 @@ class GemmaModelManager extends Notifier<GemmaModelState>
 
   Future<void> releaseModel() async {
     _idleTimer?.cancel();
+    await _releaseCoordinator.requestRelease(_closeModel);
+  }
+
+  Future<void> _closeModel() async {
     final model = _model;
     _model = null;
+    _modelSupportsImage = false;
+    _modelSupportsAudio = false;
     if (model != null && !model.isClosed) {
       await model.close();
     }
