@@ -45,6 +45,9 @@ final class ActionRegistry {
     ActionDescriptor('read_work_records', {}, readOnly: true),
     ActionDescriptor('read_home_expenses', {}, readOnly: true),
     ActionDescriptor('read_debts', {}, readOnly: true),
+    ActionDescriptor('read_work_transfers', {}, readOnly: true),
+    ActionDescriptor('read_debt_payments', {'debtId'}, readOnly: true),
+    ActionDescriptor('read_home_bill_payments', {'billId'}, readOnly: true),
     ActionDescriptor('save_work_home_transfer', {'amountMinorUnits'}),
     ActionDescriptor('delete_work_home_transfer', {'id'}),
     ActionDescriptor('save_debt', {'amountMinorUnits','direction','counterparty','year','month'}),
@@ -187,6 +190,36 @@ final class ActionRegistry {
             '${debt.id}: ${debt.direction.name}، ${debt.counterparty}، المتبقي ${debt.outstandingAmount.minorUnits}'
           ).join('؛ '),
         );
+      case 'read_work_transfers':
+        final transfers = await _work.watchTransfers().first;
+        if (transfers.isEmpty) {
+          return const ActionExecution(message: 'لا توجد تحويلات إلى المنزل.');
+        }
+        return ActionExecution(
+          message: transfers.map((item) =>
+            '${item.id}: ${item.amount.minorUnits}، ${item.transferredAt.toLocal().toIso8601String().split('T').first}'
+          ).join('؛ '),
+        );
+      case 'read_debt_payments':
+        final payments = await _debts.watchPayments(p['debtId']! as String).first;
+        if (payments.isEmpty) {
+          return const ActionExecution(message: 'لا توجد دفعات مسجلة لهذا الدين.');
+        }
+        return ActionExecution(
+          message: payments.map((payment) =>
+            '${payment.id}: ${payment.amount.minorUnits}، ${payment.paidAt.toLocal().toIso8601String().split('T').first}'
+          ).join('؛ '),
+        );
+      case 'read_home_bill_payments':
+        final payments = await _bills.paymentsFor(p['billId']! as String);
+        if (payments.isEmpty) {
+          return const ActionExecution(message: 'لا توجد دفعات مسجلة لهذه الفاتورة.');
+        }
+        return ActionExecution(
+          message: payments.map((payment) =>
+            '${payment.id}: ${payment.amount.minorUnits}، ${payment.paidAt.toLocal().toIso8601String().split('T').first}'
+          ).join('؛ '),
+        );
       case 'read_home_bills':
         final bills = await _bills.getBills();
         if (bills.isEmpty) {
@@ -267,7 +300,9 @@ final class ActionRegistry {
     'save_home_bill' => const {'title': String, 'kind': String, 'amountMinorUnits': int, 'year': int, 'month': int, 'id': String, 'note': String},
     'delete_home_bill' => const {'id': String},
     'record_home_bill_payment' => const {'billId': String, 'amountMinorUnits': int, 'note': String},
-    'read_home_bills' || 'read_work_records' || 'read_home_expenses' || 'read_debts' => const {},
+    'read_home_bills' || 'read_work_records' || 'read_home_expenses' || 'read_debts' || 'read_work_transfers' => const {},
+    'read_debt_payments' => const {'debtId': String},
+    'read_home_bill_payments' => const {'billId': String},
     'save_work_home_transfer' => const {'amountMinorUnits': int, 'id': String, 'date': String, 'note': String},
     'save_debt' => const {'amountMinorUnits': int, 'direction': String, 'counterparty': String, 'year': int, 'month': int, 'id': String, 'note': String},
     'record_debt_payment' => const {'debtId': String, 'amountMinorUnits': int, 'note': String},
