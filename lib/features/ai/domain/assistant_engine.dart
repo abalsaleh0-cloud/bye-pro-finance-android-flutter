@@ -4,7 +4,7 @@ import 'dart:typed_data';
 
 import 'number_normalizer.dart';
 
-enum AssistantResultKind { command, clarification, notUnderstood }
+enum AssistantResultKind { command, answer, clarification, notUnderstood }
 final class AssistantCommand {
   const AssistantCommand({required this.name, required this.parameters});
   final String name;
@@ -13,6 +13,7 @@ final class AssistantCommand {
 final class AssistantResult {
   const AssistantResult._(this.kind,{this.command,this.message});
   const AssistantResult.command(AssistantCommand value):this._(AssistantResultKind.command,command:value);
+  const AssistantResult.answer(String value):this._(AssistantResultKind.answer,message:value);
   const AssistantResult.clarification(String value):this._(AssistantResultKind.clarification,message:value);
   const AssistantResult.notUnderstood():this._(AssistantResultKind.notUnderstood);
   final AssistantResultKind kind;
