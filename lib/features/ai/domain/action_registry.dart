@@ -207,7 +207,19 @@ final class ActionRegistry {
         final id=p['id'] as String? ?? _id(); final all=await _debts.watchAll().first; DebtEntry? old; for(final e in all) { if(e.id==id) old=e; }
         final previous = old;
         final amount=Money.fromMinorUnits(p['amountMinorUnits']! as int);
-        final item=DebtEntry(id:id,direction:DebtDirection.values.byName(p['direction']! as String),originalAmount:amount,outstandingAmount:previous?.outstandingAmount ?? amount,dueMonth:MonthKey(year:p['year']! as int,month:p['month']! as int),createdAt:previous?.createdAt ?? DateTime.now(),counterparty:p['counterparty']! as String,note:p['note'] as String?);
+        final previousPayments = previous == null
+            ? const <DebtPayment>[]
+            : await _debts.watchPayments(id).first;
+        final paidTotal = previousPayments.fold<int>(
+          0,
+          (total, payment) => total + payment.amount.minorUnits,
+        );
+        if (paidTotal > amount.minorUnits) {
+          throw ArgumentError(
+            'Debt amount cannot be lower than its recorded payments.',
+          );
+        }
+        final item=DebtEntry(id:id,direction:DebtDirection.values.byName(p['direction']! as String),originalAmount:amount,outstandingAmount:Money.fromMinorUnits(amount.minorUnits - paidTotal),dueMonth:MonthKey(year:p['year']! as int,month:p['month']! as int),createdAt:previous?.createdAt ?? DateTime.now(),counterparty:p['counterparty']! as String,note:p['note'] as String?);
         await _debts.save(item); return ActionExecution(message:'تم حفظ الدين',undo:() async { if(previous==null) { await _debts.delete(id); } else { await _debts.save(previous); } });
       case 'delete_debt':
         final all=await _debts.watchAll().first; DebtEntry? old; for(final e in all) { if(e.id==p['id']) old=e; }
