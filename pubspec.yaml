@@ -1,7 +1,7 @@
 name: expense_app
 description: "Personal expenses app built with Flutter."
 publish_to: 'none'
-version: 1.0.32+33
+version: 1.0.36+37
 
 environment:
   sdk: ^3.14.0
@@ -27,4 +27,3 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  generate: true
