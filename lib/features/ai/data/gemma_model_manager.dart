@@ -10,7 +10,11 @@ enum GemmaModelStatus { notDownloaded, downloading, ready, error }
 Future<void> cleanupGemmaInterruptedStorage({
   Future<void> Function()? cleanup,
 }) async {
-  await (cleanup ?? FlutterEdgeAi.performCleanup)();
+  try {
+    await (cleanup ?? FlutterEdgeAi.performCleanup)();
+  } catch (_) {
+    // Cleanup is best-effort and must never block model recovery or retries.
+  }
 }
 
 class GemmaModelState {
