@@ -149,6 +149,10 @@ final class GemmaAssistantEngine implements AssistantEngine {
         'delete_work_entry' => 'Delete a work record by its identifier.',
         'save_home_expense' => 'Create a household expense record.',
         'delete_home_expense' => 'Delete a household expense by its identifier.',
+        'save_home_bill' => 'Create or update a monthly household bill or home rent. kind is monthly or rent.',
+        'delete_home_bill' => 'Delete a household bill or rent by its identifier.',
+        'record_home_bill_payment' => 'Record a payment or partial payment for an existing household bill or rent.',
+        'read_home_bills' => 'List household bills and rent with their remaining unpaid amounts.',
         'save_work_home_transfer' => 'Transfer money from work to household.',
         'delete_work_home_transfer' => 'Delete a work-to-household transfer.',
         'save_debt' => 'Create a debt record.',
@@ -186,6 +190,22 @@ final class GemmaAssistantEngine implements AssistantEngine {
       'delete_home_expense' ||
       'delete_work_home_transfer' ||
       'delete_debt' => {'id': string},
+      'save_home_bill' => {
+          'title': string,
+          'kind': {'type': 'string', 'enum': ['monthly', 'rent']},
+          'amountMinorUnits': integer,
+          'year': integer,
+          'month': integer,
+          'id': string,
+          'note': note,
+        },
+      'delete_home_bill' => {'id': string},
+      'record_home_bill_payment' => {
+          'billId': string,
+          'amountMinorUnits': integer,
+          'note': note,
+        },
+      'read_home_bills' => <String, Map<String, Object>>{},
       'save_home_expense' => {
           'amountMinorUnits': integer,
           'categoryId': string,
@@ -264,6 +284,9 @@ final class GemmaAssistantEngine implements AssistantEngine {
         'direction' => 'هل الدين دائن أم مدين؟',
         'counterparty' => 'ما اسم الطرف المعني بالدين؟',
         'categoryId' => 'ما تصنيف المصروف؟',
+        'title' => 'ما اسم الفاتورة أو الإيجار؟',
+        'kind' => 'هل هي فاتورة شهرية أم إيجار منزل؟',
+        'billId' => 'أي فاتورة تريد تسجيل الدفعة عليها؟',
         'date' => 'ما تاريخ المصروف؟',
         'debtId' => 'أي دين تريد تسجيل الدفعة عليه؟',
         'id' => 'ما رقم السجل المطلوب؟',
