@@ -186,14 +186,16 @@ void main() {
       expect(await database.select(database.debts).get(), isEmpty);
     });
 
-    test('deletes and undoes debt with payment history', () async {
+    test('cannot delete debt with payment history through assistant action', () async {
       await registry.execute('save_debt', {
         'amountMinorUnits':700,'direction':'debtor','counterparty':'Ali',
         'year':2026,'month':11,'id':'d1',
       });
       await registry.execute('record_debt_payment', {'debtId':'d1','amountMinorUnits':200});
-      final result = await registry.execute('delete_debt', {'id':'d1'});
-      await result.undo!();
+      await expectLater(
+        registry.execute('delete_debt', {'id':'d1'}),
+        throwsStateError,
+      );
       expect(await database.select(database.debts).get(), hasLength(1));
       expect(await database.select(database.debtPayments).get(), hasLength(1));
       expect((await database.select(database.debts).get()).single.outstandingAmountMinorUnits, 500);
