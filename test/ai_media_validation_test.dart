@@ -8,14 +8,14 @@ Uint8List _wav({required int channels}) {
   const bitsPerSample = 16;
   final blockAlign = channels * bitsPerSample ~/ 8;
   final byteRate = sampleRate * blockAlign;
-  final bytes = Uint8List(44);
+  final bytes = Uint8List(46);
   final data = ByteData.sublistView(bytes);
   void writeText(int offset, String value) {
     bytes.setRange(offset, offset + value.length, value.codeUnits);
   }
 
   writeText(0, 'RIFF');
-  data.setUint32(4, 36, Endian.little);
+  data.setUint32(4, 38, Endian.little);
   writeText(8, 'WAVE');
   writeText(12, 'fmt ');
   data.setUint32(16, 16, Endian.little);
@@ -26,7 +26,9 @@ Uint8List _wav({required int channels}) {
   data.setUint16(32, blockAlign, Endian.little);
   data.setUint16(34, bitsPerSample, Endian.little);
   writeText(36, 'data');
-  data.setUint32(40, 0, Endian.little);
+  data.setUint32(40, 2, Endian.little);
+  bytes[44] = 1;
+  bytes[45] = 2;
   return bytes;
 }
 
@@ -41,5 +43,6 @@ void main() {
 
   test('rejects malformed or truncated WAV data', () {
     expect(isValidGemmaWavAudio(Uint8List(12)), isFalse);
+    expect(isValidGemmaWavAudio(_wav(channels: 1).sublist(0, 44)), isFalse);
   });
 }
