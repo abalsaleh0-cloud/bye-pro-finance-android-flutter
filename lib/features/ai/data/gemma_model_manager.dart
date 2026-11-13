@@ -9,7 +9,7 @@ import 'package:flutter_edge_ai/flutter_edge_ai.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 bool supportsGemmaMultimodalMemory(int physicalRamMegabytes) =>
-    physicalRamMegabytes <= 0 || physicalRamMegabytes >= 6 * 1024;
+    physicalRamMegabytes >= 6 * 1024;
 
 enum GemmaModelStatus { notDownloaded, downloading, ready, error }
 
