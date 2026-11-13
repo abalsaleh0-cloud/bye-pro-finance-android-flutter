@@ -30,17 +30,20 @@ void main() {
     final restoredContainer = ProviderContainer(
       overrides: [appDatabaseProvider.overrideWithValue(database)],
     );
-    addTearDown(restoredContainer.dispose);
+    try {
+      final restoredController =
+          restoredContainer.read(aiChatMessagesProvider.notifier);
+      await restoredController.flush();
 
-    final restoredController = restoredContainer.read(aiChatMessagesProvider.notifier);
-    await restoredController.flush();
-
-    final messages = restoredContainer.read(aiChatMessagesProvider);
-    expect(messages, hasLength(2));
-    expect(messages.first.text, 'رسالة المستخدم');
-    expect(messages.first.fromUser, isTrue);
-    expect(messages.last.text, 'رد المساعد');
-    expect(messages.last.fromUser, isFalse);
+      final messages = restoredContainer.read(aiChatMessagesProvider);
+      expect(messages, hasLength(2));
+      expect(messages.first.text, 'رسالة المستخدم');
+      expect(messages.first.fromUser, isTrue);
+      expect(messages.last.text, 'رد المساعد');
+      expect(messages.last.fromUser, isFalse);
+    } finally {
+      restoredContainer.dispose();
+    }
   });
 
   test('clear persists an empty conversation', () async {
