@@ -2,6 +2,7 @@ import 'package:expense_app/app/app.dart';
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
+import 'package:expense_app/core/time/selected_month_provider.dart';
 import 'package:expense_app/features/work/domain/work_entry.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -114,6 +115,11 @@ void main() {
       ProviderScope(
         overrides: [
           workEntriesProvider.overrideWith((ref) => Stream.value([entry])),
+          selectedMonthProvider.overrideWith(
+            () => _FixedSelectedMonthNotifier(
+              MonthKey(year: now.year, month: now.month),
+            ),
+          ),
         ],
         child: const MyApp(),
       ),
@@ -127,4 +133,13 @@ void main() {
 
     expect(find.text('ملاحظة الراتب'), findsOneWidget);
   });
+}
+
+class _FixedSelectedMonthNotifier extends SelectedMonthNotifier {
+  _FixedSelectedMonthNotifier(this.month);
+
+  final MonthKey month;
+
+  @override
+  MonthKey build() => month;
 }
