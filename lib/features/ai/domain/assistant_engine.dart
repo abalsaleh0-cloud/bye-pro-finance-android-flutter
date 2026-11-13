@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 // ignore_for_file: curly_braces_in_flow_control_structures, prefer_interpolation_to_compose_strings
 
 import 'number_normalizer.dart';
@@ -17,14 +19,22 @@ final class AssistantResult {
   final AssistantCommand? command;
   final String? message;
 }
+final class AssistantMedia {
+  const AssistantMedia({this.imageBytes, this.audioBytes});
+  final Uint8List? imageBytes;
+  final Uint8List? audioBytes;
+  bool get hasImage => imageBytes != null;
+  bool get hasAudio => audioBytes != null;
+}
+
 abstract interface class AssistantEngine {
-  Future<AssistantResult> interpret(String input,List<String> availableActions);
+  Future<AssistantResult> interpret(String input, List<String> availableActions, {AssistantMedia? media});
 }
 final class FakeAssistantEngine implements AssistantEngine {
   const FakeAssistantEngine();
   static const _numbers=NumberNormalizer();
   @override
-  Future<AssistantResult> interpret(String input,List<String> availableActions) async {
+  Future<AssistantResult> interpret(String input,List<String> availableActions,{AssistantMedia? media}) async {
     final text=input.trim();
     if(text.isEmpty) return const AssistantResult.notUnderstood();
     if(RegExp(r'الباقي|المتبقي').hasMatch(text)) {
