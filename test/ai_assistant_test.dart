@@ -206,6 +206,57 @@ void main() {
       expect(await database.select(database.debts).get(), isEmpty);
     });
 
+    test('editing debt recalculates outstanding balance after recorded payments', () async {
+      await registry.execute('save_debt', {
+        'amountMinorUnits': 700,
+        'direction': 'debtor',
+        'counterparty': 'Ali',
+        'year': 2026,
+        'month': 11,
+        'id': 'd-edit',
+      });
+
+      await registry.execute('save_debt', {
+        'amountMinorUnits': 900,
+        'direction': 'debtor',
+        'counterparty': 'Ali',
+        'year': 2026,
+        'month': 11,
+        'id': 'd-edit',
+      });
+      var debt = (await database.select(database.debts).get()).single;
+      expect(debt.originalAmountMinorUnits, 900);
+      expect(debt.outstandingAmountMinorUnits, 900);
+
+      await registry.execute('record_debt_payment', {
+        'debtId': 'd-edit',
+        'amountMinorUnits': 200,
+      });
+      await registry.execute('save_debt', {
+        'amountMinorUnits': 1000,
+        'direction': 'debtor',
+        'counterparty': 'Ali',
+        'year': 2026,
+        'month': 11,
+        'id': 'd-edit',
+      });
+      debt = (await database.select(database.debts).get()).single;
+      expect(debt.originalAmountMinorUnits, 1000);
+      expect(debt.outstandingAmountMinorUnits, 800);
+
+      await expectLater(
+        registry.execute('save_debt', {
+          'amountMinorUnits': 100,
+          'direction': 'debtor',
+          'counterparty': 'Ali',
+          'year': 2026,
+          'month': 11,
+          'id': 'd-edit',
+        }),
+        throwsArgumentError,
+      );
+    });
+
     test('cannot delete debt with payment history through assistant action', () async {
       await registry.execute('save_debt', {
         'amountMinorUnits':700,'direction':'debtor','counterparty':'Ali',
