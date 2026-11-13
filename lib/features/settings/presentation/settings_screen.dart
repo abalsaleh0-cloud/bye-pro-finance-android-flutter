@@ -30,21 +30,6 @@ class SettingsScreen extends ConsumerWidget {
             onPressed: () => Navigator.pop(dialogContext, true),
             child: Text(strings.clearFinancialData),
           ),
-          const Divider(height: 1),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: GemmaModelSettingsSection(),
-          ),
-          const Divider(height: 1),
-          ListTile(
-            leading: Icon(
-              Icons.delete_forever_outlined,
-              color: Theme.of(context).colorScheme.error,
-            ),
-            title: Text(strings.clearFinancialData),
-            subtitle: Text(strings.clearFinancialDataWarning),
-            onTap: () => _clearFinancialData(context, ref, strings),
-          ),
         ],
       ),
     );
@@ -114,6 +99,21 @@ class SettingsScreen extends ConsumerWidget {
             subtitle: Text(strings.gemmaEngineDescription),
             value: settings.useGemma,
             onChanged: controller.setGemmaEnabled,
+          ),
+          const Divider(height: 1),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: GemmaModelSettingsSection(),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: Icon(
+              Icons.delete_forever_outlined,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            title: Text(strings.clearFinancialData),
+            subtitle: Text(strings.clearFinancialDataWarning),
+            onTap: () => _clearFinancialData(context, ref, strings),
           ),
         ],
       ),
