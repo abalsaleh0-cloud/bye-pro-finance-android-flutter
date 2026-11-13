@@ -639,6 +639,45 @@ void main() {
   });
 
 
+
+  test('rejects a work-to-home transfer when no cash was received', () async {
+    final repository = WorkRepository(database);
+    await expectLater(
+      repository.saveTransfer(
+        WorkHomeTransfer(
+          id: 'transfer-without-cash',
+          amount: Money.fromMinorUnits(1),
+          transferredAt: DateTime.utc(2026, 11, 2),
+        ),
+      ),
+      throwsA(isA<InsufficientWorkBalanceException>()),
+    );
+    expect(await database.select(database.workHomeTransfers).get(), isEmpty);
+  });
+
+  test('limits transfers to cash received in the same month', () async {
+    final repository = WorkRepository(database);
+    await repository.saveEntry(
+      WorkEntry(
+        id: 'cash-november',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(1000),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
+    await expectLater(
+      repository.saveTransfer(
+        WorkHomeTransfer(
+          id: 'transfer-december-with-november-cash',
+          amount: Money.fromMinorUnits(1),
+          transferredAt: DateTime.utc(2026, 12, 1),
+        ),
+      ),
+      throwsA(isA<InsufficientWorkBalanceException>()),
+    );
+  });
+
   test('rejects transfers above cash actually received at work', () async {
     final repository = WorkRepository(database);
     await repository.saveEntry(
