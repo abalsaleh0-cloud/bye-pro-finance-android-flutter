@@ -5,6 +5,7 @@ import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/features/ai/domain/action_registry.dart';
 import 'package:expense_app/features/ai/domain/assistant_engine.dart';
 import 'package:expense_app/features/ai/domain/gemma_assistant_engine.dart';
+import 'package:expense_app/features/ai/data/gemma_model_manager.dart';
 import 'package:expense_app/features/debts/data/debt_repository.dart';
 import 'package:expense_app/features/home/data/home_expense_repository.dart';
 import 'package:expense_app/features/home/data/home_bill_repository.dart';
@@ -240,13 +241,11 @@ void main() {
   });
 }
 
-
-group('Gemma interrupted download cleanup', () {
-  test('runs the storage cleanup hook when recovery is requested', () async {
+  test('runs Gemma storage cleanup hook when recovery is requested', () async {
     var called = false;
     await cleanupGemmaInterruptedStorage(cleanup: () async {
       called = true;
     });
     expect(called, isTrue);
   });
-});
+}
