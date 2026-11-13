@@ -218,6 +218,40 @@ void main() {
     expect(await database.select(database.homeExpenses).get(), isEmpty);
   });
 
+
+  test('home cash from a previous month cannot fund a new month expense', () async {
+    final work = WorkRepository(database);
+    await work.saveEntry(
+      WorkEntry(
+        id: 'november-cash-only',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(1000),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
+    await work.saveTransfer(
+      WorkHomeTransfer(
+        id: 'november-transfer-only',
+        amount: Money.fromMinorUnits(1000),
+        transferredAt: DateTime.utc(2026, 11, 2),
+      ),
+    );
+
+    await expectLater(
+      HomeExpenseRepository(database).save(
+        HomeExpense(
+          id: 'december-expense-without-december-funds',
+          amount: Money.fromMinorUnits(1),
+          categoryId: 'food',
+          expenseDate: DateTime.utc(2026, 12, 1),
+          dueMonth: MonthKey(year: 2026, month: 12),
+        ),
+      ),
+      throwsA(isA<InsufficientHomeBalanceException>()),
+    );
+  });
+
   test('rejects an expense above transferred balance without saving it', () async {
     await WorkRepository(database).saveEntry(
       WorkEntry(
