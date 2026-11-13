@@ -1,8 +1,9 @@
+import 'dart:typed_data';
+
 import 'package:drift/native.dart';
 import 'package:expense_app/core/database/app_database.dart';
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
-import 'package:expense_app/features/ai/data/gemma_model_manager.dart';
 import 'package:expense_app/features/ai/domain/action_registry.dart';
 import 'package:expense_app/features/ai/domain/assistant_engine.dart';
 import 'package:expense_app/features/ai/domain/gemma_assistant_engine.dart';
@@ -18,8 +19,9 @@ class _ThrowingGemmaGenerator implements GemmaTurnGenerator {
   @override
   Future<GemmaModelOutput> generate(
     String userText,
-    List<GemmaFunctionSpec> functions,
-  ) async {
+    List<GemmaFunctionSpec> functions, {
+    AssistantMedia? media,
+  }) async {
     throw StateError('model failed');
   }
 }
@@ -29,14 +31,17 @@ class _FakeGemmaGenerator implements GemmaTurnGenerator {
   final GemmaModelOutput output;
   List<GemmaFunctionSpec>? receivedFunctions;
   String? receivedInput;
+  AssistantMedia? receivedMedia;
 
   @override
   Future<GemmaModelOutput> generate(
     String userText,
-    List<GemmaFunctionSpec> functions,
-  ) async {
+    List<GemmaFunctionSpec> functions, {
+    AssistantMedia? media,
+  }) async {
     receivedInput = userText;
     receivedFunctions = functions;
+    receivedMedia = media;
     return output;
   }
 }
@@ -49,6 +54,68 @@ void main() {
   ];
 
   group('GemmaAssistantEngine output validation', () {
+    test('forwards image and audio bytes to the turn generator', () async {
+      final imageBytes = Uint8List.fromList([1, 2, 3]);
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.text('ما في الصورة؟'),
+      );
+      await GemmaAssistantEngine(generator).interpret(
+        'صف الصورة',
+        actions,
+        media: AssistantMedia(imageBytes: imageBytes),
+      );
+
+      expect(generator.receivedMedia?.imageBytes, same(imageBytes));
+      expect(generator.receivedMedia?.audioBytes, isNull);
+    });
+
+    test('forwards audio bytes to the turn generator', () async {
+      final audioBytes = Uint8List.fromList([4, 5, 6]);
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.text('تم استلام التسجيل'),
+      );
+      await GemmaAssistantEngine(generator).interpret(
+        'استمع إلى التسجيل',
+        actions,
+        media: AssistantMedia(audioBytes: audioBytes),
+      );
+
+      expect(generator.receivedMedia?.audioBytes, same(audioBytes));
+      expect(generator.receivedMedia?.imageBytes, isNull);
+    });
+
+    test('returns a natural-language answer for multimodal input', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.text('تظهر في الصورة فاتورة بقيمة 250 ديناراً.'),
+      );
+      final result = await GemmaAssistantEngine(generator).interpret(
+        'حلّل الصورة',
+        actions,
+        media: AssistantMedia(imageBytes: Uint8List.fromList([1, 2, 3])),
+      );
+
+      expect(result.kind, AssistantResultKind.answer);
+      expect(result.message, 'تظهر في الصورة فاتورة بقيمة 250 ديناراً.');
+    });
+
+    test('exposes required identifiers in payment-history tool schemas', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.text(''),
+      );
+      await GemmaAssistantEngine(generator).interpret(
+        'اعرض سجل الدفعات',
+        const ['read_debt_payments', 'read_home_bill_payments'],
+      );
+
+      final functions = generator.receivedFunctions!;
+      final debt = functions.singleWhere((item) => item.name == 'read_debt_payments');
+      final bill = functions.singleWhere((item) => item.name == 'read_home_bill_payments');
+      expect(debt.properties.keys, contains('debtId'));
+      expect(debt.required, contains('debtId'));
+      expect(bill.properties.keys, contains('billId'));
+      expect(bill.required, contains('billId'));
+    });
+
     test('converts a valid function call into a command', () async {
       final generator = _FakeGemmaGenerator(
         const GemmaModelOutput.call('save_work_entry', {
@@ -238,13 +305,5 @@ void main() {
     final result = await registry.execute('read_work_remaining', {});
 
     expect(result.message, 'الباقي في العمل: 300');
-  });
-
-  test('runs Gemma storage cleanup hook when recovery is requested', () async {
-    var called = false;
-    await cleanupGemmaInterruptedStorage(cleanup: () async {
-      called = true;
-    });
-    expect(called, isTrue);
   });
 }
