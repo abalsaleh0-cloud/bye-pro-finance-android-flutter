@@ -67,9 +67,25 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('العمل'), findsWidgets);
-    expect(find.text('السجلات'), findsOneWidget);
-    expect(find.text('التحويلات إلى المنزل'), findsOneWidget);
-    expect(find.byType(Card), findsWidgets);
-    expect(find.byType(NavigationBar), findsNWidgets(2));
+    expect(find.byKey(const Key('work-tab-0')), findsOneWidget);
+    expect(find.byKey(const Key('work-tab-1')), findsOneWidget);
+    expect(find.byKey(const Key('work-tab-2')), findsOneWidget);
+    expect(find.byType(NavigationBar), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('work-tab-2')));
+    await tester.pumpAndSettle();
+    expect(find.text('السجلات'), findsWidgets);
+
+    await tester.tap(find.text('المنزل').last);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('home-tab-0')), findsOneWidget);
+    expect(find.byKey(const Key('home-tab-1')), findsOneWidget);
+    expect(find.byKey(const Key('home-tab-2')), findsOneWidget);
+    expect(find.byKey(const Key('home-tab-3')), findsOneWidget);
+    expect(find.byType(NavigationBar), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('home-tab-3')));
+    await tester.pumpAndSettle();
+    expect(find.text('الفواتير الشهرية'), findsWidgets);
   });
 }
