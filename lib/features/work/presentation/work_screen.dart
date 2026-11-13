@@ -108,6 +108,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                   },
                 ),
                 TextField(
+                  key: const Key('work-entry-amount'),
                   controller: amount,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
@@ -135,6 +136,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                   ),
                 ),
                 TextField(
+                  key: const Key('work-entry-note'),
                   controller: note,
                   decoration: InputDecoration(labelText: strings.note),
                 ),
@@ -204,6 +206,8 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
         ),
       );
     } finally {
+      // Let the dialog route unmount its TextFields before disposing controllers.
+      await WidgetsBinding.instance.endOfFrame;
       amount.dispose();
       due.dispose();
       recordedAt.dispose();
