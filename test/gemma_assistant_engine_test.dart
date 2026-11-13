@@ -239,3 +239,14 @@ void main() {
     expect(result.message, 'الباقي في العمل: 300');
   });
 }
+
+
+group('Gemma interrupted download cleanup', () {
+  test('runs the storage cleanup hook when recovery is requested', () async {
+    var called = false;
+    await cleanupGemmaInterruptedStorage(cleanup: () async {
+      called = true;
+    });
+    expect(called, isTrue);
+  });
+});
