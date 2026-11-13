@@ -3,6 +3,7 @@ import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/features/debts/domain/debt_entry.dart';
 import 'package:expense_app/features/home/domain/home_expense.dart';
 import 'package:expense_app/features/work/domain/work_entry.dart';
+import 'package:expense_app/features/work/domain/work_balance_allocation.dart';
 import 'package:expense_app/features/work/domain/work_home_transfer.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -98,6 +99,39 @@ void main() {
       ),
       throwsArgumentError,
     );
+  });
+
+
+  test('work balances do not carry payments or arrears between months', () {
+    final allocation = WorkBalanceAllocation.calculate([
+      WorkEntry(
+        id: 'salary-nov',
+        kind: WorkEntryKind.salary,
+        amount: Money.fromMinorUnits(3000),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime(2026, 11, 1),
+      ),
+      WorkEntry(
+        id: 'advance-dec',
+        kind: WorkEntryKind.advance,
+        amount: Money.fromMinorUnits(500),
+        dueMonth: MonthKey(year: 2026, month: 12),
+        recordedAt: DateTime(2026, 12, 1),
+      ),
+      WorkEntry(
+        id: 'payment-dec',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(700),
+        dueMonth: MonthKey(year: 2026, month: 12),
+        recordedAt: DateTime(2026, 12, 5),
+      ),
+    ]);
+
+    expect(allocation.outstandingFor(MonthKey(year: 2026, month: 11)), 3000);
+    expect(allocation.outstandingFor(MonthKey(year: 2026, month: 12)), 0);
+    expect(allocation.paymentsFor(MonthKey(year: 2026, month: 11)), 0);
+    expect(allocation.paymentsFor(MonthKey(year: 2026, month: 12)), 700);
+    expect(allocation.outstandingBefore(MonthKey(year: 2026, month: 12)), 0);
   });
 
   test('work-to-home transfer is represented as one record', () {
