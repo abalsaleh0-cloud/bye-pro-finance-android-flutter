@@ -26,12 +26,13 @@ final class ActionDescriptor {
   final bool readOnly;
 }
 final class ActionRegistry {
-  ActionRegistry({required WorkRepository work, required HomeExpenseRepository home, required HomeBillRepository bills, required DebtRepository debts})
-      : _work = work, _home = home, _bills = bills, _debts = debts;
+  ActionRegistry({required WorkRepository work, required HomeExpenseRepository home, required HomeBillRepository bills, required DebtRepository debts, MonthKey? selectedMonth})
+      : _work = work, _home = home, _bills = bills, _debts = debts, _selectedMonth = selectedMonth;
   final WorkRepository _work;
   final HomeExpenseRepository _home;
   final HomeBillRepository _bills;
   final DebtRepository _debts;
+  final MonthKey? _selectedMonth;
   static const descriptors = <ActionDescriptor>[
     ActionDescriptor('save_work_entry', {'kind','amountMinorUnits','year','month'}),
     ActionDescriptor('delete_work_entry', {'id'}),
@@ -231,7 +232,7 @@ final class ActionRegistry {
       case 'read_work_remaining':
         final all = await _work.watchEntries().first;
         final now = DateTime.now();
-        final current = MonthKey(year: now.year, month: now.month);
+        final current = _selectedMonth ?? MonthKey(year: now.year, month: now.month);
         final received = all
             .where(
               (entry) =>
