@@ -97,7 +97,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
             : strings.aiAudioTooLarge);
       }
       final bytes = await file.readAsBytes();
-      if (bytes.isEmpty) throw StateError(AppLocalizations.of(context)!.aiReadFileFailed);
+      if (bytes.isEmpty) throw StateError(strings.aiReadFileFailed);
       if (!image && !_isValidWav(bytes)) throw StateError(strings.aiInvalidWav);
       if (!mounted) return;
       setState(() {
@@ -143,7 +143,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         await recordingFile.delete();
         try { await recordingFile.parent.delete(); } catch (_) {}
         if (!_isValidWav(bytes)) throw StateError(strings.aiInvalidRecording);
-        if (bytes.length > 20 * 1024 * 1024) throw StateError(AppLocalizations.of(context)!.aiAudioTooLarge);
+        if (bytes.length > 20 * 1024 * 1024) throw StateError(strings.aiAudioTooLarge);
         if (mounted) setState(() {
           _recording = false;
           _attachmentBytes = bytes;
@@ -201,7 +201,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         final command = result.command!;
         final error = registry.validate(command.name, command.parameters);
         if (error != null) {
-          setState(() => ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(AppLocalizations.of(context)!.assistantNotUnderstood)));
+          setState(() => ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(strings.assistantNotUnderstood)));
           await _openManual();
         } else if (registry.descriptor(command.name)!.readOnly) {
           final execution = await registry.execute(command.name, command.parameters);
@@ -212,7 +212,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       }
     } catch (_) {
       if (mounted) {
-        setState(() => ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(AppLocalizations.of(context)!.assistantNotUnderstood)));
+        setState(() => ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(strings.assistantNotUnderstood)));
         await _openManual();
       }
     } finally { if (mounted) setState(() => _busy = false); }
@@ -229,7 +229,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       if (!mounted) return;
       setState(() { _undo = execution.undo; ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(execution.message)); });
     } catch (_) {
-      if (mounted) setState(() { _confirmation.cancel(); ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(AppLocalizations.of(context)!.assistantNotUnderstood)); });
+      if (mounted) setState(() { _confirmation.cancel(); ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(strings.assistantNotUnderstood)); });
       await _openManual();
     } finally { if (mounted) setState(() => _busy = false); }
   }
