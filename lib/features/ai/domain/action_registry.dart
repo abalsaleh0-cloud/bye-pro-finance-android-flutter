@@ -161,9 +161,13 @@ final class ActionRegistry {
           undo: () => _bills.undoPayment(payment.id),
         );
       case 'read_work_records':
-        final workEntries = await _work.watchEntries().first;
+        final now = DateTime.now();
+        final month = _selectedMonth ?? MonthKey(year: now.year, month: now.month);
+        final workEntries = (await _work.watchEntries().first)
+            .where((entry) => entry.dueMonth == month)
+            .toList(growable: false);
         if (workEntries.isEmpty) {
-          return const ActionExecution(message: 'لا توجد سجلات عمل.');
+          return ActionExecution(message: 'لا توجد سجلات عمل لشهر $month.');
         }
         return ActionExecution(
           message: workEntries.map((entry) =>
@@ -171,9 +175,13 @@ final class ActionRegistry {
           ).join('؛ '),
         );
       case 'read_home_expenses':
-        final expenses = await _home.watchAll().first;
+        final now = DateTime.now();
+        final month = _selectedMonth ?? MonthKey(year: now.year, month: now.month);
+        final expenses = (await _home.watchAll().first)
+            .where((expense) => expense.dueMonth == month)
+            .toList(growable: false);
         if (expenses.isEmpty) {
-          return const ActionExecution(message: 'لا توجد مصروفات منزلية.');
+          return ActionExecution(message: 'لا توجد مصروفات منزلية لشهر $month.');
         }
         return ActionExecution(
           message: expenses.map((expense) =>
@@ -181,9 +189,13 @@ final class ActionRegistry {
           ).join('؛ '),
         );
       case 'read_debts':
-        final debts = await _debts.watchAll().first;
+        final now = DateTime.now();
+        final month = _selectedMonth ?? MonthKey(year: now.year, month: now.month);
+        final debts = (await _debts.watchAll().first)
+            .where((debt) => debt.dueMonth == month)
+            .toList(growable: false);
         if (debts.isEmpty) {
-          return const ActionExecution(message: 'لا توجد ديون مسجلة.');
+          return ActionExecution(message: 'لا توجد ديون مسجلة لشهر $month.');
         }
         return ActionExecution(
           message: debts.map((debt) =>
@@ -191,9 +203,14 @@ final class ActionRegistry {
           ).join('؛ '),
         );
       case 'read_work_transfers':
-        final transfers = await _work.watchTransfers().first;
+        final now = DateTime.now();
+        final month = _selectedMonth ?? MonthKey(year: now.year, month: now.month);
+        final transfers = (await _work.watchTransfers().first).where((item) {
+          final date = item.transferredAt.toLocal();
+          return date.year == month.year && date.month == month.month;
+        }).toList(growable: false);
         if (transfers.isEmpty) {
-          return const ActionExecution(message: 'لا توجد تحويلات إلى المنزل.');
+          return ActionExecution(message: 'لا توجد تحويلات إلى المنزل لشهر $month.');
         }
         return ActionExecution(
           message: transfers.map((item) =>
