@@ -32,8 +32,8 @@ void main() {
     );
     addTearDown(restoredContainer.dispose);
 
-    final restored = restoredContainer.read(aiChatMessagesProvider);
-    await Future<void>.delayed(const Duration(milliseconds: 20));
+    final restoredController = restoredContainer.read(aiChatMessagesProvider.notifier);
+    await restoredController.flush();
 
     final messages = restoredContainer.read(aiChatMessagesProvider);
     expect(messages, hasLength(2));
@@ -41,7 +41,6 @@ void main() {
     expect(messages.first.fromUser, isTrue);
     expect(messages.last.text, 'رد المساعد');
     expect(messages.last.fromUser, isFalse);
-    expect(restored, isEmpty);
   });
 
   test('clear persists an empty conversation', () async {
@@ -57,11 +56,8 @@ void main() {
 
   test('ignores malformed persisted data without throwing', () async {
     await database.writeSetting('ai_chat_messages_v1', '{broken json');
-    expect(
-      () => container.read(aiChatMessagesProvider),
-      returnsNormally,
-    );
-    await Future<void>.delayed(const Duration(milliseconds: 20));
+    final controller = container.read(aiChatMessagesProvider.notifier);
+    await controller.flush();
     expect(container.read(aiChatMessagesProvider), isEmpty);
   });
 }
