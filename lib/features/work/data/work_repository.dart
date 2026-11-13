@@ -180,12 +180,13 @@ final class WorkRepository {
       final transfers = await _database.select(_database.workHomeTransfers).get();
       final target = transfers.where((row) => row.id == id).firstOrNull;
       if (target == null) return;
-      final transferredAfter = transfers.fold<int>(
-            0,
-            (sum, row) => sum + row.amountMinorUnits,
+      final transferDate = DateTime.fromMillisecondsSinceEpoch(target.transferredAtEpochMillis).toLocal();
+      final transferredAfter = _transferTotalForMonth(
+            transfers,
+            transferDate.year,
+            transferDate.month,
           ) -
           target.amountMinorUnits;
-      final transferDate = DateTime.fromMillisecondsSinceEpoch(target.transferredAtEpochMillis).toLocal();
       final committed = await _homeCommittedAmount(transferDate.year, transferDate.month);
       if (transferredAfter < committed) {
         throw TransferWouldOverdrawHomeException(
