@@ -47,27 +47,34 @@ final class WorkRepository {
     return _database.transaction(() async {
       final entries = await _database.select(_database.workEntries).get();
       final previous = entries.where((row) => row.id == entry.id).firstOrNull;
-      final receivedBefore = _receivedCash(entries);
-      final previousCash = previous != null && _isCashReceived(previous.kind)
-          ? previous.amountMinorUnits
-          : 0;
-      final newCash = _isCashReceived(entry.kind.name) ? entry.amount.minorUnits : 0;
-      final receivedAfter = receivedBefore - previousCash + newCash;
       final transfers = await _database.select(_database.workHomeTransfers).get();
-      final transferredTotal = transfers.fold<int>(
-        0,
-        (sum, row) => sum + row.amountMinorUnits,
-      );
-
-      // Older installations may contain transfers without recorded salary
-      // receipts. Preserve those historical records until the user records
-      // work income; once work entries exist, enforce the real cash limit.
-      if ((entries.isNotEmpty || transfers.isNotEmpty) &&
-          receivedAfter < transferredTotal) {
-        throw InsufficientWorkBalanceException(
-          availableMinorUnits: receivedBefore - previousCash - transferredTotal,
-          requestedMinorUnits: newCash,
-        );
+      final affectedMonths = <String>{
+        if (previous != null && _isCashReceived(previous.kind))
+          _monthKey(DateTime.fromMillisecondsSinceEpoch(previous.recordedAtEpochMillis)),
+        if (_isCashReceived(entry.kind.name)) _monthKey(entry.recordedAt),
+      };
+      for (final monthKey in affectedMonths) {
+        final parts = monthKey.split('-');
+        final year = int.parse(parts[0]);
+        final month = int.parse(parts[1]);
+        var receivedAfter = 0;
+        for (final row in entries) {
+          if (row.id == entry.id || !_isCashReceived(row.kind)) continue;
+          final date = DateTime.fromMillisecondsSinceEpoch(row.recordedAtEpochMillis).toLocal();
+          if (date.year == year && date.month == month) receivedAfter += row.amountMinorUnits;
+        }
+        if (_isCashReceived(entry.kind.name)) {
+          final date = entry.recordedAt.toLocal();
+          if (date.year == year && date.month == month) receivedAfter += entry.amount.minorUnits;
+        }
+        final transferred = _transferTotalForMonth(transfers, year, month);
+        if (receivedAfter < transferred) {
+          final receivedBefore = _receivedCashForMonth(entries, year, month);
+          throw InsufficientWorkBalanceException(
+            availableMinorUnits: receivedBefore - transferred,
+            requestedMinorUnits: receivedAfter - receivedBefore,
+          );
+        }
       }
 
       await _database.into(_database.workEntries).insertOnConflictUpdate(
@@ -89,19 +96,18 @@ final class WorkRepository {
       final entries = await _database.select(_database.workEntries).get();
       final target = entries.where((row) => row.id == id).firstOrNull;
       if (target == null) return;
-      final receivedAfter = _receivedCash(entries) -
-          (_isCashReceived(target.kind) ? target.amountMinorUnits : 0);
       final transfers = await _database.select(_database.workHomeTransfers).get();
-      final transferredTotal = transfers.fold<int>(
-        0,
-        (sum, row) => sum + row.amountMinorUnits,
-      );
-      if ((entries.length > 1 || transfers.isNotEmpty) &&
-          receivedAfter < transferredTotal) {
-        throw InsufficientWorkBalanceException(
-          availableMinorUnits: receivedAfter - transferredTotal,
-          requestedMinorUnits: 0,
-        );
+      if (_isCashReceived(target.kind)) {
+        final date = DateTime.fromMillisecondsSinceEpoch(target.recordedAtEpochMillis).toLocal();
+        final receivedAfter = _receivedCashForMonth(entries, date.year, date.month) -
+            target.amountMinorUnits;
+        final transferred = _transferTotalForMonth(transfers, date.year, date.month);
+        if (receivedAfter < transferred) {
+          throw InsufficientWorkBalanceException(
+            availableMinorUnits: receivedAfter - transferred,
+            requestedMinorUnits: 0,
+          );
+        }
       }
       await (_database.delete(_database.workEntries)
             ..where((row) => row.id.equals(id)))
@@ -122,21 +128,33 @@ final class WorkRepository {
       final transfers = await _database.select(_database.workHomeTransfers).get();
       final previous = transfers.where((row) => row.id == transfer.id).firstOrNull;
       final previousAmount = previous?.amountMinorUnits ?? 0;
-      final transferredAfter = transfers.fold<int>(
-            0,
-            (sum, row) => sum + row.amountMinorUnits,
-          ) -
-          previousAmount +
+      final targetDate = transfer.transferredAt.toLocal();
+      final year = targetDate.year;
+      final month = targetDate.month;
+      final transferredBefore = _transferTotalForMonth(transfers, year, month);
+      final previousInTargetMonth = previous != null &&
+          DateTime.fromMillisecondsSinceEpoch(previous.transferredAtEpochMillis).toLocal().year == year &&
+          DateTime.fromMillisecondsSinceEpoch(previous.transferredAtEpochMillis).toLocal().month == month
+          ? previousAmount
+          : 0;
+      final transferredAfter = transferredBefore - previousInTargetMonth +
           transfer.amount.minorUnits;
-      if (entries.isNotEmpty) {
-        final received = _receivedCash(entries);
-        if (transferredAfter > received) {
-          throw InsufficientWorkBalanceException(
-            availableMinorUnits: received -
-                (transferredAfter - transfer.amount.minorUnits),
-            requestedMinorUnits: transfer.amount.minorUnits,
-          );
-        }
+      final received = _receivedCashForMonth(entries, year, month);
+      // Keep legacy transfers untouched, but never allow a new or increased
+      // transfer to exceed cash actually received in that calendar month.
+      if (transferredAfter > received && transferredAfter > transferredBefore) {
+        throw InsufficientWorkBalanceException(
+          availableMinorUnits: received - transferredBefore,
+          requestedMinorUnits: transfer.amount.minorUnits,
+        );
+      }
+      if (previous != null && previousInTargetMonth == 0 &&
+          transfer.amount.minorUnits > 0 &&
+          transferredAfter > received) {
+        throw InsufficientWorkBalanceException(
+          availableMinorUnits: received - transferredBefore,
+          requestedMinorUnits: transfer.amount.minorUnits,
+        );
       }
       final committed = await _homeCommittedAmount();
       if (transferredAfter < committed) {
@@ -196,9 +214,23 @@ final class WorkRepository {
     return expenses + paymentRows.single.read<int>('total');
   }
 
-  int _receivedCash(List<WorkEntryRow> entries) => entries
-      .where((row) => _isCashReceived(row.kind))
-      .fold(0, (sum, row) => sum + row.amountMinorUnits);
+  int _receivedCashForMonth(List<WorkEntryRow> entries, int year, int month) =>
+      entries.where((row) {
+        if (!_isCashReceived(row.kind)) return false;
+        final date = DateTime.fromMillisecondsSinceEpoch(row.recordedAtEpochMillis).toLocal();
+        return date.year == year && date.month == month;
+      }).fold(0, (sum, row) => sum + row.amountMinorUnits);
+
+  int _transferTotalForMonth(List<WorkHomeTransferRow> transfers, int year, int month) =>
+      transfers.where((row) {
+        final date = DateTime.fromMillisecondsSinceEpoch(row.transferredAtEpochMillis).toLocal();
+        return date.year == year && date.month == month;
+      }).fold(0, (sum, row) => sum + row.amountMinorUnits);
+
+  String _monthKey(DateTime date) {
+    final local = date.toLocal();
+    return '${local.year}-${local.month.toString().padLeft(2, '0')}';
+  }
 
   bool _isCashReceived(String kind) =>
       kind == WorkEntryKind.advance.name ||
