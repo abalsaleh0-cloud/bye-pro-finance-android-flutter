@@ -1,4 +1,5 @@
 import 'package:expense_app/core/database/app_database.dart';
+import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/features/debts/data/debt_repository.dart';
 import 'package:expense_app/features/debts/domain/debt_entry.dart';
 import 'package:expense_app/features/debts/domain/debt_payment.dart';
@@ -21,6 +22,7 @@ final homeExpenseRepositoryProvider = Provider<HomeExpenseRepository>(
 );
 final homeBillRepositoryProvider = Provider<HomeBillRepository>((ref) => HomeBillRepository(ref.watch(appDatabaseProvider)));
 final homeBillsProvider = FutureProvider<List<HomeBill>>((ref) => ref.watch(homeBillRepositoryProvider).getBills());
+final homeBillPaymentsForMonthProvider = FutureProvider.family<int, MonthKey>((ref, month) => ref.watch(homeBillRepositoryProvider).paymentsTotalForMonth(month));
 final workRepositoryProvider = Provider<WorkRepository>(
   (ref) => WorkRepository(ref.watch(appDatabaseProvider)),
 );
