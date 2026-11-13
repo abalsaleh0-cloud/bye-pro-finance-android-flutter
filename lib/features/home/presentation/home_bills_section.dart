@@ -51,6 +51,7 @@ class HomeBillsSection extends ConsumerWidget {
                 note: note.text.trim().isEmpty ? null : note.text.trim(),
               ));
               ref.invalidate(homeBillsProvider);
+              ref.invalidate(homeBillPaymentsForMonthProvider);
               if (dialogContext.mounted) Navigator.pop(dialogContext);
             } catch (_) {
               setState(() => error = strings.invalidRecord);
