@@ -78,6 +78,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   }
 
   Future<void> _pickAttachment({required bool image}) async {
+    final strings = AppLocalizations.of(context)!;
     if (_busy || _recording) return;
     try {
       final file = await FilePicker.pickFile(
@@ -88,16 +89,16 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       final limit = image ? 12 * 1024 * 1024 : 20 * 1024 * 1024;
       final length = file.lengthSync() ?? await file.length();
       if (length == null || length <= 0) {
-        throw StateError(AppLocalizations.of(context)!.aiReadFileFailed);
+        throw StateError(strings.aiReadFileFailed);
       }
       if (length > limit) {
         throw StateError(image
-            ? AppLocalizations.of(context)!.aiImageTooLarge
-            : AppLocalizations.of(context)!.aiAudioTooLarge);
+            ? strings.aiImageTooLarge
+            : strings.aiAudioTooLarge);
       }
       final bytes = await file.readAsBytes();
       if (bytes.isEmpty) throw StateError(AppLocalizations.of(context)!.aiReadFileFailed);
-      if (!image && !_isValidWav(bytes)) throw StateError(AppLocalizations.of(context)!.aiInvalidWav);
+      if (!image && !_isValidWav(bytes)) throw StateError(strings.aiInvalidWav);
       if (!mounted) return;
       setState(() {
         _attachmentBytes = bytes;
@@ -120,11 +121,12 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   }
 
   Future<void> _toggleRecording() async {
+    final strings = AppLocalizations.of(context)!;
     if (_busy) return;
     try {
       if (!_recording) {
         if (!await _recorder.hasPermission()) {
-          throw StateError(AppLocalizations.of(context)!.aiMicrophonePermission);
+          throw StateError(strings.aiMicrophonePermission);
         }
         final directory = await Directory.systemTemp.createTemp('bye-pro-audio-');
         final path = '${directory.path}/voice.wav';
@@ -135,12 +137,12 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         if (mounted) setState(() { _recording = true; });
       } else {
         final path = await _recorder.stop();
-        if (path == null) throw StateError(AppLocalizations.of(context)!.aiRecordingSaveFailed);
+        if (path == null) throw StateError(strings.aiRecordingSaveFailed);
         final recordingFile = File(path);
         final bytes = await recordingFile.readAsBytes();
         await recordingFile.delete();
         try { await recordingFile.parent.delete(); } catch (_) {}
-        if (!_isValidWav(bytes)) throw StateError(AppLocalizations.of(context)!.aiInvalidRecording);
+        if (!_isValidWav(bytes)) throw StateError(strings.aiInvalidRecording);
         if (bytes.length > 20 * 1024 * 1024) throw StateError(AppLocalizations.of(context)!.aiAudioTooLarge);
         if (mounted) setState(() {
           _recording = false;
@@ -165,6 +167,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   }
 
   Future<void> _send() async {
+    final strings = AppLocalizations.of(context)!;
     final mediaBytes = _attachmentBytes;
     final image = _attachmentIsImage;
     final text = _input.text.trim().isEmpty && mediaBytes != null
@@ -179,7 +182,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       final settings = ref.read(appSettingsProvider);
       final modelState = ref.read(gemmaModelManagerProvider);
       if (!settings.useGemma || modelState.status != GemmaModelStatus.ready) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.aiGemmaRequired)));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(strings.aiGemmaRequired)));
         return;
       }
     }
@@ -192,7 +195,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       if (result.kind == AssistantResultKind.clarification) {
         setState(() => ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(result.message ?? 'يرجى التوضيح.')));
       } else if (result.kind == AssistantResultKind.notUnderstood || result.command == null) {
-        setState(() => ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(AppLocalizations.of(context)!.assistantNotUnderstood)));
+        setState(() => ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(strings.assistantNotUnderstood)));
         await _openManual();
       } else {
         final command = result.command!;
@@ -204,7 +207,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
           final execution = await registry.execute(command.name, command.parameters);
           if (mounted) setState(() => ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(execution.message)));
         } else {
-          setState(() { _confirmation.request(command); ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(AppLocalizations.of(context)!.assistantReview)); });
+          setState(() { _confirmation.request(command); ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(strings.assistantReview)); });
         }
       }
     } catch (_) {
