@@ -190,7 +190,7 @@ final class ActionRegistry {
           return const ActionExecution(message: 'لا توجد فواتير أو إيجارات مسجلة.');
         }
         final summary = bills.map((bill) =>
-          '${bill.title} (${bill.dueMonth}): المتبقي ${bill.remainingMinorUnits}'
+          '${bill.id}: ${bill.title} (${bill.dueMonth}): المتبقي ${bill.remainingMinorUnits}'
         ).join('؛ ');
         return ActionExecution(message: summary);
       case 'save_work_home_transfer':
