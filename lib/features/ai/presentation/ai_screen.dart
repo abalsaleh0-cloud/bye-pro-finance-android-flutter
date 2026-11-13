@@ -120,7 +120,10 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       } else {
         final path = await _recorder.stop();
         if (path == null) throw StateError('تعذر حفظ التسجيل الصوتي.');
-        final bytes = await File(path).readAsBytes();
+        final recordingFile = File(path);
+        final bytes = await recordingFile.readAsBytes();
+        await recordingFile.delete();
+        try { await recordingFile.parent.delete(); } catch (_) {}
         if (!_isValidWav(bytes)) throw StateError('التسجيل الناتج ليس WAV صالحاً بدقة 16 kHz.');
         if (bytes.length > 20 * 1024 * 1024) throw StateError('التسجيل يتجاوز الحد المسموح 20MB.');
         if (mounted) setState(() {
