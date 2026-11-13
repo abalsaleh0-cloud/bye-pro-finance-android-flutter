@@ -377,6 +377,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final billPayments = ref.watch(homeBillPaymentsForMonthProvider(selectedMonth));
     final availableMonths = <MonthKey>{
       currentMonth,
+      selectedMonth,
       ...(expenses.value ?? const <HomeExpense>[]).map((item) => item.dueMonth),
       ...(expenses.value ?? const <HomeExpense>[]).map((item) {
         final date = item.expenseDate.toLocal();
