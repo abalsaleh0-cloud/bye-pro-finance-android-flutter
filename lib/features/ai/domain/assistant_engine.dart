@@ -19,6 +19,11 @@ final class AssistantResult {
   final AssistantCommand? command;
   final String? message;
 }
+final class AssistantInputException implements Exception {
+  const AssistantInputException(this.message);
+  final String message;
+}
+
 final class AssistantMedia {
   const AssistantMedia({this.imageBytes, this.audioBytes});
   final Uint8List? imageBytes;
@@ -36,7 +41,7 @@ final class FakeAssistantEngine implements AssistantEngine {
   @override
   Future<AssistantResult> interpret(String input,List<String> availableActions,{AssistantMedia? media}) async {
     final text=input.trim();
-    if(text.isEmpty) return const AssistantResult.notUnderstood();
+    if(text.isEmpty || media != null) return const AssistantResult.notUnderstood();
     if(RegExp(r'الباقي|المتبقي').hasMatch(text)) {
       if(!availableActions.contains('read_work_remaining')) return const AssistantResult.notUnderstood();
       return const AssistantResult.command(AssistantCommand(name:'read_work_remaining',parameters:{}));
