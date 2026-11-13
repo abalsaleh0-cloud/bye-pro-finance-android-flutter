@@ -46,7 +46,6 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   Uint8List? _attachmentBytes;
   bool _attachmentIsImage = false;
   String? _attachmentName;
-  String? _recordingPath;
   bool _recording = false;
 
   @override
@@ -77,9 +76,10 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       );
       if (result == null || result.files.isEmpty) return;
       final file = result.files.single;
+      final limit = image ? 12 * 1024 * 1024 : 20 * 1024 * 1024;
+      if (file.size > limit) throw StateError(image ? 'حجم الصورة يتجاوز 12MB.' : 'حجم الصوت يتجاوز 20MB.');
       final bytes = file.bytes ?? (file.path == null ? null : await File(file.path!).readAsBytes());
       if (bytes == null || bytes.isEmpty) throw StateError('تعذر قراءة الملف.');
-      final limit = image ? 12 * 1024 * 1024 : 20 * 1024 * 1024;
       if (bytes.length > limit) throw StateError(image ? 'حجم الصورة يتجاوز 12MB.' : 'حجم الصوت يتجاوز 20MB.');
       if (!image && !_isValidWav(bytes)) throw StateError('اختر ملف WAV بصيغة 16 kHz أحادي القناة.');
       if (!mounted) return;
@@ -116,7 +116,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
           const RecordConfig(encoder: AudioEncoder.wav, sampleRate: 16000, numChannels: 1),
           path: path,
         );
-        if (mounted) setState(() { _recording = true; _recordingPath = path; });
+        if (mounted) setState(() { _recording = true; });
       } else {
         final path = await _recorder.stop();
         if (path == null) throw StateError('تعذر حفظ التسجيل الصوتي.');
@@ -128,12 +128,11 @@ class _AiScreenState extends ConsumerState<AiScreen> {
           _attachmentBytes = bytes;
           _attachmentIsImage = false;
           _attachmentName = 'voice.wav';
-          _recordingPath = null;
         });
       }
     } catch (error) {
       if (mounted) {
-        setState(() { _recording = false; _recordingPath = null; });
+        setState(() { _recording = false; });
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString().replaceFirst('Bad state: ', ''))));
       }
     }
@@ -157,7 +156,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       imageBytes: image ? mediaBytes : null,
       audioBytes: image ? null : mediaBytes,
     );
-    final displayedText = media == null ? text : '$text\\n[${image ? 'صورة' : 'تسجيل صوتي'}: ${_attachmentName ?? 'مرفق'}]';
+    final displayedText = media == null ? text : '$text\n[${image ? 'صورة' : 'تسجيل صوتي'}: ${_attachmentName ?? 'مرفق'}]';
     setState(() { _busy = true; ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(displayedText, fromUser: true)); _input.clear(); _attachmentBytes = null; _attachmentName = null; _confirmation.cancel(); _undo = null; });
     final registry = _registry();
     try {
