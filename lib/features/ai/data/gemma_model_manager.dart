@@ -207,8 +207,8 @@ class GemmaModelManager extends Notifier<GemmaModelState>
   Future<void> _checkMultimodalMemory(AssistantMedia? media) async {
     if (media == null || (!media.hasImage && !media.hasAudio)) return;
     final info = await DeviceInfoPlugin().androidInfo;
-    const minimumRamBytes = 6 * 1024 * 1024 * 1024;
-    if (info.physicalRamSize > 0 && info.physicalRamSize < minimumRamBytes) {
+    const minimumRamMegabytes = 6 * 1024;
+    if (info.physicalRamSize > 0 && info.physicalRamSize < minimumRamMegabytes) {
       throw const AssistantInputException('تحليل الصور والصوت يحتاج هاتفاً بذاكرة RAM لا تقل عن 6GB. يمكنك متابعة المحادثة النصية.');
     }
   }
