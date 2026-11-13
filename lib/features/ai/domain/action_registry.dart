@@ -152,7 +152,10 @@ final class ActionRegistry {
           note: p['note'] as String?,
         );
         await _bills.recordPayment(payment);
-        return const ActionExecution(message: 'تم تسجيل دفعة الفاتورة');
+        return ActionExecution(
+          message: 'تم تسجيل دفعة الفاتورة',
+          undo: () => _bills.undoPayment(payment.id),
+        );
       case 'read_work_records':
         final workEntries = await _work.watchEntries().first;
         if (workEntries.isEmpty) {
