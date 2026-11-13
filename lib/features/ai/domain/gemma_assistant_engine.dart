@@ -132,6 +132,8 @@ final class GemmaAssistantEngine implements AssistantEngine {
       return AssistantResult.command(
         AssistantCommand(name: output.name!, parameters: normalized),
       );
+    } on AssistantInputException catch (error) {
+      return AssistantResult.clarification(error.message);
     } catch (_) {
       return const AssistantResult.notUnderstood();
     }
