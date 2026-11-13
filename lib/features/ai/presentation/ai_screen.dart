@@ -220,6 +220,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
 
   Future<void> _confirm() async {
     if (!_confirmation.hasPending || _busy) return;
+    final strings = AppLocalizations.of(context)!;
     setState(() => _busy = true);
     try {
       final execution = await _confirmation.approve(
