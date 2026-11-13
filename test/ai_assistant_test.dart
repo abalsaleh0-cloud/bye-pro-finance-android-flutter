@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:drift/native.dart';
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
@@ -107,6 +109,14 @@ void main() {
       final result = await engine.interpret(
         'حوّل 750 إلى المنزل',
         ['read_work_remaining'],
+      );
+      expect(result.kind, AssistantResultKind.notUnderstood);
+    });
+    test('does not pretend to process media without Gemma', () async {
+      final result = await engine.interpret(
+        'حلل الصورة',
+        actions,
+        media: AssistantMedia(imageBytes: Uint8List.fromList([1, 2, 3])),
       );
       expect(result.kind, AssistantResultKind.notUnderstood);
     });
