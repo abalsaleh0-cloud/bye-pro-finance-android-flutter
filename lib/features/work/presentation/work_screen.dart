@@ -553,15 +553,16 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
     final transfers = ref.watch(workTransfersProvider);
     final now = DateTime.now();
     final currentMonth = MonthKey(year: now.year, month: now.month);
+    final selectedMonth = ref.watch(selectedMonthProvider);
     final allMonths = <MonthKey>{
       currentMonth,
+      selectedMonth,
       ...(entries.value ?? const <WorkEntry>[]).map((entry) => entry.dueMonth),
       ...(transfers.value ?? const <WorkHomeTransfer>[]).map((transfer) {
         final date = transfer.transferredAt.toLocal();
         return MonthKey(year: date.year, month: date.month);
       }),
     }.toList()..sort((a, b) => b.compareTo(a));
-    final selectedMonth = ref.watch(selectedMonthProvider);
     final overview = widget.mode == WorkScreenMode.overview;
     final records = widget.mode == WorkScreenMode.records;
     final transferPage = widget.mode == WorkScreenMode.transfers;
