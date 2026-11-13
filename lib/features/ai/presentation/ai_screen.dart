@@ -135,6 +135,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     if (action.startsWith('read_')) return s.assistantRead;
     if (action.startsWith('delete_')) return s.deleteRecord;
     if (action == 'record_debt_payment') return s.recordDebtPayment;
+    if (action == 'record_home_bill_payment') return s.addBillPayment;
     return s.save;
   }
 
@@ -171,6 +172,20 @@ class _AiScreenState extends ConsumerState<AiScreen> {
               Text(strings.assistantSection + ': ' + _sectionName(pending.name, strings)),
               Text(strings.assistantOperation + ': ' + _operationName(pending.name, strings)),
               Text(strings.assistantAmount + ': ' + _displayAmount(pending)),
+              if (pending.parameters['title'] is String)
+                Text(pending.parameters['title']! as String),
+              if (pending.parameters['counterparty'] is String)
+                Text(pending.parameters['counterparty']! as String),
+              if (pending.parameters['categoryId'] is String)
+                Text(pending.parameters['categoryId']! as String),
+              if (pending.parameters['kind'] is String)
+                Text(pending.parameters['kind']! as String),
+              if (pending.parameters['direction'] is String)
+                Text(pending.parameters['direction']! as String),
+              if (pending.parameters['billId'] is String)
+                Text(pending.parameters['billId']! as String),
+              if (pending.parameters['debtId'] is String)
+                Text(pending.parameters['debtId']! as String),
               Text(strings.assistantMonth + ': ' + _displayMonth(pending)),
               Text(strings.assistantDate + ': ' + (pending.parameters['date']?.toString() ?? DateTime.now().toIso8601String().split('T').first)),
               const SizedBox(height: 12),
