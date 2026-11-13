@@ -155,5 +155,6 @@
   "aiReadFileFailed": "Unable to read the file.",
   "aiMicrophonePermission": "Microphone permission is required to record audio.",
   "aiRecordingSaveFailed": "Unable to save the recording.",
-  "aiInvalidRecording": "The recording is not a valid 16 kHz WAV file."
+  "aiInvalidRecording": "The recording is not a valid 16 kHz WAV file.",
+  "aiGemmaRequired": "Enable Gemma and download the model before using image or audio input."
 }
