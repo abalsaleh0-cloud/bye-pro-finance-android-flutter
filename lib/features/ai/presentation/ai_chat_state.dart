@@ -33,12 +33,14 @@ class AiChatController extends Notifier<List<AiChatMessage>> {
   bool _restored = false;
   int _revision = 0;
   Future<void> _writeQueue = Future<void>.value();
+  Future<void>? _restoreFuture;
 
   @override
   List<AiChatMessage> build() {
     final database = ref.watch(appDatabaseProvider);
     _database = database;
-    unawaited(_restore(database));
+    _restoreFuture = _restore(database);
+    unawaited(_restoreFuture);
     return const [];
   }
 
@@ -94,7 +96,10 @@ class AiChatController extends Notifier<List<AiChatMessage>> {
   }
 
   /// Waits for pending writes; useful when coordinating app shutdown and tests.
-  Future<void> flush() => _writeQueue;
+  Future<void> flush() async {
+    await _restoreFuture;
+    await _writeQueue;
+  }
 }
 
 final aiChatMessagesProvider =
