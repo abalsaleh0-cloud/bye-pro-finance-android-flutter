@@ -405,7 +405,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           decoration: InputDecoration(labelText: strings.currentMonth),
           items: availableMonths.map((month) => DropdownMenuItem(value: month, child: Text(month.toString()))).toList(),
           onChanged: (month) {
-            if (month != null) ref.read(selectedMonthProvider.notifier).select(month);
+            if (month != null) {
+              ref.read(selectedMonthProvider.notifier).select(month);
+            }
           },
         ),
         const SizedBox(height: 12),
@@ -457,7 +459,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             },
           ),
         ],
-        if (billsPage) HomeBillsSection(selectedMonth: selectedMonth),
+        if (billsPage) {
+          HomeBillsSection(selectedMonth: selectedMonth),
+        }
       ]),
     );
   }
