@@ -21,6 +21,15 @@ void main() {
 
   test('persists home expenses with integer money and due month', () async {
     final workRepository = WorkRepository(database);
+    await workRepository.saveEntry(
+      WorkEntry(
+        id: 'fund-home-1-cash',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(2000),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 9),
+      ),
+    );
     await workRepository.saveTransfer(
       WorkHomeTransfer(
         id: 'fund-home-1',
@@ -166,6 +175,15 @@ void main() {
   );
 
   test('supports updating and deleting home expenses', () async {
+    await WorkRepository(database).saveEntry(
+      WorkEntry(
+        id: 'fund-home-crud-cash',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(300),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
     await WorkRepository(database).saveTransfer(
       WorkHomeTransfer(
         id: 'fund-home-crud',
@@ -200,7 +218,50 @@ void main() {
     expect(await database.select(database.homeExpenses).get(), isEmpty);
   });
 
+
+  test('home cash from a previous month cannot fund a new month expense', () async {
+    final work = WorkRepository(database);
+    await work.saveEntry(
+      WorkEntry(
+        id: 'november-cash-only',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(1000),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
+    await work.saveTransfer(
+      WorkHomeTransfer(
+        id: 'november-transfer-only',
+        amount: Money.fromMinorUnits(1000),
+        transferredAt: DateTime.utc(2026, 11, 2),
+      ),
+    );
+
+    await expectLater(
+      HomeExpenseRepository(database).save(
+        HomeExpense(
+          id: 'december-expense-without-december-funds',
+          amount: Money.fromMinorUnits(1),
+          categoryId: 'food',
+          expenseDate: DateTime.utc(2026, 12, 1),
+          dueMonth: MonthKey(year: 2026, month: 12),
+        ),
+      ),
+      throwsA(isA<InsufficientHomeBalanceException>()),
+    );
+  });
+
   test('rejects an expense above transferred balance without saving it', () async {
+    await WorkRepository(database).saveEntry(
+      WorkEntry(
+        id: 'fund-home-limit-cash',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(1000),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
     await WorkRepository(database).saveTransfer(
       WorkHomeTransfer(
         id: 'fund-home-limit',
@@ -229,6 +290,15 @@ void main() {
   });
 
   test('editing an expense restores its old amount before balance check', () async {
+    await WorkRepository(database).saveEntry(
+      WorkEntry(
+        id: 'fund-home-edit-cash',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(1000),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
     await WorkRepository(database).saveTransfer(
       WorkHomeTransfer(
         id: 'fund-home-edit',
@@ -334,6 +404,15 @@ void main() {
 
   test('supports updating and deleting a work-home transfer', () async {
     final repository = WorkRepository(database);
+    await repository.saveEntry(
+      WorkEntry(
+        id: 'transfer-crud-cash',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(450),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
     final original = WorkHomeTransfer(
       id: 'transfer-crud',
       amount: Money.fromMinorUnits(300),
@@ -357,6 +436,15 @@ void main() {
   });
 
   test('editing a bill preserves its payment history', () async {
+    await WorkRepository(database).saveEntry(
+      WorkEntry(
+        id: 'bill-edit-funding-cash',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(2000),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
     await WorkRepository(database).saveTransfer(
       WorkHomeTransfer(
         id: 'bill-edit-funding',
@@ -424,6 +512,15 @@ void main() {
   });
 
   test('monthly bills remain obligations until payments are made', () async {
+    await WorkRepository(database).saveEntry(
+      WorkEntry(
+        id: 'bill-funding-cash',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(1000),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
     await WorkRepository(database).saveTransfer(
       WorkHomeTransfer(
         id: 'bill-funding',
@@ -468,6 +565,15 @@ void main() {
   });
 
   test('rent can be paid in installments and cannot exceed home cash balance', () async {
+    await WorkRepository(database).saveEntry(
+      WorkEntry(
+        id: 'rent-funding-cash',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(1000),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
     await WorkRepository(database).saveTransfer(
       WorkHomeTransfer(
         id: 'rent-funding',
@@ -519,6 +625,15 @@ void main() {
   });
 
   test('bill payments cannot exceed the outstanding bill amount', () async {
+    await WorkRepository(database).saveEntry(
+      WorkEntry(
+        id: 'bill-overpay-funding-cash',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(1000),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
     await WorkRepository(database).saveTransfer(
       WorkHomeTransfer(
         id: 'bill-overpay-funding',
@@ -557,6 +672,45 @@ void main() {
     expect((await repository.getBills()).single.remainingMinorUnits, 100);
   });
 
+
+
+  test('rejects a work-to-home transfer when no cash was received', () async {
+    final repository = WorkRepository(database);
+    await expectLater(
+      repository.saveTransfer(
+        WorkHomeTransfer(
+          id: 'transfer-without-cash',
+          amount: Money.fromMinorUnits(1),
+          transferredAt: DateTime.utc(2026, 11, 2),
+        ),
+      ),
+      throwsA(isA<InsufficientWorkBalanceException>()),
+    );
+    expect(await database.select(database.workHomeTransfers).get(), isEmpty);
+  });
+
+  test('limits transfers to cash received in the same month', () async {
+    final repository = WorkRepository(database);
+    await repository.saveEntry(
+      WorkEntry(
+        id: 'cash-november',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(1000),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
+    await expectLater(
+      repository.saveTransfer(
+        WorkHomeTransfer(
+          id: 'transfer-december-with-november-cash',
+          amount: Money.fromMinorUnits(1),
+          transferredAt: DateTime.utc(2026, 12, 1),
+        ),
+      ),
+      throwsA(isA<InsufficientWorkBalanceException>()),
+    );
+  });
 
   test('rejects transfers above cash actually received at work', () async {
     final repository = WorkRepository(database);

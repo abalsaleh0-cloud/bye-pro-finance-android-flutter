@@ -10,10 +10,14 @@ import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
+enum WorkScreenMode { overview, records, transfers }
+
 class WorkScreen extends ConsumerStatefulWidget {
-  const WorkScreen({super.key, this.openManualEntry = false});
+  const WorkScreen({super.key, this.openManualEntry = false, this.mode = WorkScreenMode.overview, this.initialMonth});
 
   final bool openManualEntry;
+  final WorkScreenMode mode;
+  final MonthKey? initialMonth;
 
   @override
   ConsumerState<WorkScreen> createState() => _WorkScreenState();
@@ -21,6 +25,13 @@ class WorkScreen extends ConsumerStatefulWidget {
 
 class _WorkScreenState extends ConsumerState<WorkScreen> {
   bool _manualEntryOpened = false;
+  MonthKey? _selectedMonth;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedMonth = widget.initialMonth;
+  }
 
   @override
   void didChangeDependencies() {
@@ -391,11 +402,10 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
     List<WorkHomeTransfer> transfers,
   ) {
     final now = DateTime.now();
-    final monthEntries = entries.where((entry) =>
-      entry.dueMonth.year == now.year && entry.dueMonth.month == now.month);
+    final currentMonth = _selectedMonth ?? MonthKey(year: now.year, month: now.month);
+    final monthEntries = entries.where((entry) => entry.dueMonth == currentMonth);
     var salary = 0;
     var advances = 0;
-    final currentMonth = MonthKey(year: now.year, month: now.month);
     final allocation = WorkBalanceAllocation.calculate(entries);
     var payments = 0;
     final salaryPaymentsApplied = allocation.paymentsFor(currentMonth);
@@ -412,8 +422,11 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
     }
     final transferred = transfers.where((item) {
       final date = item.transferredAt.toLocal();
-      return date.year == now.year && date.month == now.month;
+      return date.year == currentMonth.year && date.month == currentMonth.month;
     }).fold<int>(0, (sum, item) => sum + item.amount.minorUnits);
+    final receivedCash = entries.where((entry) =>
+      entry.kind != WorkEntryKind.salary && entry.dueMonth == currentMonth,
+    ).fold<int>(0, (sum, entry) => sum + entry.amount.minorUnits);
     final rows = <(String, int)>[
       (strings.salaryTotal, salary),
       (strings.advancesTotal, advances),
@@ -421,7 +434,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
       (strings.salaryPaymentsApplied, salaryPaymentsApplied),
       (strings.transferredToHome, transferred),
       (strings.currentSalaryOutstanding, allocation.outstandingFor(currentMonth)),
-      (strings.workRemaining, salary - advances - salaryPaymentsApplied - transferred),
+      (strings.workRemaining, receivedCash - transferred),
     ];
     return Card(
       child: Padding(
@@ -429,7 +442,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(strings.currentMonth, style: Theme.of(context).textTheme.titleMedium),
+            Text(currentMonth.toString(), style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             for (final row in rows)
               Padding(
@@ -444,134 +457,106 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
     );
   }
 
+
+  Widget _sectionTile(BuildContext context, IconData icon, String title, WorkScreenMode mode) {
+    final now = DateTime.now();
+    return Card(child: ListTile(
+      leading: Icon(icon), title: Text(title), trailing: const Icon(Icons.chevron_right),
+      onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => WorkScreen(mode: mode, initialMonth: _selectedMonth ?? MonthKey(year: now.year, month: now.month)),
+      )),
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
     final entries = ref.watch(workEntriesProvider);
     final transfers = ref.watch(workTransfersProvider);
+    final now = DateTime.now();
+    final currentMonth = MonthKey(year: now.year, month: now.month);
+    final allMonths = <MonthKey>{
+      currentMonth,
+      ...(entries.value ?? const <WorkEntry>[]).map((entry) => entry.dueMonth),
+      ...(transfers.value ?? const <WorkHomeTransfer>[]).map((transfer) {
+        final date = transfer.transferredAt.toLocal();
+        return MonthKey(year: date.year, month: date.month);
+      }),
+    }.toList()..sort((a, b) => b.compareTo(a));
+    final selectedMonth = _selectedMonth ?? currentMonth;
+    final overview = widget.mode == WorkScreenMode.overview;
+    final records = widget.mode == WorkScreenMode.records;
+    final transferPage = widget.mode == WorkScreenMode.transfers;
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _editEntry(context, ref, strings),
-        tooltip: strings.addEntry,
-        child: const Icon(Icons.add),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          FilledButton.icon(
-            onPressed: () => _editTransfer(context, ref, strings),
-            icon: const Icon(Icons.swap_horiz),
-            label: Text(strings.addTransfer),
-          ),
-          const SizedBox(height: 12),
+      appBar: overview ? null : AppBar(title: Text(records ? strings.entries : strings.transfers)),
+      floatingActionButton: records
+          ? FloatingActionButton(onPressed: () => _editEntry(context, ref, strings), tooltip: strings.addEntry, child: const Icon(Icons.add))
+          : transferPage
+              ? FloatingActionButton(onPressed: () => _editTransfer(context, ref, strings), tooltip: strings.addTransfer, child: const Icon(Icons.add))
+              : null,
+      body: ListView(padding: const EdgeInsets.all(16), children: [
+        DropdownButtonFormField<MonthKey>(
+          initialValue: selectedMonth,
+          decoration: InputDecoration(labelText: strings.currentMonth),
+          items: allMonths.map((month) => DropdownMenuItem(value: month, child: Text(month.toString()))).toList(),
+          onChanged: (month) => setState(() => _selectedMonth = month),
+        ),
+        const SizedBox(height: 12),
+        if (overview) ...[
           _workSummaryCard(context, strings, entries.value ?? const [], transfers.value ?? const []),
           const SizedBox(height: 16),
+          _sectionTile(context, Icons.receipt_long_outlined, strings.entries, WorkScreenMode.records),
+          _sectionTile(context, Icons.swap_horiz, strings.transfers, WorkScreenMode.transfers),
+        ],
+        if (records) ...[
           Text(strings.entries, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           entries.when(
             loading: () => Text(strings.loading),
             error: (error, stackTrace) => Text(strings.dataError),
-            data: (items) => items.isEmpty
-                ? Text(strings.noRecords)
-                : Column(
-                    children: [
-                      for (final entry in items)
-                        Card(
-                          child: ListTile(
-                            leading: const Icon(Icons.work_outline),
-                            title: Text(_kindLabel(strings, entry.kind)),
-                            subtitle: Text(
-                              '${entry.kind == WorkEntryKind.salaryPayment ? strings.paymentReceivedMonth : strings.dueMonth}: ${entry.dueMonth}',
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(entry.amount.minorUnits.toString()),
-                                IconButton(
-                                  tooltip: strings.editRecord,
-                                  icon: const Icon(Icons.edit_outlined),
-                                  onPressed: () => _editEntry(
-                                    context,
-                                    ref,
-                                    strings,
-                                    existing: entry,
-                                  ),
-                                ),
-                                IconButton(
-                                  tooltip: strings.deleteRecord,
-                                  icon: const Icon(Icons.delete_outline),
-                                  onPressed: () => _deleteEntry(
-                                    context,
-                                    ref,
-                                    strings,
-                                    entry.id,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
+            data: (items) {
+              final monthItems = items.where((entry) => entry.dueMonth == selectedMonth).toList();
+              return monthItems.isEmpty ? Text(strings.noRecords) : Column(children: [
+                for (final entry in monthItems)
+                  Card(child: ListTile(
+                    leading: const Icon(Icons.work_outline),
+                    title: Text(_kindLabel(strings, entry.kind)),
+                    subtitle: Text('${entry.kind == WorkEntryKind.salaryPayment ? strings.paymentReceivedMonth : strings.dueMonth}: ${entry.dueMonth}'),
+                    trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Text(entry.amount.minorUnits.toString()),
+                      IconButton(tooltip: strings.editRecord, icon: const Icon(Icons.edit_outlined), onPressed: () => _editEntry(context, ref, strings, existing: entry)),
+                      IconButton(tooltip: strings.deleteRecord, icon: const Icon(Icons.delete_outline), onPressed: () => _deleteEntry(context, ref, strings, entry.id)),
+                    ]),
+                  )),
+              ]);
+            },
           ),
-          const SizedBox(height: 20),
-          Text(
-            strings.transfers,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
+        ],
+        if (transferPage) ...[
           transfers.when(
             loading: () => Text(strings.loading),
             error: (error, stackTrace) => Text(strings.dataError),
-            data: (items) => items.isEmpty
-                ? Text(strings.noRecords)
-                : Column(
-                    children: [
-                      for (final transfer in items)
-                        Card(
-                          child: ListTile(
-                            leading: const Icon(Icons.swap_horiz),
-                            title: Text(strings.transferredToHome),
-                            subtitle: Text(
-                              transfer.transferredAt
-                                  .toLocal()
-                                  .toString()
-                                  .split(' ')
-                                  .first,
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(transfer.amount.minorUnits.toString()),
-                                IconButton(
-                                  tooltip: strings.editRecord,
-                                  icon: const Icon(Icons.edit_outlined),
-                                  onPressed: () => _editTransfer(
-                                    context,
-                                    ref,
-                                    strings,
-                                    existing: transfer,
-                                  ),
-                                ),
-                                IconButton(
-                                  tooltip: strings.deleteRecord,
-                                  icon: const Icon(Icons.delete_outline),
-                                  onPressed: () => _deleteTransfer(
-                                    context,
-                                    ref,
-                                    strings,
-                                    transfer.id,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
+            data: (items) {
+              final monthItems = items.where((transfer) {
+                final date = transfer.transferredAt.toLocal();
+                return date.year == selectedMonth.year && date.month == selectedMonth.month;
+              }).toList();
+              return monthItems.isEmpty ? Text(strings.noRecords) : Column(children: [
+                for (final transfer in monthItems)
+                  Card(child: ListTile(
+                    leading: const Icon(Icons.swap_horiz), title: Text(strings.transferredToHome),
+                    subtitle: Text(transfer.transferredAt.toLocal().toString().split(' ').first),
+                    trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Text(transfer.amount.minorUnits.toString()),
+                      IconButton(tooltip: strings.editRecord, icon: const Icon(Icons.edit_outlined), onPressed: () => _editTransfer(context, ref, strings, existing: transfer)),
+                      IconButton(tooltip: strings.deleteRecord, icon: const Icon(Icons.delete_outline), onPressed: () => _deleteTransfer(context, ref, strings, transfer.id)),
+                    ]),
+                  )),
+              ]);
+            },
           ),
         ],
-      ),
+      ]),
     );
   }
 }

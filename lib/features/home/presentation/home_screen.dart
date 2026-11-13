@@ -11,10 +11,14 @@ import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
+enum HomeScreenMode { overview, transfers, dailyExpenses, monthlyBills }
+
 class HomeScreen extends ConsumerStatefulWidget {
-  const HomeScreen({super.key, this.openManualEntry = false});
+  const HomeScreen({super.key, this.openManualEntry = false, this.mode = HomeScreenMode.overview, this.initialMonth});
 
   final bool openManualEntry;
+  final HomeScreenMode mode;
+  final MonthKey? initialMonth;
 
   @override
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
@@ -22,6 +26,13 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _manualEntryOpened = false;
+  MonthKey? _selectedMonth;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedMonth = widget.initialMonth;
+  }
 
   @override
   void didChangeDependencies() {
@@ -45,7 +56,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
     final category = TextEditingController(text: existing?.categoryId ?? '');
     final date = TextEditingController(
-      text: _dateText(existing?.expenseDate ?? DateTime.now()),
+      text: formatCalendarDate(existing?.expenseDate ?? DateTime.now()),
     );
     final due = TextEditingController(
       text:
@@ -214,25 +225,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     List<HomeExpense> expenses,
     List<WorkHomeTransfer> transfers,
     List<HomeBill> bills,
+    MonthKey month,
+    int billPaymentsThisMonth,
   ) {
-    final now = DateTime.now();
-    final expenseTotal = expenses.where((item) =>
-      item.dueMonth.year == now.year && item.dueMonth.month == now.month)
-      .fold<int>(0, (sum, item) => sum + item.amount.minorUnits);
+    final expenseTotal = expenses.where((item) {
+      final date = item.expenseDate.toLocal();
+      return date.year == month.year && date.month == month.month;
+    }).fold<int>(0, (sum, item) => sum + item.amount.minorUnits);
     final transferTotal = transfers.where((item) {
       final date = item.transferredAt.toLocal();
-      return date.year == now.year && date.month == now.month;
+      return date.year == month.year && date.month == month.month;
     }).fold<int>(0, (sum, item) => sum + item.amount.minorUnits);
-    final lifetimeExpenses = expenses.fold<int>(
-      0,
-      (sum, item) => sum + item.amount.minorUnits,
-    );
-    final lifetimeTransfers = transfers.fold<int>(
-      0,
-      (sum, item) => sum + item.amount.minorUnits,
-    );
-    final lifetimeBillPayments = bills.fold<int>(0, (sum, bill) => sum + bill.paidMinorUnits);
-    final availableBalance = lifetimeTransfers - lifetimeExpenses - lifetimeBillPayments;
+    final availableBalance = transferTotal - expenseTotal - billPaymentsThisMonth;
+    final outstandingBills = bills.where((bill) => bill.dueMonth == month)
+      .fold<int>(0, (sum, bill) => sum + bill.remainingMinorUnits);
 
     return Card(
       child: Padding(
@@ -240,13 +246,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(strings.currentMonth, style: Theme.of(context).textTheme.titleMedium),
+            Text(month.toString(), style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             Row(children: [Expanded(child: Text(strings.totalExpenses)), Text(expenseTotal.toString())]),
             const SizedBox(height: 6),
             Row(children: [Expanded(child: Text(strings.receivedFromWork)), Text(transferTotal.toString())]),
             const SizedBox(height: 6),
-            Row(children: [Expanded(child: Text(strings.totalBillsOutstanding)), Text(bills.fold<int>(0, (sum, bill) => sum + bill.remainingMinorUnits).toString())]),
+            Row(children: [Expanded(child: Text(strings.totalBillsOutstanding)), Text(outstandingBills.toString())]),
             const Divider(height: 20),
             Row(
               children: [
@@ -263,114 +269,111 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+
+  Widget _sectionTile(BuildContext context, IconData icon, String title, HomeScreenMode mode) {
+    final now = DateTime.now();
+    return Card(child: ListTile(
+      leading: Icon(icon), title: Text(title), trailing: const Icon(Icons.chevron_right),
+      onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => HomeScreen(mode: mode, initialMonth: _selectedMonth ?? MonthKey(year: now.year, month: now.month)),
+      )),
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
     final expenses = ref.watch(homeExpensesProvider);
     final transfers = ref.watch(workTransfersProvider);
     final bills = ref.watch(homeBillsProvider);
+    final now = DateTime.now();
+    final currentMonth = MonthKey(year: now.year, month: now.month);
+    final selectedMonth = _selectedMonth ?? currentMonth;
+    final billPayments = ref.watch(homeBillPaymentsForMonthProvider(selectedMonth));
+    final availableMonths = <MonthKey>{
+      currentMonth,
+      ...(expenses.value ?? const <HomeExpense>[]).map((item) => item.dueMonth),
+      ...(expenses.value ?? const <HomeExpense>[]).map((item) {
+        final date = item.expenseDate.toLocal();
+        return MonthKey(year: date.year, month: date.month);
+      }),
+      ...(bills.value ?? const <HomeBill>[]).map((item) => item.dueMonth),
+      ...(transfers.value ?? const <WorkHomeTransfer>[]).map((item) {
+        final date = item.transferredAt.toLocal();
+        return MonthKey(year: date.year, month: date.month);
+      }),
+    }.toList()..sort((a, b) => b.compareTo(a));
+    final overview = widget.mode == HomeScreenMode.overview;
+    final transferPage = widget.mode == HomeScreenMode.transfers;
+    final expensePage = widget.mode == HomeScreenMode.dailyExpenses;
+    final billsPage = widget.mode == HomeScreenMode.monthlyBills;
+    final pageTitle = transferPage ? strings.receivedFromWork : expensePage ? strings.dailyExpenses : strings.monthlyBills;
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _editExpense(context, ref, strings),
-        tooltip: strings.addExpense,
-        child: const Icon(Icons.add),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _homeSummaryCard(context, strings, expenses.value ?? const [], transfers.value ?? const [], bills.value ?? const []),
-          const SizedBox(height: 12),
-          const HomeBillsSection(),
+      appBar: overview ? null : AppBar(title: Text(pageTitle)),
+      floatingActionButton: expensePage
+          ? FloatingActionButton(onPressed: () => _editExpense(context, ref, strings), tooltip: strings.addExpense, child: const Icon(Icons.add))
+          : null,
+      body: ListView(padding: const EdgeInsets.all(16), children: [
+        DropdownButtonFormField<MonthKey>(
+          initialValue: selectedMonth,
+          decoration: InputDecoration(labelText: strings.currentMonth),
+          items: availableMonths.map((month) => DropdownMenuItem(value: month, child: Text(month.toString()))).toList(),
+          onChanged: (month) => setState(() => _selectedMonth = month),
+        ),
+        const SizedBox(height: 12),
+        if (overview) ...[
+          _homeSummaryCard(context, strings, expenses.value ?? const [], transfers.value ?? const [], bills.value ?? const [], selectedMonth, billPayments.value ?? 0),
           const SizedBox(height: 16),
-          Text(
-            strings.dailyExpenses,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          expenses.when(
-            loading: () => Text(strings.loading),
-            error: (error, stackTrace) => Text(strings.dataError),
-            data: (items) => items.isEmpty
-                ? Text(strings.noRecords)
-                : Column(
-                    children: [
-                      for (final expense in items)
-                        Card(
-                          child: ListTile(
-                            leading: const Icon(Icons.receipt_long_outlined),
-                            title: Text(expense.categoryId),
-                            subtitle: Text(
-                              '${strings.dueMonth}: ${expense.dueMonth}',
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(expense.amount.minorUnits.toString()),
-                                IconButton(
-                                  tooltip: strings.editRecord,
-                                  icon: const Icon(Icons.edit_outlined),
-                                  onPressed: () => _editExpense(
-                                    context,
-                                    ref,
-                                    strings,
-                                    existing: expense,
-                                  ),
-                                ),
-                                IconButton(
-                                  tooltip: strings.deleteRecord,
-                                  icon: const Icon(Icons.delete_outline),
-                                  onPressed: () => _deleteExpense(
-                                    context,
-                                    ref,
-                                    strings,
-                                    expense.id,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-          ),
-          const SizedBox(height: 20),
-          Text(
-            strings.transfers,
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
+          _sectionTile(context, Icons.swap_horiz, strings.receivedFromWork, HomeScreenMode.transfers),
+          _sectionTile(context, Icons.shopping_basket_outlined, strings.dailyExpenses, HomeScreenMode.dailyExpenses),
+          _sectionTile(context, Icons.receipt_long_outlined, strings.monthlyBills, HomeScreenMode.monthlyBills),
+        ],
+        if (transferPage) ...[
           transfers.when(
             loading: () => Text(strings.loading),
             error: (error, stackTrace) => Text(strings.dataError),
-            data: (items) => items.isEmpty
-                ? Text(strings.noRecords)
-                : Column(
-                    children: [
-                      for (final transfer in items)
-                        Card(
-                          child: ListTile(
-                            leading: const Icon(Icons.swap_horiz),
-                            title: Text(strings.receivedFromWork),
-                            subtitle: Text(
-                              transfer.transferredAt
-                                  .toLocal()
-                                  .toString()
-                                  .split(' ')
-                                  .first,
-                            ),
-                            trailing: Text(
-                              transfer.amount.minorUnits.toString(),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
+            data: (items) {
+              final monthItems = items.where((transfer) {
+                final date = transfer.transferredAt.toLocal();
+                return date.year == selectedMonth.year && date.month == selectedMonth.month;
+              }).toList();
+              return monthItems.isEmpty ? Text(strings.noRecords) : Column(children: [
+                for (final transfer in monthItems)
+                  Card(child: ListTile(
+                    leading: const Icon(Icons.swap_horiz), title: Text(strings.receivedFromWork),
+                    subtitle: Text(transfer.transferredAt.toLocal().toString().split(' ').first),
+                    trailing: Text(transfer.amount.minorUnits.toString()),
+                  )),
+              ]);
+            },
           ),
         ],
-      ),
+        if (expensePage) ...[
+          expenses.when(
+            loading: () => Text(strings.loading),
+            error: (error, stackTrace) => Text(strings.dataError),
+            data: (items) {
+              final monthItems = items.where((expense) {
+                final date = expense.expenseDate.toLocal();
+                return date.year == selectedMonth.year && date.month == selectedMonth.month;
+              }).toList();
+              return monthItems.isEmpty ? Text(strings.noRecords) : Column(children: [
+                for (final expense in monthItems)
+                  Card(child: ListTile(
+                    leading: const Icon(Icons.receipt_long_outlined), title: Text(expense.categoryId),
+                    subtitle: Text('${strings.expenseDate}: ${formatCalendarDate(expense.expenseDate)}'),
+                    trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                      Text(expense.amount.minorUnits.toString()),
+                      IconButton(tooltip: strings.editRecord, icon: const Icon(Icons.edit_outlined), onPressed: () => _editExpense(context, ref, strings, existing: expense)),
+                      IconButton(tooltip: strings.deleteRecord, icon: const Icon(Icons.delete_outline), onPressed: () => _deleteExpense(context, ref, strings, expense.id)),
+                    ]),
+                  )),
+              ]);
+            },
+          ),
+        ],
+        if (billsPage) HomeBillsSection(selectedMonth: selectedMonth),
+      ]),
     );
   }
-
-  static String _dateText(DateTime value) =>
-      '${value.year}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
 }

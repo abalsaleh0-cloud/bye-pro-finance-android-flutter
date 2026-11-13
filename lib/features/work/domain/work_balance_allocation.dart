@@ -1,17 +1,16 @@
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/features/work/domain/work_entry.dart';
 
-/// Allocates received salary payments to the oldest eligible salary month first.
+/// Calculates each month's salary balance independently.
+/// Payments are applied only to the month in which they were recorded;
+/// no payment is carried backward or forward between months.
 final class WorkBalanceAllocation {
-  WorkBalanceAllocation._(
-    this._paymentsBySalaryMonth,
-    this._remainingByMonth,
-  );
+  WorkBalanceAllocation._(this._paymentsByMonth, this._remainingByMonth);
 
-  final Map<MonthKey, int> _paymentsBySalaryMonth;
+  final Map<MonthKey, int> _paymentsByMonth;
   final Map<MonthKey, int> _remainingByMonth;
 
-  int paymentsFor(MonthKey month) => _paymentsBySalaryMonth[month] ?? 0;
+  int paymentsFor(MonthKey month) => _paymentsByMonth[month] ?? 0;
 
   int remainingFor(MonthKey month) => _remainingByMonth[month] ?? 0;
 
@@ -20,20 +19,16 @@ final class WorkBalanceAllocation {
     return remaining > 0 ? remaining : 0;
   }
 
-  int outstandingBefore(MonthKey month) => _remainingByMonth.entries
-      .where((entry) => entry.key.compareTo(month) < 0 && entry.value > 0)
-      .fold(0, (total, entry) => total + entry.value);
+  int outstandingBefore(MonthKey month) => 0;
 
-  int outstandingThrough(MonthKey month) => _remainingByMonth.entries
-      .where((entry) => entry.key.compareTo(month) <= 0 && entry.value > 0)
-      .fold(0, (total, entry) => total + entry.value);
+  int outstandingThrough(MonthKey month) => outstandingFor(month);
 
   factory WorkBalanceAllocation.calculate(Iterable<WorkEntry> entries) {
-    final allEntries = entries.toList(growable: false);
     final salaryByMonth = <MonthKey, int>{};
     final advancesByMonth = <MonthKey, int>{};
+    final paymentsByMonth = <MonthKey, int>{};
 
-    for (final entry in allEntries) {
+    for (final entry in entries) {
       switch (entry.kind) {
         case WorkEntryKind.salary:
           salaryByMonth.update(
@@ -49,86 +44,25 @@ final class WorkBalanceAllocation {
           );
         case WorkEntryKind.payment:
         case WorkEntryKind.salaryPayment:
-          break;
+          paymentsByMonth.update(
+            entry.dueMonth,
+            (value) => value + entry.amount.minorUnits,
+            ifAbsent: () => entry.amount.minorUnits,
+          );
       }
     }
 
-    final remainingByMonth = <MonthKey, int>{
-      for (final month in {...salaryByMonth.keys, ...advancesByMonth.keys})
-        month: (salaryByMonth[month] ?? 0) - (advancesByMonth[month] ?? 0),
+    final months = <MonthKey>{
+      ...salaryByMonth.keys,
+      ...advancesByMonth.keys,
+      ...paymentsByMonth.keys,
     };
-    final paymentsByMonth = <MonthKey, int>{};
-    final legacyPayments = allEntries
-        .where((entry) => entry.kind == WorkEntryKind.payment)
-        .toList()
-      ..sort((a, b) {
-        final monthOrder = a.dueMonth.compareTo(b.dueMonth);
-        if (monthOrder != 0) return monthOrder;
-        final dateOrder = a.recordedAt.compareTo(b.recordedAt);
-        return dateOrder != 0 ? dateOrder : a.id.compareTo(b.id);
-      });
-    for (final payment in legacyPayments) {
-      remainingByMonth.update(
-        payment.dueMonth,
-        (value) => value - payment.amount.minorUnits,
-        ifAbsent: () => -payment.amount.minorUnits,
-      );
-      paymentsByMonth.update(
-        payment.dueMonth,
-        (value) => value + payment.amount.minorUnits,
-        ifAbsent: () => payment.amount.minorUnits,
-      );
-    }
-
-    final payments = allEntries
-        .where((entry) => entry.kind == WorkEntryKind.salaryPayment)
-        .toList()
-      ..sort((a, b) {
-        final monthOrder = a.dueMonth.compareTo(b.dueMonth);
-        if (monthOrder != 0) return monthOrder;
-        final dateOrder = a.recordedAt.compareTo(b.recordedAt);
-        return dateOrder != 0 ? dateOrder : a.id.compareTo(b.id);
-      });
-
-    for (final payment in payments) {
-      var unallocated = payment.amount.minorUnits;
-      final eligibleMonths = remainingByMonth.keys
-          .where((month) => month.compareTo(payment.dueMonth) <= 0)
-          .toList()
-        ..sort();
-
-      for (final month in eligibleMonths) {
-        if (unallocated == 0) break;
-        final outstanding = remainingByMonth[month] ?? 0;
-        if (outstanding <= 0) continue;
-        final allocated = outstanding < unallocated ? outstanding : unallocated;
-        remainingByMonth[month] = outstanding - allocated;
-        paymentsByMonth.update(
-          month,
-          (value) => value + allocated,
-          ifAbsent: () => allocated,
-        );
-        unallocated -= allocated;
-      }
-
-      // Preserve any excess as a negative balance in the latest eligible month.
-      // If no salary month exists yet, keep it against the payment's own month.
-      if (unallocated > 0) {
-        final targetMonth = eligibleMonths.isEmpty
-            ? payment.dueMonth
-            : eligibleMonths.last;
-        remainingByMonth.update(
-          targetMonth,
-          (value) => value - unallocated,
-          ifAbsent: () => -unallocated,
-        );
-        paymentsByMonth.update(
-          targetMonth,
-          (value) => value + unallocated,
-          ifAbsent: () => unallocated,
-        );
-      }
-    }
+    final remainingByMonth = <MonthKey, int>{
+      for (final month in months)
+        month: (salaryByMonth[month] ?? 0) -
+            (advancesByMonth[month] ?? 0) -
+            (paymentsByMonth[month] ?? 0),
+    };
 
     return WorkBalanceAllocation._(
       Map.unmodifiable(paymentsByMonth),
