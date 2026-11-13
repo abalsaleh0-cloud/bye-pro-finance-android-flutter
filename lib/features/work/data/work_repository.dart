@@ -64,9 +64,10 @@ final class WorkRepository {
             receivedAfter += row.amountMinorUnits;
           }
         }
-        if (_isCashReceived(entry.kind.name)) {
-          final date = entry.recordedAt.toLocal();
-          if (date.year == year && date.month == month) receivedAfter += entry.amount.minorUnits;
+        if (_isCashReceived(entry.kind.name) &&
+            entry.dueMonth.year == year &&
+            entry.dueMonth.month == month) {
+          receivedAfter += entry.amount.minorUnits;
         }
         final receivedBefore = _receivedCashForMonth(entries, year, month);
         final transferred = _transferTotalForMonth(transfers, year, month);
