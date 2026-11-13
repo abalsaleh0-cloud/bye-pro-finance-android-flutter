@@ -171,6 +171,14 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       imageBytes: image ? mediaBytes : null,
       audioBytes: image ? null : mediaBytes,
     );
+    if (media != null) {
+      final settings = ref.read(appSettingsProvider);
+      final modelState = ref.read(gemmaModelManagerProvider);
+      if (!settings.useGemma || modelState.status != GemmaModelStatus.ready) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(AppLocalizations.of(context)!.aiGemmaRequired)));
+        return;
+      }
+    }
     final displayedText = media == null ? text : '$text\n[${image ? 'صورة' : 'تسجيل صوتي'}: ${_attachmentName ?? 'مرفق'}]';
     setState(() { _busy = true; ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(displayedText, fromUser: true)); _input.clear(); _attachmentBytes = null; _attachmentName = null; _confirmation.cancel(); _undo = null; });
     final registry = _registry();
