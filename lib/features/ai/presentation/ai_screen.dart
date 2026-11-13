@@ -172,6 +172,8 @@ class _AiScreenState extends ConsumerState<AiScreen> {
               Text(strings.assistantSection + ': ' + _sectionName(pending.name, strings)),
               Text(strings.assistantOperation + ': ' + _operationName(pending.name, strings)),
               Text(strings.assistantAmount + ': ' + _displayAmount(pending)),
+              if (pending.parameters['id'] is String)
+                Text(pending.parameters['id']! as String),
               if (pending.parameters['title'] is String)
                 Text(pending.parameters['title']! as String),
               if (pending.parameters['counterparty'] is String)
