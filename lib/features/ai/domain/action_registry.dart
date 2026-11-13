@@ -136,15 +136,13 @@ final class ActionRegistry {
         final existing = (await _bills.getBills()).where((bill) => bill.id == p['id']).firstOrNull;
         if (existing == null) throw StateError('Home bill not found');
         final payments = await _bills.paymentsFor(existing.id);
+        if (payments.isNotEmpty) {
+          throw StateError('A bill with payment history cannot be deleted');
+        }
         await _bills.deleteBill(existing.id);
         return ActionExecution(
           message: 'تم حذف الفاتورة وسجل دفعاتها',
-          undo: () async {
-            await _bills.saveBill(existing);
-            for (final payment in payments) {
-              await _bills.recordPayment(payment);
-            }
-          },
+          undo: () async => _bills.saveBill(existing),
         );
       case 'record_home_bill_payment':
         final payment = HomeBillPayment(
