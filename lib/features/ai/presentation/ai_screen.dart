@@ -1,6 +1,11 @@
 // ignore_for_file: curly_braces_in_flow_control_structures, prefer_interpolation_to_compose_strings
 
 import 'dart:async';
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:record/record.dart';
 
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/providers/app_settings_provider.dart';
@@ -37,10 +42,18 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   final AssistantConfirmation _confirmation = AssistantConfirmation();
   UndoOperation? _undo;
   bool _busy = false;
+  final AudioRecorder _recorder = AudioRecorder();
+  Uint8List? _attachmentBytes;
+  bool _attachmentIsImage = false;
+  String? _attachmentName;
+  String? _recordingPath;
+  bool _recording = false;
 
   @override
   void dispose() {
     _input.dispose();
+    if (_recording) unawaited(_recorder.stop());
+    unawaited(_recorder.dispose());
     unawaited(ref.read(gemmaModelManagerProvider.notifier).releaseModel());
     super.dispose();
   }
@@ -53,13 +66,102 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     selectedMonth: ref.read(selectedMonthProvider),
   );
 
+  Future<void> _pickAttachment({required bool image}) async {
+    if (_busy || _recording) return;
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: image ? FileType.image : FileType.custom,
+        allowedExtensions: image ? null : ['wav'],
+        withData: true,
+        allowMultiple: false,
+      );
+      if (result == null || result.files.isEmpty) return;
+      final file = result.files.single;
+      final bytes = file.bytes ?? (file.path == null ? null : await File(file.path!).readAsBytes());
+      if (bytes == null || bytes.isEmpty) throw StateError('تعذر قراءة الملف.');
+      final limit = image ? 12 * 1024 * 1024 : 20 * 1024 * 1024;
+      if (bytes.length > limit) throw StateError(image ? 'حجم الصورة يتجاوز 12MB.' : 'حجم الصوت يتجاوز 20MB.');
+      if (!image && !_isValidWav(bytes)) throw StateError('اختر ملف WAV بصيغة 16 kHz أحادي القناة.');
+      if (!mounted) return;
+      setState(() {
+        _attachmentBytes = bytes;
+        _attachmentIsImage = image;
+        _attachmentName = file.name;
+      });
+    } catch (error) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString().replaceFirst('Bad state: ', ''))));
+    }
+  }
+
+  bool _isValidWav(Uint8List bytes) {
+    if (bytes.length < 44) return false;
+    final data = ByteData.sublistView(bytes);
+    return String.fromCharCodes(bytes.sublist(0, 4)) == 'RIFF' &&
+        String.fromCharCodes(bytes.sublist(8, 12)) == 'WAVE' &&
+        data.getUint16(22, Endian.little) == 1 &&
+        data.getUint32(24, Endian.little) == 16000 &&
+        data.getUint16(34, Endian.little) == 16;
+  }
+
+  Future<void> _toggleRecording() async {
+    if (_busy) return;
+    try {
+      if (!_recording) {
+        if (!await _recorder.hasPermission()) {
+          throw StateError('يلزم السماح باستخدام الميكروفون لتسجيل الصوت.');
+        }
+        final directory = await Directory.systemTemp.createTemp('bye-pro-audio-');
+        final path = '${directory.path}/voice.wav';
+        await _recorder.start(
+          const RecordConfig(encoder: AudioEncoder.wav, sampleRate: 16000, numChannels: 1),
+          path: path,
+        );
+        if (mounted) setState(() { _recording = true; _recordingPath = path; });
+      } else {
+        final path = await _recorder.stop();
+        if (path == null) throw StateError('تعذر حفظ التسجيل الصوتي.');
+        final bytes = await File(path).readAsBytes();
+        if (!_isValidWav(bytes)) throw StateError('التسجيل الناتج ليس WAV صالحاً بدقة 16 kHz.');
+        if (bytes.length > 20 * 1024 * 1024) throw StateError('التسجيل يتجاوز الحد المسموح 20MB.');
+        if (mounted) setState(() {
+          _recording = false;
+          _attachmentBytes = bytes;
+          _attachmentIsImage = false;
+          _attachmentName = 'voice.wav';
+          _recordingPath = null;
+        });
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() { _recording = false; _recordingPath = null; });
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString().replaceFirst('Bad state: ', ''))));
+      }
+    }
+  }
+
+  void _removeAttachment() {
+    setState(() {
+      _attachmentBytes = null;
+      _attachmentName = null;
+    });
+  }
+
   Future<void> _send() async {
-    final text = _input.text.trim();
-    if (text.isEmpty || _busy) return;
-    setState(() { _busy = true; ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(text, fromUser: true)); _input.clear(); _confirmation.cancel(); _undo = null; });
+    final mediaBytes = _attachmentBytes;
+    final image = _attachmentIsImage;
+    final text = _input.text.trim().isEmpty && mediaBytes != null
+        ? (image ? 'حلّل الصورة المرفقة.' : 'استمع إلى التسجيل الصوتي المرفق ونفّذ المطلوب إن أمكن.')
+        : _input.text.trim();
+    if ((text.isEmpty && mediaBytes == null) || _busy || _recording) return;
+    final media = mediaBytes == null ? null : AssistantMedia(
+      imageBytes: image ? mediaBytes : null,
+      audioBytes: image ? null : mediaBytes,
+    );
+    final displayedText = media == null ? text : '$text\\n[${image ? 'صورة' : 'تسجيل صوتي'}: ${_attachmentName ?? 'مرفق'}]';
+    setState(() { _busy = true; ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(displayedText, fromUser: true)); _input.clear(); _attachmentBytes = null; _attachmentName = null; _confirmation.cancel(); _undo = null; });
     final registry = _registry();
     try {
-      final result = await ref.read(assistantEngineProvider).interpret(text, registry.actionNames);
+      final result = await ref.read(assistantEngineProvider).interpret(text, registry.actionNames, media: media);
       if (!mounted) return;
       if (result.kind == AssistantResultKind.clarification) {
         setState(() => ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(result.message ?? 'يرجى التوضيح.')));
@@ -201,7 +303,20 @@ class _AiScreenState extends ConsumerState<AiScreen> {
           )),
           if (_undo != null) Align(alignment: AlignmentDirectional.centerStart, child: TextButton.icon(onPressed: _busy ? null : _undoLast, icon: const Icon(Icons.undo), label: Text(strings.assistantUndo))),
         ])),
-        SafeArea(top: false, child: Padding(padding: const EdgeInsets.fromLTRB(12, 8, 12, 12), child: Row(children: [
+        if (_attachmentName != null || _recording)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(children: [
+              Icon(_recording ? Icons.mic : (_attachmentIsImage ? Icons.image : Icons.audio_file)),
+              const SizedBox(width: 8),
+              Expanded(child: Text(_recording ? 'جارٍ تسجيل الصوت…' : _attachmentName!)),
+              if (!_recording) IconButton(onPressed: _busy ? null : _removeAttachment, icon: const Icon(Icons.close), tooltip: 'إزالة المرفق'),
+            ]),
+          ),
+        SafeArea(top: false, child: Padding(padding: const EdgeInsets.fromLTRB(8, 8, 8, 12), child: Row(children: [
+          IconButton(onPressed: _busy || _recording ? null : () => _pickAttachment(image: true), icon: const Icon(Icons.image_outlined), tooltip: 'إرفاق صورة'),
+          IconButton(onPressed: _busy ? null : () => _pickAttachment(image: false), icon: const Icon(Icons.audio_file_outlined), tooltip: 'إرفاق WAV'),
+          IconButton(onPressed: _busy ? null : _toggleRecording, icon: Icon(_recording ? Icons.stop_circle_outlined : Icons.mic_none), tooltip: _recording ? 'إيقاف التسجيل' : 'تسجيل صوت'),
           Expanded(child: TextField(controller: _input, textInputAction: TextInputAction.send, onSubmitted: (_) => _send(), decoration: InputDecoration(
             hintText: strings.assistantHint,
             isDense: true,
@@ -211,8 +326,8 @@ class _AiScreenState extends ConsumerState<AiScreen> {
             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(28)),
             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(28)),
           ))),
-          const SizedBox(width: 8),
-          IconButton.filled(onPressed: _busy ? null : _send, tooltip: strings.assistantSend, icon: _busy ? const SizedBox(width: 18,height: 18,child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.send)),
+          const SizedBox(width: 4),
+          IconButton.filled(onPressed: _busy || _recording ? null : _send, tooltip: strings.assistantSend, icon: _busy ? const SizedBox(width: 18,height: 18,child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.send)),
         ]))),
       ]),
     );
