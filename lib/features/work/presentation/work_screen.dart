@@ -21,6 +21,7 @@ class WorkScreen extends ConsumerStatefulWidget {
 
 class _WorkScreenState extends ConsumerState<WorkScreen> {
   bool _manualEntryOpened = false;
+  MonthKey? _selectedMonth;
 
   @override
   void didChangeDependencies() {
@@ -391,11 +392,10 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
     List<WorkHomeTransfer> transfers,
   ) {
     final now = DateTime.now();
-    final monthEntries = entries.where((entry) =>
-      entry.dueMonth.year == now.year && entry.dueMonth.month == now.month);
+    final currentMonth = _selectedMonth ?? MonthKey(year: now.year, month: now.month);
+    final monthEntries = entries.where((entry) => entry.dueMonth == currentMonth);
     var salary = 0;
     var advances = 0;
-    final currentMonth = MonthKey(year: now.year, month: now.month);
     final allocation = WorkBalanceAllocation.calculate(entries);
     var payments = 0;
     final salaryPaymentsApplied = allocation.paymentsFor(currentMonth);
@@ -412,8 +412,13 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
     }
     final transferred = transfers.where((item) {
       final date = item.transferredAt.toLocal();
-      return date.year == now.year && date.month == now.month;
+      return date.year == currentMonth.year && date.month == currentMonth.month;
     }).fold<int>(0, (sum, item) => sum + item.amount.minorUnits);
+    final receivedCash = entries.where((entry) {
+      if (entry.kind == WorkEntryKind.salary) return false;
+      final date = entry.recordedAt.toLocal();
+      return date.year == currentMonth.year && date.month == currentMonth.month;
+    }).fold<int>(0, (sum, entry) => sum + entry.amount.minorUnits);
     final rows = <(String, int)>[
       (strings.salaryTotal, salary),
       (strings.advancesTotal, advances),
@@ -421,7 +426,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
       (strings.salaryPaymentsApplied, salaryPaymentsApplied),
       (strings.transferredToHome, transferred),
       (strings.currentSalaryOutstanding, allocation.outstandingFor(currentMonth)),
-      (strings.workRemaining, salary - advances - salaryPaymentsApplied - transferred),
+      (strings.workRemaining, receivedCash - transferred),
     ];
     return Card(
       child: Padding(
@@ -429,7 +434,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(strings.currentMonth, style: Theme.of(context).textTheme.titleMedium),
+            Text(currentMonth.toString(), style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
             for (final row in rows)
               Padding(
@@ -449,6 +454,17 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
     final strings = AppLocalizations.of(context)!;
     final entries = ref.watch(workEntriesProvider);
     final transfers = ref.watch(workTransfersProvider);
+    final now = DateTime.now();
+    final currentMonth = MonthKey(year: now.year, month: now.month);
+    final allMonths = <MonthKey>{
+      currentMonth,
+      ...(entries.value ?? const <WorkEntry>[]).map((entry) => entry.dueMonth),
+      ...(transfers.value ?? const <WorkHomeTransfer>[]).map((transfer) {
+        final date = transfer.transferredAt.toLocal();
+        return MonthKey(year: date.year, month: date.month);
+      }),
+    }.toList()..sort((a, b) => b.compareTo(a));
+    final selectedMonth = _selectedMonth ?? currentMonth;
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         onPressed: () => _editEntry(context, ref, strings),
@@ -458,6 +474,16 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          DropdownButtonFormField<MonthKey>(
+            initialValue: selectedMonth,
+            decoration: InputDecoration(labelText: strings.currentMonth),
+            items: allMonths.map((month) => DropdownMenuItem(
+              value: month,
+              child: Text(month.toString()),
+            )).toList(),
+            onChanged: (month) => setState(() => _selectedMonth = month),
+          ),
+          const SizedBox(height: 12),
           FilledButton.icon(
             onPressed: () => _editTransfer(context, ref, strings),
             icon: const Icon(Icons.swap_horiz),
@@ -471,11 +497,13 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
           entries.when(
             loading: () => Text(strings.loading),
             error: (error, stackTrace) => Text(strings.dataError),
-            data: (items) => items.isEmpty
+            data: (items) {
+              final monthItems = items.where((entry) => entry.dueMonth == selectedMonth).toList();
+              return monthItems.isEmpty
                 ? Text(strings.noRecords)
                 : Column(
                     children: [
-                      for (final entry in items)
+                      for (final entry in monthItems)
                         Card(
                           child: ListTile(
                             leading: const Icon(Icons.work_outline),
@@ -512,7 +540,8 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                           ),
                         ),
                     ],
-                  ),
+                  );
+            },
           ),
           const SizedBox(height: 20),
           Text(
@@ -523,11 +552,16 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
           transfers.when(
             loading: () => Text(strings.loading),
             error: (error, stackTrace) => Text(strings.dataError),
-            data: (items) => items.isEmpty
+            data: (items) {
+              final monthItems = items.where((transfer) {
+                final date = transfer.transferredAt.toLocal();
+                return date.year == selectedMonth.year && date.month == selectedMonth.month;
+              }).toList();
+              return monthItems.isEmpty
                 ? Text(strings.noRecords)
                 : Column(
                     children: [
-                      for (final transfer in items)
+                      for (final transfer in monthItems)
                         Card(
                           child: ListTile(
                             leading: const Icon(Icons.swap_horiz),
@@ -568,7 +602,8 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                           ),
                         ),
                     ],
-                  ),
+                  );
+            },
           ),
         ],
       ),
