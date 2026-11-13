@@ -62,7 +62,8 @@ final class WorkRepository {
       // Older installations may contain transfers without recorded salary
       // receipts. Preserve those historical records until the user records
       // work income; once work entries exist, enforce the real cash limit.
-      if (entries.isNotEmpty && receivedAfter < transferredTotal) {
+      if ((entries.isNotEmpty || transfers.isNotEmpty) &&
+          receivedAfter < transferredTotal) {
         throw InsufficientWorkBalanceException(
           availableMinorUnits: receivedBefore - previousCash - transferredTotal,
           requestedMinorUnits: newCash,
@@ -95,7 +96,8 @@ final class WorkRepository {
         0,
         (sum, row) => sum + row.amountMinorUnits,
       );
-      if (entries.length > 1 && receivedAfter < transferredTotal) {
+      if ((entries.length > 1 || transfers.isNotEmpty) &&
+          receivedAfter < transferredTotal) {
         throw InsufficientWorkBalanceException(
           availableMinorUnits: receivedAfter - transferredTotal,
           requestedMinorUnits: 0,
