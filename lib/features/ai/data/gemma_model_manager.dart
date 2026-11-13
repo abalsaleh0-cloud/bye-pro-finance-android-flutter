@@ -209,7 +209,7 @@ class GemmaModelManager extends Notifier<GemmaModelState>
     final info = await DeviceInfoPlugin().androidInfo;
     const minimumRamBytes = 6 * 1024 * 1024 * 1024;
     if (info.physicalRamSize > 0 && info.physicalRamSize < minimumRamBytes) {
-      throw StateError('تحليل الصور والصوت يحتاج هاتفاً بذاكرة RAM لا تقل عن 6GB. يمكنك متابعة المحادثة النصية.');
+      throw const AssistantInputException('تحليل الصور والصوت يحتاج هاتفاً بذاكرة RAM لا تقل عن 6GB. يمكنك متابعة المحادثة النصية.');
     }
   }
 
@@ -218,10 +218,6 @@ class GemmaModelManager extends Notifier<GemmaModelState>
     required bool supportAudio,
   }) async {
     _idleTimer?.cancel();
-    if (_model != null && !_model!.isClosed &&
-        (_modelSupportsImage != supportImage || _modelSupportsAudio != supportAudio)) {
-      await releaseModel();
-    }
     if (_model == null || _model!.isClosed) {
       _model = await FlutterEdgeAi.getActiveModel(
         // 512 tokens is too small for the system prompt plus the finance tool schemas.
@@ -250,11 +246,15 @@ class GemmaModelManager extends Notifier<GemmaModelState>
       throw StateError('Gemma model is not ready');
     }
 
+    await _checkMultimodalMemory(media);
+    final supportImage = media?.hasImage ?? false;
+    final supportAudio = media?.hasAudio ?? false;
+    if (_model != null && !_model!.isClosed &&
+        (_modelSupportsImage != supportImage || _modelSupportsAudio != supportAudio)) {
+      await releaseModel();
+    }
     _releaseCoordinator.beginOperation();
     try {
-      await _checkMultimodalMemory(media);
-      final supportImage = media?.hasImage ?? false;
-      final supportAudio = media?.hasAudio ?? false;
       final model = await _getModel(supportImage: supportImage, supportAudio: supportAudio);
       final tools = functions
           .map((function) => Tool(
