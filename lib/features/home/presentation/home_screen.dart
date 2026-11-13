@@ -286,48 +286,85 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       HomeScreenMode.dailyExpenses,
       HomeScreenMode.monthlyBills,
     ];
-    return Scaffold(
-      appBar: AppBar(title: Text(strings.homeSection)),
-      body: PageView(
-        controller: _pageController,
-        onPageChanged: (index) => setState(() => _activePage = index),
-        children: [
-          for (final mode in pages)
-            HomeScreen(
-              mode: mode,
-              openManualEntry: mode == HomeScreenMode.overview && widget.openManualEntry,
-              initialMonth: _selectedMonth,
-              swipePage: true,
+    final labels = [
+      strings.homeSection,
+      strings.receivedFromWork,
+      strings.dailyExpenses,
+      strings.monthlyBills,
+    ];
+
+    return Column(
+      children: [
+        Material(
+          color: Theme.of(context).colorScheme.surface,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (var index = 0; index < labels.length; index++)
+                  InkWell(
+                    key: Key('home-tab-$index'),
+                    onTap: () => _pageController.animateToPage(
+                      index,
+                      duration: const Duration(milliseconds: 220),
+                      curve: Curves.easeOut,
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            labels[index],
+                            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                              color: _activePage == index
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(context).colorScheme.onSurfaceVariant,
+                              fontWeight: _activePage == index
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 7),
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            height: 2,
+                            width: _activePage == index ? 30 : 0,
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primary,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
             ),
-        ],
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _activePage,
-        onDestinationSelected: (index) => _pageController.animateToPage(
-          index,
-          duration: const Duration(milliseconds: 240),
-          curve: Curves.easeOut,
+          ),
         ),
-        destinations: [
-          NavigationDestination(
-            icon: const Icon(Icons.dashboard_outlined),
-            selectedIcon: const Icon(Icons.dashboard),
-            label: strings.dashboard,
+        Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
+        Expanded(
+          child: PageView(
+            key: const Key('home-section-pages'),
+            controller: _pageController,
+            onPageChanged: (index) => setState(() => _activePage = index),
+            children: [
+              for (final mode in pages)
+                HomeScreen(
+                  mode: mode,
+                  openManualEntry: mode == HomeScreenMode.overview && widget.openManualEntry,
+                  initialMonth: _selectedMonth,
+                  swipePage: true,
+                ),
+            ],
           ),
-          NavigationDestination(
-            icon: const Icon(Icons.swap_horiz),
-            label: strings.receivedFromWork,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.shopping_basket_outlined),
-            label: strings.dailyExpenses,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.receipt_long_outlined),
-            label: strings.monthlyBills,
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
