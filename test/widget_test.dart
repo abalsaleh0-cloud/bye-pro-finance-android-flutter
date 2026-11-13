@@ -94,4 +94,25 @@ void main() {
       3,
     );
   });
+
+  testWidgets('work records show their note in the records page', (tester) async {
+    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('العمل').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.at(0), '1500');
+    await tester.enterText(fields.at(3), 'ملاحظة الراتب');
+    await tester.tap(find.text('حفظ'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('work-tab-2')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('ملاحظة الراتب'), findsOneWidget);
+  });
 }
