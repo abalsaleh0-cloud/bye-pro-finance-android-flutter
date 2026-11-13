@@ -67,9 +67,9 @@ final class WorkRepository {
           final date = entry.recordedAt.toLocal();
           if (date.year == year && date.month == month) receivedAfter += entry.amount.minorUnits;
         }
+        final receivedBefore = _receivedCashForMonth(entries, year, month);
         final transferred = _transferTotalForMonth(transfers, year, month);
-        if (receivedAfter < transferred) {
-          final receivedBefore = _receivedCashForMonth(entries, year, month);
+        if (receivedAfter < transferred && receivedAfter < receivedBefore) {
           throw InsufficientWorkBalanceException(
             availableMinorUnits: receivedBefore - transferred,
             requestedMinorUnits: receivedAfter - receivedBefore,
