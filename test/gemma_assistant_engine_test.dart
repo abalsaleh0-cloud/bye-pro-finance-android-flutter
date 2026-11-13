@@ -1,5 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:expense_app/core/database/app_database.dart';
+import 'package:expense_app/core/money/money.dart';
+import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/features/ai/domain/action_registry.dart';
 import 'package:expense_app/features/ai/domain/assistant_engine.dart';
 import 'package:expense_app/features/ai/domain/gemma_assistant_engine.dart';
@@ -7,6 +9,8 @@ import 'package:expense_app/features/debts/data/debt_repository.dart';
 import 'package:expense_app/features/home/data/home_expense_repository.dart';
 import 'package:expense_app/features/home/data/home_bill_repository.dart';
 import 'package:expense_app/features/work/data/work_repository.dart';
+import 'package:expense_app/features/work/domain/work_entry.dart';
+import 'package:expense_app/features/work/domain/work_home_transfer.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _ThrowingGemmaGenerator implements GemmaTurnGenerator {
@@ -169,5 +173,61 @@ void main() {
     expect(await database.select(database.workEntries).get(), isEmpty);
     expect(await database.select(database.homeExpenses).get(), isEmpty);
     expect(await database.select(database.debts).get(), isEmpty);
+  });
+
+  test('reads work remaining for the selected app month, not the device month', () async {
+    final database = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(database.close);
+    final work = WorkRepository(database);
+    await work.saveEntry(WorkEntry(
+      id: 'selected-month-advance',
+      kind: WorkEntryKind.advance,
+      amount: Money.fromMinorUnits(400),
+      dueMonth: MonthKey(year: 2026, month: 10),
+      recordedAt: DateTime.utc(2026, 10, 2),
+    ));
+    await work.saveEntry(WorkEntry(
+      id: 'selected-month-payment',
+      kind: WorkEntryKind.salaryPayment,
+      amount: Money.fromMinorUnits(200),
+      dueMonth: MonthKey(year: 2026, month: 10),
+      recordedAt: DateTime.utc(2026, 10, 5),
+    ));
+    await work.saveEntry(WorkEntry(
+      id: 'selected-month-salary',
+      kind: WorkEntryKind.salary,
+      amount: Money.fromMinorUnits(1500),
+      dueMonth: MonthKey(year: 2026, month: 10),
+      recordedAt: DateTime.utc(2026, 10, 1),
+    ));
+    await work.saveTransfer(WorkHomeTransfer(
+      id: 'selected-month-transfer',
+      amount: Money.fromMinorUnits(300),
+      transferredAt: DateTime.utc(2026, 10, 6),
+    ));
+
+    await work.saveEntry(WorkEntry(
+      id: 'device-month-advance',
+      kind: WorkEntryKind.advance,
+      amount: Money.fromMinorUnits(900),
+      dueMonth: MonthKey(year: 2026, month: 11),
+      recordedAt: DateTime.utc(2026, 11, 2),
+    ));
+    await work.saveTransfer(WorkHomeTransfer(
+      id: 'device-month-transfer',
+      amount: Money.fromMinorUnits(100),
+      transferredAt: DateTime.utc(2026, 11, 6),
+    ));
+
+    final registry = ActionRegistry(
+      work: work,
+      home: HomeExpenseRepository(database),
+      bills: HomeBillRepository(database),
+      debts: DebtRepository(database),
+      selectedMonth: MonthKey(year: 2026, month: 10),
+    );
+    final result = await registry.execute('read_work_remaining', {});
+
+    expect(result.message, 'الباقي في العمل: 300');
   });
 }
