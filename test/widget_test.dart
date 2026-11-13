@@ -1,11 +1,8 @@
 import 'package:expense_app/app/app.dart';
-import 'package:expense_app/core/database/app_database.dart';
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
-import 'package:expense_app/features/work/data/work_repository.dart';
 import 'package:expense_app/features/work/domain/work_entry.dart';
-import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
@@ -103,26 +100,20 @@ void main() {
   });
 
   testWidgets('work records show their note in the records page', (tester) async {
-    final database = AppDatabase.forTesting(NativeDatabase.memory());
     final now = DateTime.now();
-    await WorkRepository(database).saveEntry(
-      WorkEntry(
-        id: 'widget-work-note',
-        kind: WorkEntryKind.salary,
-        amount: Money.fromMinorUnits(1500),
-        dueMonth: MonthKey(year: now.year, month: now.month),
-        recordedAt: now,
-        note: 'ملاحظة الراتب',
-      ),
+    final entry = WorkEntry(
+      id: 'widget-work-note',
+      kind: WorkEntryKind.salary,
+      amount: Money.fromMinorUnits(1500),
+      dueMonth: MonthKey(year: now.year, month: now.month),
+      recordedAt: now,
+      note: 'ملاحظة الراتب',
     );
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          appDatabaseProvider.overrideWith((ref) {
-            ref.onDispose(database.close);
-            return database;
-          }),
+          workEntriesProvider.overrideWith((ref) => Stream.value([entry])),
         ],
         child: const MyApp(),
       ),
