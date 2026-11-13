@@ -13,5 +13,7 @@ bool isValidGemmaWavAudio(Uint8List bytes) {
       data.getUint32(24, Endian.little) == 16000 &&
       data.getUint32(28, Endian.little) == 32000 &&
       data.getUint16(32, Endian.little) == 2 &&
-      data.getUint16(34, Endian.little) == 16;
+      data.getUint16(34, Endian.little) == 16 &&
+      data.getUint32(40, Endian.little) > 0 &&
+      data.getUint32(40, Endian.little) <= bytes.length - 44;
 }
