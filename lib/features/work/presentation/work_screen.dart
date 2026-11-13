@@ -1,6 +1,7 @@
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
+import 'package:expense_app/core/time/selected_month_provider.dart';
 import 'package:expense_app/core/widgets/entry_tools.dart';
 import 'package:expense_app/features/work/domain/work_entry.dart';
 import 'package:expense_app/features/work/data/work_repository.dart';
@@ -26,7 +27,6 @@ class WorkScreen extends ConsumerStatefulWidget {
 
 class _WorkScreenState extends ConsumerState<WorkScreen> {
   bool _manualEntryOpened = false;
-  MonthKey? _selectedMonth;
   int _activePage = 0;
   final PageController _pageController = PageController();
 
@@ -34,12 +34,6 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
   void dispose() {
     _pageController.dispose();
     super.dispose();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedMonth = widget.initialMonth;
   }
 
   @override
@@ -409,9 +403,8 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
     AppLocalizations strings,
     List<WorkEntry> entries,
     List<WorkHomeTransfer> transfers,
+    MonthKey currentMonth,
   ) {
-    final now = DateTime.now();
-    final currentMonth = _selectedMonth ?? MonthKey(year: now.year, month: now.month);
     final monthEntries = entries.where((entry) => entry.dueMonth == currentMonth);
     var salary = 0;
     var advances = 0;
@@ -540,7 +533,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                 WorkScreen(
                   mode: mode,
                   openManualEntry: mode == WorkScreenMode.overview && widget.openManualEntry,
-                  initialMonth: _selectedMonth,
+                  initialMonth: ref.read(selectedMonthProvider),
                   swipePage: true,
                 ),
             ],
@@ -568,7 +561,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
         return MonthKey(year: date.year, month: date.month);
       }),
     }.toList()..sort((a, b) => b.compareTo(a));
-    final selectedMonth = _selectedMonth ?? currentMonth;
+    final selectedMonth = ref.watch(selectedMonthProvider);
     final overview = widget.mode == WorkScreenMode.overview;
     final records = widget.mode == WorkScreenMode.records;
     final transferPage = widget.mode == WorkScreenMode.transfers;
@@ -584,11 +577,13 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
           initialValue: selectedMonth,
           decoration: InputDecoration(labelText: strings.currentMonth),
           items: allMonths.map((month) => DropdownMenuItem(value: month, child: Text(month.toString()))).toList(),
-          onChanged: (month) => setState(() => _selectedMonth = month),
+          onChanged: (month) {
+            if (month != null) ref.read(selectedMonthProvider.notifier).select(month);
+          },
         ),
         const SizedBox(height: 12),
         if (overview) ...[
-          _workSummaryCard(context, strings, entries.value ?? const [], transfers.value ?? const []),
+          _workSummaryCard(context, strings, entries.value ?? const [], transfers.value ?? const [], selectedMonth),
           const SizedBox(height: 16),
         ],
         if (records) ...[
