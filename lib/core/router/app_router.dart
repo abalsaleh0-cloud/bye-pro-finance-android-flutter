@@ -39,34 +39,62 @@ GoRouter createAppRouter() {
   return GoRouter(
     initialLocation: '/dashboard',
     routes: [
-      ShellRoute(
-        builder: (context, state, child) =>
-            AppShell(location: state.uri.path, child: child),
-        routes: [
-          GoRoute(
-            path: '/dashboard',
-            pageBuilder: (context, state) =>
-                _sectionPage(state: state, child: const DashboardScreen()),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) => AppShell(
+          location: state.uri.path,
+          navigationShell: navigationShell,
+        ),
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/dashboard',
+                pageBuilder: (context, state) =>
+                    _sectionPage(state: state, child: const DashboardScreen()),
+              ),
+            ],
           ),
-          GoRoute(
-            path: '/work',
-            pageBuilder: (context, state) =>
-                _sectionPage(state: state, child: WorkScreen(openManualEntry: state.extra == true)),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/work',
+                pageBuilder: (context, state) => _sectionPage(
+                  state: state,
+                  child: WorkScreen(openManualEntry: state.extra == true),
+                ),
+              ),
+            ],
           ),
-          GoRoute(
-            path: '/home',
-            pageBuilder: (context, state) =>
-                _sectionPage(state: state, child: HomeScreen(openManualEntry: state.extra == true)),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/home',
+                pageBuilder: (context, state) => _sectionPage(
+                  state: state,
+                  child: HomeScreen(openManualEntry: state.extra == true),
+                ),
+              ),
+            ],
           ),
-          GoRoute(
-            path: '/debts',
-            pageBuilder: (context, state) =>
-                _sectionPage(state: state, child: DebtsScreen(openManualEntry: state.extra == true)),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/debts',
+                pageBuilder: (context, state) => _sectionPage(
+                  state: state,
+                  child: DebtsScreen(openManualEntry: state.extra == true),
+                ),
+              ),
+            ],
           ),
-          GoRoute(
-            path: '/ai',
-            pageBuilder: (context, state) =>
-                _sectionPage(state: state, child: const AiScreen()),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/ai',
+                pageBuilder: (context, state) =>
+                    _sectionPage(state: state, child: const AiScreen()),
+              ),
+            ],
           ),
         ],
       ),
