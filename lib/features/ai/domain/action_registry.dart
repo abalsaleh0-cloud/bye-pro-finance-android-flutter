@@ -4,7 +4,6 @@ import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/features/work/data/work_repository.dart';
 import 'package:expense_app/features/work/domain/work_entry.dart';
-import 'package:expense_app/features/work/domain/work_balance_allocation.dart';
 import 'package:expense_app/features/work/domain/work_home_transfer.dart';
 import 'package:expense_app/features/home/data/home_expense_repository.dart';
 import 'package:expense_app/features/home/data/home_bill_repository.dart';
