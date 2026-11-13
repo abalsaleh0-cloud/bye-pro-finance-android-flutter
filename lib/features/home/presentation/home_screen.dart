@@ -279,16 +279,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
 
-  Widget _sectionTile(BuildContext context, IconData icon, String title, HomeScreenMode mode) {
-    final now = DateTime.now();
-    return Card(child: ListTile(
-      leading: Icon(icon), title: Text(title), trailing: const Icon(Icons.chevron_right),
-      onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
-        builder: (_) => HomeScreen(mode: mode, initialMonth: _selectedMonth ?? MonthKey(year: now.year, month: now.month)),
-      )),
-    ));
-  }
-
   Widget _buildSwipeShell(AppLocalizations strings) {
     final pages = <HomeScreenMode>[
       HomeScreenMode.overview,
