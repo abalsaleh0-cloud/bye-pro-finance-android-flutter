@@ -32,17 +32,25 @@ class ModelReleaseCoordinator {
   }
 
   Future<void> finishOperation(Future<void> Function() release) async {
-    if (_activeOperations == 0) return;
+    if (_activeOperations == 0) {
+      return;
+    }
     _activeOperations--;
-    if (_activeOperations != 0 || !_releaseRequested) return;
+    if (_activeOperations != 0 || !_releaseRequested) {
+      return;
+    }
     final pending = _pendingRelease;
     _pendingRelease = null;
     _releaseRequested = false;
     try {
       await release();
-      if (pending != null && !pending.isCompleted) pending.complete();
+      if (pending != null && !pending.isCompleted) {
+          pending.complete();
+        }
     } catch (error, stackTrace) {
-      if (pending != null && !pending.isCompleted) pending.completeError(error, stackTrace);
+      if (pending != null && !pending.isCompleted) {
+          pending.completeError(error, stackTrace);
+        }
       rethrow;
     }
   }
@@ -138,7 +146,9 @@ class GemmaModelManager extends Notifier<GemmaModelState>
   }
 
   Future<void> download() async {
-    if (state.status == GemmaModelStatus.downloading) return;
+    if (state.status == GemmaModelStatus.downloading) {
+      return;
+    }
     _cancelToken = CancelToken();
     state = const GemmaModelState(
       status: GemmaModelStatus.downloading,
@@ -208,7 +218,9 @@ class GemmaModelManager extends Notifier<GemmaModelState>
   }
 
   Future<void> _checkMultimodalMemory(AssistantMedia? media) async {
-    if (media == null || (!media.hasImage && !media.hasAudio)) return;
+    if (media == null || (!media.hasImage && !media.hasAudio)) {
+      return;
+    }
     final info = await DeviceInfoPlugin().androidInfo;
     if (!supportsGemmaMultimodalMemory(info.physicalRamSize)) {
       throw const AssistantInputException('تحليل الصور والصوت يحتاج هاتفاً بذاكرة RAM لا تقل عن 6GB. يمكنك متابعة المحادثة النصية.');
@@ -312,13 +324,17 @@ class GemmaModelManager extends Notifier<GemmaModelState>
           }
         }
 
-        if (hasMultipleCalls) return const GemmaModelOutput.multiple();
+        if (hasMultipleCalls) {
+          return const GemmaModelOutput.multiple();
+        }
         if (functionName != null && arguments != null) {
           return GemmaModelOutput.call(functionName, arguments);
         }
         return GemmaModelOutput.text(text.toString());
       } finally {
-        if (chat != null) await chat.close();
+        if (chat != null) {
+          await chat.close();
+        }
         _scheduleIdleRelease();
       }
     } catch (error) {
