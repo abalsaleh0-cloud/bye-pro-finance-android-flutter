@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:drift/native.dart';
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
@@ -110,6 +112,14 @@ void main() {
       );
       expect(result.kind, AssistantResultKind.notUnderstood);
     });
+    test('does not pretend to process media without Gemma', () async {
+      final result = await engine.interpret(
+        'حلل الصورة',
+        actions,
+        media: AssistantMedia(imageBytes: Uint8List.fromList([1, 2, 3])),
+      );
+      expect(result.kind, AssistantResultKind.notUnderstood);
+    });
     test('returns not understood for unsupported input', () async {
       final result = await engine.interpret('افعل شيئاً غير معروف', actions);
       expect(result.kind, AssistantResultKind.notUnderstood);
@@ -142,6 +152,36 @@ void main() {
         dueMonth: MonthKey(year: now.year, month: now.month), recordedAt: now,
       ));
     }
+
+    test('reads work records only from the selected month', () async {
+      final work = WorkRepository(database);
+      await work.saveEntry(WorkEntry(
+        id: 'selected-month-record',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(500),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime(2026, 11, 10),
+      ));
+      await work.saveEntry(WorkEntry(
+        id: 'other-month-record',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(900),
+        dueMonth: MonthKey(year: 2026, month: 10),
+        recordedAt: DateTime(2026, 10, 10),
+      ));
+      final selectedRegistry = ActionRegistry(
+        work: work,
+        home: HomeExpenseRepository(database),
+        bills: HomeBillRepository(database),
+        debts: DebtRepository(database),
+        selectedMonth: MonthKey(year: 2026, month: 11),
+      );
+
+      final result = await selectedRegistry.execute('read_work_records', {});
+
+      expect(result.message, contains('selected-month-record'));
+      expect(result.message, isNot(contains('other-month-record')));
+    });
 
     test('validates required fields and types before execution', () async {
       expect(registry.validate('save_work_entry', {'kind':'salary'}), isNotNull);
@@ -330,6 +370,49 @@ void main() {
       await payment.undo!();
       expect((await HomeBillRepository(database).getBills()).single.remainingMinorUnits, 400);
       expect(await HomeBillRepository(database).paymentsFor('internet-nov'), isEmpty);
+    });
+
+    test('reads work-to-home transfer history', () async {
+      await seedWorkCash();
+      await registry.execute('save_work_home_transfer', {
+        'amountMinorUnits': 350,
+        'date': DateTime.now().toIso8601String(),
+      });
+      final result = await registry.execute('read_work_transfers', {});
+      expect(result.message, contains('350'));
+    });
+
+    test('reads debt payment history for the selected debt', () async {
+      await registry.execute('save_debt', {
+        'amountMinorUnits': 700, 'direction': 'debtor',
+        'counterparty': 'Ali', 'year': 2026, 'month': 11, 'id': 'd-history',
+      });
+      await registry.execute('record_debt_payment', {
+        'debtId': 'd-history', 'amountMinorUnits': 225,
+      });
+      final result = await registry.execute('read_debt_payments', {
+        'debtId': 'd-history',
+      });
+      expect(result.message, contains('225'));
+    });
+
+    test('reads household bill payment history for the selected bill', () async {
+      await seedWorkCash();
+      await registry.execute('save_work_home_transfer', {
+        'amountMinorUnits': 500, 'date': DateTime.now().toIso8601String(),
+      });
+      await registry.execute('save_home_bill', {
+        'title': 'Internet', 'kind': 'monthly', 'amountMinorUnits': 400,
+        'year': DateTime.now().year, 'month': DateTime.now().month,
+        'id': 'bill-history',
+      });
+      await registry.execute('record_home_bill_payment', {
+        'billId': 'bill-history', 'amountMinorUnits': 125,
+      });
+      final result = await registry.execute('read_home_bill_payments', {
+        'billId': 'bill-history',
+      });
+      expect(result.message, contains('125'));
     });
 
     test('reports received work cash minus transfers as remaining at work', () async {
