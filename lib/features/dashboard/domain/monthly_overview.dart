@@ -75,11 +75,9 @@ final class MonthlyOverview {
     }
 
     final allocation = WorkBalanceAllocation.calculate(entries);
-    final cashReceived = entries.where((entry) {
-      if (entry.kind == WorkEntryKind.salary) return false;
-      final date = entry.recordedAt.toLocal();
-      return date.year == month.year && date.month == month.month;
-    }).fold<int>(0, (total, entry) => total + entry.amount.minorUnits);
+    final cashReceived = entries.where((entry) =>
+      entry.kind != WorkEntryKind.salary && entry.dueMonth == month,
+    ).fold<int>(0, (total, entry) => total + entry.amount.minorUnits);
     final salaryPaymentsApplied = Money.fromMinorUnits(
       allocation.paymentsFor(month),
     );
