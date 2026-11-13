@@ -117,7 +117,7 @@ class GemmaModelSettingsSection extends ConsumerWidget {
                   ),
                   if (model.status == GemmaModelStatus.error)
                     OutlinedButton(
-                      onPressed: manager.deleteModel,
+                      onPressed: () => _confirmDelete(context, ref, strings),
                       child: Text(strings.gemmaDeleteModel),
                     ),
                 ],
