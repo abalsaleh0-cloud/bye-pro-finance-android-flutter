@@ -84,6 +84,20 @@ void main() {
       expect(generator.receivedMedia?.imageBytes, isNull);
     });
 
+    test('returns a natural-language answer for multimodal input', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.text('تظهر في الصورة فاتورة بقيمة 250 ديناراً.'),
+      );
+      final result = await GemmaAssistantEngine(generator).interpret(
+        'حلّل الصورة',
+        actions,
+        media: AssistantMedia(imageBytes: Uint8List.fromList([1, 2, 3])),
+      );
+
+      expect(result.kind, AssistantResultKind.answer);
+      expect(result.message, 'تظهر في الصورة فاتورة بقيمة 250 ديناراً.');
+    });
+
     test('converts a valid function call into a command', () async {
       final generator = _FakeGemmaGenerator(
         const GemmaModelOutput.call('save_work_entry', {
