@@ -1,6 +1,7 @@
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
+import 'package:expense_app/core/time/selected_month_provider.dart';
 import 'package:expense_app/core/widgets/entry_tools.dart';
 import 'package:expense_app/features/home/data/home_expense_repository.dart';
 import 'package:expense_app/features/home/domain/home_expense.dart';
@@ -27,7 +28,6 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _manualEntryOpened = false;
-  MonthKey? _selectedMonth;
   int _activePage = 0;
   final PageController _pageController = PageController();
 
@@ -35,12 +35,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void dispose() {
     _pageController.dispose();
     super.dispose();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedMonth = widget.initialMonth;
   }
 
   @override
@@ -358,7 +352,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 HomeScreen(
                   mode: mode,
                   openManualEntry: mode == HomeScreenMode.overview && widget.openManualEntry,
-                  initialMonth: _selectedMonth,
+                  initialMonth: ref.read(selectedMonthProvider),
                   swipePage: true,
                 ),
             ],
@@ -379,7 +373,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final bills = ref.watch(homeBillsProvider);
     final now = DateTime.now();
     final currentMonth = MonthKey(year: now.year, month: now.month);
-    final selectedMonth = _selectedMonth ?? currentMonth;
+    final selectedMonth = ref.watch(selectedMonthProvider);
     final billPayments = ref.watch(homeBillPaymentsForMonthProvider(selectedMonth));
     final availableMonths = <MonthKey>{
       currentMonth,
@@ -409,7 +403,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           initialValue: selectedMonth,
           decoration: InputDecoration(labelText: strings.currentMonth),
           items: availableMonths.map((month) => DropdownMenuItem(value: month, child: Text(month.toString()))).toList(),
-          onChanged: (month) => setState(() => _selectedMonth = month),
+          onChanged: (month) {
+            if (month != null) ref.read(selectedMonthProvider.notifier).select(month);
+          },
         ),
         const SizedBox(height: 12),
         if (overview) ...[
