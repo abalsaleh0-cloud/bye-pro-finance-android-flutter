@@ -81,10 +81,24 @@ final class HomeBillRepository {
       if (payment.amount.minorUnits <= 0 || paid + payment.amount.minorUnits > billAmount) {
         throw ArgumentError('Payment exceeds outstanding bill amount');
       }
-      final transfers = await _database.customSelect('SELECT COALESCE(SUM(amount_minor_units), 0) AS total FROM work_home_transfers').get();
-      final dailyExpenses = await _database.customSelect('SELECT COALESCE(SUM(amount_minor_units), 0) AS total FROM home_expenses').get();
-      final billPayments = await _database.customSelect('SELECT COALESCE(SUM(amount_minor_units), 0) AS total FROM home_bill_payments').get();
-      final available = transfers.single.read<int>('total') - dailyExpenses.single.read<int>('total') - billPayments.single.read<int>('total');
+      final paymentDate = payment.paidAt.toLocal();
+      final monthStart = DateTime(paymentDate.year, paymentDate.month).millisecondsSinceEpoch;
+      final nextMonthStart = DateTime(paymentDate.year, paymentDate.month + 1).millisecondsSinceEpoch;
+      final transfers = await _database.customSelect(
+        'SELECT COALESCE(SUM(amount_minor_units), 0) AS total FROM work_home_transfers WHERE transferred_at_epoch_millis >= ? AND transferred_at_epoch_millis < ?',
+        variables: [Variable.withInt(monthStart), Variable.withInt(nextMonthStart)],
+      ).get();
+      final dailyExpenses = await _database.customSelect(
+        'SELECT COALESCE(SUM(amount_minor_units), 0) AS total FROM home_expenses WHERE expense_date_epoch_millis >= ? AND expense_date_epoch_millis < ?',
+        variables: [Variable.withInt(monthStart), Variable.withInt(nextMonthStart)],
+      ).get();
+      final billPayments = await _database.customSelect(
+        'SELECT COALESCE(SUM(amount_minor_units), 0) AS total FROM home_bill_payments WHERE paid_at_epoch_millis >= ? AND paid_at_epoch_millis < ?',
+        variables: [Variable.withInt(monthStart), Variable.withInt(nextMonthStart)],
+      ).get();
+      final available = transfers.single.read<int>('total') -
+          dailyExpenses.single.read<int>('total') -
+          billPayments.single.read<int>('total');
       if (payment.amount.minorUnits > available) {
         throw InsufficientBillPaymentBalanceException(available);
       }
