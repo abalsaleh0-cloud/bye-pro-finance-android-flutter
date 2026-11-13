@@ -17,8 +17,9 @@ class _ThrowingGemmaGenerator implements GemmaTurnGenerator {
   @override
   Future<GemmaModelOutput> generate(
     String userText,
-    List<GemmaFunctionSpec> functions,
-  ) async {
+    List<GemmaFunctionSpec> functions, {
+    AssistantMedia? media,
+  }) async {
     throw StateError('model failed');
   }
 }
