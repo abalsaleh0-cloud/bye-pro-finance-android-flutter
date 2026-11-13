@@ -7,6 +7,8 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:record/record.dart';
 
+import 'package:expense_app/features/ai/domain/wav_audio_validator.dart';
+
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/providers/app_settings_provider.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
@@ -110,15 +112,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     }
   }
 
-  bool _isValidWav(Uint8List bytes) {
-    if (bytes.length < 44) return false;
-    final data = ByteData.sublistView(bytes);
-    return String.fromCharCodes(bytes.sublist(0, 4)) == 'RIFF' &&
-        String.fromCharCodes(bytes.sublist(8, 12)) == 'WAVE' &&
-        data.getUint16(22, Endian.little) == 1 &&
-        data.getUint32(24, Endian.little) == 16000 &&
-        data.getUint16(34, Endian.little) == 16;
-  }
+  bool _isValidWav(Uint8List bytes) => isValidGemmaWavAudio(bytes);
 
   Future<void> _toggleRecording() async {
     final strings = AppLocalizations.of(context)!;
