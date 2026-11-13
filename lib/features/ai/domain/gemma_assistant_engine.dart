@@ -82,13 +82,19 @@ final class GemmaAssistantEngine implements AssistantEngine {
       if (output.parallelCalls) return const AssistantResult.notUnderstood();
 
       if (output.name == null) {
-        final question = output.text?.trim() ?? '';
-        if (question.isNotEmpty &&
-            question.length <= 140 &&
-            !RegExp(r'[0-9٠-٩۰-۹]').hasMatch(question) &&
-            !question.startsWith('{') &&
-            (question.endsWith('؟') || question.endsWith('?'))) {
-          return AssistantResult.clarification(question);
+        final response = output.text?.trim() ?? '';
+        if (media != null &&
+            response.isNotEmpty &&
+            response.length <= 4000 &&
+            !response.startsWith('{')) {
+          return AssistantResult.answer(response);
+        }
+        if (response.isNotEmpty &&
+            response.length <= 140 &&
+            !RegExp(r'[0-9٠-٩۰-۹]').hasMatch(response) &&
+            !response.startsWith('{') &&
+            (response.endsWith('؟') || response.endsWith('?'))) {
+          return AssistantResult.clarification(response);
         }
         return const AssistantResult.notUnderstood();
       }
