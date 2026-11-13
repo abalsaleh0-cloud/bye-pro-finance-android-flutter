@@ -238,9 +238,13 @@ final class ActionRegistry {
           ).join('؛ '),
         );
       case 'read_home_bills':
-        final bills = await _bills.getBills();
+        final now = DateTime.now();
+        final month = _selectedMonth ?? MonthKey(year: now.year, month: now.month);
+        final bills = (await _bills.getBills())
+            .where((bill) => bill.dueMonth == month)
+            .toList(growable: false);
         if (bills.isEmpty) {
-          return const ActionExecution(message: 'لا توجد فواتير أو إيجارات مسجلة.');
+          return ActionExecution(message: 'لا توجد فواتير أو إيجارات مسجلة لشهر $month.');
         }
         final summary = bills.map((bill) =>
           '${bill.id}: ${bill.title} (${bill.dueMonth}): المتبقي ${bill.remainingMinorUnits}'
