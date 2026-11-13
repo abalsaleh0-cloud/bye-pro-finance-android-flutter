@@ -8,6 +8,9 @@ import 'package:expense_app/features/ai/domain/gemma_assistant_engine.dart';
 import 'package:flutter_edge_ai/flutter_edge_ai.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+bool supportsGemmaMultimodalMemory(int physicalRamMegabytes) =>
+    physicalRamMegabytes <= 0 || physicalRamMegabytes >= 6 * 1024;
+
 enum GemmaModelStatus { notDownloaded, downloading, ready, error }
 
 class ModelReleaseCoordinator {
@@ -207,8 +210,7 @@ class GemmaModelManager extends Notifier<GemmaModelState>
   Future<void> _checkMultimodalMemory(AssistantMedia? media) async {
     if (media == null || (!media.hasImage && !media.hasAudio)) return;
     final info = await DeviceInfoPlugin().androidInfo;
-    const minimumRamMegabytes = 6 * 1024;
-    if (info.physicalRamSize > 0 && info.physicalRamSize < minimumRamMegabytes) {
+    if (!supportsGemmaMultimodalMemory(info.physicalRamSize)) {
       throw const AssistantInputException('تحليل الصور والصوت يحتاج هاتفاً بذاكرة RAM لا تقل عن 6GB. يمكنك متابعة المحادثة النصية.');
     }
   }
