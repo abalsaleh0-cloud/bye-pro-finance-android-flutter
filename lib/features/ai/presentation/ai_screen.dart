@@ -4,6 +4,7 @@ import 'dart:async';
 
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/providers/app_settings_provider.dart';
+import 'package:expense_app/core/time/selected_month_provider.dart';
 import 'package:expense_app/features/ai/data/gemma_model_manager.dart';
 import 'package:expense_app/features/ai/domain/action_registry.dart';
 import 'package:expense_app/features/ai/domain/assistant_confirmation.dart';
@@ -49,6 +50,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     home: ref.read(homeExpenseRepositoryProvider),
     bills: ref.read(homeBillRepositoryProvider),
     debts: ref.read(debtRepositoryProvider),
+    selectedMonth: ref.read(selectedMonthProvider),
   );
 
   Future<void> _send() async {
