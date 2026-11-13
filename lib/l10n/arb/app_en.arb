@@ -137,7 +137,7 @@
   "gemmaResumeDownload": "Retry download",
   "gemmaCancelDownload": "Cancel download",
   "gemmaDeleteModel": "Delete model",
-  "gemmaDownloadResumeNote": "The download runs in the background with a notification. If interrupted, retrying may start from the beginning; the Hugging Face CDN does not support partial resume.",
+  "gemmaDownloadResumeNote": "The download runs in the background with a notification. If interrupted, retrying may start from the beginning because the Hugging Face CDN does not support partial resume. The app cleans up abandoned temporary download files when checking the model or retrying.",
   "clearFinancialData": "Clear financial data",
   "clearFinancialDataWarning": "This permanently deletes all work, household, transfer, debt, bill, and bill-payment records. App settings and the Gemma model are kept. This cannot be undone.",
   "clearFinancialDataSuccess": "Financial data cleared. App settings and the Gemma model are preserved.",
