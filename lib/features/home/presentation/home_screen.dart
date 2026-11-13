@@ -459,9 +459,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             },
           ),
         ],
-        if (billsPage) {
-          HomeBillsSection(selectedMonth: selectedMonth),
-        }
+        if (billsPage) HomeBillsSection(selectedMonth: selectedMonth),
       ]),
     );
   }
