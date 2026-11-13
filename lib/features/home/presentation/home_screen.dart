@@ -295,7 +295,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           for (final mode in pages)
             HomeScreen(
               mode: mode,
-              openManualEntry: mode == WorkScreenMode.overview && widget.openManualEntry,
+              openManualEntry: mode == HomeScreenMode.overview && widget.openManualEntry,
               initialMonth: _selectedMonth,
               swipePage: true,
             ),
