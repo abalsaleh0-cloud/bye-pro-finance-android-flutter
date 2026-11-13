@@ -80,19 +80,23 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   Future<void> _pickAttachment({required bool image}) async {
     if (_busy || _recording) return;
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final file = await FilePicker.pickFile(
         type: image ? FileType.image : FileType.custom,
         allowedExtensions: image ? null : ['wav'],
-        withData: true,
-        allowMultiple: false,
       );
-      if (result == null || result.files.isEmpty) return;
-      final file = result.files.single;
+      if (file == null) return;
       final limit = image ? 12 * 1024 * 1024 : 20 * 1024 * 1024;
-      if (file.size > limit) throw StateError(image ? AppLocalizations.of(context)!.aiImageTooLarge : AppLocalizations.of(context)!.aiAudioTooLarge);
-      final bytes = file.bytes ?? (file.path == null ? null : await File(file.path!).readAsBytes());
-      if (bytes == null || bytes.isEmpty) throw StateError(AppLocalizations.of(context)!.aiReadFileFailed);
-      if (bytes.length > limit) throw StateError(image ? 'حجم الصورة يتجاوز 12MB.' : 'حجم الصوت يتجاوز 20MB.');
+      final length = file.lengthSync() ?? await file.length();
+      if (length == null || length <= 0) {
+        throw StateError(AppLocalizations.of(context)!.aiReadFileFailed);
+      }
+      if (length > limit) {
+        throw StateError(image
+            ? AppLocalizations.of(context)!.aiImageTooLarge
+            : AppLocalizations.of(context)!.aiAudioTooLarge);
+      }
+      final bytes = await file.readAsBytes();
+      if (bytes.isEmpty) throw StateError(AppLocalizations.of(context)!.aiReadFileFailed);
       if (!image && !_isValidWav(bytes)) throw StateError(AppLocalizations.of(context)!.aiInvalidWav);
       if (!mounted) return;
       setState(() {
