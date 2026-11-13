@@ -218,23 +218,23 @@ final class ActionRegistry {
         final all = await _work.watchEntries().first;
         final now = DateTime.now();
         final current = MonthKey(year: now.year, month: now.month);
-        var salary = 0;
-        var advances = 0;
-        for (final entry in all.where((entry) => entry.dueMonth == current)) {
-          if (entry.kind == WorkEntryKind.salary) {
-            salary += entry.amount.minorUnits;
-          } else if (entry.kind == WorkEntryKind.advance) {
-            advances += entry.amount.minorUnits;
-          }
-        }
-        final applied = WorkBalanceAllocation.calculate(all).paymentsFor(current);
+        final received = all
+            .where(
+              (entry) =>
+                  entry.dueMonth == current &&
+                  entry.kind != WorkEntryKind.salary,
+            )
+            .fold<int>(
+              0,
+              (total, entry) => total + entry.amount.minorUnits,
+            );
         final transfers = await _work.watchTransfers().first;
         final transferred = transfers.where((item) {
           final date = item.transferredAt.toLocal();
           return date.year == current.year && date.month == current.month;
         }).fold<int>(0, (total, item) => total + item.amount.minorUnits);
         return ActionExecution(
-          message: 'الباقي في العمل: ' + (salary - advances - applied - transferred).toString(),
+          message: 'الباقي في العمل: ' + (received - transferred).toString(),
         );
       case 'read_month_total':
         final month=MonthKey(year:p['year']! as int,month:p['month']! as int); final section=p['section']! as String; var total=0;
