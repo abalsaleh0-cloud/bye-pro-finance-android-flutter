@@ -602,7 +602,12 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                   Card(child: ListTile(
                     leading: const Icon(Icons.work_outline),
                     title: Text(_kindLabel(strings, entry.kind)),
-                    subtitle: Text('${entry.kind == WorkEntryKind.salaryPayment ? strings.paymentReceivedMonth : strings.dueMonth}: ${entry.dueMonth}'),
+                    subtitle: Text([
+                      '${entry.kind == WorkEntryKind.salaryPayment ? strings.paymentReceivedMonth : strings.dueMonth}: ${entry.dueMonth}',
+                      '${strings.recordedAt}: ${formatCalendarDate(entry.recordedAt)}',
+                      if (entry.note != null && entry.note!.isNotEmpty) entry.note!,
+                    ].join('\n')),
+                    isThreeLine: true,
                     trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                       Text(entry.amount.minorUnits.toString()),
                       IconButton(tooltip: strings.editRecord, icon: const Icon(Icons.edit_outlined), onPressed: () => _editEntry(context, ref, strings, existing: entry)),
@@ -626,7 +631,11 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                 for (final transfer in monthItems)
                   Card(child: ListTile(
                     leading: const Icon(Icons.swap_horiz), title: Text(strings.transferredToHome),
-                    subtitle: Text(transfer.transferredAt.toLocal().toString().split(' ').first),
+                    subtitle: Text([
+                      formatCalendarDate(transfer.transferredAt),
+                      if (transfer.note != null && transfer.note!.isNotEmpty) transfer.note!,
+                    ].join('\n')),
+                    isThreeLine: true,
                     trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                       Text(transfer.amount.minorUnits.toString()),
                       IconButton(tooltip: strings.editRecord, icon: const Icon(Icons.edit_outlined), onPressed: () => _editTransfer(context, ref, strings, existing: transfer)),
