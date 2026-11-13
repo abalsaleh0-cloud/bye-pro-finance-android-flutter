@@ -51,7 +51,7 @@ final class WorkRepository {
       final previousCash = previous != null && _isCashReceived(previous.kind)
           ? previous.amountMinorUnits
           : 0;
-      final newCash = _isCashReceived(entry.kind) ? entry.amount.minorUnits : 0;
+      final newCash = _isCashReceived(entry.kind.name) ? entry.amount.minorUnits : 0;
       final receivedAfter = receivedBefore - previousCash + newCash;
       final transfers = await _database.select(_database.workHomeTransfers).get();
       final transferredTotal = transfers.fold<int>(
