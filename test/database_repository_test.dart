@@ -734,4 +734,72 @@ void main() {
     expect(await database.select(database.debtPayments).get(), hasLength(1));
   });
 
+  test('clears financial records but preserves app settings', () async {
+    final work = WorkRepository(database);
+    await work.saveEntry(
+      WorkEntry(
+        id: 'reset-cash',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(1000),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
+    await work.saveTransfer(
+      WorkHomeTransfer(
+        id: 'reset-transfer',
+        amount: Money.fromMinorUnits(1000),
+        transferredAt: DateTime.utc(2026, 11, 2),
+      ),
+    );
+    await HomeExpenseRepository(database).save(
+      HomeExpense(
+        id: 'reset-expense',
+        amount: Money.fromMinorUnits(100),
+        categoryId: 'food',
+        expenseDate: DateTime.utc(2026, 11, 3),
+        dueMonth: MonthKey(year: 2026, month: 11),
+      ),
+    );
+    final bills = HomeBillRepository(database);
+    final bill = HomeBill(
+      id: 'reset-bill',
+      title: 'Internet',
+      kind: HomeBillKind.monthly,
+      amount: Money.fromMinorUnits(300),
+      dueMonth: MonthKey(year: 2026, month: 11),
+    );
+    await bills.saveBill(bill);
+    await bills.recordPayment(
+      HomeBillPayment(
+        id: 'reset-bill-payment',
+        billId: bill.id,
+        amount: Money.fromMinorUnits(50),
+        paidAt: DateTime.utc(2026, 11, 4),
+      ),
+    );
+    await DebtRepository(database).save(
+      DebtEntry(
+        id: 'reset-debt',
+        direction: DebtDirection.debtor,
+        originalAmount: Money.fromMinorUnits(200),
+        outstandingAmount: Money.fromMinorUnits(200),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        createdAt: DateTime.utc(2026, 11, 1),
+        counterparty: 'Test',
+      ),
+    );
+    await database.writeSetting('theme_mode', 'dark');
+
+    await database.clearFinancialData();
+
+    expect(await database.select(database.workEntries).get(), isEmpty);
+    expect(await database.select(database.workHomeTransfers).get(), isEmpty);
+    expect(await database.select(database.homeExpenses).get(), isEmpty);
+    expect(await database.select(database.debts).get(), isEmpty);
+    expect(await database.select(database.debtPayments).get(), isEmpty);
+    expect(await bills.getBills(), isEmpty);
+    expect(await database.readSetting('theme_mode'), 'dark');
+  });
+
 }

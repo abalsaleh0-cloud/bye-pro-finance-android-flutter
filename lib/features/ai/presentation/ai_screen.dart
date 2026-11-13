@@ -9,6 +9,7 @@ import 'package:expense_app/features/ai/domain/action_registry.dart';
 import 'package:expense_app/features/ai/domain/assistant_confirmation.dart';
 import 'package:expense_app/features/ai/domain/assistant_engine.dart';
 import 'package:expense_app/features/ai/domain/gemma_assistant_engine.dart';
+import 'package:expense_app/features/ai/presentation/ai_chat_state.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -24,12 +25,6 @@ final assistantEngineProvider = Provider<AssistantEngine>((ref) {
   return const FakeAssistantEngine();
 });
 
-final class _ChatMessage {
-  const _ChatMessage(this.text, {this.fromUser = false});
-  final String text;
-  final bool fromUser;
-}
-
 class AiScreen extends ConsumerStatefulWidget {
   const AiScreen({super.key});
   @override
@@ -38,7 +33,6 @@ class AiScreen extends ConsumerStatefulWidget {
 
 class _AiScreenState extends ConsumerState<AiScreen> {
   final _input = TextEditingController();
-  final List<_ChatMessage> _messages = [];
   final AssistantConfirmation _confirmation = AssistantConfirmation();
   UndoOperation? _undo;
   bool _busy = false;
@@ -53,38 +47,39 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   ActionRegistry _registry() => ActionRegistry(
     work: ref.read(workRepositoryProvider),
     home: ref.read(homeExpenseRepositoryProvider),
+    bills: ref.read(homeBillRepositoryProvider),
     debts: ref.read(debtRepositoryProvider),
   );
 
   Future<void> _send() async {
     final text = _input.text.trim();
     if (text.isEmpty || _busy) return;
-    setState(() { _busy = true; _messages.add(_ChatMessage(text, fromUser: true)); _input.clear(); _confirmation.cancel(); _undo = null; });
+    setState(() { _busy = true; ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(text, fromUser: true)); _input.clear(); _confirmation.cancel(); _undo = null; });
     final registry = _registry();
     try {
       final result = await ref.read(assistantEngineProvider).interpret(text, registry.actionNames);
       if (!mounted) return;
       if (result.kind == AssistantResultKind.clarification) {
-        setState(() => _messages.add(_ChatMessage(result.message ?? 'يرجى التوضيح.')));
+        setState(() => ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(result.message ?? 'يرجى التوضيح.')));
       } else if (result.kind == AssistantResultKind.notUnderstood || result.command == null) {
-        setState(() => _messages.add(_ChatMessage(AppLocalizations.of(context)!.assistantNotUnderstood)));
+        setState(() => ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(AppLocalizations.of(context)!.assistantNotUnderstood)));
         await _openManual();
       } else {
         final command = result.command!;
         final error = registry.validate(command.name, command.parameters);
         if (error != null) {
-          setState(() => _messages.add(_ChatMessage(AppLocalizations.of(context)!.assistantNotUnderstood)));
+          setState(() => ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(AppLocalizations.of(context)!.assistantNotUnderstood)));
           await _openManual();
         } else if (registry.descriptor(command.name)!.readOnly) {
           final execution = await registry.execute(command.name, command.parameters);
-          if (mounted) setState(() => _messages.add(_ChatMessage(execution.message)));
+          if (mounted) setState(() => ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(execution.message)));
         } else {
-          setState(() { _confirmation.request(command); _messages.add(_ChatMessage(AppLocalizations.of(context)!.assistantReview)); });
+          setState(() { _confirmation.request(command); ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(AppLocalizations.of(context)!.assistantReview)); });
         }
       }
     } catch (_) {
       if (mounted) {
-        setState(() => _messages.add(_ChatMessage(AppLocalizations.of(context)!.assistantNotUnderstood)));
+        setState(() => ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(AppLocalizations.of(context)!.assistantNotUnderstood)));
         await _openManual();
       }
     } finally { if (mounted) setState(() => _busy = false); }
@@ -99,9 +94,9 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       );
       if (execution == null) return;
       if (!mounted) return;
-      setState(() { _undo = execution.undo; _messages.add(_ChatMessage(execution.message)); });
+      setState(() { _undo = execution.undo; ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(execution.message)); });
     } catch (_) {
-      if (mounted) setState(() { _confirmation.cancel(); _messages.add(_ChatMessage(AppLocalizations.of(context)!.assistantNotUnderstood)); });
+      if (mounted) setState(() { _confirmation.cancel(); ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(AppLocalizations.of(context)!.assistantNotUnderstood)); });
       await _openManual();
     } finally { if (mounted) setState(() => _busy = false); }
   }
@@ -110,8 +105,8 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     final undo = _undo;
     if (undo == null || _busy) return;
     setState(() => _busy = true);
-    try { await undo(); if (mounted) setState(() { _undo = null; _messages.add(_ChatMessage(AppLocalizations.of(context)!.assistantUndone)); }); }
-    catch (_) { if (mounted) setState(() => _messages.add(_ChatMessage(AppLocalizations.of(context)!.assistantUndoFailed))); }
+    try { await undo(); if (mounted) setState(() { _undo = null; ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(AppLocalizations.of(context)!.assistantUndone)); }); }
+    catch (_) { if (mounted) setState(() => ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(AppLocalizations.of(context)!.assistantUndoFailed))); }
     finally { if (mounted) setState(() => _busy = false); }
   }
 
@@ -140,6 +135,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     if (action.startsWith('read_')) return s.assistantRead;
     if (action.startsWith('delete_')) return s.deleteRecord;
     if (action == 'record_debt_payment') return s.recordDebtPayment;
+    if (action == 'record_home_bill_payment') return s.addBillPayment;
     return s.save;
   }
 
@@ -153,109 +149,19 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     return now.year.toString() + '-' + now.month.toString().padLeft(2, '0');
   }
 
-  Future<void> _confirmDownload() async {
-    final strings = AppLocalizations.of(context)!;
-    final accepted = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(strings.gemmaWifiTitle),
-        content: Text(strings.gemmaWifiWarning),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(strings.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(strings.gemmaDownloadModel),
-          ),
-        ],
-      ),
-    );
-    if (accepted == true && mounted) {
-      await ref.read(gemmaModelManagerProvider.notifier).download();
-    }
-  }
-
-  Widget _modelManagementCard(AppLocalizations strings) {
-    final model = ref.watch(gemmaModelManagerProvider);
-    final manager = ref.read(gemmaModelManagerProvider.notifier);
-    final status = switch (model.status) {
-      GemmaModelStatus.notDownloaded => strings.gemmaNotDownloaded,
-      GemmaModelStatus.downloading => strings.gemmaDownloading,
-      GemmaModelStatus.ready => strings.gemmaReady,
-      GemmaModelStatus.error => strings.gemmaError,
-    };
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(strings.gemmaModelManagement, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 6),
-            Text(strings.gemmaModelDetails),
-            const SizedBox(height: 8),
-            Text(status),
-            if (model.status == GemmaModelStatus.downloading) ...[
-              const SizedBox(height: 8),
-              LinearProgressIndicator(value: model.progress / 100),
-              Text('${model.progress.toStringAsFixed(0)}%'),
-            ],
-            if (model.error != null) Text(model.error!),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: [
-                if (model.status == GemmaModelStatus.downloading)
-                  OutlinedButton(
-                    onPressed: manager.cancelDownload,
-                    child: Text(strings.gemmaCancelDownload),
-                  )
-                else if (model.status == GemmaModelStatus.ready)
-                  OutlinedButton(
-                    onPressed: manager.deleteModel,
-                    child: Text(strings.gemmaDeleteModel),
-                  )
-                else ...[
-                  FilledButton(
-                    onPressed: _confirmDownload,
-                    child: Text(
-                      model.cancelled || model.status == GemmaModelStatus.error
-                          ? strings.gemmaResumeDownload
-                          : strings.gemmaDownloadModel,
-                    ),
-                  ),
-                  if (model.status == GemmaModelStatus.error)
-                    OutlinedButton(
-                      onPressed: manager.deleteModel,
-                      child: Text(strings.gemmaDeleteModel),
-                    ),
-                ],
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(strings.gemmaDownloadResumeNote, style: Theme.of(context).textTheme.bodySmall),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
     final pending = _confirmation.pending;
+    final messages = ref.watch(aiChatMessagesProvider);
     return Scaffold(
       body: Column(children: [
         Expanded(child: ListView(padding: const EdgeInsets.all(16), children: [
-          _modelManagementCard(strings),
-          if (_messages.isEmpty) Card(child: Padding(padding: const EdgeInsets.all(16), child: Text(strings.assistantWelcome))),
-          for (var i = 0; i < _messages.length; i++)
-            Align(alignment: _messages[i].fromUser ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart,
+          for (var i = 0; i < messages.length; i++)
+            Align(alignment: messages[i].fromUser ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart,
               child: AnimatedSize(duration: const Duration(milliseconds: 220), curve: Curves.easeOut, child: Card(
-                color: _messages[i].fromUser ? Theme.of(context).colorScheme.secondaryContainer : null,
-                child: Padding(padding: const EdgeInsets.all(12), child: Text(_messages[i].text)),
+                color: messages[i].fromUser ? Theme.of(context).colorScheme.secondaryContainer : null,
+                child: Padding(padding: const EdgeInsets.all(12), child: Text(messages[i].text)),
               )),
             ),
           if (pending != null) AnimatedSwitcher(duration: const Duration(milliseconds: 250), child: Card(
@@ -266,6 +172,22 @@ class _AiScreenState extends ConsumerState<AiScreen> {
               Text(strings.assistantSection + ': ' + _sectionName(pending.name, strings)),
               Text(strings.assistantOperation + ': ' + _operationName(pending.name, strings)),
               Text(strings.assistantAmount + ': ' + _displayAmount(pending)),
+              if (pending.parameters['id'] is String)
+                Text(pending.parameters['id']! as String),
+              if (pending.parameters['title'] is String)
+                Text(pending.parameters['title']! as String),
+              if (pending.parameters['counterparty'] is String)
+                Text(pending.parameters['counterparty']! as String),
+              if (pending.parameters['categoryId'] is String)
+                Text(pending.parameters['categoryId']! as String),
+              if (pending.parameters['kind'] is String)
+                Text(pending.parameters['kind']! as String),
+              if (pending.parameters['direction'] is String)
+                Text(pending.parameters['direction']! as String),
+              if (pending.parameters['billId'] is String)
+                Text(pending.parameters['billId']! as String),
+              if (pending.parameters['debtId'] is String)
+                Text(pending.parameters['debtId']! as String),
               Text(strings.assistantMonth + ': ' + _displayMonth(pending)),
               Text(strings.assistantDate + ': ' + (pending.parameters['date']?.toString() ?? DateTime.now().toIso8601String().split('T').first)),
               const SizedBox(height: 12),
@@ -278,7 +200,15 @@ class _AiScreenState extends ConsumerState<AiScreen> {
           if (_undo != null) Align(alignment: AlignmentDirectional.centerStart, child: TextButton.icon(onPressed: _busy ? null : _undoLast, icon: const Icon(Icons.undo), label: Text(strings.assistantUndo))),
         ])),
         SafeArea(top: false, child: Padding(padding: const EdgeInsets.fromLTRB(12, 8, 12, 12), child: Row(children: [
-          Expanded(child: TextField(controller: _input, textInputAction: TextInputAction.send, onSubmitted: (_) => _send(), decoration: InputDecoration(hintText: strings.assistantHint, border: const OutlineInputBorder()))),
+          Expanded(child: TextField(controller: _input, textInputAction: TextInputAction.send, onSubmitted: (_) => _send(), decoration: InputDecoration(
+            hintText: strings.assistantHint,
+            isDense: true,
+            constraints: const BoxConstraints(minHeight: 48, maxHeight: 48),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(28)),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(28)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(28)),
+          ))),
           const SizedBox(width: 8),
           IconButton.filled(onPressed: _busy ? null : _send, tooltip: strings.assistantSend, icon: _busy ? const SizedBox(width: 18,height: 18,child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.send)),
         ]))),

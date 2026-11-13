@@ -5,6 +5,7 @@ import 'package:expense_app/features/ai/domain/assistant_engine.dart';
 import 'package:expense_app/features/ai/domain/gemma_assistant_engine.dart';
 import 'package:expense_app/features/debts/data/debt_repository.dart';
 import 'package:expense_app/features/home/data/home_expense_repository.dart';
+import 'package:expense_app/features/home/data/home_bill_repository.dart';
 import 'package:expense_app/features/work/data/work_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -149,6 +150,7 @@ void main() {
     final registry = ActionRegistry(
       work: WorkRepository(database),
       home: HomeExpenseRepository(database),
+      bills: HomeBillRepository(database),
       debts: DebtRepository(database),
     );
     final generator = _FakeGemmaGenerator(

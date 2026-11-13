@@ -30,6 +30,20 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
+  /// Removes financial records while preserving app preferences and the
+  /// separately stored Gemma model file.
+  Future<void> clearFinancialData() async {
+    await transaction(() async {
+      await customStatement('DELETE FROM home_bill_payments');
+      await customStatement('DELETE FROM home_bills');
+      await delete(debtPayments).go();
+      await delete(debts).go();
+      await delete(homeExpenses).go();
+      await delete(workHomeTransfers).go();
+      await delete(workEntries).go();
+    });
+  }
+
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (Migrator migrator) => migrator.createAll(),

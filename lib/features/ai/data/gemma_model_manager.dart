@@ -211,7 +211,7 @@ class GemmaModelManager extends Notifier<GemmaModelState>
           tools: tools,
           supportsFunctionCalls: true,
           toolChoice: ToolChoice.auto,
-          maxOutputTokens: 48,
+          maxOutputTokens: 256,
           temperature: 0,
           topK: 1,
         );

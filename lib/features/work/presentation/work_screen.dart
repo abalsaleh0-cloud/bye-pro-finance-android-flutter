@@ -3,6 +3,7 @@ import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/core/widgets/entry_tools.dart';
 import 'package:expense_app/features/work/domain/work_entry.dart';
+import 'package:expense_app/features/work/data/work_repository.dart';
 import 'package:expense_app/features/work/domain/work_balance_allocation.dart';
 import 'package:expense_app/features/work/domain/work_home_transfer.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
@@ -317,7 +318,27 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
       ),
     );
     if (confirmed == true) {
-      await ref.read(workRepositoryProvider).deleteTransfer(id);
+      try {
+        await ref.read(workRepositoryProvider).deleteTransfer(id);
+      } on TransferWouldOverdrawHomeException {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(strings.workRecordDeleteBlocked)),
+          );
+        }
+      } on InsufficientWorkBalanceException {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(strings.workRecordDeleteBlocked)),
+          );
+        }
+      } catch (_) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(strings.dataError)),
+          );
+        }
+      }
     }
   }
 
@@ -345,7 +366,21 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
       ),
     );
     if (confirmed == true) {
-      await ref.read(workRepositoryProvider).deleteEntry(id);
+      try {
+        await ref.read(workRepositoryProvider).deleteEntry(id);
+      } on InsufficientWorkBalanceException {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(strings.workRecordDeleteBlocked)),
+          );
+        }
+      } catch (_) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(strings.dataError)),
+          );
+        }
+      }
     }
   }
 

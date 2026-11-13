@@ -7,6 +7,8 @@ import 'package:expense_app/features/work/domain/work_entry.dart';
 import 'package:expense_app/features/work/domain/work_balance_allocation.dart';
 import 'package:expense_app/features/work/domain/work_home_transfer.dart';
 import 'package:expense_app/features/home/data/home_expense_repository.dart';
+import 'package:expense_app/features/home/data/home_bill_repository.dart';
+import 'package:expense_app/features/home/domain/home_bill.dart';
 import 'package:expense_app/features/home/domain/home_expense.dart';
 import 'package:expense_app/features/debts/data/debt_repository.dart';
 import 'package:expense_app/features/debts/domain/debt_entry.dart';
@@ -25,16 +27,24 @@ final class ActionDescriptor {
   final bool readOnly;
 }
 final class ActionRegistry {
-  ActionRegistry({required WorkRepository work, required HomeExpenseRepository home, required DebtRepository debts})
-      : _work = work, _home = home, _debts = debts;
+  ActionRegistry({required WorkRepository work, required HomeExpenseRepository home, required HomeBillRepository bills, required DebtRepository debts})
+      : _work = work, _home = home, _bills = bills, _debts = debts;
   final WorkRepository _work;
   final HomeExpenseRepository _home;
+  final HomeBillRepository _bills;
   final DebtRepository _debts;
   static const descriptors = <ActionDescriptor>[
     ActionDescriptor('save_work_entry', {'kind','amountMinorUnits','year','month'}),
     ActionDescriptor('delete_work_entry', {'id'}),
     ActionDescriptor('save_home_expense', {'amountMinorUnits','categoryId','date','year','month'}),
     ActionDescriptor('delete_home_expense', {'id'}),
+    ActionDescriptor('save_home_bill', {'title','kind','amountMinorUnits','year','month'}),
+    ActionDescriptor('delete_home_bill', {'id'}),
+    ActionDescriptor('record_home_bill_payment', {'billId','amountMinorUnits'}),
+    ActionDescriptor('read_home_bills', {}, readOnly: true),
+    ActionDescriptor('read_work_records', {}, readOnly: true),
+    ActionDescriptor('read_home_expenses', {}, readOnly: true),
+    ActionDescriptor('read_debts', {}, readOnly: true),
     ActionDescriptor('save_work_home_transfer', {'amountMinorUnits'}),
     ActionDescriptor('delete_work_home_transfer', {'id'}),
     ActionDescriptor('save_debt', {'amountMinorUnits','direction','counterparty','year','month'}),
@@ -65,6 +75,9 @@ final class ActionRegistry {
     if (month != null && (month is! int || month < 1 || month > 12)) return 'invalid month';
     if (name == 'save_work_entry' && !{'salary','advance','payment','salaryPayment'}.contains(p['kind'])) return 'invalid kind';
     if (name == 'save_debt' && !{'creditor','debtor'}.contains(p['direction'])) return 'invalid direction';
+    if (name == 'save_home_bill' && !{'monthly','rent'}.contains(p['kind'])) return 'invalid bill kind';
+    if (name == 'save_home_bill' && (p['title']! as String).trim().isEmpty) return 'missing bill title';
+    if (name == 'record_home_bill_payment' && (p['billId']! as String).trim().isEmpty) return 'missing bill';
     if (name == 'read_month_total' && !{'work','home','debts'}.contains(p['section'])) return 'invalid section';
     if (name == 'save_home_expense' && (p['categoryId']! as String).trim().isEmpty) return 'missing category';
     if (name == 'save_home_expense' && DateTime.tryParse(p['date']! as String) == null) return 'invalid date';
@@ -96,6 +109,90 @@ final class ActionRegistry {
       case 'delete_home_expense':
         final all=await _home.watchAll().first; HomeExpense? old; for(final e in all) { if(e.id==p['id']) old=e; }
         if(old==null) throw StateError('Home expense not found'); final deleted = old; await _home.delete(deleted.id); return ActionExecution(message:'تم حذف مصروف المنزل',undo:()=>_home.save(deleted));
+      case 'save_home_bill':
+        final id = p['id'] as String? ?? _id();
+        final existing = (await _bills.getBills()).where((bill) => bill.id == id).firstOrNull;
+        final bill = HomeBill(
+          id: id,
+          title: p['title']! as String,
+          kind: HomeBillKind.values.byName(p['kind']! as String),
+          amount: Money.fromMinorUnits(p['amountMinorUnits']! as int),
+          dueMonth: MonthKey(year: p['year']! as int, month: p['month']! as int),
+          note: p['note'] as String?,
+          paidMinorUnits: existing?.paidMinorUnits ?? 0,
+        );
+        await _bills.saveBill(bill);
+        return ActionExecution(
+          message: 'تم حفظ الفاتورة المنزلية',
+          undo: () async {
+            if (existing == null) {
+              await _bills.deleteBill(id);
+            } else {
+              await _bills.saveBill(existing);
+            }
+          },
+        );
+      case 'delete_home_bill':
+        final existing = (await _bills.getBills()).where((bill) => bill.id == p['id']).firstOrNull;
+        if (existing == null) throw StateError('Home bill not found');
+        final payments = await _bills.paymentsFor(existing.id);
+        if (payments.isNotEmpty) {
+          throw StateError('A bill with payment history cannot be deleted');
+        }
+        await _bills.deleteBill(existing.id);
+        return ActionExecution(
+          message: 'تم حذف الفاتورة وسجل دفعاتها',
+          undo: () async => _bills.saveBill(existing),
+        );
+      case 'record_home_bill_payment':
+        final payment = HomeBillPayment(
+          id: _id(),
+          billId: p['billId']! as String,
+          amount: Money.fromMinorUnits(p['amountMinorUnits']! as int),
+          paidAt: DateTime.now(),
+          note: p['note'] as String?,
+        );
+        await _bills.recordPayment(payment);
+        return const ActionExecution(message: 'تم تسجيل دفعة الفاتورة');
+      case 'read_work_records':
+        final workEntries = await _work.watchEntries().first;
+        if (workEntries.isEmpty) {
+          return const ActionExecution(message: 'لا توجد سجلات عمل.');
+        }
+        return ActionExecution(
+          message: workEntries.map((entry) =>
+            '${entry.id}: ${entry.kind.name}، ${entry.amount.minorUnits}، ${entry.dueMonth}'
+          ).join('؛ '),
+        );
+      case 'read_home_expenses':
+        final expenses = await _home.watchAll().first;
+        if (expenses.isEmpty) {
+          return const ActionExecution(message: 'لا توجد مصروفات منزلية.');
+        }
+        return ActionExecution(
+          message: expenses.map((expense) =>
+            '${expense.id}: ${expense.categoryId}، ${expense.amount.minorUnits}، ${expense.expenseDate.toLocal().toIso8601String().split('T').first}'
+          ).join('؛ '),
+        );
+      case 'read_debts':
+        final debts = await _debts.watchAll().first;
+        if (debts.isEmpty) {
+          return const ActionExecution(message: 'لا توجد ديون مسجلة.');
+        }
+        return ActionExecution(
+          message: debts.map((debt) =>
+            '${debt.id}: ${debt.direction.name}، ${debt.counterparty}، المتبقي ${debt.outstandingAmount.minorUnits}'
+          ).join('؛ '),
+        );
+      case 'read_home_bills':
+        final bills = await _bills.getBills();
+        if (bills.isEmpty) {
+          return const ActionExecution(message: 'لا توجد فواتير أو إيجارات مسجلة.');
+        }
+        final summary = bills.map((bill) =>
+          '${bill.id}: ${bill.title} (${bill.dueMonth}): المتبقي ${bill.remainingMinorUnits}'
+        ).join('؛ ');
+        return ActionExecution(message: summary);
       case 'save_work_home_transfer':
         final id=p['id'] as String? ?? _id(); final all=await _work.watchTransfers().first; WorkHomeTransfer? old; for(final e in all) { if(e.id==id) old=e; }
         final previous = old;
@@ -152,6 +249,10 @@ final class ActionRegistry {
     'save_work_entry' => const {'kind': String, 'amountMinorUnits': int, 'year': int, 'month': int, 'id': String, 'note': String},
     'delete_work_entry' || 'delete_home_expense' || 'delete_work_home_transfer' || 'delete_debt' => const {'id': String},
     'save_home_expense' => const {'amountMinorUnits': int, 'categoryId': String, 'date': String, 'year': int, 'month': int, 'id': String, 'note': String},
+    'save_home_bill' => const {'title': String, 'kind': String, 'amountMinorUnits': int, 'year': int, 'month': int, 'id': String, 'note': String},
+    'delete_home_bill' => const {'id': String},
+    'record_home_bill_payment' => const {'billId': String, 'amountMinorUnits': int, 'note': String},
+    'read_home_bills' || 'read_work_records' || 'read_home_expenses' || 'read_debts' => const {},
     'save_work_home_transfer' => const {'amountMinorUnits': int, 'id': String, 'date': String, 'note': String},
     'save_debt' => const {'amountMinorUnits': int, 'direction': String, 'counterparty': String, 'year': int, 'month': int, 'id': String, 'note': String},
     'record_debt_payment' => const {'debtId': String, 'amountMinorUnits': int, 'note': String},
