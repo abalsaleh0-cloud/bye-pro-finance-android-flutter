@@ -255,8 +255,11 @@ void main() {
         'billId': 'internet-nov',
         'amountMinorUnits': 100,
       });
-      expect(payment.undo, isNull);
+      expect(payment.undo, isNotNull);
       expect((await HomeBillRepository(database).getBills()).single.remainingMinorUnits, 300);
+      await payment.undo!();
+      expect((await HomeBillRepository(database).getBills()).single.remainingMinorUnits, 400);
+      expect(await HomeBillRepository(database).paymentsFor('internet-nov'), isEmpty);
     });
 
     test('reports received work cash minus transfers as remaining at work', () async {
