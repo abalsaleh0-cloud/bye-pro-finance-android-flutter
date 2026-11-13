@@ -156,7 +156,7 @@ final class WorkRepository {
           requestedMinorUnits: transfer.amount.minorUnits,
         );
       }
-      final committed = await _homeCommittedAmount();
+      final committed = await _homeCommittedAmount(year, month);
       if (transferredAfter < committed) {
         throw TransferWouldOverdrawHomeException(
           remainingTransfersMinorUnits: transferredAfter,
@@ -185,7 +185,8 @@ final class WorkRepository {
             (sum, row) => sum + row.amountMinorUnits,
           ) -
           target.amountMinorUnits;
-      final committed = await _homeCommittedAmount();
+      final transferDate = DateTime.fromMillisecondsSinceEpoch(target.transferredAtEpochMillis).toLocal();
+      final committed = await _homeCommittedAmount(transferDate.year, transferDate.month);
       if (transferredAfter < committed) {
         throw TransferWouldOverdrawHomeException(
           remainingTransfersMinorUnits: transferredAfter,
@@ -198,18 +199,21 @@ final class WorkRepository {
     });
   }
 
-  Future<int> _homeCommittedAmount() async {
+  Future<int> _homeCommittedAmount(int year, int month) async {
     final expenseRows = await _database.select(_database.homeExpenses).get();
-    final expenses = expenseRows.fold<int>(
-      0,
-      (sum, row) => sum + row.amountMinorUnits,
-    );
+    final expenses = expenseRows.where((row) {
+      final date = DateTime.fromMillisecondsSinceEpoch(row.expenseDateEpochMillis).toLocal();
+      return date.year == year && date.month == month;
+    }).fold<int>(0, (sum, row) => sum + row.amountMinorUnits);
     final tableRows = await _database.customSelect(
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'home_bill_payments'",
     ).get();
     if (tableRows.isEmpty) return expenses;
+    final start = DateTime(year, month).millisecondsSinceEpoch;
+    final finish = DateTime(year, month + 1).millisecondsSinceEpoch;
     final paymentRows = await _database.customSelect(
-      'SELECT COALESCE(SUM(amount_minor_units), 0) AS total FROM home_bill_payments',
+      'SELECT COALESCE(SUM(amount_minor_units), 0) AS total FROM home_bill_payments WHERE paid_at_epoch_millis >= ? AND paid_at_epoch_millis < ?',
+      variables: [Variable.withInt(start), Variable.withInt(finish)],
     ).get();
     return expenses + paymentRows.single.read<int>('total');
   }
