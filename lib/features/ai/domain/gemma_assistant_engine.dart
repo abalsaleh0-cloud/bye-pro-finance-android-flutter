@@ -37,8 +37,9 @@ final class GemmaModelOutput {
 abstract interface class GemmaTurnGenerator {
   Future<GemmaModelOutput> generate(
     String userText,
-    List<GemmaFunctionSpec> functions,
-  );
+    List<GemmaFunctionSpec> functions, {
+    AssistantMedia? media,
+  });
 }
 
 final class GemmaAssistantEngine implements AssistantEngine {
@@ -54,8 +55,9 @@ final class GemmaAssistantEngine implements AssistantEngine {
   @override
   Future<AssistantResult> interpret(
     String input,
-    List<String> availableActions,
-  ) async {
+    List<String> availableActions, {
+    AssistantMedia? media,
+  }) async {
     final text = input.trim();
     if (text.isEmpty) return const AssistantResult.notUnderstood();
 
@@ -76,7 +78,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
         required: ['question'],
       ));
 
-      final output = await generator.generate(text, functions).timeout(timeout);
+      final output = await generator.generate(text, functions, media: media).timeout(timeout);
       if (output.parallelCalls) return const AssistantResult.notUnderstood();
 
       if (output.name == null) {
