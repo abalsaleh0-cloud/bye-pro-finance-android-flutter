@@ -72,12 +72,12 @@ void main() {
     expect(overview.advances.minorUnits, 10000);
     expect(overview.payments.minorUnits, 0);
     expect(overview.workRecordsTotal.minorUnits, 110000);
-    expect(overview.workRemainingMinorUnits, 83000);
+    expect(overview.workRemainingMinorUnits, 3000);
     expect(overview.homeExpenses.minorUnits, 2500);
     expect(overview.transfers.minorUnits, 7000);
   });
 
-  test('allocates later partial salary payments to the oldest unpaid month', () {
+  test('keeps partial salary payments within their own month', () {
     final october = MonthKey(year: 2026, month: 10);
     final november = MonthKey(year: 2026, month: 11);
     final entries = [
@@ -112,8 +112,8 @@ void main() {
     ];
 
     final allocation = WorkBalanceAllocation.calculate(entries);
-    expect(allocation.paymentsFor(october), 1500);
-    expect(allocation.paymentsFor(november), 0);
+    expect(allocation.paymentsFor(october), 1000);
+    expect(allocation.paymentsFor(november), 500);
 
     final octoberOverview = MonthlyOverview.calculate(
       month: october,
@@ -131,12 +131,12 @@ void main() {
     );
     expect(octoberOverview.payments.minorUnits, 1000);
     expect(novemberOverview.payments.minorUnits, 500);
-    expect(octoberOverview.salaryPaymentsApplied.minorUnits, 1500);
-    expect(novemberOverview.salaryPaymentsApplied.minorUnits, 0);
-    expect(octoberOverview.workRemainingMinorUnits, 1500);
-    expect(novemberOverview.workRemainingMinorUnits, 2000);
-    expect(novemberOverview.previousWorkOutstandingMinorUnits, 1500);
-    expect(novemberOverview.totalWorkOutstandingMinorUnits, 3500);
+    expect(octoberOverview.salaryPaymentsApplied.minorUnits, 1000);
+    expect(novemberOverview.salaryPaymentsApplied.minorUnits, 500);
+    expect(octoberOverview.workRemainingMinorUnits, 1000);
+    expect(novemberOverview.workRemainingMinorUnits, 500);
+    expect(novemberOverview.previousWorkOutstandingMinorUnits, 0);
+    expect(novemberOverview.totalWorkOutstandingMinorUnits, 1500);
   });
 
   test('preserves historical payments against their original salary month', () {
@@ -174,13 +174,13 @@ void main() {
       ),
     ]);
 
-    expect(allocation.paymentsFor(september), 200);
+    expect(allocation.paymentsFor(september), 0);
     expect(allocation.paymentsFor(october), 100);
-    expect(allocation.outstandingFor(september), 300);
+    expect(allocation.outstandingFor(september), 500);
     expect(allocation.outstandingFor(october), 200);
   });
 
-  test('splits a payment across oldest salary months without duplication', () {
+  test('keeps a payment in its own month without splitting across months', () {
     final october = MonthKey(year: 2026, month: 10);
     final november = MonthKey(year: 2026, month: 11);
     final allocation = WorkBalanceAllocation.calculate([
@@ -207,11 +207,11 @@ void main() {
       ),
     ]);
 
-    expect(allocation.paymentsFor(october), 300);
-    expect(allocation.paymentsFor(november), 200);
+    expect(allocation.paymentsFor(october), 0);
+    expect(allocation.paymentsFor(november), 500);
   });
 
-  test('allows a negative remaining work balance without storing money', () {
+  test('reports a negative balance for historical transfers above received cash', () {
     final overview = MonthlyOverview.calculate(
       month: month,
       workEntries: [
@@ -238,7 +238,13 @@ void main() {
         ),
       ],
       homeExpenses: const [],
-      transfers: const [],
+      transfers: [
+        WorkHomeTransfer(
+          id: 'historical-over-transfer',
+          amount: Money.fromMinorUnits(600),
+          transferredAt: DateTime(2026, 11, 4),
+        ),
+      ],
       debts: const [],
     );
 
