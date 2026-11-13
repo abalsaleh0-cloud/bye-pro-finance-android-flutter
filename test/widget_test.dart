@@ -101,6 +101,17 @@ void main() {
 
     await tester.tap(find.text('العمل').last);
     await tester.pumpAndSettle();
+
+    // Select the current month explicitly so a previously persisted month
+    // preference cannot make this test look in a different month.
+    final now = DateTime.now();
+    final currentMonth =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}';
+    await tester.tap(find.byKey(const Key('work-selected-month-picker')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(currentMonth).last);
+    await tester.pumpAndSettle();
+
     await tester.tap(find.byType(FloatingActionButton));
     await tester.pumpAndSettle();
 
@@ -108,9 +119,11 @@ void main() {
     await tester.enterText(find.byKey(const Key('work-entry-note')), 'ملاحظة الراتب');
     await tester.tap(find.text('حفظ'));
     await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsNothing);
 
     await tester.tap(find.byKey(const Key('work-tab-2')));
     await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('ملاحظة الراتب'), findsOneWidget);
   });
