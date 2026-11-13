@@ -70,6 +70,6 @@ void main() {
     expect(find.text('السجلات'), findsOneWidget);
     expect(find.text('التحويلات إلى المنزل'), findsOneWidget);
     expect(find.byType(Card), findsWidgets);
-    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNWidgets(2));
   });
 }
