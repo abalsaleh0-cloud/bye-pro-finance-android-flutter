@@ -477,7 +477,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
       WorkScreenMode.records,
     ];
     return Scaffold(
-      appBar: AppBar(title: Text(strings.workSection)),
+      appBar: AppBar(title: Text(strings.work)),
       body: PageView(
         onPageChanged: (index) => setState(() => _activePage = index),
         children: [
