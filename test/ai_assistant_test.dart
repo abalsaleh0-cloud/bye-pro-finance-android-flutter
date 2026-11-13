@@ -259,6 +259,34 @@ void main() {
       expect((await HomeBillRepository(database).getBills()).single.remainingMinorUnits, 300);
     });
 
+    test('reports received work cash minus transfers as remaining at work', () async {
+      final now = DateTime.now();
+      final month = {'year': now.year, 'month': now.month};
+
+      await registry.execute('save_work_entry', {
+        'kind': 'salary',
+        'amountMinorUnits': 1500,
+        ...month,
+      });
+      await registry.execute('save_work_entry', {
+        'kind': 'advance',
+        'amountMinorUnits': 300,
+        ...month,
+      });
+      await registry.execute('save_work_entry', {
+        'kind': 'salaryPayment',
+        'amountMinorUnits': 200,
+        ...month,
+      });
+      await registry.execute('save_work_home_transfer', {
+        'amountMinorUnits': 250,
+        'date': now.toIso8601String(),
+      });
+
+      final result = await registry.execute('read_work_remaining', {});
+      expect(result.message, contains('250'));
+    });
+
     test('read-only actions do not expose undo and run without approval metadata', () async {
       final descriptor = registry.descriptor('read_work_remaining')!;
       expect(descriptor.readOnly, isTrue);
