@@ -37,8 +37,9 @@ final class GemmaModelOutput {
 abstract interface class GemmaTurnGenerator {
   Future<GemmaModelOutput> generate(
     String userText,
-    List<GemmaFunctionSpec> functions,
-  );
+    List<GemmaFunctionSpec> functions, {
+    AssistantMedia? media,
+  });
 }
 
 final class GemmaAssistantEngine implements AssistantEngine {
@@ -54,8 +55,9 @@ final class GemmaAssistantEngine implements AssistantEngine {
   @override
   Future<AssistantResult> interpret(
     String input,
-    List<String> availableActions,
-  ) async {
+    List<String> availableActions, {
+    AssistantMedia? media,
+  }) async {
     final text = input.trim();
     if (text.isEmpty) return const AssistantResult.notUnderstood();
 
@@ -76,17 +78,23 @@ final class GemmaAssistantEngine implements AssistantEngine {
         required: ['question'],
       ));
 
-      final output = await generator.generate(text, functions).timeout(timeout);
+      final output = await generator.generate(text, functions, media: media).timeout(timeout);
       if (output.parallelCalls) return const AssistantResult.notUnderstood();
 
       if (output.name == null) {
-        final question = output.text?.trim() ?? '';
-        if (question.isNotEmpty &&
-            question.length <= 140 &&
-            !RegExp(r'[0-9٠-٩۰-۹]').hasMatch(question) &&
-            !question.startsWith('{') &&
-            (question.endsWith('؟') || question.endsWith('?'))) {
-          return AssistantResult.clarification(question);
+        final response = output.text?.trim() ?? '';
+        if (media != null &&
+            response.isNotEmpty &&
+            response.length <= 4000 &&
+            !response.startsWith('{')) {
+          return AssistantResult.answer(response);
+        }
+        if (response.isNotEmpty &&
+            response.length <= 140 &&
+            !RegExp(r'[0-9٠-٩۰-۹]').hasMatch(response) &&
+            !response.startsWith('{') &&
+            (response.endsWith('؟') || response.endsWith('?'))) {
+          return AssistantResult.clarification(response);
         }
         return const AssistantResult.notUnderstood();
       }
@@ -130,6 +138,8 @@ final class GemmaAssistantEngine implements AssistantEngine {
       return AssistantResult.command(
         AssistantCommand(name: output.name!, parameters: normalized),
       );
+    } on AssistantInputException catch (error) {
+      return AssistantResult.clarification(error.message);
     } catch (_) {
       return const AssistantResult.notUnderstood();
     }
@@ -156,6 +166,9 @@ final class GemmaAssistantEngine implements AssistantEngine {
         'read_work_records' => 'List saved work salary, advance, and payment records with identifiers.',
         'read_home_expenses' => 'List household daily expenses with identifiers.',
         'read_debts' => 'List debts, counterparties, outstanding amounts, and identifiers.',
+        'read_work_transfers' => 'List work-to-home transfers with amounts and dates.',
+        'read_debt_payments' => 'List payment history for the specified debt identifier.',
+        'read_home_bill_payments' => 'List payment history for the specified household bill identifier.',
         'save_work_home_transfer' => 'Transfer money from work to household.',
         'delete_work_home_transfer' => 'Delete a work-to-household transfer.',
         'save_debt' => 'Create a debt record.',
@@ -208,7 +221,9 @@ final class GemmaAssistantEngine implements AssistantEngine {
           'amountMinorUnits': integer,
           'note': note,
         },
-      'read_home_bills' || 'read_work_records' || 'read_home_expenses' || 'read_debts' => <String, Map<String, Object>>{},
+      'read_home_bills' || 'read_work_records' || 'read_home_expenses' || 'read_debts' || 'read_work_transfers' => <String, Map<String, Object>>{},
+      'read_debt_payments' => {'debtId': string},
+      'read_home_bill_payments' => {'billId': string},
       'save_home_expense' => {
           'amountMinorUnits': integer,
           'categoryId': string,
