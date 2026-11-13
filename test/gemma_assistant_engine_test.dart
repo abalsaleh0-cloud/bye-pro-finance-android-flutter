@@ -69,6 +69,21 @@ void main() {
       expect(generator.receivedMedia?.audioBytes, isNull);
     });
 
+    test('forwards audio bytes to the turn generator', () async {
+      final audioBytes = Uint8List.fromList([4, 5, 6]);
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.text('تم استلام التسجيل'),
+      );
+      await GemmaAssistantEngine(generator).interpret(
+        'استمع إلى التسجيل',
+        actions,
+        media: AssistantMedia(audioBytes: audioBytes),
+      );
+
+      expect(generator.receivedMedia?.audioBytes, same(audioBytes));
+      expect(generator.receivedMedia?.imageBytes, isNull);
+    });
+
     test('converts a valid function call into a command', () async {
       final generator = _FakeGemmaGenerator(
         const GemmaModelOutput.call('save_work_entry', {
