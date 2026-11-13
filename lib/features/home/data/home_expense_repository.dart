@@ -37,20 +37,30 @@ final class HomeExpenseRepository {
       final previousAmount = previous.isEmpty
           ? 0
           : previous.first.amountMinorUnits;
-      final transferredTotal = transfers.fold<int>(
-        0,
-        (sum, row) => sum + row.amountMinorUnits,
-      );
-      final expenseTotal = expenses.fold<int>(
-        0,
-        (sum, row) => sum + row.amountMinorUnits,
-      );
+      final expenseDate = expense.expenseDate.toLocal();
+      final year = expenseDate.year;
+      final month = expenseDate.month;
+      final monthStart = DateTime(year, month).millisecondsSinceEpoch;
+      final nextMonthStart = DateTime(year, month + 1).millisecondsSinceEpoch;
+      final transferredTotal = transfers.where((row) {
+        final date = DateTime.fromMillisecondsSinceEpoch(row.transferredAtEpochMillis).toLocal();
+        return date.year == year && date.month == month;
+      }).fold<int>(0, (sum, row) => sum + row.amountMinorUnits);
+      final expenseTotal = expenses.where((row) {
+        final date = DateTime.fromMillisecondsSinceEpoch(row.expenseDateEpochMillis).toLocal();
+        return date.year == year && date.month == month;
+      }).fold<int>(0, (sum, row) => sum + row.amountMinorUnits);
+      final previousInMonth = previous.isNotEmpty &&
+          DateTime.fromMillisecondsSinceEpoch(previous.first.expenseDateEpochMillis).toLocal().year == year &&
+          DateTime.fromMillisecondsSinceEpoch(previous.first.expenseDateEpochMillis).toLocal().month == month
+          ? previousAmount
+          : 0;
       final billPaymentRows = await _database.customSelect(
-        'SELECT COALESCE(SUM(amount_minor_units), 0) AS total FROM home_bill_payments',
+        'SELECT COALESCE(SUM(amount_minor_units), 0) AS total FROM home_bill_payments WHERE paid_at_epoch_millis >= ? AND paid_at_epoch_millis < ?',
+        variables: [Variable.withInt(monthStart), Variable.withInt(nextMonthStart)],
       ).get();
       final billPaymentTotal = billPaymentRows.single.read<int>('total');
-      final available =
-          transferredTotal - expenseTotal - billPaymentTotal + previousAmount;
+      final available = transferredTotal - expenseTotal - billPaymentTotal + previousInMonth;
 
       if (expense.amount.minorUnits > available) {
         throw InsufficientHomeBalanceException(
