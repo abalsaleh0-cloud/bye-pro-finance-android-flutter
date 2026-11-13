@@ -579,7 +579,9 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
           decoration: InputDecoration(labelText: strings.currentMonth),
           items: allMonths.map((month) => DropdownMenuItem(value: month, child: Text(month.toString()))).toList(),
           onChanged: (month) {
-            if (month != null) ref.read(selectedMonthProvider.notifier).select(month);
+            if (month != null) {
+              ref.read(selectedMonthProvider.notifier).select(month);
+            }
           },
         ),
         const SizedBox(height: 12),
