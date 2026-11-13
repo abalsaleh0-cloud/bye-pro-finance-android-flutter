@@ -14,6 +14,7 @@ final class MonthlyOverview {
     required this.advances,
     required this.payments,
     required this.salaryPaymentsApplied,
+    required this.cashReceivedMinorUnits,
     required this.homeExpenses,
     required this.transfers,
     required this.creditorBalance,
@@ -27,6 +28,7 @@ final class MonthlyOverview {
   final Money advances;
   final Money payments;
   final Money salaryPaymentsApplied;
+  final int cashReceivedMinorUnits;
   final Money homeExpenses;
   final Money transfers;
   final Money creditorBalance;
@@ -44,10 +46,7 @@ final class MonthlyOverview {
 
   /// Remaining work amount; a negative value represents an overdrawn balance.
   int get workRemainingMinorUnits =>
-      salary.minorUnits -
-      advances.minorUnits -
-      salaryPaymentsApplied.minorUnits -
-      transfers.minorUnits;
+      cashReceivedMinorUnits - transfers.minorUnits;
 
   factory MonthlyOverview.calculate({
     required MonthKey month,
@@ -76,13 +75,21 @@ final class MonthlyOverview {
     }
 
     final allocation = WorkBalanceAllocation.calculate(entries);
+    final cashReceived = entries.where((entry) {
+      if (entry.kind == WorkEntryKind.salary) return false;
+      final date = entry.recordedAt.toLocal();
+      return date.year == month.year && date.month == month.month;
+    }).fold<int>(0, (total, entry) => total + entry.amount.minorUnits);
     final salaryPaymentsApplied = Money.fromMinorUnits(
       allocation.paymentsFor(month),
     );
 
     var homeTotal = Money.zero;
     for (final expense in homeExpenses.where(
-      (item) => item.dueMonth == month,
+      (item) {
+        final date = item.expenseDate.toLocal();
+        return date.year == month.year && date.month == month.month;
+      },
     )) {
       homeTotal += expense.amount;
     }
@@ -111,6 +118,7 @@ final class MonthlyOverview {
       advances: advances,
       payments: payments,
       salaryPaymentsApplied: salaryPaymentsApplied,
+      cashReceivedMinorUnits: cashReceived,
       homeExpenses: homeTotal,
       transfers: transferTotal,
       creditorBalance: creditor,
