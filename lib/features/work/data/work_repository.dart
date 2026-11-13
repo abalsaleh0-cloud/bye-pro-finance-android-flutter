@@ -50,8 +50,8 @@ final class WorkRepository {
       final transfers = await _database.select(_database.workHomeTransfers).get();
       final affectedMonths = <String>{
         if (previous != null && _isCashReceived(previous.kind))
-          _monthKey(DateTime.fromMillisecondsSinceEpoch(previous.recordedAtEpochMillis)),
-        if (_isCashReceived(entry.kind.name)) _monthKey(entry.recordedAt),
+          '${previous.dueYear}-${previous.dueMonth.toString().padLeft(2, '0')}',
+        if (_isCashReceived(entry.kind.name)) '${entry.dueMonth.year}-${entry.dueMonth.month.toString().padLeft(2, '0')}',
       };
       for (final monthKey in affectedMonths) {
         final parts = monthKey.split('-');
@@ -60,8 +60,9 @@ final class WorkRepository {
         var receivedAfter = 0;
         for (final row in entries) {
           if (row.id == entry.id || !_isCashReceived(row.kind)) continue;
-          final date = DateTime.fromMillisecondsSinceEpoch(row.recordedAtEpochMillis).toLocal();
-          if (date.year == year && date.month == month) receivedAfter += row.amountMinorUnits;
+          if (row.dueYear == year && row.dueMonth == month) {
+            receivedAfter += row.amountMinorUnits;
+          }
         }
         if (_isCashReceived(entry.kind.name)) {
           final date = entry.recordedAt.toLocal();
@@ -212,22 +213,15 @@ final class WorkRepository {
   }
 
   int _receivedCashForMonth(List<WorkEntryRow> entries, int year, int month) =>
-      entries.where((row) {
-        if (!_isCashReceived(row.kind)) return false;
-        final date = DateTime.fromMillisecondsSinceEpoch(row.recordedAtEpochMillis).toLocal();
-        return date.year == year && date.month == month;
-      }).fold(0, (sum, row) => sum + row.amountMinorUnits);
+      entries.where((row) =>
+        _isCashReceived(row.kind) && row.dueYear == year && row.dueMonth == month,
+      ).fold(0, (sum, row) => sum + row.amountMinorUnits);
 
   int _transferTotalForMonth(List<WorkHomeTransferRow> transfers, int year, int month) =>
       transfers.where((row) {
         final date = DateTime.fromMillisecondsSinceEpoch(row.transferredAtEpochMillis).toLocal();
         return date.year == year && date.month == month;
       }).fold(0, (sum, row) => sum + row.amountMinorUnits);
-
-  String _monthKey(DateTime date) {
-    final local = date.toLocal();
-    return '${local.year}-${local.month.toString().padLeft(2, '0')}';
-  }
 
   bool _isCashReceived(String kind) =>
       kind == WorkEntryKind.advance.name ||
