@@ -159,14 +159,14 @@ void main() {
         id: 'selected-month-record',
         kind: WorkEntryKind.salaryPayment,
         amount: Money.fromMinorUnits(500),
-        dueMonth: const MonthKey(year: 2026, month: 11),
+        dueMonth: MonthKey(year: 2026, month: 11),
         recordedAt: DateTime(2026, 11, 10),
       ));
       await work.saveEntry(WorkEntry(
         id: 'other-month-record',
         kind: WorkEntryKind.salaryPayment,
         amount: Money.fromMinorUnits(900),
-        dueMonth: const MonthKey(year: 2026, month: 10),
+        dueMonth: MonthKey(year: 2026, month: 10),
         recordedAt: DateTime(2026, 10, 10),
       ));
       final selectedRegistry = ActionRegistry(
@@ -174,7 +174,7 @@ void main() {
         home: HomeExpenseRepository(database),
         bills: HomeBillRepository(database),
         debts: DebtRepository(database),
-        selectedMonth: const MonthKey(year: 2026, month: 11),
+        selectedMonth: MonthKey(year: 2026, month: 11),
       );
 
       final result = await selectedRegistry.execute('read_work_records', {});
