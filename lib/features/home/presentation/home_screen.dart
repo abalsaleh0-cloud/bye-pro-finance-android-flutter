@@ -56,7 +56,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
     final category = TextEditingController(text: existing?.categoryId ?? '');
     final date = TextEditingController(
-      text: _dateText(existing?.expenseDate ?? DateTime.now()),
+      text: formatCalendarDate(existing?.expenseDate ?? DateTime.now()),
     );
     final due = TextEditingController(
       text:
@@ -361,7 +361,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 for (final expense in monthItems)
                   Card(child: ListTile(
                     leading: const Icon(Icons.receipt_long_outlined), title: Text(expense.categoryId),
-                    subtitle: Text('${strings.expenseDate}: ${_dateText(expense.expenseDate)}'),
+                    subtitle: Text('${strings.expenseDate}: ${formatCalendarDate(expense.expenseDate)}'),
                     trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                       Text(expense.amount.minorUnits.toString()),
                       IconButton(tooltip: strings.editRecord, icon: const Icon(Icons.edit_outlined), onPressed: () => _editExpense(context, ref, strings, existing: expense)),
