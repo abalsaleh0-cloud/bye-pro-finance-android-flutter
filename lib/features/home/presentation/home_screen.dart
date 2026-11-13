@@ -29,6 +29,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _manualEntryOpened = false;
   MonthKey? _selectedMonth;
   int _activePage = 0;
+  final PageController _pageController = PageController();
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -292,11 +299,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       appBar: AppBar(title: Text(strings.homeSection)),
       body: PageView(
+        controller: _pageController,
         onPageChanged: (index) => setState(() => _activePage = index),
         children: [
           for (final mode in pages)
             HomeScreen(
               mode: mode,
+              openManualEntry: mode == WorkScreenMode.overview && widget.openManualEntry,
               initialMonth: _selectedMonth,
               swipePage: true,
             ),
@@ -304,7 +313,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _activePage,
-        onDestinationSelected: (index) => setState(() => _activePage = index),
+        onDestinationSelected: (index) => _pageController.animateToPage(
+          index,
+          duration: const Duration(milliseconds: 240),
+          curve: Curves.easeOut,
+        ),
         destinations: [
           NavigationDestination(
             icon: const Icon(Icons.dashboard_outlined),
