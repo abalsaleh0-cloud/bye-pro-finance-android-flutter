@@ -45,17 +45,19 @@ final class FakeAssistantEngine implements AssistantEngine {
       final kind=text.contains('راتب')?'salary':RegExp(r'سلفة|سلفه').hasMatch(text)?'advance':'salaryPayment';
       return AssistantResult.command(AssistantCommand(name:'save_work_entry',parameters:{'kind':kind,'amountMinorUnits':amount,'year':month.$1,'month':month.$2}));
     }
+    if(RegExp(r'تحويل|حوّل|حول').hasMatch(text) && RegExp(r'المنزل|للبيت').hasMatch(text)) {
+      if(amount==null) return const AssistantResult.clarification('ما مبلغ التحويل؟ لن أخمّن.');
+      if(!availableActions.contains('save_work_home_transfer')) return const AssistantResult.notUnderstood();
+      return AssistantResult.command(AssistantCommand(name:'save_work_home_transfer',parameters:{'amountMinorUnits':amount}));
+    }
     if(RegExp(r'مصروف|المنزل').hasMatch(text)) {
       if(amount==null) return const AssistantResult.clarification('ما مبلغ المصروف؟ لن أخمّن المبلغ.');
       final category=_capture(text,r'(?:تصنيف|فئة)\s+([\p{L}0-9_-]+)');
       if(category==null) return const AssistantResult.clarification('ما تصنيف المصروف؟ اذكره بعد كلمة تصنيف.');
       if(month==null) return const AssistantResult.clarification('ما الشهر المستحق للمصروف؟ اكتب السنة والشهر.');
       final date=_capture(text,r'(20\d{2}-\d{2}-\d{2})') ?? month.$1.toString()+'-'+month.$2.toString().padLeft(2,'0')+'-01';
+      if(!availableActions.contains('save_home_expense')) return const AssistantResult.notUnderstood();
       return AssistantResult.command(AssistantCommand(name:'save_home_expense',parameters:{'amountMinorUnits':amount,'categoryId':category,'date':date,'year':month.$1,'month':month.$2}));
-    }
-    if(RegExp(r'تحويل|حوّل|حول').hasMatch(text) && RegExp(r'المنزل|للبيت').hasMatch(text)) {
-      if(amount==null) return const AssistantResult.clarification('ما مبلغ التحويل؟ لن أخمّن.');
-      return AssistantResult.command(AssistantCommand(name:'save_work_home_transfer',parameters:{'amountMinorUnits':amount}));
     }
     if(RegExp(r'دين|دَين').hasMatch(text)) {
       if(amount==null) return const AssistantResult.clarification('ما مبلغ الدين؟');
