@@ -11,7 +11,7 @@ void main() {
     test('allows devices with at least 6 GB RAM or unknown RAM', () {
       expect(supportsGemmaMultimodalMemory(6144), isTrue);
       expect(supportsGemmaMultimodalMemory(8192), isTrue);
-      expect(supportsGemmaMultimodalMemory(0), isTrue);
+      expect(supportsGemmaMultimodalMemory(0), isFalse);
     });
   });
 
