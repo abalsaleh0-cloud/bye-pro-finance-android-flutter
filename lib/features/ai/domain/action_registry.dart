@@ -45,6 +45,9 @@ final class ActionRegistry {
     ActionDescriptor('read_work_records', {}, readOnly: true),
     ActionDescriptor('read_home_expenses', {}, readOnly: true),
     ActionDescriptor('read_debts', {}, readOnly: true),
+    ActionDescriptor('read_work_transfers', {}, readOnly: true),
+    ActionDescriptor('read_debt_payments', {'debtId'}, readOnly: true),
+    ActionDescriptor('read_home_bill_payments', {'billId'}, readOnly: true),
     ActionDescriptor('save_work_home_transfer', {'amountMinorUnits'}),
     ActionDescriptor('delete_work_home_transfer', {'id'}),
     ActionDescriptor('save_debt', {'amountMinorUnits','direction','counterparty','year','month'}),
@@ -158,9 +161,13 @@ final class ActionRegistry {
           undo: () => _bills.undoPayment(payment.id),
         );
       case 'read_work_records':
-        final workEntries = await _work.watchEntries().first;
+        final now = DateTime.now();
+        final month = _selectedMonth ?? MonthKey(year: now.year, month: now.month);
+        final workEntries = (await _work.watchEntries().first)
+            .where((entry) => entry.dueMonth == month)
+            .toList(growable: false);
         if (workEntries.isEmpty) {
-          return const ActionExecution(message: 'لا توجد سجلات عمل.');
+          return ActionExecution(message: 'لا توجد سجلات عمل لشهر $month.');
         }
         return ActionExecution(
           message: workEntries.map((entry) =>
@@ -168,9 +175,13 @@ final class ActionRegistry {
           ).join('؛ '),
         );
       case 'read_home_expenses':
-        final expenses = await _home.watchAll().first;
+        final now = DateTime.now();
+        final month = _selectedMonth ?? MonthKey(year: now.year, month: now.month);
+        final expenses = (await _home.watchAll().first)
+            .where((expense) => expense.dueMonth == month)
+            .toList(growable: false);
         if (expenses.isEmpty) {
-          return const ActionExecution(message: 'لا توجد مصروفات منزلية.');
+          return ActionExecution(message: 'لا توجد مصروفات منزلية لشهر $month.');
         }
         return ActionExecution(
           message: expenses.map((expense) =>
@@ -178,19 +189,62 @@ final class ActionRegistry {
           ).join('؛ '),
         );
       case 'read_debts':
-        final debts = await _debts.watchAll().first;
+        final now = DateTime.now();
+        final month = _selectedMonth ?? MonthKey(year: now.year, month: now.month);
+        final debts = (await _debts.watchAll().first)
+            .where((debt) => debt.dueMonth == month)
+            .toList(growable: false);
         if (debts.isEmpty) {
-          return const ActionExecution(message: 'لا توجد ديون مسجلة.');
+          return ActionExecution(message: 'لا توجد ديون مسجلة لشهر $month.');
         }
         return ActionExecution(
           message: debts.map((debt) =>
             '${debt.id}: ${debt.direction.name}، ${debt.counterparty}، المتبقي ${debt.outstandingAmount.minorUnits}'
           ).join('؛ '),
         );
+      case 'read_work_transfers':
+        final now = DateTime.now();
+        final month = _selectedMonth ?? MonthKey(year: now.year, month: now.month);
+        final transfers = (await _work.watchTransfers().first).where((item) {
+          final date = item.transferredAt.toLocal();
+          return date.year == month.year && date.month == month.month;
+        }).toList(growable: false);
+        if (transfers.isEmpty) {
+          return ActionExecution(message: 'لا توجد تحويلات إلى المنزل لشهر $month.');
+        }
+        return ActionExecution(
+          message: transfers.map((item) =>
+            '${item.id}: ${item.amount.minorUnits}، ${item.transferredAt.toLocal().toIso8601String().split('T').first}'
+          ).join('؛ '),
+        );
+      case 'read_debt_payments':
+        final payments = await _debts.watchPayments(p['debtId']! as String).first;
+        if (payments.isEmpty) {
+          return const ActionExecution(message: 'لا توجد دفعات مسجلة لهذا الدين.');
+        }
+        return ActionExecution(
+          message: payments.map((payment) =>
+            '${payment.id}: ${payment.amount.minorUnits}، ${payment.paidAt.toLocal().toIso8601String().split('T').first}'
+          ).join('؛ '),
+        );
+      case 'read_home_bill_payments':
+        final payments = await _bills.paymentsFor(p['billId']! as String);
+        if (payments.isEmpty) {
+          return const ActionExecution(message: 'لا توجد دفعات مسجلة لهذه الفاتورة.');
+        }
+        return ActionExecution(
+          message: payments.map((payment) =>
+            '${payment.id}: ${payment.amount.minorUnits}، ${payment.paidAt.toLocal().toIso8601String().split('T').first}'
+          ).join('؛ '),
+        );
       case 'read_home_bills':
-        final bills = await _bills.getBills();
+        final now = DateTime.now();
+        final month = _selectedMonth ?? MonthKey(year: now.year, month: now.month);
+        final bills = (await _bills.getBills())
+            .where((bill) => bill.dueMonth == month)
+            .toList(growable: false);
         if (bills.isEmpty) {
-          return const ActionExecution(message: 'لا توجد فواتير أو إيجارات مسجلة.');
+          return ActionExecution(message: 'لا توجد فواتير أو إيجارات مسجلة لشهر $month.');
         }
         final summary = bills.map((bill) =>
           '${bill.id}: ${bill.title} (${bill.dueMonth}): المتبقي ${bill.remainingMinorUnits}'
@@ -267,7 +321,9 @@ final class ActionRegistry {
     'save_home_bill' => const {'title': String, 'kind': String, 'amountMinorUnits': int, 'year': int, 'month': int, 'id': String, 'note': String},
     'delete_home_bill' => const {'id': String},
     'record_home_bill_payment' => const {'billId': String, 'amountMinorUnits': int, 'note': String},
-    'read_home_bills' || 'read_work_records' || 'read_home_expenses' || 'read_debts' => const {},
+    'read_home_bills' || 'read_work_records' || 'read_home_expenses' || 'read_debts' || 'read_work_transfers' => const {},
+    'read_debt_payments' => const {'debtId': String},
+    'read_home_bill_payments' => const {'billId': String},
     'save_work_home_transfer' => const {'amountMinorUnits': int, 'id': String, 'date': String, 'note': String},
     'save_debt' => const {'amountMinorUnits': int, 'direction': String, 'counterparty': String, 'year': int, 'month': int, 'id': String, 'note': String},
     'record_debt_payment' => const {'debtId': String, 'amountMinorUnits': int, 'note': String},
