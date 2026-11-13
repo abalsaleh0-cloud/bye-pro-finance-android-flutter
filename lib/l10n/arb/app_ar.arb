@@ -155,5 +155,6 @@
   "aiReadFileFailed": "تعذر قراءة الملف.",
   "aiMicrophonePermission": "يلزم السماح باستخدام الميكروفون لتسجيل الصوت.",
   "aiRecordingSaveFailed": "تعذر حفظ التسجيل الصوتي.",
-  "aiInvalidRecording": "التسجيل الناتج ليس WAV صالحاً بدقة 16 kHz."
+  "aiInvalidRecording": "التسجيل الناتج ليس WAV صالحاً بدقة 16 kHz.",
+  "aiGemmaRequired": "فعّل Gemma ونزّل النموذج أولاً لاستخدام الصور والصوت."
 }
