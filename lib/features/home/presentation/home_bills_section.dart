@@ -94,6 +94,11 @@ class HomeBillsSection extends ConsumerWidget {
                 paidAt: paymentDate,
               ));
               ref.invalidate(homeBillsProvider);
+              ref.invalidate(
+                homeBillPaymentsForMonthProvider(
+                  MonthKey(year: paymentDate.year, month: paymentDate.month),
+                ),
+              );
               if (dialogContext.mounted) Navigator.pop(dialogContext);
             } on InsufficientBillPaymentBalanceException catch (exception) {
               setState(() => error = strings.insufficientHomeBalance(exception.availableMinorUnits.toString(), value.toString()));
