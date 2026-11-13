@@ -662,4 +662,76 @@ void main() {
     expect(await database.select(database.workEntries).get(), hasLength(1));
   });
 
+
+  test('debt edits cannot desynchronize outstanding balance from payment ledger', () async {
+    final repository = DebtRepository(database);
+    await repository.save(
+      DebtEntry(
+        id: 'debt-ledger-integrity',
+        direction: DebtDirection.debtor,
+        originalAmount: Money.fromMinorUnits(1000),
+        outstandingAmount: Money.fromMinorUnits(1000),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        createdAt: DateTime.utc(2026, 11, 1),
+        counterparty: 'Counterparty',
+      ),
+    );
+    await repository.recordPayment(
+      DebtPayment(
+        id: 'debt-ledger-payment',
+        debtId: 'debt-ledger-integrity',
+        amount: Money.fromMinorUnits(300),
+        paidAt: DateTime.utc(2026, 11, 2),
+      ),
+    );
+
+    await expectLater(
+      repository.save(
+        DebtEntry(
+          id: 'debt-ledger-integrity',
+          direction: DebtDirection.debtor,
+          originalAmount: Money.fromMinorUnits(1200),
+          outstandingAmount: Money.fromMinorUnits(800),
+          dueMonth: MonthKey(year: 2026, month: 12),
+          createdAt: DateTime.utc(2026, 11, 1),
+          counterparty: 'Counterparty updated',
+        ),
+      ),
+      throwsArgumentError,
+    );
+    final saved = (await database.select(database.debts).get()).single;
+    expect(saved.originalAmountMinorUnits, 1000);
+    expect(saved.outstandingAmountMinorUnits, 700);
+    expect(await database.select(database.debtPayments).get(), hasLength(1));
+  });
+
+  test('debt with payment history cannot be deleted accidentally', () async {
+    final repository = DebtRepository(database);
+    await repository.save(
+      DebtEntry(
+        id: 'debt-protected-history',
+        direction: DebtDirection.creditor,
+        originalAmount: Money.fromMinorUnits(500),
+        outstandingAmount: Money.fromMinorUnits(500),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        createdAt: DateTime.utc(2026, 11, 1),
+        counterparty: 'Counterparty',
+      ),
+    );
+    await repository.recordPayment(
+      DebtPayment(
+        id: 'debt-protected-payment',
+        debtId: 'debt-protected-history',
+        amount: Money.fromMinorUnits(100),
+        paidAt: DateTime.utc(2026, 11, 2),
+      ),
+    );
+    await expectLater(
+      repository.delete('debt-protected-history'),
+      throwsStateError,
+    );
+    expect(await database.select(database.debts).get(), hasLength(1));
+    expect(await database.select(database.debtPayments).get(), hasLength(1));
+  });
+
 }

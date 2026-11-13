@@ -31,21 +31,40 @@ final class DebtRepository {
   }
 
   Future<void> save(DebtEntry debt) {
-    return _database
-        .into(_database.debts)
-        .insertOnConflictUpdate(
-          DebtsCompanion.insert(
-            id: debt.id,
-            direction: debt.direction.name,
-            originalAmountMinorUnits: debt.originalAmount.minorUnits,
-            outstandingAmountMinorUnits: debt.outstandingAmount.minorUnits,
-            dueYear: debt.dueMonth.year,
-            dueMonth: debt.dueMonth.month,
-            createdAtEpochMillis: debt.createdAt.millisecondsSinceEpoch,
-            counterparty: debt.counterparty,
-            note: Value(debt.note),
-          ),
+    return _database.transaction(() async {
+      final payments = await (_database.select(_database.debtPayments)
+            ..where((row) => row.debtId.equals(debt.id)))
+          .get();
+      final paidTotal = payments.fold<int>(
+        0,
+        (sum, payment) => sum + payment.amountMinorUnits,
+      );
+      if (payments.isNotEmpty &&
+          debt.outstandingAmount.minorUnits !=
+              debt.originalAmount.minorUnits - paidTotal) {
+        throw ArgumentError(
+          'Outstanding balance must equal original amount minus recorded payments.',
         );
+      }
+      if (debt.originalAmount.minorUnits < paidTotal) {
+        throw ArgumentError(
+          'Original amount cannot be less than recorded payments.',
+        );
+      }
+      await _database.into(_database.debts).insertOnConflictUpdate(
+        DebtsCompanion.insert(
+          id: debt.id,
+          direction: debt.direction.name,
+          originalAmountMinorUnits: debt.originalAmount.minorUnits,
+          outstandingAmountMinorUnits: debt.outstandingAmount.minorUnits,
+          dueYear: debt.dueMonth.year,
+          dueMonth: debt.dueMonth.month,
+          createdAtEpochMillis: debt.createdAt.millisecondsSinceEpoch,
+          counterparty: debt.counterparty,
+          note: Value(debt.note),
+        ),
+      );
+    });
   }
 
   /// Records a payment and reduces the outstanding balance atomically.
@@ -81,9 +100,21 @@ final class DebtRepository {
     });
   }
 
-  Future<void> delete(String id) => (_database.delete(
-    _database.debts,
-  )..where((row) => row.id.equals(id))).go();
+  Future<void> delete(String id) {
+    return _database.transaction(() async {
+      final payments = await (_database.select(_database.debtPayments)
+            ..where((row) => row.debtId.equals(id)))
+          .get();
+      if (payments.isNotEmpty) {
+        throw StateError(
+          'Debt has payment history. Restore or archive it instead of deleting.',
+        );
+      }
+      await (_database.delete(_database.debts)
+            ..where((row) => row.id.equals(id)))
+          .go();
+    });
+  }
 
   /// Restores a deleted debt together with its immutable payment history.
   Future<void> restoreDebt(DebtEntry debt, List<DebtPayment> payments) {
