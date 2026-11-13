@@ -131,7 +131,8 @@ void main() {
     await tester.tap(find.byKey(const Key('work-tab-2')));
     await tester.pumpAndSettle();
 
-    expect(find.text('ملاحظة الراتب'), findsOneWidget);
+    // The note is rendered inside the same multiline subtitle Text as its date.
+    expect(find.textContaining('ملاحظة الراتب'), findsOneWidget);
   });
 }
 
