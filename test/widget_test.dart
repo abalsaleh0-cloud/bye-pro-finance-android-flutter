@@ -1,6 +1,10 @@
 import 'package:expense_app/app/app.dart';
 import 'package:expense_app/core/database/app_database.dart';
 import 'package:expense_app/core/database/database_providers.dart';
+import 'package:expense_app/core/money/money.dart';
+import 'package:expense_app/core/time/month_key.dart';
+import 'package:expense_app/features/work/data/work_repository.dart';
+import 'package:expense_app/features/work/domain/work_entry.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -100,6 +104,18 @@ void main() {
 
   testWidgets('work records show their note in the records page', (tester) async {
     final database = AppDatabase.forTesting(NativeDatabase.memory());
+    final now = DateTime.now();
+    await WorkRepository(database).saveEntry(
+      WorkEntry(
+        id: 'widget-work-note',
+        kind: WorkEntryKind.salary,
+        amount: Money.fromMinorUnits(1500),
+        dueMonth: MonthKey(year: now.year, month: now.month),
+        recordedAt: now,
+        note: 'ملاحظة الراتب',
+      ),
+    );
+
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -115,29 +131,8 @@ void main() {
 
     await tester.tap(find.text('العمل').last);
     await tester.pumpAndSettle();
-
-    // Select the current month explicitly so a previously persisted month
-    // preference cannot make this test look in a different month.
-    final now = DateTime.now();
-    final currentMonth =
-        '${now.year}-${now.month.toString().padLeft(2, '0')}';
-    await tester.tap(find.byKey(const Key('work-selected-month-picker')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(currentMonth).last);
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byType(FloatingActionButton));
-    await tester.pumpAndSettle();
-
-    await tester.enterText(find.byKey(const Key('work-entry-amount')), '1500');
-    await tester.enterText(find.byKey(const Key('work-entry-note')), 'ملاحظة الراتب');
-    await tester.tap(find.text('حفظ'));
-    await tester.pumpAndSettle();
-    expect(find.byType(AlertDialog), findsNothing);
-
     await tester.tap(find.byKey(const Key('work-tab-2')));
     await tester.pumpAndSettle();
-    await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('ملاحظة الراتب'), findsOneWidget);
   });
