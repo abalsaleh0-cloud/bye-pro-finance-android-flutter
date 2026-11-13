@@ -2,6 +2,7 @@ import 'package:drift/native.dart';
 import 'package:expense_app/core/database/app_database.dart';
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
+import 'package:expense_app/features/ai/data/gemma_model_manager.dart';
 import 'package:expense_app/features/ai/domain/action_registry.dart';
 import 'package:expense_app/features/ai/domain/assistant_engine.dart';
 import 'package:expense_app/features/ai/domain/gemma_assistant_engine.dart';
@@ -237,5 +238,13 @@ void main() {
     final result = await registry.execute('read_work_remaining', {});
 
     expect(result.message, 'الباقي في العمل: 300');
+  });
+
+  test('runs Gemma storage cleanup hook when recovery is requested', () async {
+    var called = false;
+    await cleanupGemmaInterruptedStorage(cleanup: () async {
+      called = true;
+    });
+    expect(called, isTrue);
   });
 }

@@ -7,6 +7,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum GemmaModelStatus { notDownloaded, downloading, ready, error }
 
+Future<void> cleanupGemmaInterruptedStorage({
+  Future<void> Function()? cleanup,
+}) async {
+  try {
+    await (cleanup ?? FlutterEdgeAi.performCleanup)();
+  } catch (_) {
+    // Cleanup is best-effort and must never block model recovery or retries.
+  }
+}
+
 class GemmaModelState {
   const GemmaModelState({
     this.status = GemmaModelStatus.notDownloaded,
@@ -71,6 +81,7 @@ class GemmaModelManager extends Notifier<GemmaModelState>
   }
 
   Future<void> refresh() async {
+    await cleanupGemmaInterruptedStorage();
     try {
       final installed = await FlutterEdgeAi.isModelInstalled(modelFileName);
       if (!installed) {
@@ -132,6 +143,7 @@ class GemmaModelManager extends Notifier<GemmaModelState>
         progress: 100,
       );
     } catch (error) {
+      await cleanupGemmaInterruptedStorage();
       if (CancelToken.isCancel(error)) {
         state = const GemmaModelState(
           status: GemmaModelStatus.notDownloaded,
