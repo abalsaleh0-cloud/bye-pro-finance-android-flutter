@@ -4,10 +4,14 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 class AppShell extends StatelessWidget {
-  const AppShell({required this.location, required this.child, super.key});
+  const AppShell({
+    required this.location,
+    required this.navigationShell,
+    super.key,
+  });
 
   final String location;
-  final Widget child;
+  final StatefulNavigationShell navigationShell;
 
   static const _paths = ['/dashboard', '/work', '/home', '/debts', '/ai'];
   static const _icons = [
@@ -20,7 +24,7 @@ class AppShell extends StatelessWidget {
 
   int get _selectedIndex {
     final index = _paths.indexOf(location);
-    return index < 0 ? 0 : index;
+    return index < 0 ? navigationShell.currentIndex : index;
   }
 
   @override
@@ -58,10 +62,10 @@ class AppShell extends StatelessWidget {
           ),
         ],
       ),
-      body: child,
+      body: navigationShell,
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) => context.go(_paths[index]),
+        selectedIndex: navigationShell.currentIndex,
+        onDestinationSelected: navigationShell.goBranch,
         destinations: List.generate(
           _paths.length,
           (index) => NavigationDestination(
