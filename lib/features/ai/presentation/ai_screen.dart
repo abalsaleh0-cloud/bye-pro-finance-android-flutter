@@ -192,7 +192,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     try {
       final result = await ref.read(assistantEngineProvider).interpret(text, registry.actionNames, media: media);
       if (!mounted) return;
-      if (result.kind == AssistantResultKind.clarification) {
+      if (result.kind == AssistantResultKind.clarification || result.kind == AssistantResultKind.answer) {
         setState(() => ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(result.message ?? 'يرجى التوضيح.')));
       } else if (result.kind == AssistantResultKind.notUnderstood || result.command == null) {
         setState(() => ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(strings.assistantNotUnderstood)));
