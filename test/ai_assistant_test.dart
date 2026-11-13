@@ -1,4 +1,7 @@
 import 'package:drift/native.dart';
+import 'package:expense_app/core/money/money.dart';
+import 'package:expense_app/core/time/month_key.dart';
+import 'package:expense_app/features/work/domain/work_entry.dart';
 import 'package:expense_app/core/database/app_database.dart';
 import 'package:expense_app/features/ai/domain/action_registry.dart';
 import 'package:expense_app/features/ai/domain/assistant_confirmation.dart';
@@ -112,6 +115,15 @@ void main() {
     });
     tearDown(() => database.close());
 
+    Future<void> seedWorkCash() async {
+      final now = DateTime.now();
+      await WorkRepository(database).saveEntry(WorkEntry(
+        id: 'seed-cash', kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(500),
+        dueMonth: MonthKey(year: now.year, month: now.month), recordedAt: now,
+      ));
+    }
+
     test('validates required fields and types before execution', () async {
       expect(registry.validate('save_work_entry', {'kind':'salary'}), isNotNull);
       expect(registry.validate('save_work_entry', {
@@ -143,10 +155,12 @@ void main() {
     });
 
     test('creates and undoes home expense', () async {
-      await registry.execute('save_work_home_transfer', {'amountMinorUnits':500});
+      await seedWorkCash();
+      await registry.execute('save_work_home_transfer', {'amountMinorUnits':500, 'date': DateTime.now().toIso8601String()});
+      final now = DateTime.now();
       final result = await registry.execute('save_home_expense', {
-        'amountMinorUnits':250,'categoryId':'food','date':'2026-11-12',
-        'year':2026,'month':11,
+        'amountMinorUnits':250,'categoryId':'food','date':now.toIso8601String(),
+        'year':now.year,'month':now.month,
       });
       expect(await database.select(database.homeExpenses).get(), hasLength(1));
       await result.undo!();
@@ -154,10 +168,12 @@ void main() {
     });
 
     test('deletes and undoes home expense', () async {
-      await registry.execute('save_work_home_transfer', {'amountMinorUnits':500});
+      await seedWorkCash();
+      await registry.execute('save_work_home_transfer', {'amountMinorUnits':500, 'date': DateTime.now().toIso8601String()});
+      final now = DateTime.now();
       await registry.execute('save_home_expense', {
-        'amountMinorUnits':250,'categoryId':'food','date':'2026-11-12',
-        'year':2026,'month':11,'id':'h1',
+        'amountMinorUnits':250,'categoryId':'food','date':now.toIso8601String(),
+        'year':now.year,'month':now.month,'id':'h1',
       });
       final result = await registry.execute('delete_home_expense', {'id':'h1'});
       await result.undo!();
@@ -165,14 +181,16 @@ void main() {
     });
 
     test('creates and undoes work-to-home transfer', () async {
-      final result = await registry.execute('save_work_home_transfer', {'amountMinorUnits':500});
+      await seedWorkCash();
+      final result = await registry.execute('save_work_home_transfer', {'amountMinorUnits':500, 'date': DateTime.now().toIso8601String()});
       expect(await database.select(database.workHomeTransfers).get(), hasLength(1));
       await result.undo!();
       expect(await database.select(database.workHomeTransfers).get(), isEmpty);
     });
 
     test('deletes and undoes transfer', () async {
-      await registry.execute('save_work_home_transfer', {'amountMinorUnits':500,'id':'t1'});
+      await seedWorkCash();
+      await registry.execute('save_work_home_transfer', {'amountMinorUnits':500,'id':'t1','date':DateTime.now().toIso8601String()});
       final result = await registry.execute('delete_work_home_transfer', {'id':'t1'});
       await result.undo!();
       expect(await database.select(database.workHomeTransfers).get(), hasLength(1));
@@ -216,15 +234,16 @@ void main() {
     });
 
     test('assistant can create, list, and record a household bill payment', () async {
+      await seedWorkCash();
       await registry.execute('save_work_home_transfer', {
-        'amountMinorUnits': 500,
+        'amountMinorUnits': 500, 'date': DateTime.now().toIso8601String(),
       });
       await registry.execute('save_home_bill', {
         'title': 'Internet',
         'kind': 'monthly',
         'amountMinorUnits': 400,
-        'year': 2026,
-        'month': 11,
+        'year': DateTime.now().year,
+        'month': DateTime.now().month,
         'id': 'internet-nov',
       });
 
