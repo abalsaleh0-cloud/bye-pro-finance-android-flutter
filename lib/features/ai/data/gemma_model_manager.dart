@@ -10,6 +10,41 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum GemmaModelStatus { notDownloaded, downloading, ready, error }
 
+class ModelReleaseCoordinator {
+  int _activeOperations = 0;
+  bool _releaseRequested = false;
+  Completer<void>? _pendingRelease;
+
+  void beginOperation() {
+    _activeOperations++;
+  }
+
+  Future<void> requestRelease(Future<void> Function() release) async {
+    if (_activeOperations == 0) {
+      await release();
+      return;
+    }
+    _releaseRequested = true;
+    return (_pendingRelease ??= Completer<void>()).future;
+  }
+
+  Future<void> finishOperation(Future<void> Function() release) async {
+    if (_activeOperations == 0) return;
+    _activeOperations--;
+    if (_activeOperations != 0 || !_releaseRequested) return;
+    final pending = _pendingRelease;
+    _pendingRelease = null;
+    _releaseRequested = false;
+    try {
+      await release();
+      if (pending != null && !pending.isCompleted) pending.complete();
+    } catch (error, stackTrace) {
+      if (pending != null && !pending.isCompleted) pending.completeError(error, stackTrace);
+      rethrow;
+    }
+  }
+}
+
 class GemmaModelState {
   const GemmaModelState({
     this.status = GemmaModelStatus.notDownloaded,
@@ -62,15 +97,14 @@ class GemmaModelManager extends Notifier<GemmaModelState>
   Timer? _idleTimer;
   bool _modelSupportsImage = false;
   bool _modelSupportsAudio = false;
+  final ModelReleaseCoordinator _releaseCoordinator = ModelReleaseCoordinator();
 
   @override
   GemmaModelState build() {
     unawaited(refresh());
     ref.onDispose(() {
       _idleTimer?.cancel();
-      final model = _model;
-      _model = null;
-      if (model != null) unawaited(model.close());
+      unawaited(releaseModel());
     });
     return const GemmaModelState();
   }
@@ -216,6 +250,7 @@ class GemmaModelManager extends Notifier<GemmaModelState>
       throw StateError('Gemma model is not ready');
     }
 
+    _releaseCoordinator.beginOperation();
     try {
       await _checkMultimodalMemory(media);
       final supportImage = media?.hasImage ?? false;
@@ -305,6 +340,8 @@ class GemmaModelManager extends Notifier<GemmaModelState>
         }
       }
       rethrow;
+    } finally {
+      await _releaseCoordinator.finishOperation(_closeModel);
     }
   }
 
@@ -317,6 +354,10 @@ class GemmaModelManager extends Notifier<GemmaModelState>
 
   Future<void> releaseModel() async {
     _idleTimer?.cancel();
+    await _releaseCoordinator.requestRelease(_closeModel);
+  }
+
+  Future<void> _closeModel() async {
     final model = _model;
     _model = null;
     _modelSupportsImage = false;
