@@ -179,44 +179,52 @@ void main() {
     final database = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(database.close);
     final work = WorkRepository(database);
+    final now = DateTime.now();
+    final deviceMonth = MonthKey(year: now.year, month: now.month);
+    final selectedMonth = MonthKey(
+      year: now.month == 1 ? now.year - 1 : now.year,
+      month: now.month == 1 ? 12 : now.month - 1,
+    );
+    final selectedDate = DateTime.utc(selectedMonth.year, selectedMonth.month, 15);
+    final deviceDate = DateTime.utc(deviceMonth.year, deviceMonth.month, 15);
     await work.saveEntry(WorkEntry(
       id: 'selected-month-advance',
       kind: WorkEntryKind.advance,
       amount: Money.fromMinorUnits(400),
-      dueMonth: MonthKey(year: 2026, month: 10),
-      recordedAt: DateTime.utc(2026, 10, 2),
+      dueMonth: selectedMonth,
+      recordedAt: selectedDate,
     ));
     await work.saveEntry(WorkEntry(
       id: 'selected-month-payment',
       kind: WorkEntryKind.salaryPayment,
       amount: Money.fromMinorUnits(200),
-      dueMonth: MonthKey(year: 2026, month: 10),
-      recordedAt: DateTime.utc(2026, 10, 5),
+      dueMonth: selectedMonth,
+      recordedAt: selectedDate,
     ));
     await work.saveEntry(WorkEntry(
       id: 'selected-month-salary',
       kind: WorkEntryKind.salary,
       amount: Money.fromMinorUnits(1500),
-      dueMonth: MonthKey(year: 2026, month: 10),
-      recordedAt: DateTime.utc(2026, 10, 1),
+      dueMonth: selectedMonth,
+      recordedAt: selectedDate,
     ));
     await work.saveTransfer(WorkHomeTransfer(
       id: 'selected-month-transfer',
       amount: Money.fromMinorUnits(300),
-      transferredAt: DateTime.utc(2026, 10, 6),
+      transferredAt: selectedDate,
     ));
 
     await work.saveEntry(WorkEntry(
       id: 'device-month-advance',
       kind: WorkEntryKind.advance,
       amount: Money.fromMinorUnits(900),
-      dueMonth: MonthKey(year: 2026, month: 11),
-      recordedAt: DateTime.utc(2026, 11, 2),
+      dueMonth: deviceMonth,
+      recordedAt: deviceDate,
     ));
     await work.saveTransfer(WorkHomeTransfer(
       id: 'device-month-transfer',
       amount: Money.fromMinorUnits(100),
-      transferredAt: DateTime.utc(2026, 11, 6),
+      transferredAt: deviceDate,
     ));
 
     final registry = ActionRegistry(
@@ -224,7 +232,7 @@ void main() {
       home: HomeExpenseRepository(database),
       bills: HomeBillRepository(database),
       debts: DebtRepository(database),
-      selectedMonth: MonthKey(year: 2026, month: 10),
+      selectedMonth: selectedMonth,
     );
     final result = await registry.execute('read_work_remaining', {});
 
