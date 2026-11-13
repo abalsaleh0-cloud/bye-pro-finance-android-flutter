@@ -334,7 +334,7 @@ class GemmaModelManager extends Notifier<GemmaModelState>
           error: 'تعذر تشغيل Gemma (${error.runtimeType}). تم الاحتفاظ بالنموذج؛ أغلق التطبيقات الأخرى وأعد المحاولة.',
         );
         try {
-          await releaseModel();
+          unawaited(releaseModel());
         } catch (_) {
           // Preserve the inference error and let the app use its fallback.
         }
