@@ -148,14 +148,6 @@ final class WorkRepository {
           requestedMinorUnits: transfer.amount.minorUnits,
         );
       }
-      if (previous != null && previousInTargetMonth == 0 &&
-          transfer.amount.minorUnits > 0 &&
-          transferredAfter > received) {
-        throw InsufficientWorkBalanceException(
-          availableMinorUnits: received - transferredBefore,
-          requestedMinorUnits: transfer.amount.minorUnits,
-        );
-      }
       final committed = await _homeCommittedAmount(year, month);
       if (transferredAfter < committed) {
         throw TransferWouldOverdrawHomeException(
