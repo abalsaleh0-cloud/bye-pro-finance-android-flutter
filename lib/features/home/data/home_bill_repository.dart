@@ -119,6 +119,22 @@ final class HomeBillRepository {
     });
   }
 
+  /// Reverts a recorded bill payment without changing any other payment.
+  Future<void> undoPayment(String paymentId) async {
+    await ensureTables();
+    final rows = await _database.customSelect(
+      'SELECT id FROM home_bill_payments WHERE id = ?',
+      variables: [Variable.withString(paymentId)],
+    ).get();
+    if (rows.isEmpty) {
+      throw StateError('Bill payment not found: $paymentId');
+    }
+    await _database.customStatement(
+      'DELETE FROM home_bill_payments WHERE id = ?',
+      [paymentId],
+    );
+  }
+
   /// Returns the unpaid portion of bills due in [month].
   ///
   /// Payments are already counted as cash outflow in the month they were made,
