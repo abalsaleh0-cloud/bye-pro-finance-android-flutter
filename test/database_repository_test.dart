@@ -21,6 +21,15 @@ void main() {
 
   test('persists home expenses with integer money and due month', () async {
     final workRepository = WorkRepository(database);
+    await workRepository.saveEntry(
+      WorkEntry(
+        id: 'fund-home-1-cash',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(2000),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 9),
+      ),
+    );
     await workRepository.saveTransfer(
       WorkHomeTransfer(
         id: 'fund-home-1',
@@ -166,6 +175,15 @@ void main() {
   );
 
   test('supports updating and deleting home expenses', () async {
+    await WorkRepository(database).saveEntry(
+      WorkEntry(
+        id: 'fund-home-crud-cash',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(300),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
     await WorkRepository(database).saveTransfer(
       WorkHomeTransfer(
         id: 'fund-home-crud',
@@ -201,6 +219,15 @@ void main() {
   });
 
   test('rejects an expense above transferred balance without saving it', () async {
+    await WorkRepository(database).saveEntry(
+      WorkEntry(
+        id: 'fund-home-limit-cash',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(1000),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
     await WorkRepository(database).saveTransfer(
       WorkHomeTransfer(
         id: 'fund-home-limit',
@@ -229,6 +256,15 @@ void main() {
   });
 
   test('editing an expense restores its old amount before balance check', () async {
+    await WorkRepository(database).saveEntry(
+      WorkEntry(
+        id: 'fund-home-edit-cash',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(1000),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
     await WorkRepository(database).saveTransfer(
       WorkHomeTransfer(
         id: 'fund-home-edit',
@@ -334,6 +370,15 @@ void main() {
 
   test('supports updating and deleting a work-home transfer', () async {
     final repository = WorkRepository(database);
+    await repository.saveEntry(
+      WorkEntry(
+        id: 'transfer-crud-cash',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(450),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
     final original = WorkHomeTransfer(
       id: 'transfer-crud',
       amount: Money.fromMinorUnits(300),
@@ -357,6 +402,15 @@ void main() {
   });
 
   test('editing a bill preserves its payment history', () async {
+    await WorkRepository(database).saveEntry(
+      WorkEntry(
+        id: 'bill-edit-funding-cash',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(2000),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
     await WorkRepository(database).saveTransfer(
       WorkHomeTransfer(
         id: 'bill-edit-funding',
@@ -424,6 +478,15 @@ void main() {
   });
 
   test('monthly bills remain obligations until payments are made', () async {
+    await WorkRepository(database).saveEntry(
+      WorkEntry(
+        id: 'bill-funding-cash',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(1000),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
     await WorkRepository(database).saveTransfer(
       WorkHomeTransfer(
         id: 'bill-funding',
@@ -468,6 +531,15 @@ void main() {
   });
 
   test('rent can be paid in installments and cannot exceed home cash balance', () async {
+    await WorkRepository(database).saveEntry(
+      WorkEntry(
+        id: 'rent-funding-cash',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(1000),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
     await WorkRepository(database).saveTransfer(
       WorkHomeTransfer(
         id: 'rent-funding',
@@ -519,6 +591,15 @@ void main() {
   });
 
   test('bill payments cannot exceed the outstanding bill amount', () async {
+    await WorkRepository(database).saveEntry(
+      WorkEntry(
+        id: 'bill-overpay-funding-cash',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(1000),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
     await WorkRepository(database).saveTransfer(
       WorkHomeTransfer(
         id: 'bill-overpay-funding',
