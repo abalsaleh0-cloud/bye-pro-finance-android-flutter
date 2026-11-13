@@ -47,6 +47,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   ActionRegistry _registry() => ActionRegistry(
     work: ref.read(workRepositoryProvider),
     home: ref.read(homeExpenseRepositoryProvider),
+    bills: ref.read(homeBillRepositoryProvider),
     debts: ref.read(debtRepositoryProvider),
   );
 
