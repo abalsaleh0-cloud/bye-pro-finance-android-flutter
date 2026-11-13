@@ -14,11 +14,12 @@ import 'package:material_ui/material_ui.dart';
 enum HomeScreenMode { overview, transfers, dailyExpenses, monthlyBills }
 
 class HomeScreen extends ConsumerStatefulWidget {
-  const HomeScreen({super.key, this.openManualEntry = false, this.mode = HomeScreenMode.overview, this.initialMonth});
+  const HomeScreen({super.key, this.openManualEntry = false, this.mode = HomeScreenMode.overview, this.initialMonth, this.swipePage = false});
 
   final bool openManualEntry;
   final HomeScreenMode mode;
   final MonthKey? initialMonth;
+  final bool swipePage;
 
   @override
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
@@ -27,6 +28,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _manualEntryOpened = false;
   MonthKey? _selectedMonth;
+  int _activePage = 0;
 
   @override
   void initState() {
@@ -280,9 +282,58 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ));
   }
 
+  Widget _buildSwipeShell(AppLocalizations strings) {
+    final pages = <HomeScreenMode>[
+      HomeScreenMode.overview,
+      HomeScreenMode.transfers,
+      HomeScreenMode.dailyExpenses,
+      HomeScreenMode.monthlyBills,
+    ];
+    return Scaffold(
+      appBar: AppBar(title: Text(strings.homeSection)),
+      body: PageView(
+        onPageChanged: (index) => setState(() => _activePage = index),
+        children: [
+          for (final mode in pages)
+            HomeScreen(
+              mode: mode,
+              initialMonth: _selectedMonth,
+              swipePage: true,
+            ),
+        ],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _activePage,
+        onDestinationSelected: (index) => setState(() => _activePage = index),
+        destinations: [
+          NavigationDestination(
+            icon: const Icon(Icons.dashboard_outlined),
+            selectedIcon: const Icon(Icons.dashboard),
+            label: strings.sectionOverview,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.swap_horiz),
+            label: strings.receivedFromWork,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.shopping_basket_outlined),
+            label: strings.dailyExpenses,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.receipt_long_outlined),
+            label: strings.monthlyBills,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
+    if (!widget.swipePage && widget.mode == HomeScreenMode.overview) {
+      return _buildSwipeShell(strings);
+    }
     final expenses = ref.watch(homeExpensesProvider);
     final transfers = ref.watch(workTransfersProvider);
     final bills = ref.watch(homeBillsProvider);
@@ -309,7 +360,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final billsPage = widget.mode == HomeScreenMode.monthlyBills;
     final pageTitle = transferPage ? strings.receivedFromWork : expensePage ? strings.dailyExpenses : strings.monthlyBills;
     return Scaffold(
-      appBar: overview ? null : AppBar(title: Text(pageTitle)),
+      appBar: overview || widget.swipePage ? null : AppBar(title: Text(pageTitle)),
       floatingActionButton: expensePage
           ? FloatingActionButton(onPressed: () => _editExpense(context, ref, strings), tooltip: strings.addExpense, child: const Icon(Icons.add))
           : null,
@@ -324,9 +375,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         if (overview) ...[
           _homeSummaryCard(context, strings, expenses.value ?? const [], transfers.value ?? const [], bills.value ?? const [], selectedMonth, billPayments.value ?? 0),
           const SizedBox(height: 16),
-          _sectionTile(context, Icons.swap_horiz, strings.receivedFromWork, HomeScreenMode.transfers),
-          _sectionTile(context, Icons.shopping_basket_outlined, strings.dailyExpenses, HomeScreenMode.dailyExpenses),
-          _sectionTile(context, Icons.receipt_long_outlined, strings.monthlyBills, HomeScreenMode.monthlyBills),
         ],
         if (transferPage) ...[
           transfers.when(
