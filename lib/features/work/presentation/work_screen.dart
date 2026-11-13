@@ -13,11 +13,12 @@ import 'package:material_ui/material_ui.dart';
 enum WorkScreenMode { overview, records, transfers }
 
 class WorkScreen extends ConsumerStatefulWidget {
-  const WorkScreen({super.key, this.openManualEntry = false, this.mode = WorkScreenMode.overview, this.initialMonth});
+  const WorkScreen({super.key, this.openManualEntry = false, this.mode = WorkScreenMode.overview, this.initialMonth, this.swipePage = false});
 
   final bool openManualEntry;
   final WorkScreenMode mode;
   final MonthKey? initialMonth;
+  final bool swipePage;
 
   @override
   ConsumerState<WorkScreen> createState() => _WorkScreenState();
@@ -26,6 +27,7 @@ class WorkScreen extends ConsumerStatefulWidget {
 class _WorkScreenState extends ConsumerState<WorkScreen> {
   bool _manualEntryOpened = false;
   MonthKey? _selectedMonth;
+  int _activePage = 0;
 
   @override
   void initState() {
@@ -468,9 +470,53 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
     ));
   }
 
+  Widget _buildSwipeShell(AppLocalizations strings) {
+    final pages = <WorkScreenMode>[
+      WorkScreenMode.overview,
+      WorkScreenMode.transfers,
+      WorkScreenMode.records,
+    ];
+    return Scaffold(
+      appBar: AppBar(title: Text(strings.workSection)),
+      body: PageView(
+        onPageChanged: (index) => setState(() => _activePage = index),
+        children: [
+          for (final mode in pages)
+            WorkScreen(
+              mode: mode,
+              initialMonth: _selectedMonth,
+              swipePage: true,
+            ),
+        ],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _activePage,
+        onDestinationSelected: (index) => setState(() => _activePage = index),
+        destinations: [
+          NavigationDestination(
+            icon: const Icon(Icons.dashboard_outlined),
+            selectedIcon: const Icon(Icons.dashboard),
+            label: strings.sectionOverview,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.swap_horiz),
+            label: strings.transfers,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.receipt_long_outlined),
+            label: strings.entries,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
+    if (!widget.swipePage && widget.mode == WorkScreenMode.overview) {
+      return _buildSwipeShell(strings);
+    }
     final entries = ref.watch(workEntriesProvider);
     final transfers = ref.watch(workTransfersProvider);
     final now = DateTime.now();
@@ -488,8 +534,8 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
     final records = widget.mode == WorkScreenMode.records;
     final transferPage = widget.mode == WorkScreenMode.transfers;
     return Scaffold(
-      appBar: overview ? null : AppBar(title: Text(records ? strings.entries : strings.transfers)),
-      floatingActionButton: records
+      appBar: overview || widget.swipePage ? null : AppBar(title: Text(records ? strings.entries : strings.transfers)),
+      floatingActionButton: overview
           ? FloatingActionButton(onPressed: () => _editEntry(context, ref, strings), tooltip: strings.addEntry, child: const Icon(Icons.add))
           : transferPage
               ? FloatingActionButton(onPressed: () => _editTransfer(context, ref, strings), tooltip: strings.addTransfer, child: const Icon(Icons.add))
@@ -505,8 +551,6 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
         if (overview) ...[
           _workSummaryCard(context, strings, entries.value ?? const [], transfers.value ?? const []),
           const SizedBox(height: 16),
-          _sectionTile(context, Icons.receipt_long_outlined, strings.entries, WorkScreenMode.records),
-          _sectionTile(context, Icons.swap_horiz, strings.transfers, WorkScreenMode.transfers),
         ],
         if (records) ...[
           Text(strings.entries, style: Theme.of(context).textTheme.titleMedium),
