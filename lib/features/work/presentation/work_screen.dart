@@ -108,6 +108,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                   },
                 ),
                 TextField(
+                  key: const Key('work-entry-amount'),
                   controller: amount,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
@@ -135,6 +136,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                   ),
                 ),
                 TextField(
+                  key: const Key('work-entry-note'),
                   controller: note,
                   decoration: InputDecoration(labelText: strings.note),
                 ),
@@ -204,6 +206,8 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
         ),
       );
     } finally {
+      // Let the dialog route unmount its TextFields before disposing controllers.
+      await WidgetsBinding.instance.endOfFrame;
       amount.dispose();
       due.dispose();
       recordedAt.dispose();
@@ -575,6 +579,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
               : null,
       body: ListView(padding: const EdgeInsets.all(16), children: [
         DropdownButtonFormField<MonthKey>(
+          key: const Key('work-selected-month-picker'),
           initialValue: selectedMonth,
           decoration: InputDecoration(labelText: strings.currentMonth),
           items: allMonths.map((month) => DropdownMenuItem(value: month, child: Text(month.toString()))).toList(),
@@ -602,7 +607,12 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                   Card(child: ListTile(
                     leading: const Icon(Icons.work_outline),
                     title: Text(_kindLabel(strings, entry.kind)),
-                    subtitle: Text('${entry.kind == WorkEntryKind.salaryPayment ? strings.paymentReceivedMonth : strings.dueMonth}: ${entry.dueMonth}'),
+                    subtitle: Text([
+                      '${entry.kind == WorkEntryKind.salaryPayment ? strings.paymentReceivedMonth : strings.dueMonth}: ${entry.dueMonth}',
+                      '${strings.recordedAt}: ${formatCalendarDate(entry.recordedAt)}',
+                      if (entry.note != null && entry.note!.isNotEmpty) entry.note!,
+                    ].join('\n')),
+                    isThreeLine: true,
                     trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                       Text(entry.amount.minorUnits.toString()),
                       IconButton(tooltip: strings.editRecord, icon: const Icon(Icons.edit_outlined), onPressed: () => _editEntry(context, ref, strings, existing: entry)),
@@ -626,7 +636,11 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                 for (final transfer in monthItems)
                   Card(child: ListTile(
                     leading: const Icon(Icons.swap_horiz), title: Text(strings.transferredToHome),
-                    subtitle: Text(transfer.transferredAt.toLocal().toString().split(' ').first),
+                    subtitle: Text([
+                      formatCalendarDate(transfer.transferredAt),
+                      if (transfer.note != null && transfer.note!.isNotEmpty) transfer.note!,
+                    ].join('\n')),
+                    isThreeLine: true,
                     trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                       Text(transfer.amount.minorUnits.toString()),
                       IconButton(tooltip: strings.editRecord, icon: const Icon(Icons.edit_outlined), onPressed: () => _editTransfer(context, ref, strings, existing: transfer)),

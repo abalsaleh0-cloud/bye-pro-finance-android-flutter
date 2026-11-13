@@ -428,7 +428,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 for (final transfer in monthItems)
                   Card(child: ListTile(
                     leading: const Icon(Icons.swap_horiz), title: Text(strings.receivedFromWork),
-                    subtitle: Text(transfer.transferredAt.toLocal().toString().split(' ').first),
+                    subtitle: Text([
+                      formatCalendarDate(transfer.transferredAt),
+                      if (transfer.note != null && transfer.note!.isNotEmpty) transfer.note!,
+                    ].join('\n')),
+                    isThreeLine: true,
                     trailing: Text(transfer.amount.minorUnits.toString()),
                   )),
               ]);
@@ -448,7 +452,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 for (final expense in monthItems)
                   Card(child: ListTile(
                     leading: const Icon(Icons.receipt_long_outlined), title: Text(expense.categoryId),
-                    subtitle: Text('${strings.expenseDate}: ${formatCalendarDate(expense.expenseDate)}'),
+                    subtitle: Text([
+                      '${strings.expenseDate}: ${formatCalendarDate(expense.expenseDate)}',
+                      if (expense.note != null && expense.note!.isNotEmpty) expense.note!,
+                    ].join('\n')),
+                    isThreeLine: true,
                     trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                       Text(expense.amount.minorUnits.toString()),
                       IconButton(tooltip: strings.editRecord, icon: const Icon(Icons.edit_outlined), onPressed: () => _editExpense(context, ref, strings, existing: expense)),

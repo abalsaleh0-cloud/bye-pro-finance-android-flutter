@@ -1,4 +1,9 @@
 import 'package:expense_app/app/app.dart';
+import 'package:expense_app/core/database/database_providers.dart';
+import 'package:expense_app/core/money/money.dart';
+import 'package:expense_app/core/time/month_key.dart';
+import 'package:expense_app/core/time/selected_month_provider.dart';
+import 'package:expense_app/features/work/domain/work_entry.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
@@ -94,4 +99,48 @@ void main() {
       3,
     );
   });
+
+  testWidgets('work records show their note in the records page', (tester) async {
+    final now = DateTime.now();
+    final entry = WorkEntry(
+      id: 'widget-work-note',
+      kind: WorkEntryKind.salary,
+      amount: Money.fromMinorUnits(1500),
+      dueMonth: MonthKey(year: now.year, month: now.month),
+      recordedAt: now,
+      note: 'ملاحظة الراتب',
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          workEntriesProvider.overrideWith((ref) => Stream.value([entry])),
+          selectedMonthProvider.overrideWith(
+            () => _FixedSelectedMonthNotifier(
+              MonthKey(year: now.year, month: now.month),
+            ),
+          ),
+        ],
+        child: const MyApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('العمل').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('work-tab-2')));
+    await tester.pumpAndSettle();
+
+    // The note is rendered inside the same multiline subtitle Text as its date.
+    expect(find.textContaining('ملاحظة الراتب'), findsOneWidget);
+  });
+}
+
+class _FixedSelectedMonthNotifier extends SelectedMonthNotifier {
+  _FixedSelectedMonthNotifier(this.month);
+
+  final MonthKey month;
+
+  @override
+  MonthKey build() => month;
 }
