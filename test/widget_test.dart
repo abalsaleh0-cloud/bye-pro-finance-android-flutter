@@ -104,9 +104,8 @@ void main() {
     await tester.tap(find.byType(FloatingActionButton));
     await tester.pumpAndSettle();
 
-    final fields = find.byType(TextField);
-    await tester.enterText(fields.at(0), '1500');
-    await tester.enterText(fields.at(3), 'ملاحظة الراتب');
+    await tester.enterText(find.byKey(const Key('work-entry-amount')), '1500');
+    await tester.enterText(find.byKey(const Key('work-entry-note')), 'ملاحظة الراتب');
     await tester.tap(find.text('حفظ'));
     await tester.pumpAndSettle();
 
