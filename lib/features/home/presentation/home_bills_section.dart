@@ -9,7 +9,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 class HomeBillsSection extends ConsumerWidget {
-  const HomeBillsSection({super.key});
+  const HomeBillsSection({super.key, this.selectedMonth});
+
+  final MonthKey? selectedMonth;
 
   Future<void> _addBill(BuildContext context, WidgetRef ref, AppLocalizations strings, HomeBillKind kind) async {
     final title = TextEditingController();
@@ -136,9 +138,13 @@ class HomeBillsSection extends ConsumerWidget {
       bills.when(
         loading: () => Text(strings.loading),
         error: (error, stack) => Text(strings.dataError),
-        data: (items) => items.isEmpty
+        data: (items) {
+          final monthItems = selectedMonth == null
+              ? items
+              : items.where((bill) => bill.dueMonth == selectedMonth).toList();
+          return monthItems.isEmpty
           ? Text(strings.noBills)
-          : Column(children: items.map((bill) {
+          : Column(children: monthItems.map((bill) {
               final status = bill.isSettled ? strings.billStatusPaid : bill.paidMinorUnits > 0 ? strings.billStatusPartial : strings.billStatusUnpaid;
               return Card(child: ListTile(
                 leading: Icon(bill.kind == HomeBillKind.rent ? Icons.home_outlined : Icons.receipt_long_outlined),
@@ -160,7 +166,8 @@ class HomeBillsSection extends ConsumerWidget {
                   ],
                 ),
               ));
-            }).toList()),
+            }).toList());
+        },
       ),
     ]);
   }
