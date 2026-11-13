@@ -33,6 +33,33 @@ class GemmaModelSettingsSection extends ConsumerWidget {
     }
   }
 
+  Future<void> _confirmDelete(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations strings,
+  ) async {
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(strings.gemmaDeleteModel),
+        content: Text(strings.gemmaDeleteModelWarning),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(strings.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(strings.delete),
+          ),
+        ],
+      ),
+    );
+    if (accepted == true) {
+      await ref.read(gemmaModelManagerProvider.notifier).deleteModel();
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final strings = AppLocalizations.of(context)!;
@@ -76,7 +103,7 @@ class GemmaModelSettingsSection extends ConsumerWidget {
                   )
                 else if (model.status == GemmaModelStatus.ready)
                   OutlinedButton(
-                    onPressed: manager.deleteModel,
+                    onPressed: () => _confirmDelete(context, ref, strings),
                     child: Text(strings.gemmaDeleteModel),
                   )
                 else ...[
