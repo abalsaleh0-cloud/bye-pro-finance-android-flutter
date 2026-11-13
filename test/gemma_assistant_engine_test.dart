@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:drift/native.dart';
 import 'package:expense_app/core/database/app_database.dart';
 import 'package:expense_app/core/money/money.dart';
@@ -29,14 +31,17 @@ class _FakeGemmaGenerator implements GemmaTurnGenerator {
   final GemmaModelOutput output;
   List<GemmaFunctionSpec>? receivedFunctions;
   String? receivedInput;
+  AssistantMedia? receivedMedia;
 
   @override
   Future<GemmaModelOutput> generate(
     String userText,
-    List<GemmaFunctionSpec> functions,
-  ) async {
+    List<GemmaFunctionSpec> functions, {
+    AssistantMedia? media,
+  }) async {
     receivedInput = userText;
     receivedFunctions = functions;
+    receivedMedia = media;
     return output;
   }
 }
@@ -49,6 +54,21 @@ void main() {
   ];
 
   group('GemmaAssistantEngine output validation', () {
+    test('forwards image and audio bytes to the turn generator', () async {
+      final imageBytes = Uint8List.fromList([1, 2, 3]);
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.text('ما في الصورة؟'),
+      );
+      await GemmaAssistantEngine(generator).interpret(
+        'صف الصورة',
+        actions,
+        media: AssistantMedia(imageBytes: imageBytes),
+      );
+
+      expect(generator.receivedMedia?.imageBytes, same(imageBytes));
+      expect(generator.receivedMedia?.audioBytes, isNull);
+    });
+
     test('converts a valid function call into a command', () async {
       final generator = _FakeGemmaGenerator(
         const GemmaModelOutput.call('save_work_entry', {
