@@ -269,6 +269,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final currentMonth = MonthKey(year: now.year, month: now.month);
     final selectedMonth = _selectedMonth ?? currentMonth;
     final billPayments = ref.watch(homeBillPaymentsForMonthProvider(selectedMonth));
+    final availableMonths = <MonthKey>{
+      currentMonth,
+      ...(expenses.value ?? const <HomeExpense>[]).map((item) => item.dueMonth),
+      ...(bills.value ?? const <HomeBill>[]).map((item) => item.dueMonth),
+      ...(transfers.value ?? const <WorkHomeTransfer>[]).map((item) {
+        final date = item.transferredAt.toLocal();
+        return MonthKey(year: date.year, month: date.month);
+      }),
+    }.toList()..sort((a, b) => b.compareTo(a));
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         onPressed: () => _editExpense(context, ref, strings),
@@ -281,16 +290,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           DropdownButtonFormField<MonthKey>(
             initialValue: selectedMonth,
             decoration: InputDecoration(labelText: strings.currentMonth),
-            items: <MonthKey>{currentMonth,
-              ...(expenses.value ?? const <HomeExpense>[]).map((item) => item.dueMonth),
-              ...(bills.value ?? const <HomeBill>[]).map((item) => item.dueMonth),
-              ...(transfers.value ?? const <WorkHomeTransfer>[]).map((item) {
-                final date = item.transferredAt.toLocal();
-                return MonthKey(year: date.year, month: date.month);
-              }),
-            }.toList()..sort((a, b) => b.compareTo(a))
-              .map((month) => DropdownMenuItem(value: month, child: Text(month.toString())))
-              .toList(),
+            items: availableMonths.map((month) => DropdownMenuItem(
+              value: month,
+              child: Text(month.toString()),
+            )).toList(),
             onChanged: (month) => setState(() => _selectedMonth = month),
           ),
           const SizedBox(height: 12),
