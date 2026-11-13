@@ -1,6 +1,6 @@
-import 'dart:typed_data';
-
 // ignore_for_file: curly_braces_in_flow_control_structures, prefer_interpolation_to_compose_strings
+
+import 'dart:typed_data';
 
 import 'number_normalizer.dart';
 
