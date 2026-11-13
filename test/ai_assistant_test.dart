@@ -77,7 +77,13 @@ void main() {
 
   group('FakeAssistantEngine', () {
     const engine = FakeAssistantEngine();
-    const actions = ['read_work_remaining', 'read_month_total', 'save_work_entry'];
+    const actions = [
+      'read_work_remaining',
+      'read_month_total',
+      'save_work_entry',
+      'save_work_home_transfer',
+      'save_home_expense',
+    ];
     test('returns a read-only command for remaining balance', () async {
       final result = await engine.interpret('كم الباقي؟', actions);
       expect(result.kind, AssistantResultKind.command);
@@ -90,6 +96,19 @@ void main() {
     test('asks for missing section in monthly query', () async {
       final result = await engine.interpret('مجموع شهر 2026-11', actions);
       expect(result.kind, AssistantResultKind.clarification);
+    });
+    test('routes transfer to home before generic home expense matching', () async {
+      final result = await engine.interpret('حوّل 750 إلى المنزل', actions);
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'save_work_home_transfer');
+      expect(result.command!.parameters['amountMinorUnits'], 750);
+    });
+    test('does not route transfer when transfer action is unavailable', () async {
+      final result = await engine.interpret(
+        'حوّل 750 إلى المنزل',
+        ['read_work_remaining'],
+      );
+      expect(result.kind, AssistantResultKind.notUnderstood);
     });
     test('returns not understood for unsupported input', () async {
       final result = await engine.interpret('افعل شيئاً غير معروف', actions);
