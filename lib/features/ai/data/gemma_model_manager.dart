@@ -80,10 +80,9 @@ class GemmaModelManager extends Notifier<GemmaModelState>
       final path = await FlutterEdgeAi.getModelPath(modelFileName);
       final length = await File(path).length();
       if (length != expectedSize) {
-        await FlutterEdgeAi.uninstallModel(modelFileName);
         state = const GemmaModelState(
           status: GemmaModelStatus.error,
-          error: 'حجم ملف النموذج غير مطابق؛ تم رفض الملف وحذفه.',
+          error: 'حجم ملف النموذج غير مطابق؛ احتفظ التطبيق بالملف ولم يشغّله. يمكنك حذفه يدوياً بعد التأكد.',
         );
         return;
       }
@@ -170,7 +169,10 @@ class GemmaModelManager extends Notifier<GemmaModelState>
     _idleTimer?.cancel();
     if (_model == null || _model!.isClosed) {
       _model = await FlutterEdgeAi.getActiveModel(
-        maxTokens: 512,
+        // 512 tokens is too small for the system prompt plus the finance tool schemas.
+        // Keep a bounded 2K window to avoid the repeated ContextLimitException
+        // while limiting memory use on 8 GB Android devices.
+        maxTokens: 2048,
         // Prefer CPU on memory-constrained phones: Android GPUs share system RAM.
         preferredBackend: PreferredBackend.cpu,
         maxConcurrentSessions: 1,
@@ -246,14 +248,24 @@ class GemmaModelManager extends Notifier<GemmaModelState>
         _scheduleIdleRelease();
       }
     } catch (error) {
-      state = GemmaModelState(
-        status: GemmaModelStatus.error,
-        error: 'تعذر تشغيل Gemma (${error.runtimeType}). تم الاحتفاظ بالنموذج؛ أغلق التطبيقات الأخرى وأعد المحاولة.',
-      );
-      try {
-        await releaseModel();
-      } catch (_) {
-        // Preserve the inference error and let the app use its fallback.
+      if (error is ContextLimitException) {
+        // The SDK rolls back the refused turn. This is an input/context-size
+        // problem, not a failed model load; keep Gemma available for retry.
+        state = GemmaModelState(
+          status: GemmaModelStatus.ready,
+          progress: 100,
+          error: 'الطلب أطول من مساحة السياق المتاحة. اختصر الطلب وأعد المحاولة؛ النموذج ما زال جاهزاً.',
+        );
+      } else {
+        state = GemmaModelState(
+          status: GemmaModelStatus.error,
+          error: 'تعذر تشغيل Gemma (${error.runtimeType}). تم الاحتفاظ بالنموذج؛ أغلق التطبيقات الأخرى وأعد المحاولة.',
+        );
+        try {
+          await releaseModel();
+        } catch (_) {
+          // Preserve the inference error and let the app use its fallback.
+        }
       }
       rethrow;
     }
