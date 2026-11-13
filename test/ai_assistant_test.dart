@@ -342,6 +342,49 @@ void main() {
       expect(await HomeBillRepository(database).paymentsFor('internet-nov'), isEmpty);
     });
 
+    test('reads work-to-home transfer history', () async {
+      await seedWorkCash();
+      await registry.execute('save_work_home_transfer', {
+        'amountMinorUnits': 350,
+        'date': DateTime.now().toIso8601String(),
+      });
+      final result = await registry.execute('read_work_transfers', {});
+      expect(result.message, contains('350'));
+    });
+
+    test('reads debt payment history for the selected debt', () async {
+      await registry.execute('save_debt', {
+        'amountMinorUnits': 700, 'direction': 'debtor',
+        'counterparty': 'Ali', 'year': 2026, 'month': 11, 'id': 'd-history',
+      });
+      await registry.execute('record_debt_payment', {
+        'debtId': 'd-history', 'amountMinorUnits': 225,
+      });
+      final result = await registry.execute('read_debt_payments', {
+        'debtId': 'd-history',
+      });
+      expect(result.message, contains('225'));
+    });
+
+    test('reads household bill payment history for the selected bill', () async {
+      await seedWorkCash();
+      await registry.execute('save_work_home_transfer', {
+        'amountMinorUnits': 500, 'date': DateTime.now().toIso8601String(),
+      });
+      await registry.execute('save_home_bill', {
+        'title': 'Internet', 'kind': 'monthly', 'amountMinorUnits': 400,
+        'year': DateTime.now().year, 'month': DateTime.now().month,
+        'id': 'bill-history',
+      });
+      await registry.execute('record_home_bill_payment', {
+        'billId': 'bill-history', 'amountMinorUnits': 125,
+      });
+      final result = await registry.execute('read_home_bill_payments', {
+        'billId': 'bill-history',
+      });
+      expect(result.message, contains('125'));
+    });
+
     test('reports received work cash minus transfers as remaining at work', () async {
       final now = DateTime.now();
       final month = {'year': now.year, 'month': now.month};
