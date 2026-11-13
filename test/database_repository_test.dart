@@ -691,7 +691,7 @@ void main() {
           id: 'debt-ledger-integrity',
           direction: DebtDirection.debtor,
           originalAmount: Money.fromMinorUnits(1200),
-          outstandingAmount: Money.fromMinorUnits(900),
+          outstandingAmount: Money.fromMinorUnits(800),
           dueMonth: MonthKey(year: 2026, month: 12),
           createdAt: DateTime.utc(2026, 11, 1),
           counterparty: 'Counterparty updated',
