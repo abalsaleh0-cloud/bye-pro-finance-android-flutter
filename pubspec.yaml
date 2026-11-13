@@ -1,7 +1,7 @@
 name: expense_app
 description: "Personal expenses app built with Flutter."
 publish_to: 'none'
-version: 1.0.33+34
+version: 1.0.44+45
 
 environment:
   sdk: ^3.14.0
@@ -17,6 +17,9 @@ dependencies:
   drift_flutter: ^0.3.1
   flutter_edge_ai: 2.6.0
   flutter_edge_ai_litertlm: 1.20.0
+  file_picker: ^13.3.3
+  record: ^7.2.0
+  device_info_plus: ^13.3.0
 
 dev_dependencies:
   flutter_test:
