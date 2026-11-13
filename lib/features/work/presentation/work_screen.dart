@@ -414,11 +414,9 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
       final date = item.transferredAt.toLocal();
       return date.year == currentMonth.year && date.month == currentMonth.month;
     }).fold<int>(0, (sum, item) => sum + item.amount.minorUnits);
-    final receivedCash = entries.where((entry) {
-      if (entry.kind == WorkEntryKind.salary) return false;
-      final date = entry.recordedAt.toLocal();
-      return date.year == currentMonth.year && date.month == currentMonth.month;
-    }).fold<int>(0, (sum, entry) => sum + entry.amount.minorUnits);
+    final receivedCash = entries.where((entry) =>
+      entry.kind != WorkEntryKind.salary && entry.dueMonth == currentMonth,
+    ).fold<int>(0, (sum, entry) => sum + entry.amount.minorUnits);
     final rows = <(String, int)>[
       (strings.salaryTotal, salary),
       (strings.advancesTotal, advances),
