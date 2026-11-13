@@ -98,6 +98,24 @@ void main() {
       expect(result.message, 'تظهر في الصورة فاتورة بقيمة 250 ديناراً.');
     });
 
+    test('exposes required identifiers in payment-history tool schemas', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.text(''),
+      );
+      await GemmaAssistantEngine(generator).interpret(
+        'اعرض سجل الدفعات',
+        const ['read_debt_payments', 'read_home_bill_payments'],
+      );
+
+      final functions = generator.receivedFunctions!;
+      final debt = functions.singleWhere((item) => item.name == 'read_debt_payments');
+      final bill = functions.singleWhere((item) => item.name == 'read_home_bill_payments');
+      expect(debt.properties.keys, contains('debtId'));
+      expect(debt.required, contains('debtId'));
+      expect(bill.properties.keys, contains('billId'));
+      expect(bill.required, contains('billId'));
+    });
+
     test('converts a valid function call into a command', () async {
       final generator = _FakeGemmaGenerator(
         const GemmaModelOutput.call('save_work_entry', {
