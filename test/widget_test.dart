@@ -1,4 +1,7 @@
 import 'package:expense_app/app/app.dart';
+import 'package:expense_app/core/database/app_database.dart';
+import 'package:expense_app/core/database/database_providers.dart';
+import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
@@ -96,7 +99,18 @@ void main() {
   });
 
   testWidgets('work records show their note in the records page', (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    final database = AppDatabase.forTesting(NativeDatabase.memory());
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appDatabaseProvider.overrideWith((ref) {
+            ref.onDispose(database.close);
+            return database;
+          }),
+        ],
+        child: const MyApp(),
+      ),
+    );
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('العمل').last);
