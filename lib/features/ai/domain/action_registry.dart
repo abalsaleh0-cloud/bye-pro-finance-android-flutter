@@ -42,6 +42,9 @@ final class ActionRegistry {
     ActionDescriptor('delete_home_bill', {'id'}),
     ActionDescriptor('record_home_bill_payment', {'billId','amountMinorUnits'}),
     ActionDescriptor('read_home_bills', {}, readOnly: true),
+    ActionDescriptor('read_work_records', {}, readOnly: true),
+    ActionDescriptor('read_home_expenses', {}, readOnly: true),
+    ActionDescriptor('read_debts', {}, readOnly: true),
     ActionDescriptor('save_work_home_transfer', {'amountMinorUnits'}),
     ActionDescriptor('delete_work_home_transfer', {'id'}),
     ActionDescriptor('save_debt', {'amountMinorUnits','direction','counterparty','year','month'}),
@@ -153,6 +156,36 @@ final class ActionRegistry {
         );
         await _bills.recordPayment(payment);
         return const ActionExecution(message: 'تم تسجيل دفعة الفاتورة');
+      case 'read_work_records':
+        final workEntries = await _work.watchEntries().first;
+        if (workEntries.isEmpty) {
+          return const ActionExecution(message: 'لا توجد سجلات عمل.');
+        }
+        return ActionExecution(
+          message: workEntries.map((entry) =>
+            '${entry.id}: ${entry.kind.name}، ${entry.amount.minorUnits}، ${entry.dueMonth}'
+          ).join('؛ '),
+        );
+      case 'read_home_expenses':
+        final expenses = await _home.watchAll().first;
+        if (expenses.isEmpty) {
+          return const ActionExecution(message: 'لا توجد مصروفات منزلية.');
+        }
+        return ActionExecution(
+          message: expenses.map((expense) =>
+            '${expense.id}: ${expense.categoryId}، ${expense.amount.minorUnits}، ${expense.expenseDate.toLocal().toIso8601String().split('T').first}'
+          ).join('؛ '),
+        );
+      case 'read_debts':
+        final debts = await _debts.watchAll().first;
+        if (debts.isEmpty) {
+          return const ActionExecution(message: 'لا توجد ديون مسجلة.');
+        }
+        return ActionExecution(
+          message: debts.map((debt) =>
+            '${debt.id}: ${debt.direction.name}، ${debt.counterparty}، المتبقي ${debt.outstandingAmount.minorUnits}'
+          ).join('؛ '),
+        );
       case 'read_home_bills':
         final bills = await _bills.getBills();
         if (bills.isEmpty) {
@@ -221,7 +254,7 @@ final class ActionRegistry {
     'save_home_bill' => const {'title': String, 'kind': String, 'amountMinorUnits': int, 'year': int, 'month': int, 'id': String, 'note': String},
     'delete_home_bill' => const {'id': String},
     'record_home_bill_payment' => const {'billId': String, 'amountMinorUnits': int, 'note': String},
-    'read_home_bills' => const {},
+    'read_home_bills' || 'read_work_records' || 'read_home_expenses' || 'read_debts' => const {},
     'save_work_home_transfer' => const {'amountMinorUnits': int, 'id': String, 'date': String, 'note': String},
     'save_debt' => const {'amountMinorUnits': int, 'direction': String, 'counterparty': String, 'year': int, 'month': int, 'id': String, 'note': String},
     'record_debt_payment' => const {'debtId': String, 'amountMinorUnits': int, 'note': String},
