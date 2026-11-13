@@ -74,7 +74,10 @@ void main() {
 
     await tester.tap(find.byKey(const Key('work-tab-2')));
     await tester.pumpAndSettle();
-    expect(find.text('السجلات'), findsWidgets);
+    expect(
+      tester.widget<PageView>(find.byKey(const Key('work-section-pages'))).controller!.page,
+      2,
+    );
 
     await tester.tap(find.text('المنزل').last);
     await tester.pumpAndSettle();
@@ -86,6 +89,9 @@ void main() {
 
     await tester.tap(find.byKey(const Key('home-tab-3')));
     await tester.pumpAndSettle();
-    expect(find.text('الفواتير الشهرية'), findsWidgets);
+    expect(
+      tester.widget<PageView>(find.byKey(const Key('home-section-pages'))).controller!.page,
+      3,
+    );
   });
 }
