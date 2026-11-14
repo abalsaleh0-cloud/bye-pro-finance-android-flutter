@@ -481,7 +481,7 @@ final class FakeAssistantEngine implements AssistantEngine {
     String conversationContext,
   ) {
     final lines = conversationContext
-        .split('\\n')
+        .split('\n')
         .map((line) => line.trim())
         .where((line) => line.isNotEmpty)
         .toList(growable: false);
@@ -568,6 +568,7 @@ final class FakeAssistantEngine implements AssistantEngine {
   ) {
     final explicit = RegExp(
       r'(?:تصنيف|فئة|بند)\s+([\p{L}0-9_-]+)',
+      unicode: true,
     ).firstMatch(text)?.group(1);
     if (explicit != null && explicit.trim().isNotEmpty) return explicit.trim();
 
@@ -611,7 +612,7 @@ final class FakeAssistantEngine implements AssistantEngine {
 
   static String? _counterparty(String text) {
     final match = RegExp(
-      r'(?:مع|لدى|عند|على|لصالح|من)\s+([\p{L}]+)',
+      r'(?:مع|لدى|عند|لصالح|من)\s+([\p{L}]+)',
       unicode: true,
     ).firstMatch(text);
     final name = match?.group(1)?.trim();
