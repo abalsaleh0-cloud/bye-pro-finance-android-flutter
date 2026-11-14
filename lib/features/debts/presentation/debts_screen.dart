@@ -259,7 +259,9 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                           context: dialogContext,
                           initialTime: paymentTime,
                         );
-                        if (selectedTime == null || !dialogContext.mounted) return;
+                        if (selectedTime == null || !dialogContext.mounted) {
+                          return;
+                        }
                         setDialogState(() {
                           paymentTime = selectedTime;
                           paidTime.text = selectedTime.format(dialogContext);
