@@ -126,10 +126,9 @@ final class DebtRepository {
         0,
         (total, payment) => total + payment.amount.minorUnits,
       );
-      if (payments.isNotEmpty &&
-          paidTotal !=
-              debt.originalAmount.minorUnits -
-                  debt.outstandingAmount.minorUnits) {
+      if (paidTotal !=
+          debt.originalAmount.minorUnits -
+              debt.outstandingAmount.minorUnits) {
         throw ArgumentError(
           'Restored payment history must match the debt outstanding balance.',
         );
