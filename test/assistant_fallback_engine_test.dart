@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:expense_app/features/ai/domain/assistant_engine.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -81,7 +83,7 @@ void main() {
     final result = await engine.interpret(
       'حلل الصورة',
       actions,
-      media: AssistantMedia(imageBytes: [1, 2, 3]),
+      media: AssistantMedia(imageBytes: Uint8List.fromList([1, 2, 3])),
     );
 
     expect(result.kind, AssistantResultKind.notUnderstood);
