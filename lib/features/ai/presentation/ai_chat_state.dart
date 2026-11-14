@@ -67,7 +67,7 @@ String buildAiConversationContext(
     if (available <= 0) break;
 
     final excerpt = value.length > available
-        ? '…' + value.substring(value.length - available + 1)
+        ? '…${value.substring(value.length - available + 1)}'
         : value;
     final line = '$prefix$excerpt';
     lines.add(line);
