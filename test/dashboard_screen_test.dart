@@ -1,3 +1,5 @@
+import 'package:drift/native.dart';
+import 'package:expense_app/core/database/app_database.dart';
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
@@ -67,9 +69,11 @@ void main() {
       paidAt: DateTime(2026, 10, 13),
     );
 
+    final database = AppDatabase.forTesting(NativeDatabase.memory());
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appDatabaseProvider.overrideWithValue(database),
           workEntriesProvider.overrideWith((ref) => Stream.value([salary])),
           homeExpensesProvider.overrideWith((ref) => Stream.value([expense])),
           workTransfersProvider.overrideWith((ref) => Stream.value([transfer])),
@@ -102,6 +106,13 @@ void main() {
         ),
       ),
     );
+    addTearDown(() async {
+      // Flush Riverpod and Drift stream cleanup inside the widget-test zone.
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+      await database.close();
+      await tester.pump();
+    });
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('dashboard-content')), findsOneWidget);
