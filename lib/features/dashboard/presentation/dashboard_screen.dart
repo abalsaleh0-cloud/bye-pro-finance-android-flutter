@@ -124,33 +124,41 @@ class DashboardScreen extends ConsumerWidget {
         key: const Key('dashboard-content'),
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         children: [
-          DropdownButtonFormField<MonthKey>(
-            key: const Key('dashboard-month-picker'),
-            initialValue: month,
-            decoration: InputDecoration(
-              labelText: strings.currentMonth,
-              prefixIcon: const Icon(Icons.calendar_month_outlined),
-              border: const OutlineInputBorder(),
-            ),
-            items: availableMonths
-                .map((value) => DropdownMenuItem(
-                      value: value,
-                      child: Text(value.toString()),
-                    ))
-                .toList(),
-            onChanged: (value) {
-              if (value != null) {
-                ref.read(selectedMonthProvider.notifier).select(value);
-              }
-            },
-          ),
-          const SizedBox(height: 6),
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: Text(
-              month.toString(),
-              key: const Key('dashboard-selected-month-label'),
-              style: Theme.of(context).textTheme.titleSmall,
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    strings.selectedMonth,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<MonthKey>(
+                    key: const Key('dashboard-month-picker'),
+                    initialValue: month,
+                    isExpanded: true,
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.calendar_month_outlined),
+                      border: OutlineInputBorder(),
+                    ),
+                    items: availableMonths
+                        .map((value) => DropdownMenuItem(
+                              value: value,
+                              child: Text(value.toString()),
+                            ))
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        ref.read(selectedMonthProvider.notifier).select(value);
+                      }
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 20),
@@ -430,7 +438,20 @@ class DashboardScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(metric.icon, color: theme.colorScheme.primary),
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.secondaryContainer,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                metric.icon,
+                color: theme.colorScheme.onSecondaryContainer,
+                size: 21,
+              ),
+            ),
             const SizedBox(height: 10),
             Text(
               metric.title,
@@ -445,6 +466,7 @@ class DashboardScreen extends ConsumerWidget {
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w700,
+                fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
           ],
