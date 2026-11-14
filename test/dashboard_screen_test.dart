@@ -9,6 +9,7 @@ import 'package:expense_app/features/home/domain/home_expense.dart';
 import 'package:expense_app/features/work/domain/work_entry.dart';
 import 'package:expense_app/features/work/domain/work_home_transfer.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
+import 'package:flutter_localizations/flutter_localizations.dart' as flutter_localizations;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
@@ -70,7 +71,9 @@ void main() {
           locale: const Locale('ar'),
           localizationsDelegates: [
             AppLocalizations.delegate,
-            ...GlobalMaterialLocalizations.delegates,
+            flutter_localizations.GlobalMaterialLocalizations.delegate,
+            flutter_localizations.GlobalWidgetsLocalizations.delegate,
+            flutter_localizations.GlobalCupertinoLocalizations.delegate,
           ],
           supportedLocales: AppLocalizations.supportedLocales,
           home: const DashboardScreen(),
