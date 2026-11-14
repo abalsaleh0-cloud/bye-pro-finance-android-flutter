@@ -3,9 +3,10 @@ import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
-import 'package:expense_app/features/work/domain/work_entry.dart';
+import 'package:expense_app/features/debts/domain/debt_entry.dart';
 import 'package:expense_app/features/home/domain/home_bill.dart';
 import 'package:expense_app/features/home/domain/home_expense.dart';
+import 'package:expense_app/features/work/domain/work_entry.dart';
 import 'package:expense_app/features/work/domain/work_home_transfer.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -101,6 +102,189 @@ void main() {
       tester.widget<PageView>(find.byKey(const Key('home-section-pages'))).controller!.page,
       3,
     );
+  });
+
+  testWidgets('selected month stays synchronized between work and home sections', (tester) async {
+    final now = DateTime.now();
+    final currentMonth = MonthKey(year: now.year, month: now.month);
+    final previousDate = DateTime(now.year, now.month - 1, 10);
+    final previousMonth = MonthKey(
+      year: previousDate.year,
+      month: previousDate.month,
+    );
+    final previousWorkEntry = WorkEntry(
+      id: 'month-sync-work-entry',
+      kind: WorkEntryKind.salary,
+      amount: Money.fromMinorUnits(100),
+      dueMonth: previousMonth,
+      recordedAt: previousDate,
+    );
+    final previousTransfer = WorkHomeTransfer(
+      id: 'month-sync-home-transfer',
+      amount: Money.fromMinorUnits(100),
+      transferredAt: previousDate,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          workEntriesProvider.overrideWith(
+            (ref) => Stream.value([previousWorkEntry]),
+          ),
+          workTransfersProvider.overrideWith(
+            (ref) => Stream.value([previousTransfer]),
+          ),
+          homeExpensesProvider.overrideWith((ref) => Stream.value([])),
+          homeExpenseCategoriesProvider.overrideWith((ref) async => []),
+          homeBillsProvider.overrideWith((ref) async => []),
+          homeBillPaymentsForMonthProvider.overrideWith(
+            (ref, selected) async => 0,
+          ),
+          debtsProvider.overrideWith((ref) => Stream.value([])),
+          selectedMonthProvider.overrideWith(
+            () => _FixedSelectedMonthNotifier(currentMonth),
+          ),
+        ],
+        child: const MyApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('العمل')));
+    await tester.pumpAndSettle();
+
+    // Mount both stateful navigation branches before changing the shared month.
+    await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('المنزل')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('العمل')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('work-selected-month-picker')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(previousMonth.toString()).last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('المنزل')));
+    await tester.pumpAndSettle();
+    expect(find.text(previousMonth.toString()), findsNWidgets(2));
+    final homeMonthPicker = find.byKey(const Key('home-selected-month-picker'));
+    expect(
+      find.descendant(
+        of: homeMonthPicker,
+        matching: find.text(previousMonth.toString()),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('home-selected-month-picker')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(currentMonth.toString()).last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('العمل')));
+    await tester.pumpAndSettle();
+    final workMonthPicker = find.byKey(const Key('work-selected-month-picker'));
+    expect(
+      find.descendant(
+        of: workMonthPicker,
+        matching: find.text(currentMonth.toString()),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('work form offers salary advance and payment entry types', (tester) async {
+    final now = DateTime.now();
+    final currentMonth = MonthKey(year: now.year, month: now.month);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          workEntriesProvider.overrideWith((ref) => Stream.value([])),
+          workTransfersProvider.overrideWith((ref) => Stream.value([])),
+          homeExpensesProvider.overrideWith((ref) => Stream.value([])),
+          homeExpenseCategoriesProvider.overrideWith((ref) async => []),
+          homeBillsProvider.overrideWith((ref) async => []),
+          homeBillPaymentsForMonthProvider.overrideWith(
+            (ref, selected) async => 0,
+          ),
+          debtsProvider.overrideWith((ref) => Stream.value([])),
+          selectedMonthProvider.overrideWith(
+            () => _FixedSelectedMonthNotifier(currentMonth),
+          ),
+        ],
+        child: const MyApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text('العمل'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+
+    final kindField = find.byType(DropdownButtonFormField<WorkEntryKind>);
+    expect(kindField, findsOneWidget);
+    await tester.tap(kindField);
+    await tester.pumpAndSettle();
+    expect(find.text('راتب'), findsWidgets);
+    expect(find.text('سلفة'), findsOneWidget);
+    expect(find.text('دفعة'), findsOneWidget);
+    await tester.tap(find.text('دفعة').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('دفعة'), findsOneWidget);
+    await tester.tap(find.text('إلغاء'));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('debt form allows selecting creditor direction', (tester) async {
+    final now = DateTime.now();
+    final currentMonth = MonthKey(year: now.year, month: now.month);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          workEntriesProvider.overrideWith((ref) => Stream.value([])),
+          workTransfersProvider.overrideWith((ref) => Stream.value([])),
+          homeExpensesProvider.overrideWith((ref) => Stream.value([])),
+          homeExpenseCategoriesProvider.overrideWith((ref) async => []),
+          homeBillsProvider.overrideWith((ref) async => []),
+          homeBillPaymentsForMonthProvider.overrideWith(
+            (ref, selected) async => 0,
+          ),
+          debtsProvider.overrideWith((ref) => Stream.value([])),
+          selectedMonthProvider.overrideWith(
+            () => _FixedSelectedMonthNotifier(currentMonth),
+          ),
+        ],
+        child: const MyApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('الديون').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+
+    final directionField = find.byType(
+      DropdownButtonFormField<DebtDirection>,
+    );
+    expect(directionField, findsOneWidget);
+    await tester.tap(directionField);
+    await tester.pumpAndSettle();
+    expect(find.text('دائن'), findsOneWidget);
+    expect(find.text('مدين'), findsWidgets);
+    await tester.tap(find.text('دائن').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('دائن'), findsOneWidget);
+    await tester.tap(find.text('إلغاء'));
+    await tester.pumpAndSettle();
   });
 
   testWidgets('work records show their note in the records page', (tester) async {
@@ -227,4 +411,9 @@ class _FixedSelectedMonthNotifier extends SelectedMonthNotifier {
 
   @override
   MonthKey build() => month;
+
+  @override
+  void select(MonthKey selected) {
+    state = selected;
+  }
 }
