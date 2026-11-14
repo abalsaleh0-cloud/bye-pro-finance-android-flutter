@@ -211,7 +211,7 @@ final class FakeAssistantEngine implements AssistantEngine {
           'مجموع أي قسم تقصد: العمل أم المنزل أم الديون؟',
         );
       }
-      final requestedMonth = _input.extractMonth(input);
+      final requestedMonth = _input.extractMonth(effectiveInput);
       if (requestedMonth == null) {
         return const AssistantResult.clarification(
           'أي شهر تقصد؟ اذكر اسم الشهر أو رقمه والسنة.',
@@ -304,7 +304,7 @@ final class FakeAssistantEngine implements AssistantEngine {
     ]) || input.contains('؟') || input.contains('?');
 
     final amount = _input.extractAmount(effectiveInput);
-    final requestedMonth = _input.extractMonth(input);
+    final requestedMonth = _input.extractMonth(effectiveInput);
 
     final isTransfer = has(const [
       'حول',
