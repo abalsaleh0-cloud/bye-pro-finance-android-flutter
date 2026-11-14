@@ -55,7 +55,8 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
     final note = TextEditingController(text: existing?.note ?? '');
     var direction = existing?.direction ?? DebtDirection.debtor;
     String? error;
-    await showDialog<void>(
+    try {
+      await showDialog<void>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
