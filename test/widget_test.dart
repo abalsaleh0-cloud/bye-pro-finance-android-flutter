@@ -33,9 +33,16 @@ void main() {
     await tester.pumpAndSettle();
 
     for (final key in ['(', '1', '2', '+', '3', '0', ')', '×', '2']) {
-      await tester.tap(find.byKey(Key('calculator-key-$key')));
+      final keypadButton = find.byKey(Key('calculator-key-$key'));
+      await tester.ensureVisible(keypadButton);
+      await tester.pumpAndSettle();
+      await tester.tap(keypadButton);
+      await tester.pumpAndSettle();
     }
-    await tester.tap(find.byKey(const Key('calculator-key-equals')));
+    final equalsButton = find.byKey(const Key('calculator-key-equals'));
+    await tester.ensureVisible(equalsButton);
+    await tester.pumpAndSettle();
+    await tester.tap(equalsButton);
     await tester.pumpAndSettle();
 
     expect(tester.widget<SelectableText>(find.byKey(const Key('calculator-result'))).data, '84');

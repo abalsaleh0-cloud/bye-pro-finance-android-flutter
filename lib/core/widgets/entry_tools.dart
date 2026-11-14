@@ -244,6 +244,7 @@ class _AmountCalculatorDialogState extends State<_AmountCalculatorDialog> {
       title: Text(strings.calculator),
       content: SizedBox(
         width: 440,
+        height: MediaQuery.of(context).size.height * 0.55,
         child: SingleChildScrollView(
           child: Column(
           mainAxisSize: MainAxisSize.min,
