@@ -304,7 +304,10 @@ final class FakeAssistantEngine implements AssistantEngine {
       'got paid',
     ]);
 
-    final isQuestion = has(const [
+    final currentText = _input.normalize(input);
+    bool hasCurrent(Iterable<String> phrases) =>
+        _input.containsAny(currentText, phrases);
+    final isQuestion = hasCurrent(const [
       'هل',
       'كم',
       'قديش',
