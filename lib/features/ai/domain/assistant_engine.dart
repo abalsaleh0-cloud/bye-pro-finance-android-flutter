@@ -54,7 +54,8 @@ final class FakeAssistantEngine implements AssistantEngine {
     String conversationContext = '',
   }) async {
     if (media != null) return const AssistantResult.notUnderstood();
-    final text = _input.normalize(input);
+    final effectiveInput = _mergeClarificationReply(input, conversationContext);
+    final text = _input.normalize(effectiveInput);
     if (text.isEmpty) return const AssistantResult.notUnderstood();
 
     bool has(Iterable<String> phrases) => _input.containsAny(text, phrases);
@@ -75,7 +76,7 @@ final class FakeAssistantEngine implements AssistantEngine {
       if (!can('read_dashboard_summary')) {
         return const AssistantResult.notUnderstood();
       }
-      final requestedMonth = _input.extractMonth(input);
+      final requestedMonth = _input.extractMonth(effectiveInput);
       return AssistantResult.command(
         AssistantCommand(
           name: 'read_dashboard_summary',
@@ -244,7 +245,7 @@ final class FakeAssistantEngine implements AssistantEngine {
       'got paid',
     ]);
 
-    final amount = _input.extractAmount(input);
+    final amount = _input.extractAmount(effectiveInput);
     final requestedMonth = _input.extractMonth(input);
 
     final isTransfer = has(const [
@@ -260,7 +261,7 @@ final class FakeAssistantEngine implements AssistantEngine {
       'للبيت',
       'transfer',
     ]) && has(const ['المنزل', 'البيت', 'للبيت', 'للمنزل', 'home']);
-    if (isTransfer && (writeVerb || receiptVerb)) {
+    if (isTransfer) {
       if (amount == null) {
         return const AssistantResult.clarification('كم مبلغ التحويل؟');
       }
@@ -475,6 +476,50 @@ final class FakeAssistantEngine implements AssistantEngine {
     return const AssistantResult.notUnderstood();
   }
 
+  static String _mergeClarificationReply(
+    String currentInput,
+    String conversationContext,
+  ) {
+    final lines = conversationContext
+        .split('\\n')
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList(growable: false);
+    if (lines.isEmpty || !lines.last.startsWith('المساعد:')) {
+      return currentInput;
+    }
+
+    final question = lines.last.substring('المساعد:'.length).trim();
+    final isClarification = AssistantInputNormalizer().containsAny(
+      AssistantInputNormalizer().normalize(question),
+      const [
+        'ما المبلغ',
+        'كم المبلغ',
+        'أي شهر',
+        'ما الشهر',
+        'لأي شهر',
+        'ما تصنيف',
+        'ما فئة',
+        'ما اسم',
+        'هل المبلغ لك',
+        'هل الدين دائن',
+        'هل الدين مدين',
+        'من الشخص',
+      ],
+    );
+    if (!isClarification) return currentInput;
+
+    for (var index = lines.length - 2; index >= 0; index--) {
+      if (lines[index].startsWith('المستخدم:')) {
+        final previousRequest =
+            lines[index].substring('المستخدم:'.length).trim();
+        if (previousRequest.isEmpty) return currentInput;
+        return previousRequest + ' ' + currentInput;
+      }
+    }
+    return currentInput;
+  }
+
   static String? _navigationSection(
     bool Function(Iterable<String>) has,
   ) {
@@ -522,7 +567,7 @@ final class FakeAssistantEngine implements AssistantEngine {
     String text,
   ) {
     final explicit = RegExp(
-      r'(?:تصنيف|فئة|بند)\s+([a-z0-9_-]+)',
+      r'(?:تصنيف|فئة|بند)\s+([\p{L}0-9_-]+)',
     ).firstMatch(text)?.group(1);
     if (explicit != null && explicit.trim().isNotEmpty) return explicit.trim();
 
@@ -555,10 +600,10 @@ final class FakeAssistantEngine implements AssistantEngine {
   static String? _debtDirection(
     bool Function(Iterable<String>) has,
   ) {
-    if (has(const ['دائن', 'لي عند', 'الي عند', 'شخص مدين لي', 'creditor'])) {
+    if (has(const ['دائن', 'لي عند', 'الي عند', 'لي بذمة', 'مستحق لي', 'شخص مدين لي', 'creditor'])) {
       return 'creditor';
     }
-    if (has(const ['مدين', 'علي', 'عليه', 'علي لشخص', 'debtor'])) {
+    if (has(const ['مدين', 'علي دين', 'مبلغ علي', 'في ذمتي', 'علي ذمة', 'مستحق علي', 'انا مدين', 'عليه', 'debtor'])) {
       return 'debtor';
     }
     return null;
