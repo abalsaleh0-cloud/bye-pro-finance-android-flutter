@@ -170,5 +170,6 @@
   "addCategory": "Add category",
   "editCategory": "Edit category",
   "categoryName": "Category name",
-  "duplicateCategory": "A category with this name already exists"
+  "duplicateCategory": "A category with this name already exists",
+  "billDeleteHasPayments": "This bill has recorded payments and cannot be deleted. Keep its payment history or resolve it first."
 }
