@@ -119,6 +119,22 @@ final class DebtRepository {
   /// Restores a deleted debt together with its immutable payment history.
   Future<void> restoreDebt(DebtEntry debt, List<DebtPayment> payments) {
     return _database.transaction(() async {
+      if (payments.any((payment) => payment.debtId != debt.id)) {
+        throw ArgumentError('Every restored payment must belong to the restored debt.');
+      }
+      final paidTotal = payments.fold<int>(
+        0,
+        (total, payment) => total + payment.amount.minorUnits,
+      );
+      if (payments.isNotEmpty &&
+          paidTotal !=
+              debt.originalAmount.minorUnits -
+                  debt.outstandingAmount.minorUnits) {
+        throw ArgumentError(
+          'Restored payment history must match the debt outstanding balance.',
+        );
+      }
+
       await _database.into(_database.debts).insert(
         DebtsCompanion.insert(
           id: debt.id,

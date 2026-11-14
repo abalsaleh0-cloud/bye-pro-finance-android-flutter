@@ -1235,6 +1235,89 @@ void main() {
   });
 
 
+  test('restores a debt only with matching payment history', () async {
+    final repository = DebtRepository(database);
+    final debt = DebtEntry(
+      id: 'restored-debt-valid',
+      direction: DebtDirection.debtor,
+      originalAmount: Money.fromMinorUnits(1000),
+      outstandingAmount: Money.fromMinorUnits(700),
+      dueMonth: MonthKey(year: 2026, month: 11),
+      createdAt: DateTime.utc(2026, 11, 1),
+      counterparty: 'Counterparty',
+    );
+    final payment = DebtPayment(
+      id: 'restored-debt-payment-valid',
+      debtId: debt.id,
+      amount: Money.fromMinorUnits(300),
+      paidAt: DateTime.utc(2026, 11, 2),
+    );
+
+    await repository.restoreDebt(debt, [payment]);
+
+    final saved = (await database.select(database.debts).get()).single;
+    final payments = await database.select(database.debtPayments).get();
+    expect(saved.originalAmountMinorUnits, 1000);
+    expect(saved.outstandingAmountMinorUnits, 700);
+    expect(payments.single.amountMinorUnits, 300);
+  });
+
+  test('rejects restored debt when payment total disagrees with outstanding balance', () async {
+    final repository = DebtRepository(database);
+    final debt = DebtEntry(
+      id: 'restored-debt-mismatch',
+      direction: DebtDirection.debtor,
+      originalAmount: Money.fromMinorUnits(1000),
+      outstandingAmount: Money.fromMinorUnits(700),
+      dueMonth: MonthKey(year: 2026, month: 11),
+      createdAt: DateTime.utc(2026, 11, 1),
+      counterparty: 'Counterparty',
+    );
+
+    await expectLater(
+      repository.restoreDebt(debt, [
+        DebtPayment(
+          id: 'restored-debt-payment-mismatch',
+          debtId: debt.id,
+          amount: Money.fromMinorUnits(250),
+          paidAt: DateTime.utc(2026, 11, 2),
+        ),
+      ]),
+      throwsArgumentError,
+    );
+
+    expect(await database.select(database.debts).get(), isEmpty);
+    expect(await database.select(database.debtPayments).get(), isEmpty);
+  });
+
+  test('rejects restored payments linked to a different debt', () async {
+    final repository = DebtRepository(database);
+    final debt = DebtEntry(
+      id: 'restored-debt-owner',
+      direction: DebtDirection.creditor,
+      originalAmount: Money.fromMinorUnits(500),
+      outstandingAmount: Money.fromMinorUnits(400),
+      dueMonth: MonthKey(year: 2026, month: 11),
+      createdAt: DateTime.utc(2026, 11, 1),
+      counterparty: 'Counterparty',
+    );
+
+    await expectLater(
+      repository.restoreDebt(debt, [
+        DebtPayment(
+          id: 'restored-debt-wrong-owner-payment',
+          debtId: 'another-debt',
+          amount: Money.fromMinorUnits(100),
+          paidAt: DateTime.utc(2026, 11, 2),
+        ),
+      ]),
+      throwsArgumentError,
+    );
+
+    expect(await database.select(database.debts).get(), isEmpty);
+    expect(await database.select(database.debtPayments).get(), isEmpty);
+  });
+
   test('debt edits cannot desynchronize outstanding balance from payment ledger', () async {
     final repository = DebtRepository(database);
     await repository.save(
