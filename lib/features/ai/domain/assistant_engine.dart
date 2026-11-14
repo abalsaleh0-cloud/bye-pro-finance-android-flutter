@@ -232,6 +232,22 @@ final class FakeAssistantEngine implements AssistantEngine {
       );
     }
 
+    if (isQuestion && receiptVerb && has(const [
+      'راتب',
+      'راتبي',
+      'معاش',
+      'معاشي',
+      'دفعة',
+      'دفعات',
+      'payment',
+    ])) {
+      if (can('read_work_records')) {
+        return const AssistantResult.command(
+          AssistantCommand(name: 'read_work_records', parameters: {}),
+        );
+      }
+    }
+
     if (readVerb) {
       final readAction = _readAction(has);
       if (readAction != null && can(readAction)) {
