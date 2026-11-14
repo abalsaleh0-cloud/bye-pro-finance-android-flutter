@@ -1026,4 +1026,30 @@ void main() {
     expect(await database.readSetting('theme_mode'), 'dark');
   });
 
+  test('reads legacy payment rows as salaryPayment without rewriting storage', () async {
+    final recordedAt = DateTime.utc(2026, 11, 14);
+    await database.customStatement(
+      'INSERT INTO work_entries (id, kind, amount_minor_units, due_year, due_month, recorded_at_epoch_millis, note) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [
+        'legacy-payment-row',
+        'payment',
+        750,
+        2026,
+        11,
+        recordedAt.millisecondsSinceEpoch,
+        'Legacy salary payment',
+      ],
+    );
+
+    final entries = await WorkRepository(database).watchEntries().first;
+    expect(entries, hasLength(1));
+    expect(entries.single.id, 'legacy-payment-row');
+    expect(entries.single.kind, WorkEntryKind.salaryPayment);
+    expect(entries.single.amount.minorUnits, 750);
+
+    final stored = (await database.select(database.workEntries).get()).single;
+    expect(stored.kind, 'payment');
+    expect(stored.note, 'Legacy salary payment');
+  });
+
 }

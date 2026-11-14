@@ -4,6 +4,7 @@ import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
 import 'package:expense_app/features/work/domain/work_entry.dart';
+import 'package:expense_app/features/home/domain/home_bill.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
@@ -134,6 +135,40 @@ void main() {
     // The note is rendered inside the same multiline subtitle Text as its date.
     expect(find.textContaining('ملاحظة الراتب'), findsOneWidget);
   });
+  testWidgets('saved home bill note is visible on the monthly bills card', (tester) async {
+    final now = DateTime.now();
+    final month = MonthKey(year: now.year, month: now.month);
+    final bill = HomeBill(
+      id: 'widget-home-bill-note',
+      title: 'فاتورة اختبار',
+      kind: HomeBillKind.monthly,
+      amount: Money.fromMinorUnits(580),
+      dueMonth: month,
+      note: 'ملاحظة فاتورة مباشرة',
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          homeBillsProvider.overrideWith((ref) async => [bill]),
+          selectedMonthProvider.overrideWith(
+            () => _FixedSelectedMonthNotifier(month),
+          ),
+        ],
+        child: const MyApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('المنزل').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('home-tab-3')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('فاتورة اختبار'), findsOneWidget);
+    expect(find.textContaining('ملاحظة فاتورة مباشرة'), findsOneWidget);
+  });
+
 }
 
 class _FixedSelectedMonthNotifier extends SelectedMonthNotifier {
