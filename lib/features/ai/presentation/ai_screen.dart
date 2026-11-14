@@ -58,6 +58,12 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   @override
   void dispose() {
     _input.dispose();
+    if (_recognizing) {
+      unawaited(_voiceService.cancelArabicSpeechRecognition());
+    }
+    if (_speakReplies) {
+      unawaited(_voiceService.stopSpeaking());
+    }
     if (_recording) unawaited(_recorder.stop());
     unawaited(_recorder.dispose());
     unawaited(ref.read(gemmaModelManagerProvider.notifier).releaseModel());
