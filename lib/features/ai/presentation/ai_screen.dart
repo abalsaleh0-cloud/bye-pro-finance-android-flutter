@@ -28,10 +28,14 @@ final assistantEngineProvider = Provider<AssistantEngine>((ref) {
   final settings = ref.watch(appSettingsProvider);
   final modelState = ref.watch(gemmaModelManagerProvider);
   final manager = ref.watch(gemmaModelManagerProvider.notifier);
+  const fallback = FakeAssistantEngine();
   if (settings.useGemma && modelState.status == GemmaModelStatus.ready) {
-    return GemmaAssistantEngine(manager);
+    return FallbackAssistantEngine(
+      primary: GemmaAssistantEngine(manager),
+      fallback: fallback,
+    );
   }
-  return const FakeAssistantEngine();
+  return fallback;
 });
 
 class AiScreen extends ConsumerStatefulWidget {

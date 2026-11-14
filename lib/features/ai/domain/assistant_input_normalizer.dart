@@ -1,0 +1,305 @@
+import 'number_normalizer.dart';
+
+/// Normalizes common Arabic spelling, dialect, punctuation, number and month
+/// variants before intent matching. It does not make financial assumptions.
+final class AssistantInputNormalizer {
+  const AssistantInputNormalizer();
+
+  static const _numbers = NumberNormalizer();
+
+  static final _diacritics = RegExp(r'[\u064B-\u065F\u0670\u0640]');
+  static final _nonWords = RegExp(r'[^0-9a-z\u0600-\u06FF]+');
+  static final _spaces = RegExp(r'\s+');
+
+  static const Map<String, int> _months = {
+    'يناير': 1,
+    'كانون الثاني': 1,
+    'كانون التاني': 1,
+    'فبراير': 2,
+    'شباط': 2,
+    'مارس': 3,
+    'اذار': 3,
+    'آذار': 3,
+    'ابريل': 4,
+    'نيسان': 4,
+    'مايو': 5,
+    'ايار': 5,
+    'أيار': 5,
+    'يونيو': 6,
+    'حزيران': 6,
+    'يوليو': 7,
+    'تموز': 7,
+    'اغسطس': 8,
+    'أغسطس': 8,
+    'اب': 8,
+    'آب': 8,
+    'سبتمبر': 9,
+    'ايلول': 9,
+    'أيلول': 9,
+    'اكتوبر': 10,
+    'أكتوبر': 10,
+    'تشرين الاول': 10,
+    'نوفمبر': 11,
+    'تشرين الثاني': 11,
+    'ديسمبر': 12,
+    'كانون الاول': 12,
+    'كانون الأول': 12,
+    'january': 1,
+    'jan': 1,
+    'february': 2,
+    'feb': 2,
+    'march': 3,
+    'mar': 3,
+    'april': 4,
+    'apr': 4,
+    'may': 5,
+    'june': 6,
+    'jun': 6,
+    'july': 7,
+    'jul': 7,
+    'august': 8,
+    'aug': 8,
+    'september': 9,
+    'sep': 9,
+    'sept': 9,
+    'october': 10,
+    'oct': 10,
+    'november': 11,
+    'nov': 11,
+    'december': 12,
+    'dec': 12,
+  };
+
+  String normalize(String input) {
+    var value = _numbers.normalizeDigits(input).toLowerCase();
+    value = value.replaceAll(_diacritics, '');
+    value = value.replaceAll(RegExp(r'[؟،؛…٫٬]'), ' ');
+    value = value
+        .replaceAll(RegExp('[أإآٱ]'), 'ا')
+        .replaceAll('ى', 'ي')
+        .replaceAll('ؤ', 'و')
+        .replaceAll('ئ', 'ي');
+    value = value.replaceAll(_nonWords, ' ');
+    return value.replaceAll(_spaces, ' ').trim();
+  }
+
+  bool containsAny(String normalizedText, Iterable<String> phrases) {
+    for (final phrase in phrases) {
+      final normalizedPhrase = normalize(phrase);
+      if (normalizedPhrase.isEmpty) continue;
+      final core = normalizedPhrase.startsWith('ال')
+          ? normalizedPhrase.substring(2)
+          : normalizedPhrase;
+      final candidates = <String>{
+        normalizedPhrase,
+        core,
+        'ال$core',
+        'لل$core',
+        'بال$core',
+        'فال$core',
+      }.toList(growable: false);
+      for (final candidate in candidates) {
+        const prefix = '(^| )';
+        const suffix = r'( |$)';
+        if (RegExp(
+          '$prefix${RegExp.escape(candidate)}$suffix',
+        ).hasMatch(normalizedText)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  int? extractAmount(String input) {
+    var value = _numbers.normalizeDigits(input);
+
+    // Remove complete dates before looking for a monetary amount.
+    value = value.replaceAll(
+      RegExp(r'\b20\d{2}[-/.](?:0?[1-9]|1[0-2])[-/.](?:0?[1-9]|[12]\d|3[01])\b'),
+      ' ',
+    );
+    value = value.replaceAll(
+      RegExp(r'\b(?:0?[1-9]|[12]\d|3[01])[-/.](?:0?[1-9]|1[0-2])[-/.]20\d{2}\b'),
+      ' ',
+    );
+    value = value.replaceAll(
+      RegExp(r'\b20\d{2}[-/](?:0?[1-9]|1[0-2])\b'),
+      ' ',
+    );
+    value = value.replaceAll(
+      RegExp(r'\b(?:0?[1-9]|1[0-2])[-/ ]20\d{2}\b'),
+      ' ',
+    );
+
+    // Exclude expressions such as "month 10 of 2026".
+    value = value.replaceAll(
+      RegExp(
+        r'(?:شهر|الشهر)\s+(?:0?[1-9]|1[0-2])(?:\s+(?:لسنة|سنة|عام)\s+20\d{2})?',
+      ),
+      ' ',
+    );
+
+    // A year written without a numeric month is also not an amount.
+    value = value.replaceAll(
+      RegExp(r'(?:لسنة|سنة|عام|للعام|لعام)\s+20\d{2}'),
+      ' ',
+    );
+
+    // Exclude both "November 2026" and "14 November 2026" date forms.
+    // Avoid \b here: Arabic letters are not treated as word characters by
+    // the regex engine's ASCII word-boundary implementation.
+    for (final monthName in _months.keys) {
+      final escapedMonth = RegExp.escape(monthName);
+      value = value.replaceAll(
+        RegExp(r'\d{1,2}\s+' + escapedMonth + r'\s+20\d{2}', caseSensitive: false),
+        ' ',
+      );
+      value = value.replaceAll(
+        RegExp(escapedMonth + r'\s+20\d{2}', caseSensitive: false),
+        ' ',
+      );
+      value = value.replaceAll(
+        RegExp(r'20\d{2}\s+' + escapedMonth, caseSensitive: false),
+        ' ',
+      );
+    }
+
+    // Decimal precision is ambiguous without the currency-specific unit.
+    if (RegExp(r'(?<!\d)\d+[.,٬،]\d{1,2}(?!\d)').hasMatch(value)) {
+      return null;
+    }
+
+    // Keep conventional thousands separators together: 1,500, 1.500 or ١٬٥٠٠.
+    value = value.replaceAllMapped(
+      RegExp(r'(?<=\d)[,.٬،](?=\d{3}(?:\D|$))'),
+      (_) => '',
+    );
+
+    final normalized = normalize(value);
+    final tokens = normalized
+        .split(' ')
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
+    int? best;
+    var bestLength = 0;
+
+    for (var start = 0; start < tokens.length; start++) {
+      for (var end = start + 1;
+          end <= tokens.length && end <= start + 8;
+          end++) {
+        final candidate = tokens.sublist(start, end).join(' ');
+        final parsed = _numbers.parseInteger(candidate);
+        if (parsed != null && end - start > bestLength) {
+          best = parsed;
+          bestLength = end - start;
+        }
+      }
+    }
+    return best;
+  }
+
+  (int, int)? extractMonth(
+    String input, {
+    DateTime? referenceDate,
+  }) {
+    final now = referenceDate ?? DateTime.now();
+    final raw = _numbers.normalizeDigits(input);
+    final normalized = normalize(input);
+
+    final yearFirst = RegExp(
+      r'(?<!\d)(20\d{2})\s*[-/.]\s*(0?[1-9]|1[0-2])(?!\d)',
+    ).firstMatch(raw);
+    if (yearFirst != null) {
+      return (int.parse(yearFirst.group(1)!), int.parse(yearFirst.group(2)!));
+    }
+
+    final monthFirst = RegExp(
+      r'(?<!\d)(0?[1-9]|1[0-2])\s*[-/.]\s*(20\d{2})(?!\d)',
+    ).firstMatch(raw);
+    if (monthFirst != null) {
+      return (int.parse(monthFirst.group(2)!), int.parse(monthFirst.group(1)!));
+    }
+    final dayFirst = RegExp(
+      r'(?<!\d)(?:0?[1-9]|[12]\d|3[01])[-/.](0?[1-9]|1[0-2])[-/.](20\d{2})(?!\d)',
+    ).firstMatch(raw);
+    if (dayFirst != null) {
+      return (int.parse(dayFirst.group(2)!), int.parse(dayFirst.group(1)!));
+    }
+
+
+    if (containsAny(normalized, const [
+      'الشهر الماضي',
+      'الشهر الفائت',
+      'الشهر السابق',
+      'الشهر اللي فات',
+      'الشهر اللي قبله',
+      'الشهر الفايت',
+      'شهر فات',
+      'الشهر الذي فات',
+      'قبل شهر',
+      'last month',
+      'previous month',
+    ])) {
+      final previous = DateTime(now.year, now.month - 1);
+      return (previous.year, previous.month);
+    }
+
+    if (containsAny(normalized, const [
+      'الشهر القادم',
+      'الشهر المقبل',
+      'الشهر الجاي',
+      'الشهر التالي',
+      'الشهر اللي بعده',
+      'الشهر القادم',
+      'next month',
+    ])) {
+      final next = DateTime(now.year, now.month + 1);
+      return (next.year, next.month);
+    }
+
+    if (containsAny(normalized, const [
+      'هذا الشهر',
+      'لهذا الشهر',
+      'بهذا الشهر',
+      'هالشهر',
+      'لهالشهر',
+      'بالشهر الحالي',
+      'في الشهر الحالي',
+      'الشهر الحالي',
+      'الشهر الجاري',
+      'الشهر الحاليه',
+      'الشهر الحاضر',
+      'this month',
+      'current month',
+    ])) {
+      return (now.year, now.month);
+    }
+
+    final words = _months.entries.toList()
+      ..sort((a, b) => b.key.length.compareTo(a.key.length));
+    for (final entry in words) {
+      final monthName = normalize(entry.key);
+      const prefix = '(^| )';
+      const suffix = r'( |$)';
+      if (RegExp(
+        '$prefix${RegExp.escape(monthName)}$suffix',
+      ).hasMatch(normalized)) {
+        final year = RegExp(r'(?<!\d)(20\d{2})(?!\d)')
+            .firstMatch(normalized)
+            ?.group(1);
+        return (year == null ? now.year : int.parse(year), entry.value);
+      }
+    }
+
+    final numericMonth = RegExp(
+      r'(?:شهر|الشهر)\s+(0?[1-9]|1[0-2])(?!\d)(?:\s+(?:لسنة|سنة|عام)\s+(20\d{2}))?',
+    ).firstMatch(normalized);
+    if (numericMonth != null) {
+      final year = numericMonth.group(2);
+      return (year == null ? now.year : int.parse(year), int.parse(numericMonth.group(1)!));
+    }
+
+    return null;
+  }
+}

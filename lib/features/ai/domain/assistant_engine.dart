@@ -2,6 +2,7 @@
 
 import 'dart:typed_data';
 
+import 'assistant_input_normalizer.dart';
 import 'number_normalizer.dart';
 
 enum AssistantResultKind { command, answer, clarification, notUnderstood }
@@ -41,9 +42,17 @@ abstract interface class AssistantEngine {
     String conversationContext = '',
   });
 }
-final class FakeAssistantEngine implements AssistantEngine {
-  const FakeAssistantEngine();
-  static const _numbers=NumberNormalizer();
+/// Tries the local language model first and the deterministic Arabic
+/// parser only when the model cannot interpret the request.
+final class FallbackAssistantEngine implements AssistantEngine {
+  const FallbackAssistantEngine({
+    required this.primary,
+    required this.fallback,
+  });
+
+  final AssistantEngine primary;
+  final AssistantEngine fallback;
+
   @override
   Future<AssistantResult> interpret(
     String input,
@@ -51,12 +60,59 @@ final class FakeAssistantEngine implements AssistantEngine {
     AssistantMedia? media,
     String conversationContext = '',
   }) async {
-    final text=input.trim();
-    if(text.isEmpty || media != null) return const AssistantResult.notUnderstood();
+    final result = await primary.interpret(
+      input,
+      availableActions,
+      media: media,
+      conversationContext: conversationContext,
+    );
+    if (result.kind != AssistantResultKind.notUnderstood || media != null) {
+      return result;
+    }
+    return fallback.interpret(
+      input,
+      availableActions,
+      conversationContext: conversationContext,
+    );
+  }
+}
 
-    if (RegExp(r'ملخص|كيف\s+وضعي|وضعي\s+المالي|الوضع\s+المالي').hasMatch(text) &&
-        availableActions.contains('read_dashboard_summary')) {
-      final requestedMonth = _month(text);
+final class FakeAssistantEngine implements AssistantEngine {
+  const FakeAssistantEngine();
+
+  static const _input = AssistantInputNormalizer();
+
+  @override
+  Future<AssistantResult> interpret(
+    String input,
+    List<String> availableActions, {
+    AssistantMedia? media,
+    String conversationContext = '',
+  }) async {
+    if (media != null) return const AssistantResult.notUnderstood();
+    final effectiveInput = _mergeClarificationReply(input, conversationContext);
+    final text = _input.normalize(effectiveInput);
+    if (text.isEmpty) return const AssistantResult.notUnderstood();
+
+    bool has(Iterable<String> phrases) => _input.containsAny(text, phrases);
+    bool can(String action) => availableActions.contains(action);
+
+    if (has(const [
+      'ملخص',
+      'وضعى المالي',
+      'وضعي المالي',
+      'الوضع المالي',
+      'كيف اموري المالية',
+      'كيف وضعي',
+      'اعطني نظرة مالية',
+      'اعرض وضع الحساب',
+      'financial summary',
+      'dashboard summary',
+    ])) {
+      if (!can('read_dashboard_summary')) {
+        return const AssistantResult.notUnderstood();
+      }
+      final requestedMonth = _input.extractMonth(effectiveInput);
       return AssistantResult.command(
         AssistantCommand(
           name: 'read_dashboard_summary',
@@ -68,10 +124,21 @@ final class FakeAssistantEngine implements AssistantEngine {
       );
     }
 
-    if (RegExp(r'افتح|انتقل|اذهب|روح').hasMatch(text)) {
-      final section = _navigationSection(text);
-      if (section != null &&
-          availableActions.contains('navigate_to_section')) {
+    final navigationVerb = has(const [
+      'افتح',
+      'انتقل',
+      'اذهب',
+      'روح',
+      'وديني',
+      'خذني',
+      'حولني',
+      'اعرض قسم',
+      'go to',
+      'open',
+    ]);
+    if (navigationVerb && can('navigate_to_section')) {
+      final section = _navigationSection(has);
+      if (section != null) {
         return AssistantResult.command(
           AssistantCommand(
             name: 'navigate_to_section',
@@ -81,94 +148,666 @@ final class FakeAssistantEngine implements AssistantEngine {
       }
     }
 
-    if(RegExp(r'الباقي|المتبقي').hasMatch(text)) {
-      if(!availableActions.contains('read_work_remaining')) return const AssistantResult.notUnderstood();
-      return const AssistantResult.command(AssistantCommand(name:'read_work_remaining',parameters:{}));
+    final readVerb = has(const [
+      'اعرض',
+      'وريني',
+      'فرجيني',
+      'هات',
+      'جيب',
+      'طلع',
+      'شوف',
+      'اشوف',
+      'اعطيني',
+      'ارني',
+      'قائمة',
+      'تفاصيل',
+      'عرض',
+      'كم',
+      'قديش',
+      'شكد',
+      'شو عندي',
+      'show',
+      'list',
+      'how much',
+    ]);
+
+    final remainingQuestion = has(const [
+      'الباقي',
+      'المتبقي',
+      'الباقي عندي',
+      'المتبقي عندي',
+      'كم بقي عندي',
+      'قديش ضل عندي',
+      'قديش باقي عندي',
+      'شو ضل',
+      'كم بقي',
+      'قديش بقي',
+      'قديش ضل',
+      'شكد باقي',
+      'شكد ضل',
+      'كم ضل',
+      'كم تبقى',
+      'remaining',
+      'left at work',
+    ]);
+    if (remainingQuestion &&
+        !has(const ['الفاتورة', 'الفواتير', 'الدين', 'المنزل', 'البيت'])) {
+      if (!can('read_work_remaining')) {
+        return const AssistantResult.notUnderstood();
+      }
+      return const AssistantResult.command(
+        AssistantCommand(name: 'read_work_remaining', parameters: {}),
+      );
     }
-    if(RegExp(r'مجموع|إجمالي|اجمالي').hasMatch(text)) {
-      final section=_section(text), month=_month(text);
-      if(section==null) return const AssistantResult.clarification('مجموع أي قسم تقصد: العمل أم المنزل أم الديون؟');
-      if(month==null) return const AssistantResult.clarification('ما الشهر المطلوب؟ اكتب السنة والشهر مثل 2026-11.');
-      if(!availableActions.contains('read_month_total')) return const AssistantResult.notUnderstood();
-      return AssistantResult.command(AssistantCommand(name:'read_month_total',parameters:{'section':section,'year':month.$1,'month':month.$2}));
+
+    final totalQuestion = has(const [
+      'مجموع',
+      'اجمالي',
+      'المجموع',
+      'الاجمالي',
+      'كم صرفت',
+      'قديش صرفت',
+      'total',
+      'sum',
+    ]);
+    if (totalQuestion) {
+      final section = _section(has);
+      if (section == null) {
+        return const AssistantResult.clarification(
+          'مجموع أي قسم تقصد: العمل أم المنزل أم الديون؟',
+        );
+      }
+      final requestedMonth = _input.extractMonth(effectiveInput);
+      if (requestedMonth == null) {
+        return const AssistantResult.clarification(
+          'أي شهر تقصد؟ اذكر اسم الشهر أو رقمه والسنة.',
+        );
+      }
+      if (!can('read_month_total')) {
+        return const AssistantResult.notUnderstood();
+      }
+      return AssistantResult.command(
+        AssistantCommand(
+          name: 'read_month_total',
+          parameters: {
+            'section': section,
+            'year': requestedMonth.$1,
+            'month': requestedMonth.$2,
+          },
+        ),
+      );
     }
-    final amount=_amount(text), month=_month(text);
-    if(RegExp(r'راتب|سلفة|سلفه|دفعة|دفعه').hasMatch(text)) {
-      if(amount==null) return const AssistantResult.clarification('ما المبلغ؟ لن أفترض أي قيمة.');
-      if(month==null) return const AssistantResult.clarification('ما الشهر المستحق؟ اكتب السنة والشهر مثل 2026-11.');
-      final kind=text.contains('راتب')?'salary':RegExp(r'سلفة|سلفه').hasMatch(text)?'advance':'salaryPayment';
-      return AssistantResult.command(AssistantCommand(name:'save_work_entry',parameters:{'kind':kind,'amountMinorUnits':amount,'year':month.$1,'month':month.$2}));
+
+    if (readVerb) {
+      final readAction = _readAction(has);
+      if (readAction != null && can(readAction)) {
+        return AssistantResult.command(
+          AssistantCommand(name: readAction, parameters: {}),
+        );
+      }
     }
-    if(RegExp(r'تحويل|حوّل|حول').hasMatch(text) && RegExp(r'المنزل|للبيت').hasMatch(text)) {
-      if(amount==null) return const AssistantResult.clarification('ما مبلغ التحويل؟ لن أخمّن.');
-      if(!availableActions.contains('save_work_home_transfer')) return const AssistantResult.notUnderstood();
-      return AssistantResult.command(AssistantCommand(name:'save_work_home_transfer',parameters:{'amountMinorUnits':amount}));
+
+    final writeVerb = has(const [
+      'اضف',
+      'ضيف',
+      'زيد',
+      'سجل',
+      'سجلي',
+      'سجلت',
+      'سجللي',
+      'ضفت',
+      'ضيفلي',
+      'أضفت',
+      'احفظ',
+      'ادخل',
+      'دخل',
+      'قيد',
+      'حط',
+      'حطلي',
+      'نزل',
+      'اعمل',
+      'سوي',
+      'سجل لي',
+      'انشئ',
+      'اضافة',
+      'تسجيل',
+      'add',
+      'create',
+      'record',
+      'save',
+    ]);
+
+    final receiptVerb = has(const [
+      'استلمت',
+      'استلم',
+      'قبضت',
+      'قبض',
+      'وصلني',
+      'وصلتني',
+      'نزل بحسابي',
+      'نزل لي',
+      'اخذت',
+      'اخدت',
+      'استلام',
+      'received',
+      'got paid',
+    ]);
+
+    final currentText = _input.normalize(input);
+    bool hasCurrent(Iterable<String> phrases) =>
+        _input.containsAny(currentText, phrases);
+    final isQuestion = hasCurrent(const [
+      'هل',
+      'كم',
+      'قديش',
+      'شكد',
+      'متى',
+      'وين',
+      'شو',
+      'ما هو',
+      'ما هي',
+      'what',
+      'when',
+      'where',
+      'how',
+    ]) || input.contains('؟') || input.contains('?');
+    final isWriteIntent = !isQuestion && (writeVerb || receiptVerb);
+
+    if (isQuestion &&
+        receiptVerb &&
+        has(const [
+          'راتب',
+          'راتبي',
+          'معاش',
+          'معاشي',
+          'دفعة',
+          'دفعات',
+          'payment',
+        ])) {
+      if (can('read_work_records')) {
+        return const AssistantResult.command(
+          AssistantCommand(name: 'read_work_records', parameters: {}),
+        );
+      }
     }
-    if(RegExp(r'مصروف|المنزل').hasMatch(text)) {
-      if(amount==null) return const AssistantResult.clarification('ما مبلغ المصروف؟ لن أخمّن المبلغ.');
-      final category=_capture(text,r'(?:تصنيف|فئة)\s+([\p{L}0-9_-]+)');
-      if(category==null) return const AssistantResult.clarification('ما تصنيف المصروف؟ اذكره بعد كلمة تصنيف.');
-      if(month==null) return const AssistantResult.clarification('ما الشهر المستحق للمصروف؟ اكتب السنة والشهر.');
-      final date=_capture(text,r'(20\d{2}-\d{2}-\d{2})') ?? month.$1.toString()+'-'+month.$2.toString().padLeft(2,'0')+'-01';
-      if(!availableActions.contains('save_home_expense')) return const AssistantResult.notUnderstood();
-      return AssistantResult.command(AssistantCommand(name:'save_home_expense',parameters:{'amountMinorUnits':amount,'categoryId':category,'date':date,'year':month.$1,'month':month.$2}));
+
+    final amount = _input.extractAmount(effectiveInput);
+    final requestedMonth = _input.extractMonth(effectiveInput);
+
+    final isTransfer = has(const [
+      'حول',
+      'حولت',
+      'تحويل',
+      'نقلت',
+      'نقل',
+      'ودي',
+      'وديت',
+      'حطيت للبيت',
+      'للمنزل',
+      'للبيت',
+      'transfer',
+    ]) && has(const ['المنزل', 'البيت', 'للبيت', 'للمنزل', 'home']);
+    if (isTransfer && !isQuestion && !readVerb) {
+      if (amount == null) {
+        return const AssistantResult.clarification('كم مبلغ التحويل؟');
+      }
+      if (!can('save_work_home_transfer')) {
+        return const AssistantResult.notUnderstood();
+      }
+      return AssistantResult.command(
+        AssistantCommand(
+          name: 'save_work_home_transfer',
+          parameters: {'amountMinorUnits': amount},
+        ),
+      );
     }
-    if(RegExp(r'دين|دَين').hasMatch(text)) {
-      if(amount==null) return const AssistantResult.clarification('ما مبلغ الدين؟');
-      final direction=text.contains('دائن')?'creditor':text.contains('مدين')?'debtor':null;
-      if(direction==null) return const AssistantResult.clarification('هل الدين دائن (مبلغ لك) أم مدين (مبلغ عليك)؟');
-      final person=_capture(text,r'(?:لدى|على|مع)\s+([\p{L}0-9_-]+)');
-      if(person==null) return const AssistantResult.clarification('ما اسم الطرف المعني بالدين؟');
-      if(month==null) return const AssistantResult.clarification('ما الشهر المستحق للدين؟');
-      return AssistantResult.command(AssistantCommand(name:'save_debt',parameters:{'amountMinorUnits':amount,'direction':direction,'counterparty':person,'year':month.$1,'month':month.$2}));
+
+    final isAdvance = has(const [
+      'سلفة',
+      'سلفه',
+      'تسبيق',
+      'مقدم من الراتب',
+      'مقدمه من الراتب',
+      'advance',
+    ]);
+    final isPayment = has(const [
+      'دفعة',
+      'دفعه',
+      'دفعات',
+      'قسط',
+      'اقساط',
+      'جزء من الراتب',
+      'salary payment',
+      'payment',
+    ]);
+    final isSalary = has(const [
+      'راتب',
+      'راتبي',
+      'معاش',
+      'معاشي',
+      'مرتب',
+      'اجرة',
+      'اجر',
+      'دخل العمل',
+      'salary',
+      'paycheck',
+    ]);
+
+    if (isWriteIntent && (isSalary || isAdvance || isPayment)) {
+      if (amount == null) {
+        return const AssistantResult.clarification('ما المبلغ المطلوب تسجيله؟');
+      }
+      if (requestedMonth == null) {
+        return const AssistantResult.clarification(
+          'لأي شهر هذا الراتب أو السلفة أو الدفعة؟',
+        );
+      }
+      if (!can('save_work_entry')) {
+        return const AssistantResult.notUnderstood();
+      }
+      final kind = isAdvance
+          ? 'advance'
+          : (isPayment || receiptVerb)
+              ? 'payment'
+              : 'salary';
+      return AssistantResult.command(
+        AssistantCommand(
+          name: 'save_work_entry',
+          parameters: {
+            'kind': kind,
+            'amountMinorUnits': amount,
+            'year': requestedMonth.$1,
+            'month': requestedMonth.$2,
+          },
+        ),
+      );
     }
+
+    final isRent = has(const [
+      'ايجار',
+      'اجار',
+      'بدل سكن',
+      'rent',
+    ]);
+    final isBill = has(const [
+      'فاتورة',
+      'فاتوره',
+      'فواتير',
+      'اشتراك',
+      'bill',
+    ]);
+    if (isWriteIntent && (isRent || isBill)) {
+      if (amount == null) {
+        return const AssistantResult.clarification(
+          'ما قيمة الفاتورة أو الإيجار؟',
+        );
+      }
+      if (requestedMonth == null) {
+        return const AssistantResult.clarification(
+          'ما الشهر المستحق لهذه الفاتورة أو الإيجار؟',
+        );
+      }
+      if (!can('save_home_bill')) {
+        return const AssistantResult.notUnderstood();
+      }
+      final title = isRent ? 'الإيجار' : _billTitle(text);
+      if (title == null || title.trim().isEmpty) {
+        return const AssistantResult.clarification(
+          'ما اسم الفاتورة أو الاشتراك؟',
+        );
+      }
+      return AssistantResult.command(
+        AssistantCommand(
+          name: 'save_home_bill',
+          parameters: {
+            'title': title,
+            'kind': isRent ? 'rent' : 'monthly',
+            'amountMinorUnits': amount,
+            'year': requestedMonth.$1,
+            'month': requestedMonth.$2,
+          },
+        ),
+      );
+    }
+
+    final isHomeExpense = has(const [
+      'مصروف',
+      'مصروفات',
+      'مشتريات البيت',
+      'اغراض البيت',
+      'مشتريات المنزل',
+      'صرف البيت',
+      'expense',
+      'groceries',
+    ]);
+    if (isWriteIntent && isHomeExpense) {
+      if (amount == null) {
+        return const AssistantResult.clarification('كم قيمة مصروف المنزل؟');
+      }
+      final category = _category(has, text);
+      if (category == null) {
+        return const AssistantResult.clarification(
+          'ما تصنيف المصروف؟ مثل الطعام أو الكهرباء أو المواصلات.',
+        );
+      }
+      if (requestedMonth == null) {
+        return const AssistantResult.clarification(
+          'ما شهر وتاريخ المصروف؟',
+        );
+      }
+      if (!can('save_home_expense')) {
+        return const AssistantResult.notUnderstood();
+      }
+      final explicitDate = RegExp(
+        r'(20\d{2}-\d{2}-\d{2})',
+      ).firstMatch(_input.normalize(input))?.group(1);
+      final date = explicitDate ??
+          (requestedMonth.$1.toString() +
+              '-' +
+              requestedMonth.$2.toString().padLeft(2, '0') +
+              '-01');
+      return AssistantResult.command(
+        AssistantCommand(
+          name: 'save_home_expense',
+          parameters: {
+            'amountMinorUnits': amount,
+            'categoryId': category,
+            'date': date,
+            'year': requestedMonth.$1,
+            'month': requestedMonth.$2,
+          },
+        ),
+      );
+    }
+
+    final isDebt = has(const [
+      'دين',
+      'ديون',
+      'علي دين',
+      'لي دين',
+      'debt',
+    ]);
+    if (isWriteIntent && isDebt) {
+      if (amount == null) {
+        return const AssistantResult.clarification('ما مبلغ الدين؟');
+      }
+      final direction = _debtDirection(has);
+      if (direction == null) {
+        return const AssistantResult.clarification(
+          'هل المبلغ لك عند شخص (دائن)، أم عليك لشخص (مدين)؟',
+        );
+      }
+      final counterparty = _counterparty(text);
+      if (counterparty == null) {
+        return const AssistantResult.clarification('ما اسم الشخص أو الجهة؟');
+      }
+      if (requestedMonth == null) {
+        return const AssistantResult.clarification('ما الشهر المستحق للدين؟');
+      }
+      if (!can('save_debt')) return const AssistantResult.notUnderstood();
+      return AssistantResult.command(
+        AssistantCommand(
+          name: 'save_debt',
+          parameters: {
+            'amountMinorUnits': amount,
+            'direction': direction,
+            'counterparty': counterparty,
+            'year': requestedMonth.$1,
+            'month': requestedMonth.$2,
+          },
+        ),
+      );
+    }
+
     return const AssistantResult.notUnderstood();
   }
-  static int? _amount(String text) {
-    final withoutMonth = text.replaceAll(
-      RegExp(r'20\d{2}[-/](?:0?[1-9]|1[0-2])\b'),
-      ' ',
-    );
-    final match = RegExp(
-      r'(?<![A-Za-z\u0600-\u06FF])([0-9٠-٩۰-۹,٬]+)(?![A-Za-z\u0600-\u06FF])',
-    ).firstMatch(withoutMonth);
-    if (match != null) return _numbers.parseInteger(match.group(1)!);
-    final words = RegExp(
-      r'(?:ألف|الف|خمسمئة|خمسمائة|خمسمية|مئة|مائة|خمسة|خمس|واحد|واحدة|اثنين|ثلاثة|ثلاث|أربعة|اربعة|عشرة|عشرون|ثلاثون|أربعون|خمسون)(?:\s*و?\s*(?:ألف|الف|خمسمئة|خمسمائة|خمسمية|مئة|مائة|خمسة|خمس|واحد|واحدة|اثنين|ثلاثة|ثلاث|أربعة|اربعة))*',
-    ).firstMatch(withoutMonth)?.group(0);
-    return words == null ? null : _numbers.parseInteger(words);
+
+  static String _mergeClarificationReply(
+    String currentInput,
+    String conversationContext,
+  ) {
+    const normalizer = AssistantInputNormalizer();
+    final lines = conversationContext
+        .split('\n')
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList(growable: false);
+    if (lines.isEmpty || !lines.last.startsWith('المساعد:')) {
+      return currentInput;
+    }
+
+    final question = lines.last.substring('المساعد:'.length).trim();
+    final normalizedQuestion = normalizer.normalize(question);
+    final normalizedAnswer = normalizer.normalize(currentInput);
+    final amountQuestion = normalizer.containsAny(normalizedQuestion, const [
+      'ما المبلغ',
+      'كم المبلغ',
+      'قيمة المبلغ',
+      'كم قيمة',
+    ]);
+    final monthQuestion = normalizer.containsAny(normalizedQuestion, const [
+      'اي شهر',
+      'ما الشهر',
+      'لأي شهر',
+      'الشهر المستحق',
+      'السنة والشهر',
+    ]);
+    final directionQuestion = normalizer.containsAny(normalizedQuestion, const [
+      'هل المبلغ لك',
+      'هل الدين دائن',
+      'هل الدين مدين',
+      'دائن ام مدين',
+    ]);
+    final nameQuestion = normalizer.containsAny(normalizedQuestion, const [
+      'ما اسم الشخص',
+      'اسم الشخص او الجهة',
+      'ما اسم الطرف',
+      'اسم الفاتورة',
+      'اسم الاشتراك',
+    ]);
+    final categoryQuestion = normalizer.containsAny(normalizedQuestion, const [
+      'ما تصنيف المصروف',
+      'ما فئة المصروف',
+      'تصنيف المصروف',
+    ]);
+    final dateQuestion = normalizer.containsAny(normalizedQuestion, const [
+      'ما تاريخ المصروف',
+      'ما التاريخ',
+    ]);
+    final identifierQuestion = normalizer.containsAny(normalizedQuestion, const [
+      'رقم السجل',
+      'رقم الفاتورة',
+      'اي فاتورة تريد',
+      'اي دين تريد',
+      'معرف السجل',
+    ]);
+
+    final answerHasAmount = normalizer.extractAmount(currentInput) != null;
+    final answerHasMonth = normalizer.extractMonth(currentInput) != null;
+    final answerHasDirection = _debtDirection(
+      (phrases) => normalizer.containsAny(normalizedAnswer, phrases),
+    ) != null;
+    final answerHasCategory = _category(
+      (phrases) => normalizer.containsAny(normalizedAnswer, phrases),
+      normalizedAnswer,
+    ) != null;
+    final answerHasDate = DateTime.tryParse(currentInput.trim()) != null ||
+        RegExp(r'\b\d{1,2}[-/.]\d{1,2}[-/.]20\d{2}\b')
+            .hasMatch(_numbersForClarification.normalizeDigits(currentInput));
+    final answerHasIdentifier = RegExp(r'^[A-Za-z0-9_-]{2,64}$')
+        .hasMatch(currentInput.trim());
+    final answerIsShortText = currentInput.trim().isNotEmpty &&
+        currentInput.trim().length <= 80 &&
+        !normalizer.containsAny(normalizedAnswer, const [
+          'اضف',
+          'ضيف',
+          'سجل',
+          'احذف',
+          'عدل',
+          'افتح',
+          'حول',
+          'add',
+          'delete',
+          'update',
+          'open',
+        ]);
+
+    final isExpectedAnswer =
+        (amountQuestion && answerHasAmount) ||
+        (monthQuestion && answerHasMonth) ||
+        (directionQuestion && answerHasDirection) ||
+        (nameQuestion && answerIsShortText) ||
+        (categoryQuestion && answerHasCategory) ||
+        (dateQuestion && answerHasDate) ||
+        (identifierQuestion && answerHasIdentifier);
+    if (!isExpectedAnswer) return currentInput;
+
+    var originalRequestIndex = -1;
+    for (var index = lines.length - 2; index >= 0; index--) {
+      if (!lines[index].startsWith('المستخدم:')) continue;
+      final candidate = lines[index].substring('المستخدم:'.length).trim();
+      final normalizedCandidate = normalizer.normalize(candidate);
+      final looksLikeWrite = normalizer.containsAny(
+        normalizedCandidate,
+        const [
+          'اضف',
+          'اضافة',
+          'ضيف',
+          'سجل',
+          'تسجيل',
+          'احفظ',
+          'ادخل',
+          'حط',
+          'سوي',
+          'انشئ',
+          'add',
+          'create',
+          'record',
+          'save',
+        ],
+      );
+      if (looksLikeWrite) {
+        originalRequestIndex = index;
+        break;
+      }
+    }
+    if (originalRequestIndex < 0) return currentInput;
+
+    final previousUserTurns = <String>[];
+    for (var index = originalRequestIndex; index < lines.length - 1; index++) {
+      final line = lines[index];
+      if (line.startsWith('المستخدم:')) {
+        final turn = line.substring('المستخدم:'.length).trim();
+        if (turn.isNotEmpty) previousUserTurns.add(turn);
+      }
+    }
+    if (previousUserTurns.isEmpty) return currentInput;
+    return [...previousUserTurns, currentInput.trim()].join(' ');
   }
-  static (int,int)? _month(String text) {
-    final m=RegExp(r'\b(20\d{2})[-/](0?[1-9]|1[0-2])\b').firstMatch(text);
-    return m==null?null:(int.parse(m.group(1)!),int.parse(m.group(2)!));
-  }
-  static String? _navigationSection(String text) {
-    if (RegExp(r'لوحة\s+التحكم|الرئيسية|الرئيسيه').hasMatch(text)) {
+
+  static const _numbersForClarification = NumberNormalizer();
+
+  static String? _navigationSection(
+    bool Function(Iterable<String>) has,
+  ) {
+    if (has(const ['الرئيسية', 'لوحة التحكم', 'dashboard', 'home screen'])) {
       return 'dashboard';
     }
-    if (RegExp(r'الديون|الديون|الديْن|دين').hasMatch(text)) {
-      return 'debts';
-    }
-    if (RegExp(r'المنزل|البيت|المصروفات|مصروفات').hasMatch(text)) {
-      return 'home';
-    }
-    if (RegExp(r'العمل|الرواتب|الراتب|سلفة|سلفه|الدفعات').hasMatch(text)) {
+    if (has(const ['الديون', 'الذمم', 'debts'])) return 'debts';
+    if (has(const ['المنزل', 'البيت', 'المصروفات', 'home'])) return 'home';
+    if (has(const ['العمل', 'الرواتب', 'الراتب', 'salary', 'work'])) {
       return 'work';
     }
-    if (RegExp(r'الذكاء\s+الاصطناعي|الذكاء\s+الاصطناعى|المساعد').hasMatch(text)) {
-      return 'ai';
+    if (has(const ['الذكاء الاصطناعي', 'المساعد', 'ai assistant'])) return 'ai';
+    if (has(const ['الاعدادات', 'الضبط', 'settings'])) return 'settings';
+    return null;
+  }
+
+  static String? _readAction(bool Function(Iterable<String>) has) {
+    if (has(const ['تحويلات', 'التحويلات', 'التحويلات للبيت', 'transfers'])) {
+      return 'read_work_transfers';
     }
-    if (RegExp(r'الإعدادات|الاعدادات|الضبط').hasMatch(text)) {
-      return 'settings';
+    if (has(const ['فواتير', 'فواتير المنزل', 'الايجار', 'الاشتراكات', 'bills', 'rent'])) {
+      return 'read_home_bills';
+    }
+    if (has(const ['مصروفات المنزل', 'مصروفات البيت', 'مشتريات البيت', 'home expenses'])) {
+      return 'read_home_expenses';
+    }
+    if (has(const ['الديون', 'الدين', 'ديوني', 'المبالغ المستحقة', 'debts'])) {
+      return 'read_debts';
+    }
+    if (has(const ['سجلات العمل', 'الرواتب', 'الراتب', 'السلف', 'الدفعات', 'راتبي', 'معاشي', 'work records'])) {
+      return 'read_work_records';
     }
     return null;
   }
 
-  static String? _section(String text) {
-    if(text.contains('العمل')) return 'work';
-    if(RegExp(r'المنزل|البيت').hasMatch(text)) return 'home';
-    if(RegExp(r'الديون|دين').hasMatch(text)) return 'debts';
+  static String? _section(bool Function(Iterable<String>) has) {
+    if (has(const ['العمل', 'الرواتب', 'الراتب', 'work'])) return 'work';
+    if (has(const ['المنزل', 'البيت', 'المصروفات', 'home'])) return 'home';
+    if (has(const ['الديون', 'الدين', 'debts'])) return 'debts';
     return null;
   }
-  static String? _capture(String text,String pattern)=>RegExp(pattern,unicode:true).firstMatch(text)?.group(1);
+
+  static String? _category(
+    bool Function(Iterable<String>) has,
+    String text,
+  ) {
+    final explicit = RegExp(
+      r'(?:تصنيف|فئة|بند)\s+([\p{L}0-9_-]+)',
+      unicode: true,
+    ).firstMatch(text)?.group(1);
+    if (explicit != null && explicit.trim().isNotEmpty) return explicit.trim();
+
+    const aliases = <String, List<String>>{
+      'groceries': ['طعام', 'اكل', 'اطعمة', 'بقالة', 'مقاضي', 'مواد غذائية', 'غذاء', 'groceries', 'food'],
+      'utilities': ['كهرباء', 'ماء', 'مي', 'غاز', 'انترنت', 'مياه', 'utilities'],
+      'housing': ['سكن', 'ايجار', 'اجار', 'housing'],
+      'cleaning': ['تنظيف', 'منظفات', 'مواد تنظيف', 'cleaning'],
+      'maintenance': ['صيانة', 'تصليح', 'اصلاح', 'maintenance'],
+      'transport': ['مواصلات', 'بنزين', 'وقود', 'تاكسي', 'نقل', 'transport'],
+      'personal': ['ملابس', 'شخصي', 'مستلزمات شخصية', 'personal'],
+      'health': ['صحة', 'دواء', 'ادوية', 'علاج', 'طبيب', 'مستشفى', 'health'],
+      'other': ['اخرى', 'متفرقات', 'other'],
+    };
+    for (final entry in aliases.entries) {
+      if (has(entry.value)) return entry.key;
+    }
+    return null;
+  }
+
+  static String? _billTitle(String text) {
+    final match = RegExp(
+      r'(?:فاتورة|اشتراك)\s+([\p{L} ]+?)(?=\s+(?:بمبلغ|بقيمة|مبلغ|لشهر|شهر|هذا الشهر|الشهر الحالي|20\d{2}|[0-9]))',
+      unicode: true,
+    ).firstMatch(text);
+    final title = match?.group(1)?.trim();
+    return title == null || title.isEmpty ? null : title;
+  }
+
+  static String? _debtDirection(
+    bool Function(Iterable<String>) has,
+  ) {
+    if (has(const ['دائن', 'لي عند', 'الي عند', 'لي بذمة', 'مستحق لي', 'شخص مدين لي', 'creditor'])) {
+      return 'creditor';
+    }
+    if (has(const ['مدين', 'علي دين', 'مبلغ علي', 'في ذمتي', 'علي ذمة', 'مستحق علي', 'انا مدين', 'عليه', 'debtor'])) {
+      return 'debtor';
+    }
+    return null;
+  }
+
+  static String? _counterparty(String text) {
+    final match = RegExp(
+      r'(?:مع|لدى|عند|لصالح|من)\s+([\p{L}]+)',
+      unicode: true,
+    ).firstMatch(text);
+    final name = match?.group(1)?.trim();
+    if (name == null ||
+        name.isEmpty ||
+        const {'شخص', 'احد', 'طرف', 'البيت', 'المنزل'}.contains(name)) {
+      return null;
+    }
+    return name;
+  }
 }
