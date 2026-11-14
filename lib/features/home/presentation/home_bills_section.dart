@@ -1,6 +1,7 @@
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/core/widgets/entry_tools.dart';
+import 'package:expense_app/core/widgets/entry_form_dialog.dart';
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/features/home/data/home_bill_repository.dart';
 import 'package:expense_app/features/home/domain/home_bill.dart';
@@ -21,7 +22,7 @@ class HomeBillsSection extends ConsumerWidget {
     String? error;
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(builder: (context, setState) => AlertDialog(
+      builder: (dialogContext) => StatefulBuilder(builder: (context, setState) => EntryFormDialog(
         title: Text(kind == HomeBillKind.rent ? strings.addRent : strings.addMonthlyBill),
         content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
           TextField(controller: title, decoration: InputDecoration(labelText: strings.billName)),
@@ -69,7 +70,7 @@ class HomeBillsSection extends ConsumerWidget {
     String? error;
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(builder: (context, setState) => AlertDialog(
+      builder: (dialogContext) => StatefulBuilder(builder: (context, setState) => EntryFormDialog(
         title: Text(strings.addBillPayment),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           Text('${strings.billRemaining}: ${bill.remainingMinorUnits}'),
@@ -124,7 +125,7 @@ class HomeBillsSection extends ConsumerWidget {
           ? Text(strings.noRecords)
           : ListView(shrinkWrap: true, children: payments.map((payment) => ListTile(
               title: Text(payment.amount.minorUnits.toString()),
-              subtitle: Text(payment.paidAt.toLocal().toString().split('.').first),
+              subtitle: Text(formatCalendarDate(payment.paidAt)),
             )).toList())),
         actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(strings.cancel))],
       ),
@@ -155,7 +156,11 @@ class HomeBillsSection extends ConsumerWidget {
               return Card(child: ListTile(
                 leading: Icon(bill.kind == HomeBillKind.rent ? Icons.home_outlined : Icons.receipt_long_outlined),
                 title: Text(bill.title),
-                subtitle: Text('${bill.kind == HomeBillKind.rent ? strings.rent : strings.monthlyBills} • ${bill.dueMonth} • $status\n${strings.billPaid}: ${bill.paidMinorUnits} / ${bill.amount.minorUnits} • ${strings.billRemaining}: ${bill.remainingMinorUnits}'),
+                subtitle: Text([
+                  '${bill.kind == HomeBillKind.rent ? strings.rent : strings.monthlyBills} • ${bill.dueMonth} • $status',
+                  '${strings.billPaid}: ${bill.paidMinorUnits} / ${bill.amount.minorUnits} • ${strings.billRemaining}: ${bill.remainingMinorUnits}',
+                  if (bill.note != null && bill.note!.trim().isNotEmpty) bill.note!.trim(),
+                ].join('\n')),
                 isThreeLine: true,
                 trailing: bill.isSettled ? IconButton(tooltip: strings.billHistory, onPressed: () => _showHistory(context, ref, strings, bill), icon: const Icon(Icons.history)) : PopupMenuButton<String>(
                   onSelected: (value) {

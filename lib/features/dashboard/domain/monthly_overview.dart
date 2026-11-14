@@ -67,7 +67,6 @@ final class MonthlyOverview {
         case WorkEntryKind.advance:
           advances += entry.amount;
           break;
-        case WorkEntryKind.payment:
         case WorkEntryKind.salaryPayment:
           payments += entry.amount;
           break;

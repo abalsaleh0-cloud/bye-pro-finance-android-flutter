@@ -3,6 +3,7 @@ import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
 import 'package:expense_app/core/widgets/entry_tools.dart';
+import 'package:expense_app/core/widgets/entry_form_dialog.dart';
 import 'package:expense_app/features/work/domain/work_entry.dart';
 import 'package:expense_app/features/work/data/work_repository.dart';
 import 'package:expense_app/features/work/domain/work_balance_allocation.dart';
@@ -51,7 +52,6 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
       switch (kind) {
         WorkEntryKind.salary => strings.salary,
         WorkEntryKind.advance => strings.advance,
-        WorkEntryKind.payment => strings.payment,
         WorkEntryKind.salaryPayment => strings.payment,
       };
 
@@ -76,14 +76,13 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
       WorkEntryKind.salary,
       WorkEntryKind.advance,
       WorkEntryKind.salaryPayment,
-      if (existing?.kind == WorkEntryKind.payment) WorkEntryKind.payment,
     ];
     String? error;
     try {
       await showDialog<void>(
         context: context,
         builder: (dialogContext) => StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
+          builder: (context, setDialogState) => EntryFormDialog(
             title: Text(
               existing == null ? strings.addEntry : strings.editRecord,
             ),
@@ -231,7 +230,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
       await showDialog<void>(
         context: context,
         builder: (dialogContext) => StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
+          builder: (context, setDialogState) => EntryFormDialog(
             title: Text(strings.addTransfer),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -421,7 +420,6 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
           salary += entry.amount.minorUnits;
         case WorkEntryKind.advance:
           advances += entry.amount.minorUnits;
-        case WorkEntryKind.payment:
         case WorkEntryKind.salaryPayment:
           payments += entry.amount.minorUnits;
       }

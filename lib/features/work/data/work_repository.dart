@@ -40,7 +40,16 @@ final class WorkRepository {
     return (_database.select(_database.workEntries)
           ..orderBy([(row) => OrderingTerm.desc(row.recordedAtEpochMillis)]))
         .watch()
-        .map((rows) => rows.map(_entryToDomain).toList(growable: false));
+        .map((rows) {
+          final entries = rows.map(_entryToDomain).toList();
+          entries.sort((a, b) {
+            final categoryOrder = a.kind.index.compareTo(b.kind.index);
+            return categoryOrder != 0
+                ? categoryOrder
+                : b.recordedAt.compareTo(a.recordedAt);
+          });
+          return entries.toList(growable: false);
+        });
   }
 
   Future<void> saveEntry(WorkEntry entry) {
@@ -82,7 +91,12 @@ final class WorkRepository {
       await _database.into(_database.workEntries).insertOnConflictUpdate(
         WorkEntriesCompanion.insert(
           id: entry.id,
-          kind: entry.kind.name,
+          // Keep the persisted database value stable for existing installations.
+          // Both legacy and newly saved salary payments are read as the
+          // unified salaryPayment domain kind by _entryToDomain.
+          kind: entry.kind == WorkEntryKind.salaryPayment
+              ? 'payment'
+              : entry.kind.name,
           amountMinorUnits: entry.amount.minorUnits,
           dueYear: entry.dueMonth.year,
           dueMonth: entry.dueMonth.month,
@@ -225,12 +239,16 @@ final class WorkRepository {
 
   bool _isCashReceived(String kind) =>
       kind == WorkEntryKind.advance.name ||
-      kind == WorkEntryKind.payment.name ||
+      kind == 'payment' ||
       kind == WorkEntryKind.salaryPayment.name;
 
   WorkEntry _entryToDomain(WorkEntryRow row) => WorkEntry(
     id: row.id,
-    kind: WorkEntryKind.values.byName(row.kind),
+    // Older records stored `payment`; expose it through the current unified
+    // salary-payment category without rewriting the persisted record eagerly.
+    kind: row.kind == 'payment'
+        ? WorkEntryKind.salaryPayment
+        : WorkEntryKind.values.byName(row.kind),
     amount: Money.fromMinorUnits(row.amountMinorUnits),
     dueMonth: MonthKey(year: row.dueYear, month: row.dueMonth),
     recordedAt: DateTime.fromMillisecondsSinceEpoch(row.recordedAtEpochMillis),

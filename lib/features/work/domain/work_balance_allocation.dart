@@ -42,7 +42,6 @@ final class WorkBalanceAllocation {
             (value) => value + entry.amount.minorUnits,
             ifAbsent: () => entry.amount.minorUnits,
           );
-        case WorkEntryKind.payment:
         case WorkEntryKind.salaryPayment:
           paymentsByMonth.update(
             entry.dueMonth,

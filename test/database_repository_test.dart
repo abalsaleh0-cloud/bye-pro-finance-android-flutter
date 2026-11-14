@@ -354,7 +354,7 @@ void main() {
     await repository.saveEntry(
       WorkEntry(
         id: original.id,
-        kind: WorkEntryKind.payment,
+        kind: WorkEntryKind.salaryPayment,
         amount: Money.fromMinorUnits(750),
         dueMonth: MonthKey(year: 2026, month: 12),
         recordedAt: DateTime.utc(2026, 11, 2),
