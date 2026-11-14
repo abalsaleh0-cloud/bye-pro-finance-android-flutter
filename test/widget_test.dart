@@ -458,4 +458,48 @@ class _FixedSelectedMonthNotifier extends SelectedMonthNotifier {
   void select(MonthKey selected) {
     state = selected;
   }
+
+  testWidgets('home bill menu exposes edit and delete and edit form is prefilled', (tester) async {
+    final now = DateTime.now();
+    final month = MonthKey(year: now.year, month: now.month);
+    final bill = HomeBill(
+      id: 'widget-editable-bill',
+      title: 'فاتورة قابلة للتعديل',
+      kind: HomeBillKind.monthly,
+      amount: Money.fromMinorUnits(420),
+      dueMonth: month,
+      note: 'ملاحظة موجودة',
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          homeBillsProvider.overrideWith((ref) async => [bill]),
+          selectedMonthProvider.overrideWith(
+            () => _FixedSelectedMonthNotifier(month),
+          ),
+        ],
+        child: const MyApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('المنزل').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('home-tab-3')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('فاتورة قابلة للتعديل'), findsOneWidget);
+    await tester.tap(find.byType(PopupMenuButton<String>).last);
+    await tester.pumpAndSettle();
+    expect(find.text('تعديل السجل'), findsOneWidget);
+    expect(find.text('حذف السجل'), findsOneWidget);
+    await tester.tap(find.text('تعديل السجل'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('فاتورة قابلة للتعديل'), findsWidgets);
+    expect(find.text('420'), findsOneWidget);
+    expect(find.text('ملاحظة موجودة'), findsOneWidget);
+  });
+
 }
