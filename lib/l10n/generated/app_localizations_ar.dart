@@ -130,6 +130,48 @@ class AppLocalizationsAr extends AppLocalizations {
   String get category => 'التصنيف';
 
   @override
+  String get homeCategoryGroceries => 'المواد الغذائية';
+
+  @override
+  String get homeCategoryUtilities => 'الفواتير والخدمات';
+
+  @override
+  String get homeCategoryHousing => 'الإيجار والسكن';
+
+  @override
+  String get homeCategoryCleaning => 'المنظفات والاحتياجات المنزلية';
+
+  @override
+  String get homeCategoryMaintenance => 'الصيانة والإصلاحات';
+
+  @override
+  String get homeCategoryTransport => 'النقل والمواصلات';
+
+  @override
+  String get homeCategoryPersonal => 'المستلزمات الشخصية';
+
+  @override
+  String get homeCategoryHealth => 'الصحة والأدوية';
+
+  @override
+  String get homeCategoryOther => 'متفرقات';
+
+  @override
+  String get manageCategories => 'إدارة التصنيفات';
+
+  @override
+  String get addCategory => 'إضافة تصنيف';
+
+  @override
+  String get editCategory => 'تعديل التصنيف';
+
+  @override
+  String get categoryName => 'اسم التصنيف';
+
+  @override
+  String get duplicateCategory => 'يوجد تصنيف آخر بالاسم نفسه';
+
+  @override
   String get expenseDate => 'تاريخ المصروف';
 
   @override
