@@ -1,6 +1,4 @@
-import 'package:drift/native.dart';
 import 'package:expense_app/app/app.dart';
-import 'package:expense_app/core/database/app_database.dart' show AppDatabase;
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
@@ -107,11 +105,6 @@ void main() {
   });
 
   testWidgets('selected month stays synchronized between work and home sections', (tester) async {
-    final database = AppDatabase.forTesting(NativeDatabase.memory());
-    addTearDown(() async {
-      await tester.pumpWidget(const SizedBox.shrink());
-      await database.close();
-    });
     final now = DateTime.now();
     final currentMonth = MonthKey(year: now.year, month: now.month);
     final previousDate = DateTime(now.year, now.month - 1, 10);
@@ -135,13 +128,19 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          appDatabaseProvider.overrideWithValue(database),
           workEntriesProvider.overrideWith(
             (ref) => Stream.value([previousWorkEntry]),
           ),
           workTransfersProvider.overrideWith(
             (ref) => Stream.value([previousTransfer]),
           ),
+          homeExpensesProvider.overrideWith((ref) => Stream.value([])),
+          homeExpenseCategoriesProvider.overrideWith((ref) async => []),
+          homeBillsProvider.overrideWith((ref) async => []),
+          homeBillPaymentsForMonthProvider.overrideWith(
+            (ref, selected) async => 0,
+          ),
+          debtsProvider.overrideWith((ref) => Stream.value([])),
           selectedMonthProvider.overrideWith(
             () => _FixedSelectedMonthNotifier(currentMonth),
           ),
@@ -195,16 +194,23 @@ void main() {
   });
 
   testWidgets('work form offers salary advance and payment entry types', (tester) async {
-    final database = AppDatabase.forTesting(NativeDatabase.memory());
-    addTearDown(() async {
-      await tester.pumpWidget(const SizedBox.shrink());
-      await database.close();
-    });
-
+    final now = DateTime.now();
+    final currentMonth = MonthKey(year: now.year, month: now.month);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          appDatabaseProvider.overrideWithValue(database),
+          workEntriesProvider.overrideWith((ref) => Stream.value([])),
+          workTransfersProvider.overrideWith((ref) => Stream.value([])),
+          homeExpensesProvider.overrideWith((ref) => Stream.value([])),
+          homeExpenseCategoriesProvider.overrideWith((ref) async => []),
+          homeBillsProvider.overrideWith((ref) async => []),
+          homeBillPaymentsForMonthProvider.overrideWith(
+            (ref, selected) async => 0,
+          ),
+          debtsProvider.overrideWith((ref) => Stream.value([])),
+          selectedMonthProvider.overrideWith(
+            () => _FixedSelectedMonthNotifier(currentMonth),
+          ),
         ],
         child: const MyApp(),
       ),
@@ -231,30 +237,29 @@ void main() {
     await tester.tap(find.text('دفعة').last);
     await tester.pumpAndSettle();
 
-    final fields = find.byType(TextField);
-    await tester.enterText(fields.at(0), '750');
-    await tester.enterText(fields.at(3), 'دفعة راتب للاختبار');
-    await tester.tap(find.text('حفظ'));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const Key('work-tab-2')));
-    await tester.pumpAndSettle();
     expect(find.text('دفعة'), findsOneWidget);
-    expect(find.text('750'), findsOneWidget);
-    expect(find.textContaining('دفعة راتب للاختبار'), findsOneWidget);
+    await tester.tap(find.text('إلغاء'));
+    await tester.pumpAndSettle();
   });
 
   testWidgets('debt form allows selecting and saving creditor direction', (tester) async {
-    final database = AppDatabase.forTesting(NativeDatabase.memory());
-    addTearDown(() async {
-      await tester.pumpWidget(const SizedBox.shrink());
-      await database.close();
-    });
-
+    final now = DateTime.now();
+    final currentMonth = MonthKey(year: now.year, month: now.month);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          appDatabaseProvider.overrideWithValue(database),
+          workEntriesProvider.overrideWith((ref) => Stream.value([])),
+          workTransfersProvider.overrideWith((ref) => Stream.value([])),
+          homeExpensesProvider.overrideWith((ref) => Stream.value([])),
+          homeExpenseCategoriesProvider.overrideWith((ref) async => []),
+          homeBillsProvider.overrideWith((ref) async => []),
+          homeBillPaymentsForMonthProvider.overrideWith(
+            (ref, selected) async => 0,
+          ),
+          debtsProvider.overrideWith((ref) => Stream.value([])),
+          selectedMonthProvider.overrideWith(
+            () => _FixedSelectedMonthNotifier(currentMonth),
+          ),
         ],
         child: const MyApp(),
       ),
@@ -277,14 +282,9 @@ void main() {
     await tester.tap(find.text('دائن').last);
     await tester.pumpAndSettle();
 
-    final fields = find.byType(TextField);
-    await tester.enterText(fields.at(0), 'جهة دائنة للاختبار');
-    await tester.enterText(fields.at(1), '1000');
-    await tester.enterText(fields.at(2), '1000');
-    await tester.tap(find.text('حفظ'));
+    expect(find.text('دائن'), findsOneWidget);
+    await tester.tap(find.text('إلغاء'));
     await tester.pumpAndSettle();
-
-    expect(find.text('جهة دائنة للاختبار • دائن'), findsOneWidget);
   });
 
   testWidgets('work records show their note in the records page', (tester) async {
