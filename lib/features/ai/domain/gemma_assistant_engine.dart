@@ -57,6 +57,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
     String input,
     List<String> availableActions, {
     AssistantMedia? media,
+    String conversationContext = '',
   }) async {
     final text = input.trim();
     if (text.isEmpty) return const AssistantResult.notUnderstood();
@@ -78,7 +79,8 @@ final class GemmaAssistantEngine implements AssistantEngine {
         required: ['question'],
       ));
 
-      final output = await generator.generate(text, functions, media: media).timeout(timeout);
+      final prompt = _composePrompt(text, conversationContext);
+      final output = await generator.generate(prompt, functions, media: media).timeout(timeout);
       if (output.parallelCalls) return const AssistantResult.notUnderstood();
 
       if (output.name == null) {
@@ -143,6 +145,14 @@ final class GemmaAssistantEngine implements AssistantEngine {
     } catch (_) {
       return const AssistantResult.notUnderstood();
     }
+  }
+
+  static String _composePrompt(String currentText, String conversationContext) {
+    final context = conversationContext.trim();
+    if (context.isEmpty) return currentText;
+    return 'سياق المحادثة السابق للرجوع إليه لفهم الإحالات واستكمال الحوار فقط:\\n'
+        '$context\\n\\n'
+        'رسالة المستخدم الحالية:\\n$currentText';
   }
 
   GemmaFunctionSpec _functionFor(ActionDescriptor descriptor) {
