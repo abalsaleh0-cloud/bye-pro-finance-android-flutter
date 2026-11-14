@@ -419,7 +419,6 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
           salary += entry.amount.minorUnits;
         case WorkEntryKind.advance:
           advances += entry.amount.minorUnits;
-        case WorkEntryKind.payment:
         case WorkEntryKind.salaryPayment:
           payments += entry.amount.minorUnits;
       }
