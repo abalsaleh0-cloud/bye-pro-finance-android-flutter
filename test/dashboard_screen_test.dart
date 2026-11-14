@@ -86,6 +86,11 @@ void main() {
       '20',
     );
     expect(find.text('الصورة المالية'), findsOneWidget);
+    await tester.drag(
+      find.byKey(const Key('dashboard-content')),
+      const Offset(0, -2400),
+    );
+    await tester.pumpAndSettle();
     expect(find.text('آخر العمليات'), findsOneWidget);
   });
 }
