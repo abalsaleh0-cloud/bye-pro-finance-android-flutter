@@ -1,3 +1,4 @@
+import 'package:drift/native.dart';
 import 'package:expense_app/app/app.dart';
 import 'package:expense_app/core/database/app_database.dart';
 import 'package:expense_app/core/database/database_providers.dart';
@@ -11,7 +12,6 @@ import 'package:expense_app/features/home/domain/home_expense.dart';
 import 'package:expense_app/features/home/domain/home_expense_category.dart';
 import 'package:expense_app/features/work/domain/work_entry.dart';
 import 'package:expense_app/features/work/domain/work_home_transfer.dart';
-import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
