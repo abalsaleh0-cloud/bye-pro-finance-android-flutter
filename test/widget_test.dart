@@ -6,6 +6,7 @@ import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
 import 'package:expense_app/features/work/domain/work_entry.dart';
+import 'package:expense_app/features/debts/domain/debt_entry.dart';
 import 'package:expense_app/features/home/domain/home_bill.dart';
 import 'package:expense_app/features/home/domain/home_expense.dart';
 import 'package:expense_app/features/work/domain/work_home_transfer.dart';
@@ -166,6 +167,46 @@ void main() {
     await tester.tap(find.text('العمل').last);
     await tester.pumpAndSettle();
     expect(find.text(currentMonth.toString()), findsWidgets);
+  });
+
+  testWidgets('debt form allows selecting and saving creditor direction', (tester) async {
+    final database = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(database.close);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(database),
+        ],
+        child: const MyApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('الديون').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+
+    final directionField = find.byType(
+      DropdownButtonFormField<DebtDirection>,
+    );
+    expect(directionField, findsOneWidget);
+    await tester.tap(directionField);
+    await tester.pumpAndSettle();
+    expect(find.text('دائن'), findsOneWidget);
+    expect(find.text('مدين'), findsWidgets);
+    await tester.tap(find.text('دائن').last);
+    await tester.pumpAndSettle();
+
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.at(0), 'جهة دائنة للاختبار');
+    await tester.enterText(fields.at(1), '1000');
+    await tester.enterText(fields.at(2), '1000');
+    await tester.tap(find.text('حفظ'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('جهة دائنة للاختبار • دائن'), findsOneWidget);
   });
 
   testWidgets('work records show their note in the records page', (tester) async {
