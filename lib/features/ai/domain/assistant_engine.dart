@@ -53,6 +53,27 @@ final class FakeAssistantEngine implements AssistantEngine {
   }) async {
     final text=input.trim();
     if(text.isEmpty || media != null) return const AssistantResult.notUnderstood();
+
+    if (RegExp(r'ملخص|كيف\s+وضعي|وضعي\s+المالي|الوضع\s+المالي').hasMatch(text) &&
+        availableActions.contains('read_dashboard_summary')) {
+      return const AssistantResult.command(
+        AssistantCommand(name: 'read_dashboard_summary', parameters: {}),
+      );
+    }
+
+    if (RegExp(r'افتح|انتقل|اذهب|روح').hasMatch(text)) {
+      final section = _navigationSection(text);
+      if (section != null &&
+          availableActions.contains('navigate_to_section')) {
+        return AssistantResult.command(
+          AssistantCommand(
+            name: 'navigate_to_section',
+            parameters: {'section': section},
+          ),
+        );
+      }
+    }
+
     if(RegExp(r'الباقي|المتبقي').hasMatch(text)) {
       if(!availableActions.contains('read_work_remaining')) return const AssistantResult.notUnderstood();
       return const AssistantResult.command(AssistantCommand(name:'read_work_remaining',parameters:{}));
@@ -114,6 +135,28 @@ final class FakeAssistantEngine implements AssistantEngine {
     final m=RegExp(r'\b(20\d{2})[-/](0?[1-9]|1[0-2])\b').firstMatch(text);
     return m==null?null:(int.parse(m.group(1)!),int.parse(m.group(2)!));
   }
+  static String? _navigationSection(String text) {
+    if (RegExp(r'لوحة\s+التحكم|الرئيسية|الرئيسيه').hasMatch(text)) {
+      return 'dashboard';
+    }
+    if (RegExp(r'الديون|الديون|الديْن|دين').hasMatch(text)) {
+      return 'debts';
+    }
+    if (RegExp(r'المنزل|البيت|المصروفات|مصروفات').hasMatch(text)) {
+      return 'home';
+    }
+    if (RegExp(r'العمل|الرواتب|الراتب|سلفة|سلفه|الدفعات').hasMatch(text)) {
+      return 'work';
+    }
+    if (RegExp(r'الذكاء\s+الاصطناعي|الذكاء\s+الاصطناعى|المساعد').hasMatch(text)) {
+      return 'ai';
+    }
+    if (RegExp(r'الإعدادات|الاعدادات|الضبط').hasMatch(text)) {
+      return 'settings';
+    }
+    return null;
+  }
+
   static String? _section(String text) {
     if(text.contains('العمل')) return 'work';
     if(RegExp(r'المنزل|البيت').hasMatch(text)) return 'home';
