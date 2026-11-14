@@ -77,23 +77,24 @@ void main() {
     expect(overview.transfers.minorUnits, 7000);
   });
 
-  test('matches the requested monthly work example exactly', () {
+  test('matches the requested October work example exactly', () {
+    final october = MonthKey(year: 2026, month: 10);
     final overview = MonthlyOverview.calculate(
-      month: month,
+      month: october,
       workEntries: [
         WorkEntry(
           id: 'october-salary-example',
           kind: WorkEntryKind.salary,
           amount: Money.fromMinorUnits(1500),
-          dueMonth: month,
-          recordedAt: DateTime(2026, 11, 1),
+          dueMonth: october,
+          recordedAt: DateTime(2026, 10, 1),
         ),
         WorkEntry(
           id: 'october-salary-payment-example',
           kind: WorkEntryKind.salaryPayment,
           amount: Money.fromMinorUnits(750),
           dueMonth: month,
-          recordedAt: DateTime(2026, 11, 10),
+          recordedAt: DateTime(2026, 10, 10),
         ),
       ],
       homeExpenses: const [],
@@ -101,7 +102,7 @@ void main() {
         WorkHomeTransfer(
           id: 'october-home-transfer-example',
           amount: Money.fromMinorUnits(750),
-          transferredAt: DateTime(2026, 11, 10),
+          transferredAt: DateTime(2026, 10, 10),
         ),
       ],
       debts: const [],
