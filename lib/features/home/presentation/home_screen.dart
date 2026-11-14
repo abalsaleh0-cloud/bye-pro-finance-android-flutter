@@ -220,6 +220,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       text: existing?.amount.minorUnits.toString() ?? '',
     );
     var categories = await ref.read(homeExpenseCategoriesProvider.future);
+    if (!context.mounted) return;
     if (existing != null && !categories.any((item) => item.id == existing.categoryId)) {
       categories = [...categories, HomeExpenseCategory(id: existing.categoryId, name: existing.categoryId)];
     }
@@ -269,9 +270,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             categories = [
                               ...refreshed,
                               if (existing != null &&
-                                  !refreshed.any((item) => item.id == existing.categoryId)) {
+                                  !refreshed.any((item) => item.id == existing.categoryId))
                                 HomeExpenseCategory(id: existing.categoryId, name: existing.categoryId),
-                              }
                             ];
                             if (!categories.any((item) => item.id == selectedCategoryId)) {
                               selectedCategoryId = categories.first.id;
@@ -285,7 +285,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       child: Text(_categoryLabel(strings, item)),
                     )).toList(),
                     onChanged: (value) {
-                      if (value != null) setDialogState(() => selectedCategoryId = value);
+                      if (value != null) {
+                        setDialogState(() => selectedCategoryId = value);
+                      }
                     },
                   ),
                   TextField(
