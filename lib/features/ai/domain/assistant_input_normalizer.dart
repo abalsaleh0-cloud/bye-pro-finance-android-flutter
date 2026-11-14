@@ -73,6 +73,7 @@ final class AssistantInputNormalizer {
   String normalize(String input) {
     var value = _numbers.normalizeDigits(input).toLowerCase();
     value = value.replaceAll(_diacritics, '');
+    value = value.replaceAll(RegExp(r'[؟،؛…٫٬]'), ' ');
     value = value
         .replaceAll(RegExp('[أإآٱ]'), 'ا')
         .replaceAll('ى', 'ي')
@@ -86,13 +87,17 @@ final class AssistantInputNormalizer {
     for (final phrase in phrases) {
       final normalizedPhrase = normalize(phrase);
       if (normalizedPhrase.isEmpty) continue;
-      final candidates = <String>[
+      final core = normalizedPhrase.startsWith('ال')
+          ? normalizedPhrase.substring(2)
+          : normalizedPhrase;
+      final candidates = <String>{
         normalizedPhrase,
-        'ال$normalizedPhrase',
-        'لل$normalizedPhrase',
-        'بال$normalizedPhrase',
-        'فال$normalizedPhrase',
-      ];
+        core,
+        'ال$core',
+        'لل$core',
+        'بال$core',
+        'فال$core',
+      }.toList(growable: false);
       for (final candidate in candidates) {
         const prefix = '(^| )';
         const suffix = r'( |$)';
@@ -247,6 +252,7 @@ final class AssistantInputNormalizer {
       'الشهر التالي',
       'الشهر اللي بعده',
       'الشهر القادم',
+      'next month',
     ])) {
       final next = DateTime(now.year, now.month + 1);
       return (next.year, next.month);
@@ -287,7 +293,7 @@ final class AssistantInputNormalizer {
     }
 
     final numericMonth = RegExp(
-      r'(?:شهر|الشهر)\s+(0?[1-9]|1[0-2])(?:\s+(?:لسنة|سنة|عام)\s+(20\d{2}))?',
+      r'(?:شهر|الشهر)\s+(0?[1-9]|1[0-2])(?!\d)(?:\s+(?:لسنة|سنة|عام)\s+(20\d{2}))?',
     ).firstMatch(normalized);
     if (numericMonth != null) {
       final year = numericMonth.group(2);
