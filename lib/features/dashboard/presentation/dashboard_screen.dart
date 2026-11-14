@@ -33,7 +33,7 @@ class DashboardScreen extends ConsumerWidget {
         debts.isLoading ||
         bills.isLoading ||
         billPayments.isLoading) {
-      return Scaffold(body: Center(child: CircularProgressIndicator()));
+      return Scaffold(body: Center(child: Text(strings.loading)));
     }
     if (work.hasError ||
         home.hasError ||
