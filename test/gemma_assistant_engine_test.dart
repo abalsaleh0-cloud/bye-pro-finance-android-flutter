@@ -131,6 +131,68 @@ void main() {
       expect(bill.required, contains('billId'));
     });
 
+    test('exposes dashboard summary and safe navigation tool schemas', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.text(''),
+      );
+      await GemmaAssistantEngine(generator).interpret(
+        'اعطني ملخصاً وافتح قسم العمل عند الحاجة',
+        const ['read_dashboard_summary', 'navigate_to_section'],
+      );
+
+      final functions = generator.receivedFunctions!;
+      final summary = functions.singleWhere(
+        (item) => item.name == 'read_dashboard_summary',
+      );
+      final navigation = functions.singleWhere(
+        (item) => item.name == 'navigate_to_section',
+      );
+      expect(summary.required, isEmpty);
+      expect(summary.properties.keys, containsAll(['year', 'month']));
+      expect(navigation.required, ['section']);
+      expect(navigation.properties['section']!['enum'], [
+        'dashboard',
+        'work',
+        'home',
+        'debts',
+        'ai',
+        'settings',
+      ]);
+    });
+
+    test('forwards an explicit month to the dashboard summary action', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.call('read_dashboard_summary', {
+          'year': 2026,
+          'month': 10,
+        }),
+      );
+      final result = await GemmaAssistantEngine(generator).interpret(
+        'اعطني ملخص شهر 2026-10',
+        const ['read_dashboard_summary'],
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'read_dashboard_summary');
+      expect(result.command!.parameters, {'year': 2026, 'month': 10});
+    });
+
+    test('converts a valid navigation function call into a read-only command', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.call('navigate_to_section', {
+          'section': 'settings',
+        }),
+      );
+      final result = await GemmaAssistantEngine(generator).interpret(
+        'افتح الإعدادات',
+        const ['navigate_to_section'],
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'navigate_to_section');
+      expect(result.command!.parameters['section'], 'settings');
+    });
+
     test('converts a valid function call into a command', () async {
       final generator = _FakeGemmaGenerator(
         const GemmaModelOutput.call('save_work_entry', {

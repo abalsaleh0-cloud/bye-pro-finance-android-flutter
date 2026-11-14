@@ -186,6 +186,8 @@ final class GemmaAssistantEngine implements AssistantEngine {
         'record_debt_payment' => 'Record a payment against an existing debt.',
         'read_work_remaining' => 'Request the remaining work balance from the app.',
         'read_month_total' => 'Request a section total for a specified month from the app.',
+        'read_dashboard_summary' => 'Read the selected-month financial dashboard summary. All figures must be calculated by the app from its stored records; do not estimate or invent values.',
+        'navigate_to_section' => 'Open one app section selected by the user without changing financial data.',
         _ => 'Perform an allowed application action.',
       };
 
@@ -274,6 +276,16 @@ final class GemmaAssistantEngine implements AssistantEngine {
           },
           'year': integer,
           'month': integer,
+        },
+      'read_dashboard_summary' => {
+          'year': integer,
+          'month': integer,
+        },
+      'navigate_to_section' => {
+          'section': {
+            'type': 'string',
+            'enum': ['dashboard', 'work', 'home', 'debts', 'ai', 'settings'],
+          },
         },
       'ask_clarification' => {
           'question': {

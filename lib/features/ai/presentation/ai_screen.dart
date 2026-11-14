@@ -301,6 +301,59 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     });
   }
 
+  String _dashboardSummaryMessage(
+    AssistantDashboardSummary summary,
+    AppLocalizations strings,
+  ) {
+    final overview = summary.overview;
+    return [
+      '${strings.assistantMonth}: ${summary.month}',
+      strings.amountMinorUnits,
+      '',
+      strings.work,
+      '${strings.salaryTotal}: ${overview.salary.minorUnits}',
+      '${strings.advancesTotal}: ${overview.advances.minorUnits}',
+      '${strings.paymentsTotal}: ${overview.payments.minorUnits}',
+      '${strings.currentSalaryOutstanding}: ${overview.currentSalaryOutstandingMinorUnits}',
+      '${strings.salaryPaymentsApplied}: ${overview.salaryPaymentsApplied.minorUnits}',
+      '${strings.workRemaining}: ${overview.workRemainingMinorUnits}',
+      '${strings.totalWorkOutstanding}: ${overview.totalWorkOutstandingMinorUnits}',
+      '',
+      strings.homeSection,
+      '${strings.homeExpensesTotal}: ${overview.homeExpenses.minorUnits}',
+      '${strings.transfersTotal}: ${overview.transfers.minorUnits}',
+      '${strings.billPaid}: ${summary.homeBillPaymentsMinorUnits}',
+      '${strings.totalBillsOutstanding}: ${summary.outstandingBillsAtMonthEndMinorUnits}',
+      '${strings.homeAvailableBalance}: ${summary.homeBalanceMinorUnits}',
+      '',
+      strings.debts,
+      strings.debtBalancesCurrentNote,
+      '${strings.creditorBalance}: ${overview.creditorBalance.minorUnits}',
+      '${strings.debtorBalance}: ${overview.debtorBalance.minorUnits}',
+    ].join('\n');
+  }
+
+  String _sectionLabel(String section, AppLocalizations strings) =>
+      switch (section) {
+        'dashboard' => strings.dashboard,
+        'work' => strings.work,
+        'home' => strings.homeSection,
+        'debts' => strings.debts,
+        'ai' => strings.ai,
+        'settings' => strings.settings,
+        _ => section,
+      };
+
+  String? _sectionRoute(String section) => switch (section) {
+        'dashboard' => '/dashboard',
+        'work' => '/work',
+        'home' => '/home',
+        'debts' => '/debts',
+        'ai' => '/ai',
+        'settings' => '/settings',
+        _ => null,
+      };
+
   Future<void> _send() async {
     final strings = AppLocalizations.of(context)!;
     final mediaBytes = _attachmentBytes;
@@ -374,12 +427,31 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         if (error != null) {
           _addAssistantMessage(strings.assistantNotUnderstood);
           await _openManual();
+        } else if (command.name == 'navigate_to_section') {
+          final section = command.parameters['section']! as String;
+          final route = _sectionRoute(section);
+          if (route == null) {
+            _addAssistantMessage(strings.assistantNotUnderstood);
+            await _openManual();
+          } else {
+            _addAssistantMessage(
+              '${strings.aiSectionOpened}: ${_sectionLabel(section, strings)}',
+            );
+            if (mounted) context.go(route);
+          }
         } else if (registry.descriptor(command.name)!.readOnly) {
           final execution = await registry.execute(
             command.name,
             command.parameters,
           );
-          if (mounted) _addAssistantMessage(execution.message);
+          if (mounted) {
+            final summary = execution.dashboardSummary;
+            _addAssistantMessage(
+              summary == null
+                  ? execution.message
+                  : _dashboardSummaryMessage(summary, strings),
+            );
+          }
         } else {
           setState(() => _confirmation.request(command));
           _addAssistantMessage(strings.assistantReview);
