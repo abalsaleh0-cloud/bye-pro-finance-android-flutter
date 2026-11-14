@@ -267,9 +267,6 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     return s.save;
   }
 
-  String _displayAmount(AssistantCommand command) =>
-      (command.parameters['amountMinorUnits'] ?? '—').toString();
-
   String? _displayMonth(AssistantCommand command) {
     final year = command.parameters['year'];
     final month = command.parameters['month'];
