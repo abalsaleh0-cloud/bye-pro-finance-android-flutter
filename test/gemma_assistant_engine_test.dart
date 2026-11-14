@@ -149,14 +149,6 @@ void main() {
       );
       expect(summary.required, isEmpty);
       expect(summary.properties.keys, containsAll(['year', 'month']));
-      expect(navigation.properties['section']!['enum'], [
-        'dashboard',
-        'work',
-        'home',
-        'debts',
-        'ai',
-        'settings',
-      ]);
       expect(navigation.required, ['section']);
       expect(navigation.properties['section']!['enum'], [
         'dashboard',
@@ -166,6 +158,23 @@ void main() {
         'ai',
         'settings',
       ]);
+    });
+
+    test('forwards an explicit month to the dashboard summary action', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.call('read_dashboard_summary', {
+          'year': 2026,
+          'month': 10,
+        }),
+      );
+      final result = await GemmaAssistantEngine(generator).interpret(
+        'اعطني ملخص شهر 2026-10',
+        const ['read_dashboard_summary'],
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'read_dashboard_summary');
+      expect(result.command!.parameters, {'year': 2026, 'month': 10});
     });
 
     test('converts a valid navigation function call into a read-only command', () async {
