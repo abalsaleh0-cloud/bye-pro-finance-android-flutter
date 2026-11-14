@@ -119,6 +119,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     AppLocalizations strings,
   ) async {
     var categories = await ref.read(homeExpenseCategoriesProvider.future);
+    if (!context.mounted) return;
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
@@ -262,13 +263,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         icon: const Icon(Icons.tune),
                         onPressed: () async {
                           await _manageCategories(context, ref, strings);
+                          if (!context.mounted) return;
                           final refreshed = await ref.refresh(homeExpenseCategoriesProvider.future);
                           setDialogState(() {
                             categories = [
                               ...refreshed,
                               if (existing != null &&
-                                  !refreshed.any((item) => item.id == existing.categoryId))
+                                  !refreshed.any((item) => item.id == existing.categoryId)) {
                                 HomeExpenseCategory(id: existing.categoryId, name: existing.categoryId),
+                              }
                             ];
                             if (!categories.any((item) => item.id == selectedCategoryId)) {
                               selectedCategoryId = categories.first.id;
