@@ -1598,11 +1598,29 @@ void main() {
   test('historical bill balance ignores payments made after the selected month', () async {
     final work = WorkRepository(database);
     final october = MonthKey(year: 2026, month: 10);
+    await work.saveEntry(
+      WorkEntry(
+        id: 'historical-october-cash',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(750),
+        dueMonth: october,
+        recordedAt: DateTime.utc(2026, 10, 9),
+      ),
+    );
     await work.saveTransfer(
       WorkHomeTransfer(
         id: 'historical-october-transfer',
         amount: Money.fromMinorUnits(750),
         transferredAt: DateTime.utc(2026, 10, 10),
+      ),
+    );
+    await work.saveEntry(
+      WorkEntry(
+        id: 'historical-november-cash',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(480),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 9),
       ),
     );
     await work.saveTransfer(
