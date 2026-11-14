@@ -10,7 +10,7 @@ void main() {
     expect(arabic.aiDefaultImagePrompt, contains('الصورة المرفقة'));
     expect(arabic.aiImageAttachmentLabel, 'صورة');
     expect(arabic.aiAudioAttachmentLabel, 'تسجيل صوتي');
-    expect(arabic.assistantClarificationFallback, 'يرجى التوضيح');
+    expect(arabic.assistantClarificationFallback, 'يرجى التوضيح.');
 
     expect(english.aiDefaultImagePrompt, 'Please analyze the attached image.');
     expect(english.aiImageAttachmentLabel, 'Image');
