@@ -107,7 +107,11 @@ class SummaryMetricGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 560 ? 3 : 2;
+        final columns = metrics.length == 1
+            ? 1
+            : constraints.maxWidth >= 560
+                ? 3
+                : 2;
         final width = (constraints.maxWidth - (columns - 1) * 10) / columns;
 
         return Wrap(
