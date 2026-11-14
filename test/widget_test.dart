@@ -66,7 +66,12 @@ void main() {
       find.byKey(const Key('calculator-financial-percentage')),
       '10',
     );
-    await tester.tap(find.byKey(const Key('calculator-financial-calculate')));
+    final calculateButton = find.byKey(
+      const Key('calculator-financial-calculate'),
+    );
+    await tester.ensureVisible(calculateButton);
+    await tester.pumpAndSettle();
+    await tester.tap(calculateButton);
     await tester.pumpAndSettle();
 
     expect(tester.widget<SelectableText>(find.byKey(const Key('calculator-result'))).data, 'النتيجة: 7500');
