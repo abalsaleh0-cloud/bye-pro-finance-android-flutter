@@ -75,7 +75,7 @@ String buildAiConversationContext(
     if (remaining <= 0) break;
   }
 
-  return lines.reversed.join('\\n');
+  return lines.reversed.join('\n');
 }
 
 class AiChatController extends Notifier<List<AiChatMessage>> {
