@@ -2,6 +2,7 @@ import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/time/calendar_date.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
+import 'package:expense_app/core/widgets/month_selector.dart';
 import 'package:expense_app/features/dashboard/domain/monthly_overview.dart';
 import 'package:expense_app/features/debts/domain/debt_entry.dart';
 import 'package:expense_app/features/debts/domain/debt_payment.dart';
@@ -124,42 +125,12 @@ class DashboardScreen extends ConsumerWidget {
         key: const Key('dashboard-content'),
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    strings.selectedMonth,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<MonthKey>(
-                    key: const Key('dashboard-month-picker'),
-                    initialValue: month,
-                    isExpanded: true,
-                    decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.calendar_month_outlined),
-                      border: OutlineInputBorder(),
-                    ),
-                    items: availableMonths
-                        .map((value) => DropdownMenuItem(
-                              value: value,
-                              child: Text(value.toString()),
-                            ))
-                        .toList(),
-                    onChanged: (value) {
-                      if (value != null) {
-                        ref.read(selectedMonthProvider.notifier).select(value);
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ),
+          MonthSelector(
+            pickerKey: const Key('dashboard-month-picker'),
+            selectedMonth: month,
+            availableMonths: availableMonths,
+            onChanged: (value) =>
+                ref.read(selectedMonthProvider.notifier).select(value),
           ),
           const SizedBox(height: 20),
           _sectionHeading(context, strings.financialSnapshot),

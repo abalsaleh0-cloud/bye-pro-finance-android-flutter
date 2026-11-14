@@ -5,6 +5,7 @@ import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
 import 'package:expense_app/core/widgets/entry_tools.dart';
 import 'package:expense_app/core/widgets/entry_form_dialog.dart';
+import 'package:expense_app/core/widgets/month_selector.dart';
 import 'package:expense_app/features/work/domain/work_entry.dart';
 import 'package:expense_app/features/work/data/work_repository.dart';
 import 'package:expense_app/features/work/domain/work_balance_allocation.dart';
@@ -441,14 +442,43 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
     final receivedCash = entries.where((entry) =>
       entry.kind != WorkEntryKind.salary && entry.dueMonth == currentMonth,
     ).fold<int>(0, (sum, entry) => sum + entry.amount.minorUnits);
-    final rows = <(String, int)>[
-      (strings.salaryTotal, salary),
-      (strings.advancesTotal, advances),
-      (strings.paymentsTotal, payments),
-      (strings.salaryPaymentsApplied, salaryPaymentsApplied),
-      (strings.transferredToHome, transferred),
-      (strings.currentSalaryOutstanding, allocation.outstandingFor(currentMonth)),
-      (strings.workRemaining, receivedCash - transferred),
+    final metrics = <SummaryMetricData>[
+      SummaryMetricData(
+        title: strings.salaryTotal,
+        value: salary.toString(),
+        icon: Icons.payments_outlined,
+      ),
+      SummaryMetricData(
+        title: strings.advancesTotal,
+        value: advances.toString(),
+        icon: Icons.request_quote_outlined,
+      ),
+      SummaryMetricData(
+        title: strings.paymentsTotal,
+        value: payments.toString(),
+        icon: Icons.receipt_long_outlined,
+      ),
+      SummaryMetricData(
+        title: strings.salaryPaymentsApplied,
+        value: salaryPaymentsApplied.toString(),
+        icon: Icons.check_circle_outline,
+      ),
+      SummaryMetricData(
+        title: strings.transferredToHome,
+        value: transferred.toString(),
+        icon: Icons.swap_horiz,
+      ),
+      SummaryMetricData(
+        title: strings.currentSalaryOutstanding,
+        value: allocation.outstandingFor(currentMonth).toString(),
+        icon: Icons.account_balance_outlined,
+        emphasized: true,
+      ),
+      SummaryMetricData(
+        title: strings.workRemaining,
+        value: (receivedCash - transferred).toString(),
+        icon: Icons.account_balance_wallet_outlined,
+      ),
     ];
     return Card(
       child: Padding(
@@ -456,15 +486,12 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(currentMonth.toString(), style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            for (final row in rows)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  children: [Expanded(child: Text(row.$1)), Text(row.$2.toString())],
-                ),
-              ),
+            Text(
+              currentMonth.toString(),
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 12),
+            SummaryMetricGrid(metrics: metrics),
           ],
         ),
       ),
@@ -586,16 +613,12 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
               ? FloatingActionButton(onPressed: () => _editTransfer(context, ref, strings), tooltip: strings.addTransfer, child: const Icon(Icons.add))
               : null,
       body: ListView(padding: const EdgeInsets.all(16), children: [
-        DropdownButtonFormField<MonthKey>(
-          key: const Key('work-selected-month-picker'),
-          initialValue: selectedMonth,
-          decoration: InputDecoration(labelText: strings.currentMonth),
-          items: allMonths.map((month) => DropdownMenuItem(value: month, child: Text(month.toString()))).toList(),
-          onChanged: (month) {
-            if (month != null) {
-              ref.read(selectedMonthProvider.notifier).select(month);
-            }
-          },
+        MonthSelector(
+          pickerKey: const Key('work-selected-month-picker'),
+          selectedMonth: selectedMonth,
+          availableMonths: allMonths,
+          onChanged: (month) =>
+              ref.read(selectedMonthProvider.notifier).select(month),
         ),
         const SizedBox(height: 12),
         if (overview) ...[

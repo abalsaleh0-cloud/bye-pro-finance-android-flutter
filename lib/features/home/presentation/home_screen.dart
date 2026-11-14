@@ -3,6 +3,7 @@ import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/calendar_date.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
+import 'package:expense_app/core/widgets/month_selector.dart';
 import 'package:expense_app/core/widgets/entry_tools.dart';
 import 'package:expense_app/core/widgets/entry_form_dialog.dart';
 import 'package:expense_app/features/home/data/home_expense_repository.dart';
@@ -443,32 +444,45 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         billPaymentsThisMonth -
         outstandingBillsAtMonthEnd;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(month.toString(), style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Row(children: [Expanded(child: Text(strings.totalExpenses)), Text(expenseTotal.toString())]),
-            const SizedBox(height: 6),
-            Row(children: [Expanded(child: Text(strings.receivedFromWork)), Text(transferTotal.toString())]),
-            const SizedBox(height: 6),
-            Row(children: [Expanded(child: Text(strings.totalBillsOutstanding)), Text(outstandingBillsAtMonthEnd.toString())]),
-            const Divider(height: 20),
-            Row(
-              children: [
-                Expanded(child: Text(strings.homeAvailableBalance)),
-                Text(
-                  availableBalance.toString(),
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SummaryMetricGrid(
+          metrics: [
+            SummaryMetricData(
+              title: strings.totalExpenses,
+              value: expenseTotal.toString(),
+              icon: Icons.shopping_cart_outlined,
+            ),
+            SummaryMetricData(
+              title: strings.receivedFromWork,
+              value: transferTotal.toString(),
+              icon: Icons.swap_horiz,
+            ),
+            SummaryMetricData(
+              title: strings.totalBillsOutstanding,
+              value: outstandingBillsAtMonthEnd.toString(),
+              icon: Icons.receipt_outlined,
+            ),
+            SummaryMetricData(
+              title: strings.billPaid,
+              value: billPaymentsThisMonth.toString(),
+              icon: Icons.task_alt_outlined,
             ),
           ],
         ),
-      ),
+        const SizedBox(height: 10),
+        SummaryMetricGrid(
+          metrics: [
+            SummaryMetricData(
+              title: strings.homeAvailableBalance,
+              value: availableBalance.toString(),
+              icon: Icons.account_balance_wallet_outlined,
+              emphasized: true,
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -603,16 +617,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ? FloatingActionButton(onPressed: () => _editExpense(context, ref, strings), tooltip: strings.addExpense, child: const Icon(Icons.add))
           : null,
       body: ListView(padding: const EdgeInsets.all(16), children: [
-        DropdownButtonFormField<MonthKey>(
-          key: const Key('home-selected-month-picker'),
-          initialValue: selectedMonth,
-          decoration: InputDecoration(labelText: strings.currentMonth),
-          items: availableMonths.map((month) => DropdownMenuItem(value: month, child: Text(month.toString()))).toList(),
-          onChanged: (month) {
-            if (month != null) {
-              ref.read(selectedMonthProvider.notifier).select(month);
-            }
-          },
+        MonthSelector(
+          pickerKey: const Key('home-selected-month-picker'),
+          selectedMonth: selectedMonth,
+          availableMonths: availableMonths,
+          onChanged: (month) =>
+              ref.read(selectedMonthProvider.notifier).select(month),
         ),
         const SizedBox(height: 12),
         if (overview) ...[
