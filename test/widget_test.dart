@@ -289,6 +289,50 @@ void main() {
     await tester.pumpAndSettle();
   });
 
+  testWidgets('new debt form defaults to the globally selected month', (tester) async {
+    final now = DateTime.now();
+    final previousDate = DateTime(now.year, now.month - 1, 1);
+    final previousMonth = MonthKey(
+      year: previousDate.year,
+      month: previousDate.month,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          workEntriesProvider.overrideWith((ref) => Stream.value([])),
+          workTransfersProvider.overrideWith((ref) => Stream.value([])),
+          homeExpensesProvider.overrideWith((ref) => Stream.value([])),
+          homeExpenseCategoriesProvider.overrideWith(
+            (ref) async => HomeExpenseCategory.defaults,
+          ),
+          homeBillsProvider.overrideWith((ref) async => []),
+          homeBillPaymentsForMonthProvider.overrideWith(
+            (ref, selected) async => 0,
+          ),
+          debtsProvider.overrideWith((ref) => Stream.value([])),
+          selectedMonthProvider.overrideWith(
+            () => _FixedSelectedMonthNotifier(previousMonth),
+          ),
+        ],
+        child: const MyApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('الديون').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+
+    final values = tester
+        .widgetList<TextField>(find.byType(TextField))
+        .map((field) => field.controller?.text ?? '');
+    expect(values, contains(previousMonth.toString()));
+    await tester.tap(find.text('إلغاء'));
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('work records show their note in the records page', (tester) async {
     final now = DateTime.now();
     final entry = WorkEntry(
