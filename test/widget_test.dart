@@ -148,13 +148,13 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('العمل').last);
+    await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('العمل')));
     await tester.pumpAndSettle();
 
     // Mount both stateful navigation branches before changing the shared month.
-    await tester.tap(find.text('المنزل').last);
+    await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('المنزل')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('العمل').last);
+    await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('العمل')));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('work-selected-month-picker')));
@@ -162,7 +162,7 @@ void main() {
     await tester.tap(find.text(previousMonth.toString()).last);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('المنزل').last);
+    await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('المنزل')));
     await tester.pumpAndSettle();
     expect(find.text(previousMonth.toString()), findsNWidgets(2));
 
@@ -171,7 +171,7 @@ void main() {
     await tester.tap(find.text(currentMonth.toString()).last);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('العمل').last);
+    await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('العمل')));
     await tester.pumpAndSettle();
     expect(find.text(currentMonth.toString()), findsWidgets);
   });
