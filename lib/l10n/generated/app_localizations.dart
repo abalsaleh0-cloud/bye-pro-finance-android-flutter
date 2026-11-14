@@ -338,6 +338,21 @@ abstract class AppLocalizations {
   /// **'التصنيف'**
   String get category;
 
+  String get homeCategoryGroceries;
+  String get homeCategoryUtilities;
+  String get homeCategoryHousing;
+  String get homeCategoryCleaning;
+  String get homeCategoryMaintenance;
+  String get homeCategoryTransport;
+  String get homeCategoryPersonal;
+  String get homeCategoryHealth;
+  String get homeCategoryOther;
+  String get manageCategories;
+  String get addCategory;
+  String get editCategory;
+  String get categoryName;
+  String get duplicateCategory;
+
   /// No description provided for @expenseDate.
   ///
   /// In ar, this message translates to:
