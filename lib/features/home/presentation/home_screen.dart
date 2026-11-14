@@ -455,7 +455,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             const SizedBox(height: 6),
             Row(children: [Expanded(child: Text(strings.receivedFromWork)), Text(transferTotal.toString())]),
             const SizedBox(height: 6),
-            Row(children: [Expanded(child: Text(strings.totalBillsOutstanding)), Text(outstandingBills.toString())]),
+            Row(children: [Expanded(child: Text(strings.totalBillsOutstanding)), Text(outstandingBillsAtMonthEnd.toString())]),
             const Divider(height: 20),
             Row(
               children: [

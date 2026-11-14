@@ -264,7 +264,7 @@ class DashboardScreen extends ConsumerWidget {
             ),
             _MetricData(
               title: strings.totalBillsOutstanding,
-              amount: outstandingBills,
+              amount: outstandingBillsAtMonthEnd,
               icon: Icons.receipt_outlined,
             ),
             _MetricData(
