@@ -7,6 +7,9 @@
   "debts": "الديون",
   "ai": "الذكاء الاصطناعي",
   "settings": "الإعدادات",
+  "settingsAppearance": "المظهر واللغة",
+  "settingsAssistant": "المساعد الذكي",
+  "settingsData": "البيانات المالية",
   "darkTheme": "الوضع الداكن",
   "language": "اللغة",
   "arabic": "العربية",
@@ -84,6 +87,7 @@
   "totalCreditor": "إجمالي الدائن",
   "totalDebtor": "إجمالي المدين",
   "currentMonth": "الشهر الحالي",
+  "selectedMonth": "الشهر المعروض",
   "homeAvailableBalance": "الرصيد المتاح في المنزل",
   "insufficientHomeBalance": "الرصيد غير كافٍ. المتاح: {available}، المطلوب: {requested}",
   "@insufficientHomeBalance": {
@@ -199,5 +203,11 @@
   "recentActivity": "آخر العمليات",
   "noRecentActivity": "لا توجد عمليات مسجلة بعد",
   "debtBalancesCurrentNote": "الأرصدة المعروضة هنا هي الأرصدة الحالية لجميع الديون، وليست رصيداً تاريخياً للشهر المختار.",
-  "cashFlowComparison": "مقارنة التحويلات والمصروفات"
+  "cashFlowComparison": "مقارنة التحويلات والمصروفات",
+  "aiDefaultImagePrompt": "يرجى تحليل الصورة المرفقة.",
+  "aiDefaultAudioPrompt": "يرجى الاستماع إلى التسجيل الصوتي المرفق وتنفيذ المطلوب إن أمكن.",
+  "aiImageAttachmentLabel": "صورة",
+  "aiAudioAttachmentLabel": "تسجيل صوتي",
+  "aiAttachmentFallback": "مرفق",
+  "assistantClarificationFallback": "يرجى التوضيح."
 }

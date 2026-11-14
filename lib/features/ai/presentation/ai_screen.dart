@@ -165,7 +165,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     final mediaBytes = _attachmentBytes;
     final image = _attachmentIsImage;
     final text = _input.text.trim().isEmpty && mediaBytes != null
-        ? (image ? 'حلّل الصورة المرفقة.' : 'استمع إلى التسجيل الصوتي المرفق ونفّذ المطلوب إن أمكن.')
+        ? (image ? strings.aiDefaultImagePrompt : strings.aiDefaultAudioPrompt)
         : _input.text.trim();
     if ((text.isEmpty && mediaBytes == null) || _busy || _recording) return;
     final media = mediaBytes == null ? null : AssistantMedia(
@@ -180,14 +180,19 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         return;
       }
     }
-    final displayedText = media == null ? text : '$text\n[${image ? 'صورة' : 'تسجيل صوتي'}: ${_attachmentName ?? 'مرفق'}]';
+    final attachmentLabel = image
+        ? strings.aiImageAttachmentLabel
+        : strings.aiAudioAttachmentLabel;
+    final displayedText = media == null
+        ? text
+        : '$text\n[$attachmentLabel: ${_attachmentName ?? strings.aiAttachmentFallback}]';
     setState(() { _busy = true; ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(displayedText, fromUser: true)); _input.clear(); _attachmentBytes = null; _attachmentName = null; _confirmation.cancel(); _undo = null; });
     final registry = _registry();
     try {
       final result = await ref.read(assistantEngineProvider).interpret(text, registry.actionNames, media: media);
       if (!mounted) return;
       if (result.kind == AssistantResultKind.clarification || result.kind == AssistantResultKind.answer) {
-        setState(() => ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(result.message ?? 'يرجى التوضيح.')));
+        setState(() => ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(result.message ?? strings.assistantClarificationFallback)));
       } else if (result.kind == AssistantResultKind.notUnderstood || result.command == null) {
         setState(() => ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(strings.assistantNotUnderstood)));
         await _openManual();
@@ -267,14 +272,180 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     return s.save;
   }
 
-  String _displayAmount(AssistantCommand command) =>
-      (command.parameters['amountMinorUnits'] ?? '—').toString();
+  String? _displayMonth(AssistantCommand command) {
+    final year = command.parameters['year'];
+    final month = command.parameters['month'];
+    if (year is int && month is int) {
+      return year.toString() + '-' + month.toString().padLeft(2, '0');
+    }
+    return null;
+  }
 
-  String _displayMonth(AssistantCommand command) {
-    final year = command.parameters['year']; final month = command.parameters['month'];
-    if (year is int && month is int) return year.toString() + '-' + month.toString().padLeft(2, '0');
-    final now = DateTime.now();
-    return now.year.toString() + '-' + now.month.toString().padLeft(2, '0');
+  String? _displayDate(Object? rawDate) {
+    if (rawDate is! String) return null;
+    final date = DateTime.tryParse(rawDate);
+    if (date == null) return null;
+    return MaterialLocalizations.of(context).formatMediumDate(date);
+  }
+
+  String? _kindName(Object? rawKind, AppLocalizations strings) {
+    if (rawKind is! String) return null;
+    return switch (rawKind) {
+      'salary' => strings.salary,
+      'advance' => strings.advance,
+      'payment' || 'salaryPayment' => strings.payment,
+      'monthly' => strings.monthlyBills,
+      'rent' => strings.rent,
+      _ => null,
+    };
+  }
+
+  String? _categoryName(Object? rawCategory, AppLocalizations strings) {
+    if (rawCategory is! String) return null;
+    return switch (rawCategory) {
+      'groceries' => strings.homeCategoryGroceries,
+      'utilities' => strings.homeCategoryUtilities,
+      'housing' => strings.homeCategoryHousing,
+      'cleaning' => strings.homeCategoryCleaning,
+      'maintenance' => strings.homeCategoryMaintenance,
+      'transport' => strings.homeCategoryTransport,
+      'personal' => strings.homeCategoryPersonal,
+      'health' => strings.homeCategoryHealth,
+      'other' => strings.homeCategoryOther,
+      _ => null,
+    };
+  }
+
+  Widget _confirmationDetailRow(
+    String label,
+    String value,
+    IconData icon,
+  ) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 88,
+            child: Text(
+              label,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _confirmationDetails(
+    AssistantCommand command,
+    AppLocalizations strings,
+  ) {
+    final parameters = command.parameters;
+    final details = <Widget>[
+      _confirmationDetailRow(
+        strings.assistantSection,
+        _sectionName(command.name, strings),
+        Icons.folder_outlined,
+      ),
+      _confirmationDetailRow(
+        strings.assistantOperation,
+        _operationName(command.name, strings),
+        Icons.playlist_add_check_circle_outlined,
+      ),
+    ];
+
+    final amount = parameters['amountMinorUnits'];
+    if (amount is int) {
+      details.add(
+        _confirmationDetailRow(
+          strings.assistantAmount,
+          amount.toString(),
+          Icons.payments_outlined,
+        ),
+      );
+    }
+
+    final kind = _kindName(parameters['kind'], strings);
+    if (kind != null) {
+      details.add(_confirmationDetailRow(strings.entryType, kind, Icons.category_outlined));
+    }
+
+    final direction = parameters['direction'];
+    if (direction == 'creditor' || direction == 'debtor') {
+      details.add(
+        _confirmationDetailRow(
+          strings.debtDirection,
+          direction == 'creditor' ? strings.creditor : strings.debtor,
+          Icons.swap_horiz_rounded,
+        ),
+      );
+    }
+
+    final title = parameters['title'];
+    if (title is String && title.trim().isNotEmpty) {
+      details.add(_confirmationDetailRow(strings.billName, title, Icons.receipt_long_outlined));
+    }
+
+    final counterparty = parameters['counterparty'];
+    if (counterparty is String && counterparty.trim().isNotEmpty) {
+      details.add(
+        _confirmationDetailRow(
+          strings.counterparty,
+          counterparty,
+          Icons.person_outline_rounded,
+        ),
+      );
+    }
+
+    final category = _categoryName(parameters['categoryId'], strings);
+    if (category != null) {
+      details.add(_confirmationDetailRow(strings.category, category, Icons.sell_outlined));
+    }
+
+    final note = parameters['note'];
+    if (note is String && note.trim().isNotEmpty) {
+      details.add(_confirmationDetailRow(strings.note, note, Icons.notes_rounded));
+    }
+
+    final month = _displayMonth(command);
+    if (month != null) {
+      details.add(
+        _confirmationDetailRow(
+          strings.assistantMonth,
+          month,
+          Icons.calendar_month_outlined,
+        ),
+      );
+    }
+
+    final date = _displayDate(parameters['date']);
+    if (date != null) {
+      details.add(
+        _confirmationDetailRow(
+          strings.assistantDate,
+          date,
+          Icons.event_outlined,
+        ),
+      );
+    }
+    return details;
   }
 
   @override
@@ -282,77 +453,291 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     final strings = AppLocalizations.of(context)!;
     final pending = _confirmation.pending;
     final messages = ref.watch(aiChatMessagesProvider);
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final maxBubbleWidth = MediaQuery.sizeOf(context).width * 0.84;
+
     return Scaffold(
-      body: Column(children: [
-        Expanded(child: ListView(padding: const EdgeInsets.all(16), children: [
-          for (var i = 0; i < messages.length; i++)
-            Align(alignment: messages[i].fromUser ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart,
-              child: AnimatedSize(duration: const Duration(milliseconds: 220), curve: Curves.easeOut, child: Card(
-                color: messages[i].fromUser ? Theme.of(context).colorScheme.secondaryContainer : null,
-                child: Padding(padding: const EdgeInsets.all(12), child: Text(messages[i].text)),
-              )),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              children: [
+                if (messages.isEmpty)
+                  Card(
+                    color: scheme.surfaceContainerLow,
+                    child: Padding(
+                      padding: const EdgeInsets.all(18),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: scheme.secondaryContainer,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            alignment: Alignment.center,
+                            child: Icon(
+                              Icons.auto_awesome_rounded,
+                              color: scheme.onSecondaryContainer,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              strings.assistantWelcome,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                height: 1.45,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                for (var i = 0; i < messages.length; i++)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Align(
+                      alignment: messages[i].fromUser
+                          ? AlignmentDirectional.centerEnd
+                          : AlignmentDirectional.centerStart,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: maxBubbleWidth),
+                        child: AnimatedSize(
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeOut,
+                          child: Card(
+                            margin: EdgeInsets.zero,
+                            color: messages[i].fromUser
+                                ? scheme.secondaryContainer
+                                : scheme.surfaceContainerHigh,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 15,
+                                vertical: 12,
+                              ),
+                              child: Text(
+                                messages[i].text,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: messages[i].fromUser
+                                      ? scheme.onSecondaryContainer
+                                      : scheme.onSurface,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                if (_busy)
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 150),
+                      child: Card(
+                        margin: EdgeInsets.zero,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                              const SizedBox(width: 10),
+                              Flexible(child: Text(strings.loading)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                if (pending != null)
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 250),
+                    child: Card(
+                      key: ValueKey(
+                        pending.name + pending.parameters.toString(),
+                      ),
+                      color: scheme.secondaryContainer,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.fact_check_outlined,
+                                  color: scheme.onSecondaryContainer,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    strings.assistantConfirm,
+                                    style: theme.textTheme.titleMedium?.copyWith(
+                                      color: scheme.onSecondaryContainer,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            ..._confirmationDetails(pending, strings),
+                            const SizedBox(height: 14),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                FilledButton(
+                                  onPressed: _busy ? null : _confirm,
+                                  child: Text(strings.assistantApprove),
+                                ),
+                                OutlinedButton(
+                                  onPressed: _busy
+                                      ? null
+                                      : () => setState(_confirmation.cancel),
+                                  child: Text(strings.cancel),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                if (_undo != null)
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: TextButton.icon(
+                      onPressed: _busy ? null : _undoLast,
+                      icon: const Icon(Icons.undo_rounded),
+                      label: Text(strings.assistantUndo),
+                    ),
+                  ),
+              ],
             ),
-          if (pending != null) AnimatedSwitcher(duration: const Duration(milliseconds: 250), child: Card(
-            key: ValueKey(pending.name + pending.parameters.toString()),
-            child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(strings.assistantConfirm, style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              Text(strings.assistantSection + ': ' + _sectionName(pending.name, strings)),
-              Text(strings.assistantOperation + ': ' + _operationName(pending.name, strings)),
-              Text(strings.assistantAmount + ': ' + _displayAmount(pending)),
-              if (pending.parameters['id'] is String)
-                Text(pending.parameters['id']! as String),
-              if (pending.parameters['title'] is String)
-                Text(pending.parameters['title']! as String),
-              if (pending.parameters['counterparty'] is String)
-                Text(pending.parameters['counterparty']! as String),
-              if (pending.parameters['categoryId'] is String)
-                Text(pending.parameters['categoryId']! as String),
-              if (pending.parameters['kind'] is String)
-                Text(pending.parameters['kind']! as String),
-              if (pending.parameters['direction'] is String)
-                Text(pending.parameters['direction']! as String),
-              if (pending.parameters['billId'] is String)
-                Text(pending.parameters['billId']! as String),
-              if (pending.parameters['debtId'] is String)
-                Text(pending.parameters['debtId']! as String),
-              Text(strings.assistantMonth + ': ' + _displayMonth(pending)),
-              Text(strings.assistantDate + ': ' + (pending.parameters['date']?.toString() ?? DateTime.now().toIso8601String().split('T').first)),
-              const SizedBox(height: 12),
-              Wrap(spacing: 8, children: [
-                FilledButton(onPressed: _busy ? null : _confirm, child: Text(strings.assistantApprove)),
-                TextButton(onPressed: _busy ? null : () => setState(_confirmation.cancel), child: Text(strings.cancel)),
-              ]),
-            ])),
-          )),
-          if (_undo != null) Align(alignment: AlignmentDirectional.centerStart, child: TextButton.icon(onPressed: _busy ? null : _undoLast, icon: const Icon(Icons.undo), label: Text(strings.assistantUndo))),
-        ])),
-        if (_attachmentName != null || _recording)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: Row(children: [
-              Icon(_recording ? Icons.mic : (_attachmentIsImage ? Icons.image : Icons.audio_file)),
-              const SizedBox(width: 8),
-              Expanded(child: Text(_recording ? strings.aiRecording : _attachmentName!)),
-              if (!_recording) IconButton(onPressed: _busy ? null : _removeAttachment, icon: const Icon(Icons.close), tooltip: strings.aiRemoveAttachment),
-            ]),
           ),
-        SafeArea(top: false, child: Padding(padding: const EdgeInsets.fromLTRB(8, 8, 8, 12), child: Row(children: [
-          IconButton(onPressed: _busy || _recording ? null : _chooseAttachment, icon: const Icon(Icons.attach_file), tooltip: strings.aiAttachImage),
-          IconButton(onPressed: _busy ? null : _toggleRecording, icon: Icon(_recording ? Icons.stop_circle_outlined : Icons.mic_none), tooltip: _recording ? strings.aiStopRecording : strings.aiRecordAudio),
-          Expanded(child: TextField(controller: _input, textInputAction: TextInputAction.send, onSubmitted: (_) => _send(), decoration: InputDecoration(
-            hintText: strings.assistantHint,
-            isDense: true,
-            constraints: const BoxConstraints(minHeight: 48, maxHeight: 48),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(28)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(28)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(28)),
-          ))),
-          const SizedBox(width: 4),
-          IconButton.filled(onPressed: _busy || _recording ? null : _send, tooltip: strings.assistantSend, icon: _busy ? const SizedBox(width: 18,height: 18,child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.send)),
-        ]))),
-      ]),
+          if (_attachmentName != null || _recording)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _recording
+                            ? Icons.mic
+                            : (_attachmentIsImage
+                                  ? Icons.image_outlined
+                                  : Icons.audio_file_outlined),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _recording ? strings.aiRecording : _attachmentName!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (!_recording)
+                        IconButton(
+                          onPressed: _busy ? null : _removeAttachment,
+                          icon: const Icon(Icons.close),
+                          tooltip: strings.aiRemoveAttachment,
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(8, 6, 8, 10),
+              child: Card(
+                margin: EdgeInsets.zero,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        onPressed: _busy || _recording ? null : _chooseAttachment,
+                        icon: const Icon(Icons.attach_file_rounded),
+                        tooltip: strings.aiAttachImage,
+                      ),
+                      IconButton(
+                        onPressed: _busy ? null : _toggleRecording,
+                        icon: Icon(
+                          _recording
+                              ? Icons.stop_circle_outlined
+                              : Icons.mic_none_rounded,
+                        ),
+                        tooltip: _recording
+                            ? strings.aiStopRecording
+                            : strings.aiRecordAudio,
+                      ),
+                      Expanded(
+                        child: TextField(
+                          controller: _input,
+                          textInputAction: TextInputAction.send,
+                          onSubmitted: (_) => _send(),
+                          decoration: InputDecoration(
+                            hintText: strings.assistantHint,
+                            isDense: true,
+                            constraints: const BoxConstraints(
+                              minHeight: 48,
+                              maxHeight: 48,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(28),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      IconButton.filled(
+                        onPressed: _busy || _recording ? null : _send,
+                        tooltip: strings.assistantSend,
+                        icon: _busy
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.send_rounded),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

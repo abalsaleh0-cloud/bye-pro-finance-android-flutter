@@ -4,6 +4,8 @@ import 'package:expense_app/core/time/calendar_date.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
 import 'package:expense_app/core/widgets/entry_tools.dart';
+import 'package:expense_app/core/widgets/financial_record_card.dart';
+import 'package:expense_app/core/widgets/month_selector.dart';
 import 'package:expense_app/features/debts/domain/debt_entry.dart';
 import 'package:expense_app/features/debts/domain/debt_payment.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
@@ -396,27 +398,70 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                   final direction = debt.direction == DebtDirection.creditor
                       ? strings.creditor
                       : strings.debtor;
-                  return Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: const Icon(
-                              Icons.account_balance_wallet_outlined,
-                            ),
-                            title: Text('${debt.counterparty} • $direction'),
-                            subtitle: Text(
-                              '${strings.dueMonth}: ${debt.dueMonth}\n'
-                              '${strings.originalAmount}: ${debt.originalAmount.minorUnits}\n'
-                              '${strings.outstandingAmount}: ${debt.outstandingAmount.minorUnits}',
-                            ),
-                            isThreeLine: true,
+                  final original = debt.originalAmount.minorUnits;
+                  final remaining = debt.outstandingAmount.minorUnits;
+                  final paid = original - remaining;
+                  final progress = original == 0
+                      ? 0.0
+                      : (paid / original).clamp(0.0, 1.0);
+                  final badge = Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: debt.direction == DebtDirection.creditor
+                          ? Theme.of(context).colorScheme.tertiaryContainer
+                          : Theme.of(context).colorScheme.secondaryContainer,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      direction,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color:
+                                debt.direction == DebtDirection.creditor
+                                    ? Theme.of(context)
+                                        .colorScheme
+                                        .onTertiaryContainer
+                                    : Theme.of(context)
+                                        .colorScheme
+                                        .onSecondaryContainer,
                           ),
+                    ),
+                  );
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: FinancialRecordCard(
+                      icon: debt.direction == DebtDirection.creditor
+                          ? Icons.call_received_outlined
+                          : Icons.call_made_outlined,
+                      title: debt.counterparty,
+                      amount: debt.outstandingAmount.minorUnits.toString(),
+                      amountLabel: strings.outstandingAmount,
+                      details: [
+                        '${strings.dueMonth}: ${debt.dueMonth}',
+                        '${strings.originalAmount}: ${debt.originalAmount.minorUnits}',
+                      ],
+                      badge: badge,
+                      footer: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: LinearProgressIndicator(
+                              value: progress,
+                              minHeight: 7,
+                              backgroundColor: Theme.of(context)
+                                  .colorScheme
+                                  .surfaceContainerHighest,
+                              color: Theme.of(context).colorScheme.tertiary,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
                           Wrap(
                             spacing: 8,
+                            runSpacing: 4,
                             children: [
                               if (!debt.isSettled)
                                 FilledButton.tonalIcon(
@@ -430,7 +475,14 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                                   label: Text(strings.recordDebtPayment),
                                 )
                               else
-                                Text(strings.settled),
+                                Chip(
+                                  avatar: const Icon(
+                                    Icons.check_circle_outline,
+                                    size: 18,
+                                  ),
+                                  label: Text(strings.settled),
+                                  visualDensity: VisualDensity.compact,
+                                ),
                               IconButton(
                                 tooltip: strings.editRecord,
                                 onPressed: () => _editDebt(
@@ -449,42 +501,68 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                               ),
                             ],
                           ),
-                          const Divider(),
-                          Text(strings.paymentHistory),
-                          Consumer(
-                            builder: (context, ref, child) {
-                              final payments = ref.watch(
-                                debtPaymentsProvider(debt.id),
-                              );
-                              return payments.when(
-                                loading: () => Text(strings.loading),
-                                error: (error, stackTrace) =>
-                                    Text(strings.dataError),
-                                data: (history) => history.isEmpty
-                                    ? Text(strings.noRecords)
-                                    : Column(
-                                        children: [
-                                          for (final payment in history)
-                                            ListTile(
-                                              dense: true,
-                                              contentPadding: EdgeInsets.zero,
-                                              leading: const Icon(
-                                                Icons.receipt_long_outlined,
-                                              ),
-                                              title: Text(
-                                                payment.amount.minorUnits
-                                                    .toString(),
-                                              ),
-                                              subtitle: Text(
-                                                '${strings.paidAt}: ${formatCalendarDate(payment.paidAt)}'
-                                                '\n${strings.time}: ${TimeOfDay.fromDateTime(payment.paidAt).format(context)}'
-                                                '${payment.note == null ? '' : '\n${payment.note}'}',
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-                              );
-                            },
+                          ExpansionTile(
+                            key: Key('debt-payment-history-${debt.id}'),
+                            tilePadding: EdgeInsets.zero,
+                            childrenPadding: EdgeInsets.zero,
+                            title: Text(
+                              strings.paymentHistory,
+                              style: Theme.of(context).textTheme.titleSmall,
+                            ),
+                            children: [
+                              Consumer(
+                                builder: (context, ref, child) {
+                                  final payments = ref.watch(
+                                    debtPaymentsProvider(debt.id),
+                                  );
+                                  return payments.when(
+                                    loading: () => Padding(
+                                      padding: const EdgeInsets.all(12),
+                                      child: Text(strings.loading),
+                                    ),
+                                    error: (error, stackTrace) =>
+                                        Padding(
+                                      padding: const EdgeInsets.all(12),
+                                      child: Text(strings.dataError),
+                                    ),
+                                    data: (history) => history.isEmpty
+                                        ? Padding(
+                                            padding: const EdgeInsets.all(12),
+                                            child: Text(strings.noRecords),
+                                          )
+                                        : Column(
+                                            children: [
+                                              for (final payment in history)
+                                                ListTile(
+                                                  dense: true,
+                                                  contentPadding:
+                                                      EdgeInsets.zero,
+                                                  leading: const Icon(
+                                                    Icons.receipt_long_outlined,
+                                                  ),
+                                                  title: Text(
+                                                    payment.amount.minorUnits
+                                                        .toString(),
+                                                    style: Theme.of(context)
+                                                        .textTheme
+                                                        .titleSmall
+                                                        ?.copyWith(
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                        ),
+                                                  ),
+                                                  subtitle: Text(
+                                                    '${strings.paidAt}: ${formatCalendarDate(payment.paidAt)}'
+                                                    '\n${strings.time}: ${TimeOfDay.fromDateTime(payment.paidAt).format(context)}'
+                                                    '${payment.note == null ? '' : '\n${payment.note}'}',
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                  );
+                                },
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -498,20 +576,34 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
     );
   }
 
-  Widget _debtSummaryCard(BuildContext context, AppLocalizations strings, List<DebtEntry> items) {
-    final creditor = items.where((item) => item.direction == DebtDirection.creditor)
-      .fold<int>(0, (sum, item) => sum + item.outstandingAmount.minorUnits);
-    final debtor = items.where((item) => item.direction == DebtDirection.debtor)
-      .fold<int>(0, (sum, item) => sum + item.outstandingAmount.minorUnits);
-    return Card(
-      margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(children: [
-          Row(children: [Expanded(child: Text(strings.totalCreditor)), Text(creditor.toString())]),
-          const SizedBox(height: 6),
-          Row(children: [Expanded(child: Text(strings.totalDebtor)), Text(debtor.toString())]),
-        ]),
+  Widget _debtSummaryCard(
+    BuildContext context,
+    AppLocalizations strings,
+    List<DebtEntry> items,
+  ) {
+    final creditor = items
+        .where((item) => item.direction == DebtDirection.creditor)
+        .fold<int>(0, (sum, item) => sum + item.outstandingAmount.minorUnits);
+    final debtor = items
+        .where((item) => item.direction == DebtDirection.debtor)
+        .fold<int>(0, (sum, item) => sum + item.outstandingAmount.minorUnits);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: SummaryMetricGrid(
+        metrics: [
+          SummaryMetricData(
+            title: strings.totalCreditor,
+            value: creditor.toString(),
+            icon: Icons.call_received_outlined,
+          ),
+          SummaryMetricData(
+            title: strings.totalDebtor,
+            value: debtor.toString(),
+            icon: Icons.call_made_outlined,
+            emphasized: true,
+          ),
+        ],
       ),
     );
   }

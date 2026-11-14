@@ -210,8 +210,14 @@ void main() {
 
     await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('المنزل')));
     await tester.pumpAndSettle();
-    expect(find.text(previousMonth.toString()), findsNWidgets(2));
     final homeMonthPicker = find.byKey(const Key('home-selected-month-picker'));
+    expect(
+      find.descendant(
+        of: homeMonthPicker,
+        matching: find.text(previousMonth.toString()),
+      ),
+      findsOneWidget,
+    );
     expect(
       find.descendant(
         of: homeMonthPicker,
@@ -571,9 +577,14 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    final dashboardMonthPicker =
+        find.byKey(const Key('dashboard-month-picker'));
     expect(
-      tester.widget<Text>(find.byKey(const Key('dashboard-selected-month-label'))).data,
-      previousMonth.toString(),
+      find.descendant(
+        of: dashboardMonthPicker,
+        matching: find.text(previousMonth.toString()),
+      ),
+      findsOneWidget,
     );
     expect(find.text('321'), findsWidgets);
     expect(find.text('999'), findsNothing);
@@ -763,6 +774,10 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('الديون').last);
+    await tester.pumpAndSettle();
+    expect(find.text('سجل الدفعات'), findsOneWidget);
+    expect(find.textContaining('الوقت:'), findsNothing);
+    await tester.tap(find.text('سجل الدفعات').last);
     await tester.pumpAndSettle();
     expect(find.textContaining('الوقت:'), findsOneWidget);
 

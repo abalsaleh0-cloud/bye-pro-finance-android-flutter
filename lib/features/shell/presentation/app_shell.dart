@@ -21,6 +21,13 @@ class AppShell extends StatelessWidget {
     Icons.account_balance_wallet_outlined,
     Icons.auto_awesome_outlined,
   ];
+  static const _selectedIcons = [
+    Icons.dashboard_rounded,
+    Icons.work_rounded,
+    Icons.home_rounded,
+    Icons.account_balance_wallet_rounded,
+    Icons.auto_awesome_rounded,
+  ];
 
   int get _selectedIndex {
     final index = _paths.indexOf(location);
@@ -70,6 +77,7 @@ class AppShell extends StatelessWidget {
           _paths.length,
           (index) => NavigationDestination(
             icon: Icon(_icons[index]),
+            selectedIcon: Icon(_selectedIcons[index]),
             label: labels[index],
           ),
         ),

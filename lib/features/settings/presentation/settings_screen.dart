@@ -51,6 +51,19 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 
+  Widget _sectionTitle(BuildContext context, String title) {
+    return Padding(
+      padding: const EdgeInsetsDirectional.fromSTEB(4, 8, 4, 10),
+      child: Text(
+        title,
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+          color: Theme.of(context).colorScheme.secondary,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final strings = AppLocalizations.of(context)!;
@@ -60,60 +73,71 @@ class SettingsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(strings.settings)),
       body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
-          SwitchListTile(
-            key: const Key('dark-mode-switch'),
-            title: Text(strings.darkTheme),
-            secondary: const Icon(Icons.dark_mode_outlined),
-            value: settings.themeMode == ThemeMode.dark,
-            onChanged: controller.setDarkMode,
-          ),
-          const Divider(height: 1),
-          ListTile(
-            leading: const Icon(Icons.language_outlined),
-            title: Text(strings.language),
-            trailing: DropdownButton<Locale>(
-              key: const Key('language-selector'),
-              value: settings.locale,
-              underline: const SizedBox.shrink(),
-              items: [
-                DropdownMenuItem(
-                  value: const Locale('ar'),
-                  child: Text(strings.arabic),
+          _sectionTitle(context, strings.settingsAppearance),
+          Card(
+            child: Column(
+              children: [
+                SwitchListTile(
+                  key: const Key('dark-mode-switch'),
+                  title: Text(strings.darkTheme),
+                  secondary: const Icon(Icons.dark_mode_outlined),
+                  value: settings.themeMode == ThemeMode.dark,
+                  onChanged: controller.setDarkMode,
                 ),
-                DropdownMenuItem(
-                  value: const Locale('en'),
-                  child: Text(strings.english),
+                const Divider(height: 1, indent: 16, endIndent: 16),
+                ListTile(
+                  leading: const Icon(Icons.language_outlined),
+                  title: Text(strings.language),
+                  trailing: DropdownButton<Locale>(
+                    key: const Key('language-selector'),
+                    value: settings.locale,
+                    underline: const SizedBox.shrink(),
+                    items: [
+                      DropdownMenuItem(
+                        value: const Locale('ar'),
+                        child: Text(strings.arabic),
+                      ),
+                      DropdownMenuItem(
+                        value: const Locale('en'),
+                        child: Text(strings.english),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) controller.setLocale(value);
+                    },
+                  ),
                 ),
               ],
-              onChanged: (value) {
-                if (value != null) controller.setLocale(value);
-              },
             ),
           ),
-          const Divider(height: 1),
-          SwitchListTile(
-            key: const Key('gemma-engine-switch'),
-            secondary: const Icon(Icons.auto_awesome_outlined),
-            title: Text(strings.gemmaEngine),
-            subtitle: Text(strings.gemmaEngineDescription),
-            value: settings.useGemma,
-            onChanged: controller.setGemmaEnabled,
-          ),
-          const Divider(height: 1),
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: GemmaModelSettingsSection(),
-          ),
-          const Divider(height: 1),
-          ListTile(
-            leading: Icon(
-              Icons.delete_forever_outlined,
-              color: Theme.of(context).colorScheme.error,
+          const SizedBox(height: 18),
+          _sectionTitle(context, strings.settingsAssistant),
+          Card(
+            child: SwitchListTile(
+              key: const Key('gemma-engine-switch'),
+              secondary: const Icon(Icons.auto_awesome_outlined),
+              title: Text(strings.gemmaEngine),
+              subtitle: Text(strings.gemmaEngineDescription),
+              value: settings.useGemma,
+              onChanged: controller.setGemmaEnabled,
             ),
-            title: Text(strings.clearFinancialData),
-            subtitle: Text(strings.clearFinancialDataWarning),
-            onTap: () => _clearFinancialData(context, ref, strings),
+          ),
+          const SizedBox(height: 10),
+          const GemmaModelSettingsSection(),
+          const SizedBox(height: 18),
+          _sectionTitle(context, strings.settingsData),
+          Card(
+            child: ListTile(
+              leading: Icon(
+                Icons.delete_forever_outlined,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              title: Text(strings.clearFinancialData),
+              subtitle: Text(strings.clearFinancialDataWarning),
+              onTap: () => _clearFinancialData(context, ref, strings),
+            ),
           ),
         ],
       ),

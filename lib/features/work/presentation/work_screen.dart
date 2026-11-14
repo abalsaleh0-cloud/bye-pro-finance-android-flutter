@@ -5,6 +5,8 @@ import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
 import 'package:expense_app/core/widgets/entry_tools.dart';
 import 'package:expense_app/core/widgets/entry_form_dialog.dart';
+import 'package:expense_app/core/widgets/month_selector.dart';
+import 'package:expense_app/core/widgets/financial_record_card.dart';
 import 'package:expense_app/features/work/domain/work_entry.dart';
 import 'package:expense_app/features/work/data/work_repository.dart';
 import 'package:expense_app/features/work/domain/work_balance_allocation.dart';
@@ -441,14 +443,43 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
     final receivedCash = entries.where((entry) =>
       entry.kind != WorkEntryKind.salary && entry.dueMonth == currentMonth,
     ).fold<int>(0, (sum, entry) => sum + entry.amount.minorUnits);
-    final rows = <(String, int)>[
-      (strings.salaryTotal, salary),
-      (strings.advancesTotal, advances),
-      (strings.paymentsTotal, payments),
-      (strings.salaryPaymentsApplied, salaryPaymentsApplied),
-      (strings.transferredToHome, transferred),
-      (strings.currentSalaryOutstanding, allocation.outstandingFor(currentMonth)),
-      (strings.workRemaining, receivedCash - transferred),
+    final metrics = <SummaryMetricData>[
+      SummaryMetricData(
+        title: strings.salaryTotal,
+        value: salary.toString(),
+        icon: Icons.payments_outlined,
+      ),
+      SummaryMetricData(
+        title: strings.advancesTotal,
+        value: advances.toString(),
+        icon: Icons.request_quote_outlined,
+      ),
+      SummaryMetricData(
+        title: strings.paymentsTotal,
+        value: payments.toString(),
+        icon: Icons.receipt_long_outlined,
+      ),
+      SummaryMetricData(
+        title: strings.salaryPaymentsApplied,
+        value: salaryPaymentsApplied.toString(),
+        icon: Icons.check_circle_outline,
+      ),
+      SummaryMetricData(
+        title: strings.transferredToHome,
+        value: transferred.toString(),
+        icon: Icons.swap_horiz,
+      ),
+      SummaryMetricData(
+        title: strings.currentSalaryOutstanding,
+        value: allocation.outstandingFor(currentMonth).toString(),
+        icon: Icons.account_balance_outlined,
+        emphasized: true,
+      ),
+      SummaryMetricData(
+        title: strings.workRemaining,
+        value: (receivedCash - transferred).toString(),
+        icon: Icons.account_balance_wallet_outlined,
+      ),
     ];
     return Card(
       child: Padding(
@@ -456,15 +487,12 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(currentMonth.toString(), style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            for (final row in rows)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  children: [Expanded(child: Text(row.$1)), Text(row.$2.toString())],
-                ),
-              ),
+            Text(
+              currentMonth.toString(),
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 12),
+            SummaryMetricGrid(metrics: metrics),
           ],
         ),
       ),
@@ -586,16 +614,12 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
               ? FloatingActionButton(onPressed: () => _editTransfer(context, ref, strings), tooltip: strings.addTransfer, child: const Icon(Icons.add))
               : null,
       body: ListView(padding: const EdgeInsets.all(16), children: [
-        DropdownButtonFormField<MonthKey>(
-          key: const Key('work-selected-month-picker'),
-          initialValue: selectedMonth,
-          decoration: InputDecoration(labelText: strings.currentMonth),
-          items: allMonths.map((month) => DropdownMenuItem(value: month, child: Text(month.toString()))).toList(),
-          onChanged: (month) {
-            if (month != null) {
-              ref.read(selectedMonthProvider.notifier).select(month);
-            }
-          },
+        MonthSelector(
+          pickerKey: const Key('work-selected-month-picker'),
+          selectedMonth: selectedMonth,
+          availableMonths: allMonths,
+          onChanged: (month) =>
+              ref.read(selectedMonthProvider.notifier).select(month),
         ),
         const SizedBox(height: 12),
         if (overview) ...[
@@ -603,31 +627,61 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
           const SizedBox(height: 16),
         ],
         if (records) ...[
-          Text(strings.entries, style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
           entries.when(
             loading: () => Text(strings.loading),
             error: (error, stackTrace) => Text(strings.dataError),
             data: (items) {
-              final monthItems = items.where((entry) => entry.dueMonth == selectedMonth).toList();
-              return monthItems.isEmpty ? Text(strings.noRecords) : Column(children: [
-                for (final entry in monthItems)
-                  Card(child: ListTile(
-                    leading: const Icon(Icons.work_outline),
-                    title: Text(_kindLabel(strings, entry.kind)),
-                    subtitle: Text([
-                      '${entry.kind == WorkEntryKind.salaryPayment ? strings.paymentReceivedMonth : strings.dueMonth}: ${entry.dueMonth}',
-                      '${strings.recordedAt}: ${formatCalendarDate(entry.recordedAt)}',
-                      if (entry.note != null && entry.note!.isNotEmpty) entry.note!,
-                    ].join('\n')),
-                    isThreeLine: true,
-                    trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Text(entry.amount.minorUnits.toString()),
-                      IconButton(tooltip: strings.editRecord, icon: const Icon(Icons.edit_outlined), onPressed: () => _editEntry(context, ref, strings, existing: entry)),
-                      IconButton(tooltip: strings.deleteRecord, icon: const Icon(Icons.delete_outline), onPressed: () => _deleteEntry(context, ref, strings, entry.id)),
-                    ]),
-                  )),
-              ]);
+              final monthItems = items
+                  .where((entry) => entry.dueMonth == selectedMonth)
+                  .toList();
+              if (monthItems.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Center(child: Text(strings.noRecords)),
+                );
+              }
+              return Column(
+                children: [
+                  for (final entry in monthItems)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: FinancialRecordCard(
+                        icon: switch (entry.kind) {
+                          WorkEntryKind.salary => Icons.payments_outlined,
+                          WorkEntryKind.advance => Icons.request_quote_outlined,
+                          WorkEntryKind.salaryPayment =>
+                            Icons.receipt_long_outlined,
+                        },
+                        title: _kindLabel(strings, entry.kind),
+                        amount: entry.amount.minorUnits.toString(),
+                        details: [
+                          '${entry.kind == WorkEntryKind.salaryPayment ? strings.paymentReceivedMonth : strings.dueMonth}: ${entry.dueMonth}',
+                          '${strings.recordedAt}: ${formatCalendarDate(entry.recordedAt)}',
+                          if (entry.note != null && entry.note!.isNotEmpty)
+                            entry.note!,
+                        ],
+                        actions: [
+                          IconButton(
+                            tooltip: strings.editRecord,
+                            icon: const Icon(Icons.edit_outlined),
+                            onPressed: () => _editEntry(
+                              context,
+                              ref,
+                              strings,
+                              existing: entry,
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: strings.deleteRecord,
+                            icon: const Icon(Icons.delete_outline),
+                            onPressed: () =>
+                                _deleteEntry(context, ref, strings, entry.id),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              );
             },
           ),
         ],
@@ -638,24 +692,55 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
             data: (items) {
               final monthItems = items.where((transfer) {
                 final date = transfer.transferredAt.toLocal();
-                return date.year == selectedMonth.year && date.month == selectedMonth.month;
+                return date.year == selectedMonth.year &&
+                    date.month == selectedMonth.month;
               }).toList();
-              return monthItems.isEmpty ? Text(strings.noRecords) : Column(children: [
-                for (final transfer in monthItems)
-                  Card(child: ListTile(
-                    leading: const Icon(Icons.swap_horiz), title: Text(strings.transferredToHome),
-                    subtitle: Text([
-                      formatCalendarDate(transfer.transferredAt),
-                      if (transfer.note != null && transfer.note!.isNotEmpty) transfer.note!,
-                    ].join('\n')),
-                    isThreeLine: true,
-                    trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Text(transfer.amount.minorUnits.toString()),
-                      IconButton(tooltip: strings.editRecord, icon: const Icon(Icons.edit_outlined), onPressed: () => _editTransfer(context, ref, strings, existing: transfer)),
-                      IconButton(tooltip: strings.deleteRecord, icon: const Icon(Icons.delete_outline), onPressed: () => _deleteTransfer(context, ref, strings, transfer.id)),
-                    ]),
-                  )),
-              ]);
+              if (monthItems.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Center(child: Text(strings.noRecords)),
+                );
+              }
+              return Column(
+                children: [
+                  for (final transfer in monthItems)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: FinancialRecordCard(
+                        icon: Icons.swap_horiz,
+                        title: strings.transferredToHome,
+                        amount: transfer.amount.minorUnits.toString(),
+                        details: [
+                          formatCalendarDate(transfer.transferredAt),
+                          if (transfer.note != null && transfer.note!.isNotEmpty)
+                            transfer.note!,
+                        ],
+                        actions: [
+                          IconButton(
+                            tooltip: strings.editRecord,
+                            icon: const Icon(Icons.edit_outlined),
+                            onPressed: () => _editTransfer(
+                              context,
+                              ref,
+                              strings,
+                              existing: transfer,
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: strings.deleteRecord,
+                            icon: const Icon(Icons.delete_outline),
+                            onPressed: () => _deleteTransfer(
+                              context,
+                              ref,
+                              strings,
+                              transfer.id,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              );
             },
           ),
         ],

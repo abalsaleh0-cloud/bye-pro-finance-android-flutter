@@ -3,6 +3,8 @@ import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/calendar_date.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
+import 'package:expense_app/core/widgets/month_selector.dart';
+import 'package:expense_app/core/widgets/financial_record_card.dart';
 import 'package:expense_app/core/widgets/entry_tools.dart';
 import 'package:expense_app/core/widgets/entry_form_dialog.dart';
 import 'package:expense_app/features/home/data/home_expense_repository.dart';
@@ -443,32 +445,45 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         billPaymentsThisMonth -
         outstandingBillsAtMonthEnd;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(month.toString(), style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Row(children: [Expanded(child: Text(strings.totalExpenses)), Text(expenseTotal.toString())]),
-            const SizedBox(height: 6),
-            Row(children: [Expanded(child: Text(strings.receivedFromWork)), Text(transferTotal.toString())]),
-            const SizedBox(height: 6),
-            Row(children: [Expanded(child: Text(strings.totalBillsOutstanding)), Text(outstandingBillsAtMonthEnd.toString())]),
-            const Divider(height: 20),
-            Row(
-              children: [
-                Expanded(child: Text(strings.homeAvailableBalance)),
-                Text(
-                  availableBalance.toString(),
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SummaryMetricGrid(
+          metrics: [
+            SummaryMetricData(
+              title: strings.totalExpenses,
+              value: expenseTotal.toString(),
+              icon: Icons.shopping_cart_outlined,
+            ),
+            SummaryMetricData(
+              title: strings.receivedFromWork,
+              value: transferTotal.toString(),
+              icon: Icons.swap_horiz,
+            ),
+            SummaryMetricData(
+              title: strings.totalBillsOutstanding,
+              value: outstandingBillsAtMonthEnd.toString(),
+              icon: Icons.receipt_outlined,
+            ),
+            SummaryMetricData(
+              title: strings.billPaid,
+              value: billPaymentsThisMonth.toString(),
+              icon: Icons.task_alt_outlined,
             ),
           ],
         ),
-      ),
+        const SizedBox(height: 10),
+        SummaryMetricGrid(
+          metrics: [
+            SummaryMetricData(
+              title: strings.homeAvailableBalance,
+              value: availableBalance.toString(),
+              icon: Icons.account_balance_wallet_outlined,
+              emphasized: true,
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -603,16 +618,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ? FloatingActionButton(onPressed: () => _editExpense(context, ref, strings), tooltip: strings.addExpense, child: const Icon(Icons.add))
           : null,
       body: ListView(padding: const EdgeInsets.all(16), children: [
-        DropdownButtonFormField<MonthKey>(
-          key: const Key('home-selected-month-picker'),
-          initialValue: selectedMonth,
-          decoration: InputDecoration(labelText: strings.currentMonth),
-          items: availableMonths.map((month) => DropdownMenuItem(value: month, child: Text(month.toString()))).toList(),
-          onChanged: (month) {
-            if (month != null) {
-              ref.read(selectedMonthProvider.notifier).select(month);
-            }
-          },
+        MonthSelector(
+          pickerKey: const Key('home-selected-month-picker'),
+          selectedMonth: selectedMonth,
+          availableMonths: availableMonths,
+          onChanged: (month) =>
+              ref.read(selectedMonthProvider.notifier).select(month),
         ),
         const SizedBox(height: 12),
         if (overview) ...[
@@ -639,20 +650,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             data: (items) {
               final monthItems = items.where((transfer) {
                 final date = transfer.transferredAt.toLocal();
-                return date.year == selectedMonth.year && date.month == selectedMonth.month;
+                return date.year == selectedMonth.year &&
+                    date.month == selectedMonth.month;
               }).toList();
-              return monthItems.isEmpty ? Text(strings.noRecords) : Column(children: [
-                for (final transfer in monthItems)
-                  Card(child: ListTile(
-                    leading: const Icon(Icons.swap_horiz), title: Text(strings.receivedFromWork),
-                    subtitle: Text([
-                      formatCalendarDate(transfer.transferredAt),
-                      if (transfer.note != null && transfer.note!.isNotEmpty) transfer.note!,
-                    ].join('\n')),
-                    isThreeLine: true,
-                    trailing: Text(transfer.amount.minorUnits.toString()),
-                  )),
-              ]);
+              if (monthItems.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Center(child: Text(strings.noRecords)),
+                );
+              }
+              return Column(
+                children: [
+                  for (final transfer in monthItems)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: FinancialRecordCard(
+                        icon: Icons.swap_horiz,
+                        title: strings.receivedFromWork,
+                        amount: transfer.amount.minorUnits.toString(),
+                        details: [
+                          formatCalendarDate(transfer.transferredAt),
+                          if (transfer.note != null && transfer.note!.isNotEmpty)
+                            transfer.note!,
+                        ],
+                      ),
+                    ),
+                ],
+              );
             },
           ),
         ],
@@ -663,31 +687,62 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             data: (items) {
               final monthItems = items.where((expense) {
                 final date = expense.expenseDate.toLocal();
-                return date.year == selectedMonth.year && date.month == selectedMonth.month;
+                return date.year == selectedMonth.year &&
+                    date.month == selectedMonth.month;
               }).toList();
-              return monthItems.isEmpty ? Text(strings.noRecords) : Column(children: [
-                for (final expense in monthItems)
-                  Card(child: ListTile(
-                    leading: const Icon(Icons.receipt_long_outlined),
-                    title: Text(_categoryLabel(
-                      strings,
-                      _categoryForExpense(
-                        expenseCategories.value ?? const <HomeExpenseCategory>[],
-                        expense.categoryId,
+              if (monthItems.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Center(child: Text(strings.noRecords)),
+                );
+              }
+              return Column(
+                children: [
+                  for (final expense in monthItems)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: FinancialRecordCard(
+                        icon: Icons.receipt_long_outlined,
+                        title: _categoryLabel(
+                          strings,
+                          _categoryForExpense(
+                            expenseCategories.value ??
+                                const <HomeExpenseCategory>[],
+                            expense.categoryId,
+                          ),
+                        ),
+                        amount: expense.amount.minorUnits.toString(),
+                        details: [
+                          '${strings.expenseDate}: ${formatCalendarDate(expense.expenseDate)}',
+                          if (expense.note != null && expense.note!.isNotEmpty)
+                            expense.note!,
+                        ],
+                        actions: [
+                          IconButton(
+                            tooltip: strings.editRecord,
+                            icon: const Icon(Icons.edit_outlined),
+                            onPressed: () => _editExpense(
+                              context,
+                              ref,
+                              strings,
+                              existing: expense,
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: strings.deleteRecord,
+                            icon: const Icon(Icons.delete_outline),
+                            onPressed: () => _deleteExpense(
+                              context,
+                              ref,
+                              strings,
+                              expense.id,
+                            ),
+                          ),
+                        ],
                       ),
-                    )),
-                    subtitle: Text([
-                      '${strings.expenseDate}: ${formatCalendarDate(expense.expenseDate)}',
-                      if (expense.note != null && expense.note!.isNotEmpty) expense.note!,
-                    ].join('\n')),
-                    isThreeLine: true,
-                    trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Text(expense.amount.minorUnits.toString()),
-                      IconButton(tooltip: strings.editRecord, icon: const Icon(Icons.edit_outlined), onPressed: () => _editExpense(context, ref, strings, existing: expense)),
-                      IconButton(tooltip: strings.deleteRecord, icon: const Icon(Icons.delete_outline), onPressed: () => _deleteExpense(context, ref, strings, expense.id)),
-                    ]),
-                  )),
-              ]);
+                    ),
+                ],
+              );
             },
           ),
         ],
