@@ -1,6 +1,7 @@
 import 'package:expense_app/features/ai/domain/action_registry.dart';
 import 'package:expense_app/features/ai/domain/assistant_engine.dart';
 import 'package:expense_app/features/ai/domain/assistant_input_normalizer.dart';
+import 'package:expense_app/features/ai/domain/assistant_input_normalizer.dart';
 import 'package:expense_app/features/ai/domain/number_normalizer.dart';
 
 final class GemmaFunctionSpec {
@@ -52,6 +53,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
   final GemmaTurnGenerator generator;
   final Duration timeout;
   static const _numbers = NumberNormalizer();
+  static const _input = AssistantInputNormalizer();
   static const _inputNormalizer = AssistantInputNormalizer();
 
   @override
@@ -93,14 +95,25 @@ final class GemmaAssistantEngine implements AssistantEngine {
             !response.startsWith('{')) {
           return AssistantResult.answer(response);
         }
-        if (response.isNotEmpty &&
-            response.length <= 140 &&
-            !RegExp(r'[0-9٠-٩۰-۹]').hasMatch(response) &&
-            !response.startsWith('{') &&
+        if (response.isEmpty ||
+            response.length > 1200 ||
+            response.startsWith('{') ||
+            response.startsWith('```')) {
+          return const AssistantResult.notUnderstood();
+        }
+
+        // Never let free-form model text invent or repeat personal financial
+        // figures. Personal-record questions must use an app-owned read tool.
+        if (RegExp(r'[0-9٠-٩۰-۹]').hasMatch(response) ||
+            _looksLikePersonalRecordQuestion(text)) {
+          return const AssistantResult.notUnderstood();
+        }
+
+        if (response.length <= 180 &&
             (response.endsWith('؟') || response.endsWith('?'))) {
           return AssistantResult.clarification(response);
         }
-        return const AssistantResult.notUnderstood();
+        return AssistantResult.answer(response);
       }
 
       final arguments = output.arguments;
@@ -147,6 +160,43 @@ final class GemmaAssistantEngine implements AssistantEngine {
     } catch (_) {
       return const AssistantResult.notUnderstood();
     }
+  }
+
+  static bool _looksLikePersonalRecordQuestion(String text) {
+    final normalized = _input.normalize(text);
+    return _input.containsAny(normalized, const [
+      'كم راتبي',
+      'قديش راتبي',
+      'شكد راتبي',
+      'ما راتبي',
+      'كم معاشي',
+      'كم رصيدي',
+      'قديش رصيدي',
+      'ما رصيدي',
+      'الرصيد الحالي',
+      'كم الباقي',
+      'قديش الباقي',
+      'كم ضل',
+      'قديش ضل',
+      'كم استلمت',
+      'كم دفعت',
+      'مجموع المصاريف',
+      'اجمالي المصاريف',
+      'اعرض المصروفات',
+      'اعرض الديون',
+      'اعرض الفواتير',
+      'اعرض التحويلات',
+      'اعرض الرواتب',
+      'سجلات العمل',
+      'مصروفاتي',
+      'ديوني',
+      'فواتيري',
+      'تحويلاتي',
+      'my balance',
+      'my salary',
+      'my expenses',
+      'my debts',
+    ]);
   }
 
   static String _composePrompt(String currentText, String conversationContext) {
