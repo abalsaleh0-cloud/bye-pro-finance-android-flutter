@@ -41,7 +41,7 @@ final class HomeBillRepository {
     }
     await _database.transaction(() async {
       final existing = await _database.customSelect(
-        'SELECT id FROM home_bills WHERE id = ?',
+        'SELECT id, amount_minor_units, due_year, due_month FROM home_bills WHERE id = ?',
         variables: [Variable.withString(bill.id)],
       ).get();
       if (existing.isEmpty) {
@@ -59,6 +59,27 @@ final class HomeBillRepository {
       final paid = paymentRows.single.read<int>('paid');
       if (bill.amount.minorUnits < paid) {
         throw ArgumentError('Bill amount cannot be lower than its recorded payments');
+      }
+
+      final previous = existing.single;
+      final previousDueMonth = MonthKey(
+        year: previous.read<int>('due_year'),
+        month: previous.read<int>('due_month'),
+      );
+      final previousRemaining =
+          previous.read<int>('amount_minor_units') - paid;
+      final nextRemaining = bill.amount.minorUnits - paid;
+      final targetCommitted = await _homeCommittedAmount(bill.dueMonth);
+      final targetTransfers = await _transferredForMonth(bill.dueMonth);
+      final targetAlreadyIncluded =
+          previousDueMonth == bill.dueMonth ? previousRemaining : 0;
+      final projectedCommitted =
+          targetCommitted - targetAlreadyIncluded + nextRemaining;
+      if (projectedCommitted > targetTransfers &&
+          projectedCommitted > targetCommitted) {
+        throw InsufficientBillPaymentBalanceException(
+          targetTransfers - targetCommitted + targetAlreadyIncluded,
+        );
       }
 
       await _database.customStatement(
@@ -122,17 +143,74 @@ final class HomeBillRepository {
   /// Reverts a recorded bill payment without changing any other payment.
   Future<void> undoPayment(String paymentId) async {
     await ensureTables();
-    final rows = await _database.customSelect(
-      'SELECT id FROM home_bill_payments WHERE id = ?',
-      variables: [Variable.withString(paymentId)],
+    await _database.transaction(() async {
+      final rows = await _database.customSelect(
+        'SELECT p.amount_minor_units, p.paid_at_epoch_millis, '
+        'b.due_year, b.due_month '
+        'FROM home_bill_payments p '
+        'JOIN home_bills b ON b.id = p.bill_id '
+        'WHERE p.id = ?',
+        variables: [Variable.withString(paymentId)],
+      ).get();
+      if (rows.isEmpty) {
+        throw StateError('Bill payment not found: $paymentId');
+      }
+
+      final payment = rows.single;
+      final dueMonth = MonthKey(
+        year: payment.read<int>('due_year'),
+        month: payment.read<int>('due_month'),
+      );
+      final paidAt = DateTime.fromMillisecondsSinceEpoch(
+        payment.read<int>('paid_at_epoch_millis'),
+      ).toLocal();
+      final paymentMonth = MonthKey(year: paidAt.year, month: paidAt.month);
+
+      // Undoing a payment in a different month restores the unpaid obligation
+      // to the bill's due month. Ensure that month still has enough transfers.
+      // In the same month, the payment outflow and outstanding reservation
+      // offset each other, so the total commitment does not change.
+      if (paymentMonth != dueMonth) {
+        final committed = await _homeCommittedAmount(dueMonth);
+        final transferred = await _transferredForMonth(dueMonth);
+        final available = transferred - committed;
+        final amount = payment.read<int>('amount_minor_units');
+        if (amount > available) {
+          throw InsufficientBillPaymentBalanceException(available);
+        }
+      }
+
+      await _database.customStatement(
+        'DELETE FROM home_bill_payments WHERE id = ?',
+        [paymentId],
+      );
+    });
+  }
+
+  Future<int> _homeCommittedAmount(MonthKey month) async {
+    final start = DateTime(month.year, month.month).millisecondsSinceEpoch;
+    final finish = DateTime(month.year, month.month + 1).millisecondsSinceEpoch;
+    final expenses = await _database.customSelect(
+      'SELECT COALESCE(SUM(amount_minor_units), 0) AS total '
+      'FROM home_expenses WHERE expense_date_epoch_millis >= ? '
+      'AND expense_date_epoch_millis < ?',
+      variables: [Variable.withInt(start), Variable.withInt(finish)],
     ).get();
-    if (rows.isEmpty) {
-      throw StateError('Bill payment not found: $paymentId');
-    }
-    await _database.customStatement(
-      'DELETE FROM home_bill_payments WHERE id = ?',
-      [paymentId],
-    );
+    final payments = await paymentsTotalForMonth(month);
+    final outstanding = await outstandingForMonth(month);
+    return expenses.single.read<int>('total') + payments + outstanding;
+  }
+
+  Future<int> _transferredForMonth(MonthKey month) async {
+    final start = DateTime(month.year, month.month).millisecondsSinceEpoch;
+    final finish = DateTime(month.year, month.month + 1).millisecondsSinceEpoch;
+    final rows = await _database.customSelect(
+      'SELECT COALESCE(SUM(amount_minor_units), 0) AS total '
+      'FROM work_home_transfers WHERE transferred_at_epoch_millis >= ? '
+      'AND transferred_at_epoch_millis < ?',
+      variables: [Variable.withInt(start), Variable.withInt(finish)],
+    ).get();
+    return rows.single.read<int>('total');
   }
 
   /// Returns the unpaid portion of bills due in [month].

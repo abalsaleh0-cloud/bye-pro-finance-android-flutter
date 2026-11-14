@@ -452,6 +452,22 @@ void main() {
         transferredAt: DateTime.utc(2026, 11, 1),
       ),
     );
+    await WorkRepository(database).saveEntry(
+      WorkEntry(
+        id: 'bill-edit-december-cash',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(2000),
+        dueMonth: MonthKey(year: 2026, month: 12),
+        recordedAt: DateTime.utc(2026, 12, 1),
+      ),
+    );
+    await WorkRepository(database).saveTransfer(
+      WorkHomeTransfer(
+        id: 'bill-edit-december-funding',
+        amount: Money.fromMinorUnits(2000),
+        transferredAt: DateTime.utc(2026, 12, 1),
+      ),
+    );
     final repository = HomeBillRepository(database);
     final original = HomeBill(
       id: 'bill-edit-history',
@@ -509,6 +525,225 @@ void main() {
     );
     expect(await repository.paymentsFor(original.id), hasLength(1));
     expect((await repository.getBills()).single.amount.minorUnits, 900);
+  });
+
+  test('cannot move a partially paid bill into an unfunded month', () async {
+    await WorkRepository(database).saveEntry(
+      WorkEntry(
+        id: 'bill-move-november-income',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(1000),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
+    await WorkRepository(database).saveTransfer(
+      WorkHomeTransfer(
+        id: 'bill-move-november-transfer',
+        amount: Money.fromMinorUnits(1000),
+        transferredAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
+    final repository = HomeBillRepository(database);
+    final bill = HomeBill(
+      id: 'bill-move-protected',
+      title: 'Internet',
+      kind: HomeBillKind.monthly,
+      amount: Money.fromMinorUnits(800),
+      dueMonth: MonthKey(year: 2026, month: 11),
+    );
+    await repository.saveBill(bill);
+    await repository.recordPayment(
+      HomeBillPayment(
+        id: 'bill-move-protected-payment',
+        billId: bill.id,
+        amount: Money.fromMinorUnits(300),
+        paidAt: DateTime.utc(2026, 11, 10),
+      ),
+    );
+
+    await expectLater(
+      repository.saveBill(
+        HomeBill(
+          id: bill.id,
+          title: bill.title,
+          kind: bill.kind,
+          amount: Money.fromMinorUnits(800),
+          dueMonth: MonthKey(year: 2026, month: 12),
+        ),
+      ),
+      throwsA(isA<InsufficientBillPaymentBalanceException>()),
+    );
+
+    final saved = (await repository.getBills()).single;
+    expect(saved.dueMonth, MonthKey(year: 2026, month: 11));
+    expect(saved.paidMinorUnits, 300);
+    expect(saved.remainingMinorUnits, 500);
+    expect(await repository.paymentsFor(bill.id), hasLength(1));
+  });
+
+  test('cannot increase an existing bill beyond its funded monthly balance', () async {
+    await WorkRepository(database).saveEntry(
+      WorkEntry(
+        id: 'bill-increase-income',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(1000),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
+    await WorkRepository(database).saveTransfer(
+      WorkHomeTransfer(
+        id: 'bill-increase-transfer',
+        amount: Money.fromMinorUnits(1000),
+        transferredAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
+    final repository = HomeBillRepository(database);
+    final bill = HomeBill(
+      id: 'bill-increase-protected',
+      title: 'Internet',
+      kind: HomeBillKind.monthly,
+      amount: Money.fromMinorUnits(800),
+      dueMonth: MonthKey(year: 2026, month: 11),
+    );
+    await repository.saveBill(bill);
+
+    await expectLater(
+      repository.saveBill(
+        HomeBill(
+          id: bill.id,
+          title: bill.title,
+          kind: bill.kind,
+          amount: Money.fromMinorUnits(1001),
+          dueMonth: bill.dueMonth,
+        ),
+      ),
+      throwsA(isA<InsufficientBillPaymentBalanceException>()),
+    );
+
+    expect((await repository.getBills()).single.amount.minorUnits, 800);
+  });
+
+  test('cannot undo a later-month payment if the original due month is no longer funded', () async {
+    final work = WorkRepository(database);
+    await work.saveEntry(
+      WorkEntry(
+        id: 'undo-cross-month-november-income',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(750),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
+    await work.saveTransfer(
+      WorkHomeTransfer(
+        id: 'undo-cross-month-november-transfer',
+        amount: Money.fromMinorUnits(750),
+        transferredAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
+    await work.saveEntry(
+      WorkEntry(
+        id: 'undo-cross-month-december-income',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(580),
+        dueMonth: MonthKey(year: 2026, month: 12),
+        recordedAt: DateTime.utc(2026, 12, 1),
+      ),
+    );
+    await work.saveTransfer(
+      WorkHomeTransfer(
+        id: 'undo-cross-month-december-transfer',
+        amount: Money.fromMinorUnits(580),
+        transferredAt: DateTime.utc(2026, 12, 1),
+      ),
+    );
+    final bills = HomeBillRepository(database);
+    final bill = HomeBill(
+      id: 'undo-cross-month-rent',
+      title: 'Rent',
+      kind: HomeBillKind.rent,
+      amount: Money.fromMinorUnits(580),
+      dueMonth: MonthKey(year: 2026, month: 11),
+    );
+    await bills.saveBill(bill);
+    await bills.recordPayment(
+      HomeBillPayment(
+        id: 'undo-cross-month-payment',
+        billId: bill.id,
+        amount: Money.fromMinorUnits(580),
+        paidAt: DateTime.utc(2026, 12, 5),
+      ),
+    );
+    await HomeExpenseRepository(database).save(
+      HomeExpense(
+        id: 'undo-cross-month-later-expense',
+        amount: Money.fromMinorUnits(200),
+        categoryId: 'food',
+        expenseDate: DateTime.utc(2026, 11, 20),
+        dueMonth: MonthKey(year: 2026, month: 11),
+      ),
+    );
+
+    await expectLater(
+      bills.undoPayment('undo-cross-month-payment'),
+      throwsA(isA<InsufficientBillPaymentBalanceException>()),
+    );
+    expect(await bills.paymentsFor(bill.id), hasLength(1));
+    expect((await bills.getBills()).single.remainingMinorUnits, 0);
+  });
+
+  test('undoing a same-month bill payment preserves the reserved total', () async {
+    final work = WorkRepository(database);
+    await work.saveEntry(
+      WorkEntry(
+        id: 'undo-same-month-income',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(750),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
+    await work.saveTransfer(
+      WorkHomeTransfer(
+        id: 'undo-same-month-transfer',
+        amount: Money.fromMinorUnits(750),
+        transferredAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
+    final bills = HomeBillRepository(database);
+    final bill = HomeBill(
+      id: 'undo-same-month-rent',
+      title: 'Rent',
+      kind: HomeBillKind.rent,
+      amount: Money.fromMinorUnits(580),
+      dueMonth: MonthKey(year: 2026, month: 11),
+    );
+    await bills.saveBill(bill);
+    await bills.recordPayment(
+      HomeBillPayment(
+        id: 'undo-same-month-payment',
+        billId: bill.id,
+        amount: Money.fromMinorUnits(580),
+        paidAt: DateTime.utc(2026, 11, 5),
+      ),
+    );
+    await HomeExpenseRepository(database).save(
+      HomeExpense(
+        id: 'undo-same-month-expense',
+        amount: Money.fromMinorUnits(170),
+        categoryId: 'food',
+        expenseDate: DateTime.utc(2026, 11, 6),
+        dueMonth: MonthKey(year: 2026, month: 11),
+      ),
+    );
+
+    await bills.undoPayment('undo-same-month-payment');
+
+    expect(await bills.paymentsFor(bill.id), isEmpty);
+    expect((await bills.getBills()).single.remainingMinorUnits, 580);
+    expect(await bills.outstandingForMonth(MonthKey(year: 2026, month: 11)), 580);
   });
 
   test('monthly bills remain obligations until payments are made', () async {
