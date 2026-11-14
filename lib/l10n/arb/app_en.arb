@@ -84,6 +84,7 @@
   "totalCreditor": "Total creditor balance",
   "totalDebtor": "Total debtor balance",
   "currentMonth": "Current month",
+  "selectedMonth": "Displayed month",
   "homeAvailableBalance": "Available household balance",
   "insufficientHomeBalance": "Insufficient balance. Available: {available}; requested: {requested}",
   "@insufficientHomeBalance": {
