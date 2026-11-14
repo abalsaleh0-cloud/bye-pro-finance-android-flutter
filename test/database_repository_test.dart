@@ -861,6 +861,119 @@ void main() {
     );
   });
 
+  test('cannot reduce or delete transfers reserved for unpaid monthly bills', () async {
+    final work = WorkRepository(database);
+    final month = MonthKey(year: 2026, month: 11);
+    await work.saveEntry(
+      WorkEntry(
+        id: 'unpaid-bill-protection-income',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(1000),
+        dueMonth: month,
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
+    await work.saveTransfer(
+      WorkHomeTransfer(
+        id: 'unpaid-bill-protection-transfer',
+        amount: Money.fromMinorUnits(750),
+        transferredAt: DateTime.utc(2026, 11, 2),
+      ),
+    );
+    await HomeBillRepository(database).saveBill(
+      HomeBill(
+        id: 'unpaid-bill-protection-rent',
+        title: 'Rent',
+        kind: HomeBillKind.rent,
+        amount: Money.fromMinorUnits(580),
+        dueMonth: month,
+      ),
+    );
+    await HomeExpenseRepository(database).save(
+      HomeExpense(
+        id: 'unpaid-bill-protection-expense',
+        amount: Money.fromMinorUnits(150),
+        categoryId: 'food',
+        expenseDate: DateTime.utc(2026, 11, 3),
+        dueMonth: month,
+      ),
+    );
+
+    await expectLater(
+      work.saveTransfer(
+        WorkHomeTransfer(
+          id: 'unpaid-bill-protection-transfer',
+          amount: Money.fromMinorUnits(729),
+          transferredAt: DateTime.utc(2026, 11, 2),
+        ),
+      ),
+      throwsA(isA<TransferWouldOverdrawHomeException>()),
+    );
+    await expectLater(
+      work.deleteTransfer('unpaid-bill-protection-transfer'),
+      throwsA(isA<TransferWouldOverdrawHomeException>()),
+    );
+    expect(
+      (await database.select(database.workHomeTransfers).get()).single.amountMinorUnits,
+      750,
+    );
+  });
+
+  test('cannot move a transfer away from a month with unpaid bill obligations', () async {
+    final work = WorkRepository(database);
+    await work.saveEntry(
+      WorkEntry(
+        id: 'move-protection-november-income',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(1000),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
+    await work.saveEntry(
+      WorkEntry(
+        id: 'move-protection-december-income',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(1000),
+        dueMonth: MonthKey(year: 2026, month: 12),
+        recordedAt: DateTime.utc(2026, 12, 1),
+      ),
+    );
+    await work.saveTransfer(
+      WorkHomeTransfer(
+        id: 'move-protection-transfer',
+        amount: Money.fromMinorUnits(750),
+        transferredAt: DateTime.utc(2026, 11, 2),
+      ),
+    );
+    await HomeBillRepository(database).saveBill(
+      HomeBill(
+        id: 'move-protection-rent',
+        title: 'November rent',
+        kind: HomeBillKind.rent,
+        amount: Money.fromMinorUnits(580),
+        dueMonth: MonthKey(year: 2026, month: 11),
+      ),
+    );
+
+    await expectLater(
+      work.saveTransfer(
+        WorkHomeTransfer(
+          id: 'move-protection-transfer',
+          amount: Money.fromMinorUnits(750),
+          transferredAt: DateTime.utc(2026, 12, 2),
+        ),
+      ),
+      throwsA(isA<TransferWouldOverdrawHomeException>()),
+    );
+    final saved = await database.select(database.workHomeTransfers).get();
+    expect(saved.single.amountMinorUnits, 750);
+    expect(
+      DateTime.fromMillisecondsSinceEpoch(saved.single.transferredAtEpochMillis).month,
+      11,
+    );
+  });
+
   test('cannot delete work cash already transferred to home', () async {
     final repository = WorkRepository(database);
     await repository.saveEntry(
