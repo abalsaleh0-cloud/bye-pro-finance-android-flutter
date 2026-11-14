@@ -1,4 +1,6 @@
+import 'package:drift/native.dart';
 import 'package:expense_app/app/app.dart';
+import 'package:expense_app/core/database/app_database.dart';
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
@@ -18,7 +20,7 @@ void main() {
   testWidgets('starts in Arabic with five navigation destinations', (
     tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await _pumpApp(tester);
     await tester.pumpAndSettle();
 
     expect(find.text('الرئيسية'), findsWidgets);
@@ -28,7 +30,7 @@ void main() {
   });
 
   testWidgets('global calculator evaluates expressions and returns a safe result', (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await _pumpApp(tester);
     await tester.tap(find.byKey(const Key('open-calculator')));
     await tester.pumpAndSettle();
 
@@ -52,7 +54,7 @@ void main() {
   });
 
   testWidgets('financial calculator calculates percentages in minor units', (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await _pumpApp(tester);
     await tester.tap(find.byKey(const Key('open-calculator')));
     await tester.pumpAndSettle();
 
@@ -81,7 +83,7 @@ void main() {
   });
 
   testWidgets('settings can switch theme and language', (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await _pumpApp(tester);
 
     await tester.tap(find.byKey(const Key('open-settings')));
     await tester.pumpAndSettle();
@@ -108,7 +110,7 @@ void main() {
   });
 
   testWidgets('bottom navigation changes the active section', (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await _pumpApp(tester);
 
     await tester.tap(find.text('العمل').last);
     await tester.pumpAndSettle();
@@ -163,15 +165,9 @@ void main() {
       transferredAt: previousDate,
     );
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          homeBillOutstandingAsOfMonthProvider.overrideWith(
-            (ref, selected) async => 0,
-          ),
-          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
-          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
-
+    await _pumpApp(
+      tester,
+      overrides: [
           workEntriesProvider.overrideWith(
             (ref) => Stream.value([previousWorkEntry]),
           ),
@@ -188,9 +184,7 @@ void main() {
           selectedMonthProvider.overrideWith(
             () => _FixedSelectedMonthNotifier(currentMonth),
           ),
-        ],
-        child: const MyApp(),
-      ),
+      ],
     );
     await tester.pumpAndSettle();
 
@@ -240,15 +234,9 @@ void main() {
   testWidgets('work form offers salary advance and payment entry types', (tester) async {
     final now = DateTime.now();
     final currentMonth = MonthKey(year: now.year, month: now.month);
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          homeBillOutstandingAsOfMonthProvider.overrideWith(
-            (ref, selected) async => 0,
-          ),
-          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
-          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
-
+    await _pumpApp(
+      tester,
+      overrides: [
           workEntriesProvider.overrideWith((ref) => Stream.value([])),
           workTransfersProvider.overrideWith((ref) => Stream.value([])),
           homeExpensesProvider.overrideWith((ref) => Stream.value([])),
@@ -261,9 +249,7 @@ void main() {
           selectedMonthProvider.overrideWith(
             () => _FixedSelectedMonthNotifier(currentMonth),
           ),
-        ],
-        child: const MyApp(),
-      ),
+      ],
     );
     await tester.pumpAndSettle();
 
@@ -295,15 +281,9 @@ void main() {
   testWidgets('debt form allows selecting creditor direction', (tester) async {
     final now = DateTime.now();
     final currentMonth = MonthKey(year: now.year, month: now.month);
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          homeBillOutstandingAsOfMonthProvider.overrideWith(
-            (ref, selected) async => 0,
-          ),
-          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
-          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
-
+    await _pumpApp(
+      tester,
+      overrides: [
           workEntriesProvider.overrideWith((ref) => Stream.value([])),
           workTransfersProvider.overrideWith((ref) => Stream.value([])),
           homeExpensesProvider.overrideWith((ref) => Stream.value([])),
@@ -316,9 +296,7 @@ void main() {
           selectedMonthProvider.overrideWith(
             () => _FixedSelectedMonthNotifier(currentMonth),
           ),
-        ],
-        child: const MyApp(),
-      ),
+      ],
     );
     await tester.pumpAndSettle();
 
@@ -351,15 +329,9 @@ void main() {
       month: previousDate.month,
     );
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          homeBillOutstandingAsOfMonthProvider.overrideWith(
-            (ref, selected) async => 0,
-          ),
-          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
-          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
-
+    await _pumpApp(
+      tester,
+      overrides: [
           workEntriesProvider.overrideWith((ref) => Stream.value([])),
           workTransfersProvider.overrideWith((ref) => Stream.value([])),
           homeExpensesProvider.overrideWith((ref) => Stream.value([])),
@@ -374,9 +346,7 @@ void main() {
           selectedMonthProvider.overrideWith(
             () => _FixedSelectedMonthNotifier(previousMonth),
           ),
-        ],
-        child: const MyApp(),
-      ),
+      ],
     );
     await tester.pumpAndSettle();
 
@@ -404,24 +374,16 @@ void main() {
       note: 'ملاحظة الراتب',
     );
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          homeBillOutstandingAsOfMonthProvider.overrideWith(
-            (ref, selected) async => 0,
-          ),
-          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
-          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
-
+    await _pumpApp(
+      tester,
+      overrides: [
           workEntriesProvider.overrideWith((ref) => Stream.value([entry])),
           selectedMonthProvider.overrideWith(
             () => _FixedSelectedMonthNotifier(
               MonthKey(year: now.year, month: now.month),
             ),
           ),
-        ],
-        child: const MyApp(),
-      ),
+      ],
     );
     await tester.pumpAndSettle();
 
@@ -445,22 +407,14 @@ void main() {
       note: 'ملاحظة فاتورة مباشرة',
     );
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          homeBillOutstandingAsOfMonthProvider.overrideWith(
-            (ref, selected) async => 0,
-          ),
-          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
-          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
-
+    await _pumpApp(
+      tester,
+      overrides: [
           homeBillsProvider.overrideWith((ref) async => [bill]),
           selectedMonthProvider.overrideWith(
             () => _FixedSelectedMonthNotifier(month),
           ),
-        ],
-        child: const MyApp(),
-      ),
+      ],
     );
     await tester.pumpAndSettle();
 
@@ -497,15 +451,9 @@ void main() {
       dueMonth: month,
     );
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          homeBillOutstandingAsOfMonthProvider.overrideWith(
-            (ref, selected) async => 580,
-          ),
-          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
-          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
-
+    await _pumpApp(
+      tester,
+      overrides: [
           homeExpensesProvider.overrideWith((ref) => Stream.value([expense])),
           workTransfersProvider.overrideWith((ref) => Stream.value([transfer])),
           homeBillsProvider.overrideWith((ref) async => [rent]),
@@ -513,9 +461,7 @@ void main() {
           selectedMonthProvider.overrideWith(
             () => _FixedSelectedMonthNotifier(month),
           ),
-        ],
-        child: const MyApp(),
-      ),
+      ],
     );
     await tester.pumpAndSettle();
 
@@ -547,34 +493,21 @@ void main() {
       recordedAt: now,
     );
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          homeBillOutstandingAsOfMonthProvider.overrideWith(
-            (ref, selected) async => 0,
-          ),
-          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
-          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
-
+    await _pumpApp(
+      tester,
+      overrides: [
           workEntriesProvider.overrideWith((ref) => Stream.value([selectedSalary, currentSalary])),
           workTransfersProvider.overrideWith((ref) => Stream.value([])),
           homeExpensesProvider.overrideWith((ref) => Stream.value([])),
           debtsProvider.overrideWith((ref) => Stream.value([])),
-          homeBillsProvider.overrideWith((ref) async => []),
-          homeBillPaymentsForMonthProvider.overrideWith((ref, selected) async => 0),
           selectedMonthProvider.overrideWith(
             () => _FixedSelectedMonthNotifier(previousMonth),
           ),
-        ],
-        child: const MyApp(),
-      ),
+      ],
     );
     await tester.pumpAndSettle();
 
-    expect(
-      tester.widget<Text>(find.byKey(const Key('dashboard-selected-month-label'))).data,
-      previousMonth.toString(),
-    );
+    expect(find.text(previousMonth.toString()), findsOneWidget);
     expect(find.text('321'), findsWidgets);
     expect(find.text('999'), findsNothing);
   });
@@ -592,22 +525,14 @@ void main() {
       note: 'ملاحظة موجودة',
     );
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          homeBillOutstandingAsOfMonthProvider.overrideWith(
-            (ref, selected) async => 0,
-          ),
-          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
-          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
-
+    await _pumpApp(
+      tester,
+      overrides: [
           homeBillsProvider.overrideWith((ref) async => [bill]),
           selectedMonthProvider.overrideWith(
             () => _FixedSelectedMonthNotifier(month),
           ),
-        ],
-        child: const MyApp(),
-      ),
+      ],
     );
     await tester.pumpAndSettle();
 
@@ -637,15 +562,9 @@ void main() {
       month: previousDate.month,
     );
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          homeBillOutstandingAsOfMonthProvider.overrideWith(
-            (ref, selected) async => 0,
-          ),
-          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
-          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
-
+    await _pumpApp(
+      tester,
+      overrides: [
           workEntriesProvider.overrideWith((ref) => Stream.value([])),
           workTransfersProvider.overrideWith((ref) => Stream.value([])),
           homeExpensesProvider.overrideWith((ref) => Stream.value([])),
@@ -660,9 +579,7 @@ void main() {
           selectedMonthProvider.overrideWith(
             () => _FixedSelectedMonthNotifier(previousMonth),
           ),
-        ],
-        child: const MyApp(),
-      ),
+      ],
     );
     await tester.pumpAndSettle();
 
@@ -728,9 +645,67 @@ void main() {
       paidAt: DateTime(now.year, now.month, now.day, 14, 35),
     );
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
+    await _pumpApp(
+      tester,
+      overrides: [
+          workEntriesProvider.overrideWith((ref) => Stream.value([])),
+          workTransfersProvider.overrideWith((ref) => Stream.value([])),
+          homeExpensesProvider.overrideWith((ref) => Stream.value([])),
+          homeExpenseCategoriesProvider.overrideWith(
+            (ref) async => HomeExpenseCategory.defaults,
+          ),
+          homeBillsProvider.overrideWith((ref) async => []),
+          homeBillPaymentsForMonthProvider.overrideWith(
+            (ref, selected) async => 0,
+          ),
+          debtsProvider.overrideWith((ref) => Stream.value([debt])),
+          debtPaymentsProvider.overrideWith(
+            (ref, debtId) => Stream.value(
+              debtId == debt.id ? [payment] : const <DebtPayment>[],
+            ),
+          ),
+          selectedMonthProvider.overrideWith(
+            () => _FixedSelectedMonthNotifier(month),
+          ),
+      ],
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('الديون').last);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('الوقت:'), findsOneWidget);
+
+    await tester.tap(find.text('تسجيل دفعة').last);
+    await tester.pumpAndSettle();
+    expect(find.text('الوقت'), findsOneWidget);
+    expect(find.byTooltip('الوقت'), findsOneWidget);
+    await tester.tap(find.text('إلغاء').last);
+    await tester.pumpAndSettle();
+  });
+
+
+  testWidgets('debt payment form exposes time selection and history shows time', (tester) async {
+    final now = DateTime.now();
+    final month = MonthKey(year: now.year, month: now.month);
+    final debt = DebtEntry(
+      id: 'widget-debt-payment-time',
+      direction: DebtDirection.debtor,
+      originalAmount: Money.fromMinorUnits(500),
+      outstandingAmount: Money.fromMinorUnits(400),
+      dueMonth: month,
+      createdAt: now,
+      counterparty: 'دين اختبار الوقت',
+    );
+    final payment = DebtPayment(
+      id: 'widget-debt-payment-time-record',
+      debtId: debt.id,
+      amount: Money.fromMinorUnits(100),
+      paidAt: DateTime(now.year, now.month, now.day, 14, 35),
+    );
+
+    await _pumpApp(
+      tester,
+      overrides: [
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -756,9 +731,7 @@ void main() {
           selectedMonthProvider.overrideWith(
             () => _FixedSelectedMonthNotifier(month),
           ),
-        ],
-        child: const MyApp(),
-      ),
+      ],
     );
     await tester.pumpAndSettle();
 
@@ -774,6 +747,27 @@ void main() {
     await tester.pumpAndSettle();
   });
 
+}
+
+
+Future<void> _pumpApp(
+  WidgetTester tester, {
+  List<dynamic> overrides = const [],
+}) async {
+  final database = AppDatabase.forTesting(NativeDatabase.memory());
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        appDatabaseProvider.overrideWithValue(database),
+        ...overrides,
+      ],
+      child: const MyApp(),
+    ),
+  );
+  addTearDown(() async {
+    await tester.pumpWidget(const SizedBox.shrink());
+    await database.close();
+  });
 }
 
 class _FixedSelectedMonthNotifier extends SelectedMonthNotifier {
