@@ -55,10 +55,9 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
     final note = TextEditingController(text: existing?.note ?? '');
     var direction = existing?.direction ?? DebtDirection.debtor;
     String? error;
-    try {
-      await showDialog<void>(
-        context: context,
-        builder: (dialogContext) => StatefulBuilder(
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
             title: Text(
               existing == null ? strings.addDebt : strings.editRecord,
@@ -226,9 +225,10 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
         builder: (dialogContext) => StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
             title: Text(strings.recordDebtPayment),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
                 Text(
                   '${strings.outstandingAmount}: ${debt.outstandingAmount.minorUnits}',
                 ),
@@ -281,7 +281,8 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                       color: Theme.of(context).colorScheme.error,
                     ),
                   ),
-              ],
+                ],
+              ),
             ),
             actions: [
               TextButton(
@@ -331,12 +332,6 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
           ),
         ),
       );
-    } finally {
-      amount.dispose();
-      paidAt.dispose();
-      paidTime.dispose();
-      note.dispose();
-    }
   }
 
   Future<void> _deleteDebt(
