@@ -512,6 +512,8 @@ void main() {
           workTransfersProvider.overrideWith((ref) => Stream.value([])),
           homeExpensesProvider.overrideWith((ref) => Stream.value([])),
           debtsProvider.overrideWith((ref) => Stream.value([])),
+          homeBillsProvider.overrideWith((ref) async => []),
+          homeBillPaymentsForMonthProvider.overrideWith((ref, selected) async => 0),
           selectedMonthProvider.overrideWith(
             () => _FixedSelectedMonthNotifier(previousMonth),
           ),
@@ -521,7 +523,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text(previousMonth.toString()), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const Key('dashboard-selected-month-label'))).data,
+      previousMonth.toString(),
+    );
     expect(find.text('321'), findsWidgets);
     expect(find.text('999'), findsNothing);
   });
