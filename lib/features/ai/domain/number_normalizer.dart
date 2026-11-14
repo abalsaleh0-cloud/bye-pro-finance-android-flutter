@@ -106,7 +106,7 @@ final class NumberNormalizer {
   String normalize(String input) => normalizeDigits(input);
 
   String _normalizeNumberWords(String input) {
-    return input
+    return input.toLowerCase()
         .replaceAll(RegExp(r'[\u064B-\u065F\u0670\u0640]'), '')
         .replaceAll(RegExp('[أإآٱ]'), 'ا')
         .replaceAll('ى', 'ي')
