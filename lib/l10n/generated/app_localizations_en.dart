@@ -275,4 +275,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gemmaWifiWarning => 'The model file is about 2.59 GB. Use Wi-Fi and ensure enough free storage. The download runs in the background with a notification; allow notification permission when prompted, then you can turn off the screen. If interrupted, it may restart from the beginning because the Hugging Face server does not support partial resume.';
 
 
+  @override
+  String get financialSnapshot => 'Financial snapshot';
+
+  @override
+  String get quickActions => 'Quick actions';
+
+  @override
+  String get recentActivity => 'Recent activity';
+
+  @override
+  String get noRecentActivity => 'No recent activity';
+
+  @override
+  String get debtBalancesCurrentNote => 'These are current outstanding debt balances, not historical balances for the selected month.';
+
+  @override
+  String get cashFlowComparison => 'Transfers and expenses comparison';
+
 }
