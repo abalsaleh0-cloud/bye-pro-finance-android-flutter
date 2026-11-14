@@ -158,14 +158,14 @@ final class AssistantInputNormalizer {
       );
     }
 
-    // A decimal amount is ambiguous without the app's currency precision.
-    if (RegExp(r'(?<!\d)\d+[.]\d{1,2}(?!\d)').hasMatch(value)) {
+    // Decimal precision is ambiguous without the currency-specific unit.
+    if (RegExp(r'(?<!\d)\d+[.,٬،]\d{1,2}(?!\d)').hasMatch(value)) {
       return null;
     }
 
-    // Keep conventional thousands separators together: 1,500 or ١٬٥٠٠.
+    // Keep conventional thousands separators together: 1,500, 1.500 or ١٬٥٠٠.
     value = value.replaceAllMapped(
-      RegExp(r'(?<=\d)[,٬،](?=\d{3}(?:\D|$))'),
+      RegExp(r'(?<=\d)[,.٬،](?=\d{3}(?:\D|$))'),
       (_) => '',
     );
 
