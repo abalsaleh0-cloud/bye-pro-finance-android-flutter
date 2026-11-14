@@ -124,7 +124,7 @@ class HomeBillsSection extends ConsumerWidget {
           ? Text(strings.noRecords)
           : ListView(shrinkWrap: true, children: payments.map((payment) => ListTile(
               title: Text(payment.amount.minorUnits.toString()),
-              subtitle: Text(payment.paidAt.toLocal().toString().split('.').first),
+              subtitle: Text(formatCalendarDate(payment.paidAt)),
             )).toList())),
         actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(strings.cancel))],
       ),
