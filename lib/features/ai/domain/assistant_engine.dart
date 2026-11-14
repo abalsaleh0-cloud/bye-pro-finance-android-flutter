@@ -233,22 +233,6 @@ final class FakeAssistantEngine implements AssistantEngine {
       );
     }
 
-    if (isQuestion && receiptVerb && has(const [
-      'راتب',
-      'راتبي',
-      'معاش',
-      'معاشي',
-      'دفعة',
-      'دفعات',
-      'payment',
-    ])) {
-      if (can('read_work_records')) {
-        return const AssistantResult.command(
-          AssistantCommand(name: 'read_work_records', parameters: {}),
-        );
-      }
-    }
-
     if (readVerb) {
       final readAction = _readAction(has);
       if (readAction != null && can(readAction)) {
@@ -323,6 +307,24 @@ final class FakeAssistantEngine implements AssistantEngine {
       'how',
     ]) || input.contains('؟') || input.contains('?');
     final isWriteIntent = !isQuestion && (writeVerb || receiptVerb);
+
+    if (isQuestion &&
+        receiptVerb &&
+        has(const [
+          'راتب',
+          'راتبي',
+          'معاش',
+          'معاشي',
+          'دفعة',
+          'دفعات',
+          'payment',
+        ])) {
+      if (can('read_work_records')) {
+        return const AssistantResult.command(
+          AssistantCommand(name: 'read_work_records', parameters: {}),
+        );
+      }
+    }
 
     final amount = _input.extractAmount(effectiveInput);
     final requestedMonth = _input.extractMonth(effectiveInput);
@@ -649,7 +651,8 @@ final class FakeAssistantEngine implements AssistantEngine {
         (amountQuestion && answerHasAmount) ||
         (monthQuestion && answerHasMonth) ||
         (directionQuestion && answerHasDirection) ||
-        ((nameQuestion || categoryQuestion) && answerIsShortText) ||
+        (nameQuestion && answerIsShortText) ||
+        (categoryQuestion && answerHasCategory) ||
         (dateQuestion && answerHasDate) ||
         (identifierQuestion && answerHasIdentifier);
     if (!isExpectedAnswer) return currentInput;
