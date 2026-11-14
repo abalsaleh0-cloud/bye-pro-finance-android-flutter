@@ -39,6 +39,10 @@ void main() {
       expect(input.extractAmount('سجل راتب 1,500 لشهر 2026-11'), 1500);
       expect(input.extractAmount('سجل راتب ١٬٥٠٠ لشهر ١١/٢٠٢٦'), 1500);
       expect(input.extractAmount('سجل راتب لشهر 2026-11'), isNull);
+      expect(input.extractAmount('سجل راتب لسنة 2026'), isNull);
+      expect(input.extractAmount('سجل راتب تشرين الثاني 2026'), isNull);
+      expect(input.extractAmount('سجل راتب 14 تشرين الثاني 2026'), isNull);
+      expect(input.extractAmount('سجل راتب 1500 لشهر نوفمبر 2026'), 1500);
     });
 
     test('does not guess an unknown amount phrase', () {
@@ -80,6 +84,18 @@ void main() {
       expect(
         input.extractMonth('راتب كانون التاني', referenceDate: referenceDate),
         (2026, 1),
+      );
+      expect(
+        input.extractMonth('راتب 14 تشرين الثاني 2026', referenceDate: referenceDate),
+        (2026, 11),
+      );
+      expect(
+        input.extractMonth('راتب November 2026', referenceDate: referenceDate),
+        (2026, 11),
+      );
+      expect(
+        input.extractMonth('راتب لهذا الشهر', referenceDate: referenceDate),
+        (2026, 11),
       );
     });
 
