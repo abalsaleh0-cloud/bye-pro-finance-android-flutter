@@ -129,7 +129,9 @@ final class ActionRegistry {
         final all = await _work.watchEntries().first;
         WorkEntry? old; for(final e in all) { if(e.id == id) old=e; }
         final previous = old;
-        final item = WorkEntry(id:id, kind:WorkEntryKind.values.byName(p['kind']! as String), amount:Money.fromMinorUnits(p['amountMinorUnits']! as int), dueMonth:MonthKey(year:p['year']! as int,month:p['month']! as int), recordedAt:previous?.recordedAt ?? DateTime.now(),note:p['note'] as String?);
+        final item = WorkEntry(id:id, kind:(p['kind'] == 'payment'
+            ? WorkEntryKind.salaryPayment
+            : WorkEntryKind.values.byName(p['kind']! as String)), amount:Money.fromMinorUnits(p['amountMinorUnits']! as int), dueMonth:MonthKey(year:p['year']! as int,month:p['month']! as int), recordedAt:previous?.recordedAt ?? DateTime.now(),note:p['note'] as String?);
         await _work.saveEntry(item);
         return ActionExecution(message:'تم حفظ سجل العمل',undo:() async { if(previous==null) { await _work.deleteEntry(id); } else { await _work.saveEntry(previous); } });
       case 'delete_work_entry':
