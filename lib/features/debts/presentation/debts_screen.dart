@@ -436,7 +436,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                                                     .toString(),
                                               ),
                                               subtitle: Text(
-                                                '${strings.paidAt}: ${payment.paidAt.toLocal().toString().split(' ').first}'
+                                                '${strings.paidAt}: ${formatCalendarDate(payment.paidAt)}'
                                                 '${payment.note == null ? '' : '\n${payment.note}'}',
                                               ),
                                             ),
