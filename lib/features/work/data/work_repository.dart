@@ -232,7 +232,7 @@ final class WorkRepository {
     id: row.id,
     // Older records stored `payment`; expose it through the current unified
     // salary-payment category without rewriting the persisted record eagerly.
-    kind: row.kind == WorkEntryKind.payment.name
+    kind: row.kind == 'payment'
         ? WorkEntryKind.salaryPayment
         : WorkEntryKind.values.byName(row.kind),
     amount: Money.fromMinorUnits(row.amountMinorUnits),
