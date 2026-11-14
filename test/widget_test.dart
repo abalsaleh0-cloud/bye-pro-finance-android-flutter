@@ -4,6 +4,7 @@ import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
 import 'package:expense_app/features/debts/domain/debt_entry.dart';
+import 'package:expense_app/features/debts/domain/debt_payment.dart';
 import 'package:expense_app/features/home/domain/home_bill.dart';
 import 'package:expense_app/features/home/domain/home_expense.dart';
 import 'package:expense_app/features/home/domain/home_expense_category.dart';
@@ -560,6 +561,70 @@ void main() {
     await tester.pumpAndSettle();
     expect(fieldValues(), contains(previousMonth.toString()));
     await tester.tap(find.text('إلغاء'));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('debt payment form exposes time selection and history shows time', (tester) async {
+    final now = DateTime.now();
+    final month = MonthKey(year: now.year, month: now.month);
+    final debt = DebtEntry(
+      id: 'widget-debt-payment-time',
+      direction: DebtDirection.debtor,
+      originalAmount: Money.fromMinorUnits(500),
+      outstandingAmount: Money.fromMinorUnits(400),
+      dueMonth: month,
+      createdAt: now,
+      counterparty: 'دين اختبار الوقت',
+    );
+    final payment = DebtPayment(
+      id: 'widget-debt-payment-time-record',
+      debtId: debt.id,
+      amount: Money.fromMinorUnits(100),
+      paidAt: DateTime(now.year, now.month, now.day, 14, 35),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          workEntriesProvider.overrideWith((ref) => Stream.value([])),
+          workTransfersProvider.overrideWith((ref) => Stream.value([])),
+          homeExpensesProvider.overrideWith((ref) => Stream.value([])),
+          homeExpenseCategoriesProvider.overrideWith(
+            (ref) async => HomeExpenseCategory.defaults,
+          ),
+          homeBillsProvider.overrideWith((ref) async => []),
+          homeBillPaymentsForMonthProvider.overrideWith(
+            (ref, selected) async => 0,
+          ),
+          debtsProvider.overrideWith((ref) => Stream.value([debt])),
+          debtPaymentsProvider.overrideWith(
+            (ref, debtId) => Stream.value(
+              debtId == debt.id ? [payment] : const <DebtPayment>[],
+            ),
+          ),
+          selectedMonthProvider.overrideWith(
+            () => _FixedSelectedMonthNotifier(month),
+          ),
+        ],
+        child: const MyApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('الديون').last);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('الوقت:'), findsOneWidget);
+
+    await tester.tap(find.text('تسجيل دفعة').last);
+    await tester.pumpAndSettle();
+    expect(find.text('الوقت'), findsOneWidget);
+    await tester.tap(find.byTooltip('الوقت'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TimePickerDialog), findsOneWidget);
+
+    await tester.tap(find.text('إلغاء').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('إلغاء').last);
     await tester.pumpAndSettle();
   });
 
