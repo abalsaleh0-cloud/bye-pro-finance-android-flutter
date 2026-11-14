@@ -139,6 +139,7 @@ class HomeBillsSection extends ConsumerWidget {
       ref.invalidate(homeBillsProvider);
       ref.invalidate(homeBillPaymentsForMonthProvider);
     } on BillHasPaymentHistoryException {
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(strings.billDeleteHasPayments)),
       );
