@@ -84,6 +84,21 @@ void main() {
       expect(generator.receivedMedia?.imageBytes, isNull);
     });
 
+    test('forwards prior dialogue and keeps the current turn explicit', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.text('ما الشهر المطلوب؟'),
+      );
+      await GemmaAssistantEngine(generator).interpret(
+        'لهذا الشهر',
+        actions,
+        conversationContext: 'المستخدم: أضف راتب 1500\nالمساعد: أي شهر تقصد؟',
+      );
+
+      expect(generator.receivedInput, contains('أضف راتب 1500'));
+      expect(generator.receivedInput, contains('أي شهر تقصد؟'));
+      expect(generator.receivedInput, endsWith('رسالة المستخدم الحالية:\nلهذا الشهر'));
+    });
+
     test('returns a natural-language answer for multimodal input', () async {
       final generator = _FakeGemmaGenerator(
         const GemmaModelOutput.text('تظهر في الصورة فاتورة بقيمة 250 ديناراً.'),

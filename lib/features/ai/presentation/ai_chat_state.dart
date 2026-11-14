@@ -6,14 +6,20 @@ import 'package:expense_app/core/database/app_database.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final class AiChatMessage {
-  const AiChatMessage(this.text, {this.fromUser = false});
+  const AiChatMessage(
+    this.text, {
+    this.fromUser = false,
+    bool? includeInModelContext,
+  }) : includeInModelContext = includeInModelContext ?? fromUser;
 
   final String text;
   final bool fromUser;
+  final bool includeInModelContext;
 
   Map<String, Object?> toJson() => {
         'text': text,
         'fromUser': fromUser,
+        'includeInModelContext': includeInModelContext,
       };
 
   static AiChatMessage? fromJson(Object? value) {
@@ -21,8 +27,55 @@ final class AiChatMessage {
     final text = value['text'];
     final fromUser = value['fromUser'];
     if (text is! String || fromUser is! bool) return null;
-    return AiChatMessage(text, fromUser: fromUser);
+    final includeInModelContext = value['includeInModelContext'];
+    return AiChatMessage(
+      text,
+      fromUser: fromUser,
+      // Old chat entries only treat user messages as contextual dialogue.
+      includeInModelContext: includeInModelContext is bool
+          ? includeInModelContext
+          : fromUser,
+    );
   }
+}
+
+/// Builds a bounded transcript from dialogue turns deliberately marked safe.
+/// Database/tool results and UI status messages remain excluded by default.
+String buildAiConversationContext(
+  List<AiChatMessage> messages, {
+  int maxMessages = 8,
+  int maxCharacters = 1800,
+}) {
+  if (maxMessages <= 0 || maxCharacters <= 0) return '';
+
+  final eligible = messages
+      .where((message) => message.includeInModelContext)
+      .toList(growable: false);
+  final start = eligible.length > maxMessages
+      ? eligible.length - maxMessages
+      : 0;
+  final recent = eligible.sublist(start);
+  final lines = <String>[];
+  var remaining = maxCharacters;
+
+  for (final message in recent.reversed) {
+    final value = message.text.trim();
+    if (value.isEmpty) continue;
+
+    final prefix = message.fromUser ? 'المستخدم: ' : 'المساعد: ';
+    final available = remaining - prefix.length;
+    if (available <= 0) break;
+
+    final excerpt = value.length > available
+        ? '…${value.substring(value.length - available + 1)}'
+        : value;
+    final line = '$prefix$excerpt';
+    lines.add(line);
+    remaining -= line.length + 1;
+    if (remaining <= 0) break;
+  }
+
+  return lines.reversed.join('\n');
 }
 
 class AiChatController extends Notifier<List<AiChatMessage>> {
