@@ -95,7 +95,7 @@ final class AssistantInputNormalizer {
       ];
       for (final candidate in candidates) {
         if (RegExp(
-          '(^| )' + RegExp.escape(candidate) + '( |$)',
+          '(^| )' + RegExp.escape(candidate) + '( |\\$)',
         ).hasMatch(normalizedText)) {
           return true;
         }
@@ -273,7 +273,7 @@ final class AssistantInputNormalizer {
     for (final entry in words) {
       final monthName = normalize(entry.key);
       if (RegExp(
-        '(^| )' + RegExp.escape(monthName) + '( |$)',
+        '(^| )' + RegExp.escape(monthName) + '( |\\$)',
       ).hasMatch(normalized)) {
         final year = RegExp(r'(?<!\d)(20\d{2})(?!\d)')
             .firstMatch(normalized)
