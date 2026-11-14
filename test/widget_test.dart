@@ -108,7 +108,10 @@ void main() {
 
   testWidgets('selected month stays synchronized between work and home sections', (tester) async {
     final database = AppDatabase.forTesting(NativeDatabase.memory());
-    addTearDown(database.close);
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await database.close();
+    });
     final now = DateTime.now();
     final currentMonth = MonthKey(year: now.year, month: now.month);
     final previousDate = DateTime(now.year, now.month - 1, 10);
@@ -181,7 +184,7 @@ void main() {
 
     await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('العمل')));
     await tester.pumpAndSettle();
-final workMonthPicker = find.byKey(const Key('work-selected-month-picker'));
+    final workMonthPicker = find.byKey(const Key('work-selected-month-picker'));
     expect(
       find.descendant(
         of: workMonthPicker,
@@ -193,7 +196,10 @@ final workMonthPicker = find.byKey(const Key('work-selected-month-picker'));
 
   testWidgets('work form offers salary advance and payment entry types', (tester) async {
     final database = AppDatabase.forTesting(NativeDatabase.memory());
-    addTearDown(database.close);
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await database.close();
+    });
 
     await tester.pumpWidget(
       ProviderScope(
@@ -240,7 +246,10 @@ final workMonthPicker = find.byKey(const Key('work-selected-month-picker'));
 
   testWidgets('debt form allows selecting and saving creditor direction', (tester) async {
     final database = AppDatabase.forTesting(NativeDatabase.memory());
-    addTearDown(database.close);
+    addTearDown(() async {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await database.close();
+    });
 
     await tester.pumpWidget(
       ProviderScope(
