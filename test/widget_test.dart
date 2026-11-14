@@ -772,8 +772,13 @@ Future<void> _pumpApp(
     ),
   );
   addTearDown(() async {
+    // Disposing Riverpod stream providers schedules Drift's query-store
+    // cleanup on a zero-duration timer. Flush it inside the widget-test zone
+    // before closing the isolated in-memory database.
     await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
     await database.close();
+    await tester.pump();
   });
 }
 
