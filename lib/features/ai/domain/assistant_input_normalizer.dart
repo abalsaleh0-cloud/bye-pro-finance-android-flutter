@@ -61,11 +61,20 @@ final class AssistantInputNormalizer {
   bool containsAny(String normalizedText, Iterable<String> phrases) {
     for (final phrase in phrases) {
       final normalizedPhrase = normalize(phrase);
-      if (normalizedPhrase.isNotEmpty &&
-          RegExp(
-            '(^| )' + RegExp.escape(normalizedPhrase) + '( |$)',
-          ).hasMatch(normalizedText)) {
-        return true;
+      if (normalizedPhrase.isEmpty) continue;
+      final candidates = <String>[
+        normalizedPhrase,
+        'ال' + normalizedPhrase,
+        'لل' + normalizedPhrase,
+        'بال' + normalizedPhrase,
+        'فال' + normalizedPhrase,
+      ];
+      for (final candidate in candidates) {
+        if (RegExp(
+          '(^| )' + RegExp.escape(candidate) + '( |$)',
+        ).hasMatch(normalizedText)) {
+          return true;
+        }
       }
     }
     return false;
