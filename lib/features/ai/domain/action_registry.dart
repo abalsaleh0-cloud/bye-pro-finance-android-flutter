@@ -2,6 +2,7 @@
 
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
+import 'package:expense_app/features/dashboard/domain/monthly_overview.dart';
 import 'package:expense_app/features/work/data/work_repository.dart';
 import 'package:expense_app/features/work/domain/work_entry.dart';
 import 'package:expense_app/features/work/domain/work_home_transfer.dart';
@@ -14,10 +15,32 @@ import 'package:expense_app/features/debts/domain/debt_entry.dart';
 import 'package:expense_app/features/debts/domain/debt_payment.dart';
 
 typedef UndoOperation = Future<void> Function();
+final class AssistantDashboardSummary {
+  const AssistantDashboardSummary({
+    required this.month,
+    required this.overview,
+    required this.homeBillPaymentsMinorUnits,
+    required this.outstandingBillsAtMonthEndMinorUnits,
+    required this.homeBalanceMinorUnits,
+  });
+
+  final MonthKey month;
+  final MonthlyOverview overview;
+  final int homeBillPaymentsMinorUnits;
+  final int outstandingBillsAtMonthEndMinorUnits;
+  final int homeBalanceMinorUnits;
+}
+
 final class ActionExecution {
-  const ActionExecution({required this.message, this.undo});
+  const ActionExecution({
+    required this.message,
+    this.undo,
+    this.dashboardSummary,
+  });
+
   final String message;
   final UndoOperation? undo;
+  final AssistantDashboardSummary? dashboardSummary;
 }
 final class ActionDescriptor {
   const ActionDescriptor(this.name, this.requiredParameters, {this.readOnly = false});
@@ -55,6 +78,8 @@ final class ActionRegistry {
     ActionDescriptor('record_debt_payment', {'debtId','amountMinorUnits'}),
     ActionDescriptor('read_work_remaining', {}, readOnly: true),
     ActionDescriptor('read_month_total', {'section','year','month'}, readOnly: true),
+    ActionDescriptor('read_dashboard_summary', {}, readOnly: true),
+    ActionDescriptor('navigate_to_section', {'section'}, readOnly: true),
   ];
   List<String> get actionNames => descriptors.map((e) => e.name).toList(growable: false);
   ActionDescriptor? descriptor(String name) {
@@ -82,6 +107,10 @@ final class ActionRegistry {
     if (name == 'save_home_bill' && (p['title']! as String).trim().isEmpty) return 'missing bill title';
     if (name == 'record_home_bill_payment' && (p['billId']! as String).trim().isEmpty) return 'missing bill';
     if (name == 'read_month_total' && !{'work','home','debts'}.contains(p['section'])) return 'invalid section';
+    if (name == 'navigate_to_section' &&
+        !{'dashboard','work','home','debts','ai','settings'}.contains(p['section'])) {
+      return 'invalid navigation section';
+    }
     if (name == 'save_home_expense' && (p['categoryId']! as String).trim().isEmpty) return 'missing category';
     if (name == 'save_home_expense' && DateTime.tryParse(p['date']! as String) == null) return 'invalid date';
     if (name == 'save_work_home_transfer' && p['date'] is String && DateTime.tryParse(p['date']! as String) == null) return 'invalid date';
@@ -311,6 +340,36 @@ final class ActionRegistry {
         else if(section=='home') { for(final e in await _home.watchAll().first) { if(e.dueMonth==month) total+=e.amount.minorUnits; } }
         else { for(final e in await _debts.watchAll().first) { if(e.dueMonth==month) total+=e.outstandingAmount.minorUnits; } }
         return ActionExecution(message:'مجموع ' + section + ' لشهر ' + month.toString() + ': ' + total.toString());
+      case 'read_dashboard_summary':
+        final now = DateTime.now();
+        final month = _selectedMonth ?? MonthKey(year: now.year, month: now.month);
+        final workEntries = await _work.watchEntries().first;
+        final homeExpenses = await _home.watchAll().first;
+        final transfers = await _work.watchTransfers().first;
+        final debts = await _debts.watchAll().first;
+        final overview = MonthlyOverview.calculate(
+          month: month,
+          workEntries: workEntries,
+          homeExpenses: homeExpenses,
+          transfers: transfers,
+          debts: debts,
+        );
+        final billPayments = await _bills.paymentsTotalForMonth(month);
+        final outstandingBills = await _bills.outstandingForMonthAsOfEnd(month);
+        final homeBalance = overview.transfers.minorUnits -
+            overview.homeExpenses.minorUnits -
+            billPayments -
+            outstandingBills;
+        return ActionExecution(
+          message: '',
+          dashboardSummary: AssistantDashboardSummary(
+            month: month,
+            overview: overview,
+            homeBillPaymentsMinorUnits: billPayments,
+            outstandingBillsAtMonthEndMinorUnits: outstandingBills,
+            homeBalanceMinorUnits: homeBalance,
+          ),
+        );
       default: throw StateError('Unsupported action');
     }
   }
@@ -329,6 +388,8 @@ final class ActionRegistry {
     'record_debt_payment' => const {'debtId': String, 'amountMinorUnits': int, 'note': String},
     'read_work_remaining' => const {},
     'read_month_total' => const {'section': String, 'year': int, 'month': int},
+    'read_dashboard_summary' => const {},
+    'navigate_to_section' => const {'section': String},
     _ => const {},
   };
   static String _id()=>DateTime.now().microsecondsSinceEpoch.toString();
