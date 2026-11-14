@@ -174,9 +174,9 @@ class DashboardScreen extends ConsumerWidget {
               ),
               _quickAction(
                 context,
-                strings.addTransfer,
-                Icons.swap_horiz,
-                () => context.go('/work'),
+                strings.ai,
+                Icons.auto_awesome_outlined,
+                () => context.go('/ai'),
               ),
               _quickAction(
                 context,
@@ -204,6 +204,11 @@ class DashboardScreen extends ConsumerWidget {
               title: strings.paymentsTotal,
               amount: overview.payments.minorUnits,
               icon: Icons.receipt_long_outlined,
+            ),
+            _MetricData(
+              title: strings.currentSalaryOutstanding,
+              amount: overview.currentSalaryOutstandingMinorUnits,
+              icon: Icons.account_balance_outlined,
             ),
             _MetricData(
               title: strings.salaryPaymentsApplied,
@@ -248,6 +253,13 @@ class DashboardScreen extends ConsumerWidget {
           ]),
           const SizedBox(height: 20),
           _sectionHeading(context, strings.debts),
+          const SizedBox(height: 4),
+          Text(
+            strings.debtBalancesCurrentNote,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
           const SizedBox(height: 8),
           _metricGrid(context, [
             _MetricData(
