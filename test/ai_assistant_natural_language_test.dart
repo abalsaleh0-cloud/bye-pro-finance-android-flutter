@@ -38,6 +38,39 @@ void main() {
       }
     });
 
+    test('understands English numbers and current-month wording', () async {
+      final result = await engine.interpret(
+        'Add salary one thousand five hundred this month',
+        actions,
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.parameters['kind'], 'salary');
+      expect(result.command!.parameters['amountMinorUnits'], 1500);
+      expect(result.command!.parameters['month'], DateTime.now().month);
+    });
+
+    test('understands a named month with a year without treating the year as an amount', () async {
+      final result = await engine.interpret(
+        'سجل معاش ألف وخمسمية تشرين الثاني 2026',
+        actions,
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.parameters['amountMinorUnits'], 1500);
+      expect(result.command!.parameters['year'], 2026);
+      expect(result.command!.parameters['month'], 11);
+    });
+
+    test('does not save a question that contains a write verb', () async {
+      final result = await engine.interpret(
+        'هل أسجل راتب 1500 هذا الشهر؟',
+        actions,
+      );
+
+      expect(result.kind, AssistantResultKind.notUnderstood);
+    });
+
     test('understands a received installment as a salary payment, not a new salary', () async {
       final result = await engine.interpret(
         'قبضت دفعة ١٠٠٠ من راتبي هالشهر',
