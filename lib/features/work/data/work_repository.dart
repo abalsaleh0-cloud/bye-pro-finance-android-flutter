@@ -91,7 +91,12 @@ final class WorkRepository {
       await _database.into(_database.workEntries).insertOnConflictUpdate(
         WorkEntriesCompanion.insert(
           id: entry.id,
-          kind: entry.kind.name,
+          // Keep the persisted database value stable for existing installations.
+          // Both legacy and newly saved salary payments are read as the
+          // unified salaryPayment domain kind by _entryToDomain.
+          kind: entry.kind == WorkEntryKind.salaryPayment
+              ? 'payment'
+              : entry.kind.name,
           amountMinorUnits: entry.amount.minorUnits,
           dueYear: entry.dueMonth.year,
           dueMonth: entry.dueMonth.month,
