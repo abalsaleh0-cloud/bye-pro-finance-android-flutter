@@ -1,6 +1,7 @@
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/core/widgets/entry_tools.dart';
+import 'package:expense_app/core/widgets/entry_form_dialog.dart';
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/features/home/data/home_bill_repository.dart';
 import 'package:expense_app/features/home/domain/home_bill.dart';
@@ -21,7 +22,7 @@ class HomeBillsSection extends ConsumerWidget {
     String? error;
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(builder: (context, setState) => AlertDialog(
+      builder: (dialogContext) => StatefulBuilder(builder: (context, setState) => EntryFormDialog(
         title: Text(kind == HomeBillKind.rent ? strings.addRent : strings.addMonthlyBill),
         content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
           TextField(controller: title, decoration: InputDecoration(labelText: strings.billName)),
@@ -69,7 +70,7 @@ class HomeBillsSection extends ConsumerWidget {
     String? error;
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => StatefulBuilder(builder: (context, setState) => AlertDialog(
+      builder: (dialogContext) => StatefulBuilder(builder: (context, setState) => EntryFormDialog(
         title: Text(strings.addBillPayment),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           Text('${strings.billRemaining}: ${bill.remainingMinorUnits}'),
