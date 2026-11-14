@@ -93,7 +93,7 @@ void main() {
           id: 'october-salary-payment-example',
           kind: WorkEntryKind.salaryPayment,
           amount: Money.fromMinorUnits(750),
-          dueMonth: month,
+          dueMonth: october,
           recordedAt: DateTime(2026, 10, 10),
         ),
       ],
