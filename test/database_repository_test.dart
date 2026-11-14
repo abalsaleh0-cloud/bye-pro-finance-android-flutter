@@ -1591,13 +1591,17 @@ void main() {
       dueMonth: MonthKey(year: 2026, month: 11),
     );
     await repository.saveBill(bill);
-    await repository.recordPayment(
-      HomeBillPayment(
-        id: 'bill-protected-delete-payment',
-        billId: bill.id,
-        amount: Money.fromMinorUnits(100),
-        paidAt: DateTime(2026, 11, 10),
-      ),
+    await database.customStatement(
+      'INSERT INTO home_bill_payments '
+      '(id, bill_id, amount_minor_units, paid_at_epoch_millis, note) '
+      'VALUES (?, ?, ?, ?, ?)',
+      [
+        'bill-protected-delete-payment',
+        bill.id,
+        100,
+        DateTime(2026, 11, 10, 14, 30).millisecondsSinceEpoch,
+        null,
+      ],
     );
 
     await expectLater(
