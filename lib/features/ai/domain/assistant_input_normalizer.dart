@@ -133,6 +133,12 @@ final class AssistantInputNormalizer {
       ' ',
     );
 
+    // A year written without a numeric month is also not an amount.
+    value = value.replaceAll(
+      RegExp(r'(?:لسنة|سنة|عام|للعام|لعام)\s+20\d{2}'),
+      ' ',
+    );
+
     // Exclude both "November 2026" and "14 November 2026" date forms.
     // Avoid \b here: Arabic letters are not treated as word characters by
     // the regex engine's ASCII word-boundary implementation.
@@ -220,6 +226,9 @@ final class AssistantInputNormalizer {
       'الشهر الفائت',
       'الشهر السابق',
       'الشهر اللي فات',
+      'الشهر اللي قبله',
+      'الشهر الفايت',
+      'شهر فات',
       'الشهر الذي فات',
       'قبل شهر',
     ])) {
@@ -232,6 +241,8 @@ final class AssistantInputNormalizer {
       'الشهر المقبل',
       'الشهر الجاي',
       'الشهر التالي',
+      'الشهر اللي بعده',
+      'الشهر القادم',
     ])) {
       final next = DateTime(now.year, now.month + 1);
       return (next.year, next.month);
@@ -239,10 +250,16 @@ final class AssistantInputNormalizer {
 
     if (containsAny(normalized, const [
       'هذا الشهر',
+      'لهذا الشهر',
+      'بهذا الشهر',
       'هالشهر',
+      'لهالشهر',
+      'بالشهر الحالي',
+      'في الشهر الحالي',
       'الشهر الحالي',
       'الشهر الجاري',
       'الشهر الحاليه',
+      'الشهر الحاضر',
     ])) {
       return (now.year, now.month);
     }
