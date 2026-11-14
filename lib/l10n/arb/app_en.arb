@@ -152,6 +152,7 @@
   "aiAttachWav": "Attach WAV audio",
   "aiRecordAudio": "Record voice",
   "aiVoiceOptions": "Voice options",
+  "aiSectionOpened": "Opened section",
   "aiVoiceInput": "Dictate in Arabic",
   "aiVoiceListening": "Listening to your voice…",
   "aiVoiceOfflineUnavailable": "On-device speech recognition is not available on this device.",
