@@ -2,6 +2,7 @@ import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/calendar_date.dart';
 import 'package:expense_app/core/time/month_key.dart';
+import 'package:expense_app/core/time/selected_month_provider.dart';
 import 'package:expense_app/core/widgets/entry_tools.dart';
 import 'package:expense_app/features/debts/domain/debt_entry.dart';
 import 'package:expense_app/features/debts/domain/debt_payment.dart';
@@ -49,8 +50,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
     );
     final due = TextEditingController(
       text:
-          existing?.dueMonth.toString() ??
-          '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}',
+          existing?.dueMonth.toString() ?? ref.read(selectedMonthProvider).toString(),
     );
     final note = TextEditingController(text: existing?.note ?? '');
     var direction = existing?.direction ?? DebtDirection.debtor;
