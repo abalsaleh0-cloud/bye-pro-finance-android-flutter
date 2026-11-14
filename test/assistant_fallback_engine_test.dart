@@ -68,6 +68,36 @@ void main() {
     expect(fallback.calls, 0);
   });
 
+  test('merges multi-turn clarification answers before falling back', () async {
+    final primary = _StubAssistantEngine(
+      const AssistantResult.notUnderstood(),
+    );
+    final engine = FallbackAssistantEngine(
+      primary: primary,
+      fallback: const FakeAssistantEngine(),
+    );
+
+    final result = await engine.interpret(
+      'تشرين الثاني 2026',
+      [
+        'save_debt',
+        'read_work_remaining',
+      ],
+      conversationContext: 'المستخدم: سجل دين 500\n'
+          'المساعد: هل المبلغ لك عند شخص أم عليك لشخص؟\n'
+          'المستخدم: لي عند أحمد\n'
+          'المساعد: ما الشهر المستحق للدين؟',
+    );
+
+    expect(result.kind, AssistantResultKind.command);
+    expect(result.command!.name, 'save_debt');
+    expect(result.command!.parameters['amountMinorUnits'], 500);
+    expect(result.command!.parameters['direction'], 'creditor');
+    expect(result.command!.parameters['counterparty'], 'احمد');
+    expect(result.command!.parameters['year'], 2026);
+    expect(result.command!.parameters['month'], 11);
+  });
+
   test('does not send media to the text-only fallback', () async {
     final primary = _StubAssistantEngine(
       const AssistantResult.notUnderstood(),
