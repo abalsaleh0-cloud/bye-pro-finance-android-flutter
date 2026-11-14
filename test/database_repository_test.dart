@@ -582,6 +582,49 @@ void main() {
     expect(await repository.paymentsFor(bill.id), hasLength(1));
   });
 
+  test('cannot increase an existing bill beyond its funded monthly balance', () async {
+    await WorkRepository(database).saveEntry(
+      WorkEntry(
+        id: 'bill-increase-income',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(1000),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
+    await WorkRepository(database).saveTransfer(
+      WorkHomeTransfer(
+        id: 'bill-increase-transfer',
+        amount: Money.fromMinorUnits(1000),
+        transferredAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
+    final repository = HomeBillRepository(database);
+    final bill = HomeBill(
+      id: 'bill-increase-protected',
+      title: 'Internet',
+      kind: HomeBillKind.monthly,
+      amount: Money.fromMinorUnits(800),
+      dueMonth: MonthKey(year: 2026, month: 11),
+    );
+    await repository.saveBill(bill);
+
+    await expectLater(
+      repository.saveBill(
+        HomeBill(
+          id: bill.id,
+          title: bill.title,
+          kind: bill.kind,
+          amount: Money.fromMinorUnits(1001),
+          dueMonth: bill.dueMonth,
+        ),
+      ),
+      throwsA(isA<InsufficientBillPaymentBalanceException>()),
+    );
+
+    expect((await repository.getBills()).single.amount.minorUnits, 800);
+  });
+
   test('cannot undo a later-month payment if the original due month is no longer funded', () async {
     final work = WorkRepository(database);
     await work.saveEntry(
