@@ -119,7 +119,7 @@ void main() {
           id: 'payment-1',
           debtId: 'debt-payment',
           amount: Money.fromMinorUnits(300),
-          paidAt: DateTime.utc(2026, 11, 12),
+          paidAt: DateTime.utc(2026, 11, 12, 14, 35),
         ),
       );
       await repository.recordPayment(
@@ -127,14 +127,23 @@ void main() {
           id: 'payment-2',
           debtId: 'debt-payment',
           amount: Money.fromMinorUnits(200),
-          paidAt: DateTime.utc(2026, 11, 13),
+          paidAt: DateTime.utc(2026, 11, 13, 16, 20),
         ),
       );
       final debt = (await database.select(database.debts).get()).single;
       final payments = await database.select(database.debtPayments).get();
+      final paymentHistory = await repository.watchPayments('debt-payment').first;
       expect(debt.outstandingAmountMinorUnits, 500);
       expect(payments, hasLength(2));
       expect(payments.map((p) => p.amountMinorUnits), [300, 200]);
+      expect(
+        paymentHistory.singleWhere((payment) => payment.id == 'payment-1').paidAt.millisecondsSinceEpoch,
+        DateTime.utc(2026, 11, 12, 14, 35).millisecondsSinceEpoch,
+      );
+      expect(
+        paymentHistory.singleWhere((payment) => payment.id == 'payment-2').paidAt.millisecondsSinceEpoch,
+        DateTime.utc(2026, 11, 13, 16, 20).millisecondsSinceEpoch,
+      );
     },
   );
 

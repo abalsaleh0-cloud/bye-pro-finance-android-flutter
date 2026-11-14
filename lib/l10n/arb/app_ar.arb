@@ -58,6 +58,7 @@
   "recordDebtPayment": "تسجيل دفعة",
   "paymentHistory": "سجل الدفعات",
   "paidAt": "تاريخ الدفع",
+  "time": "الوقت",
   "paymentAmount": "مبلغ الدفعة",
   "settled": "تمت التسوية بالكامل",
   "assistantHint": "اكتب طلبك هنا… مثال: أضف راتب 1500 لشهر 2026-11",

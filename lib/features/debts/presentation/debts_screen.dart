@@ -2,6 +2,7 @@ import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/calendar_date.dart';
 import 'package:expense_app/core/time/month_key.dart';
+import 'package:expense_app/core/time/selected_month_provider.dart';
 import 'package:expense_app/core/widgets/entry_tools.dart';
 import 'package:expense_app/features/debts/domain/debt_entry.dart';
 import 'package:expense_app/features/debts/domain/debt_payment.dart';
@@ -49,16 +50,15 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
     );
     final due = TextEditingController(
       text:
-          existing?.dueMonth.toString() ??
-          '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}',
+          existing?.dueMonth.toString() ?? ref.read(selectedMonthProvider).toString(),
     );
     final note = TextEditingController(text: existing?.note ?? '');
     var direction = existing?.direction ?? DebtDirection.debtor;
     String? error;
     try {
       await showDialog<void>(
-        context: context,
-        builder: (dialogContext) => StatefulBuilder(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
             title: Text(
               existing == null ? strings.addDebt : strings.editRecord,
@@ -214,18 +214,21 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
     DebtEntry debt,
   ) async {
     final amount = TextEditingController();
-    final paidAt = TextEditingController(text: formatCalendarDate(DateTime.now()));
+    final now = DateTime.now();
+    final paidAt = TextEditingController(text: formatCalendarDate(now));
+    var paymentTime = TimeOfDay.fromDateTime(now);
+    final paidTime = TextEditingController(text: paymentTime.format(context));
     final note = TextEditingController();
     String? error;
-    try {
-      await showDialog<void>(
-        context: context,
-        builder: (dialogContext) => StatefulBuilder(
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
             title: Text(strings.recordDebtPayment),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
                 Text(
                   '${strings.outstandingAmount}: ${debt.outstandingAmount.minorUnits}',
                 ),
@@ -244,6 +247,30 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                   ),
                 ),
                 TextField(
+                  controller: paidTime,
+                  readOnly: true,
+                  decoration: InputDecoration(
+                    labelText: strings.time,
+                    suffixIcon: IconButton(
+                      tooltip: strings.time,
+                      icon: const Icon(Icons.access_time),
+                      onPressed: () async {
+                        final selectedTime = await showTimePicker(
+                          context: dialogContext,
+                          initialTime: paymentTime,
+                        );
+                        if (selectedTime == null || !dialogContext.mounted) {
+                          return;
+                        }
+                        setDialogState(() {
+                          paymentTime = selectedTime;
+                          paidTime.text = selectedTime.format(dialogContext);
+                        });
+                      },
+                    ),
+                  ),
+                ),
+                TextField(
                   controller: note,
                   decoration: InputDecoration(labelText: strings.note),
                 ),
@@ -254,7 +281,8 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                       color: Theme.of(context).colorScheme.error,
                     ),
                   ),
-              ],
+                ],
+              ),
             ),
             actions: [
               TextButton(
@@ -264,14 +292,21 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
               FilledButton(
                 onPressed: () async {
                   final value = int.tryParse(amount.text.trim());
-                  final paymentDate = DateTime.tryParse(paidAt.text.trim());
-                  if (paymentDate == null || value == null ||
+                  final paymentDay = DateTime.tryParse(paidAt.text.trim());
+                  if (paymentDay == null || value == null ||
                       value <= 0 ||
                       value > debt.outstandingAmount.minorUnits) {
                     setDialogState(() => error = strings.invalidRecord);
                     return;
                   }
                   try {
+                    final paymentDate = DateTime(
+                      paymentDay.year,
+                      paymentDay.month,
+                      paymentDay.day,
+                      paymentTime.hour,
+                      paymentTime.minute,
+                    );
                     await ref
                         .read(debtRepositoryProvider)
                         .recordPayment(
@@ -297,11 +332,6 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
           ),
         ),
       );
-    } finally {
-      amount.dispose();
-      paidAt.dispose();
-      note.dispose();
-    }
   }
 
   Future<void> _deleteDebt(
@@ -438,6 +468,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                                               ),
                                               subtitle: Text(
                                                 '${strings.paidAt}: ${formatCalendarDate(payment.paidAt)}'
+                                                '\n${strings.time}: ${TimeOfDay.fromDateTime(payment.paidAt).format(context)}'
                                                 '${payment.note == null ? '' : '\n${payment.note}'}',
                                               ),
                                             ),

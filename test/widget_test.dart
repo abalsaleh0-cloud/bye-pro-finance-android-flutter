@@ -4,6 +4,7 @@ import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
 import 'package:expense_app/features/debts/domain/debt_entry.dart';
+import 'package:expense_app/features/debts/domain/debt_payment.dart';
 import 'package:expense_app/features/home/domain/home_bill.dart';
 import 'package:expense_app/features/home/domain/home_expense.dart';
 import 'package:expense_app/features/home/domain/home_expense_category.dart';
@@ -288,6 +289,50 @@ void main() {
     await tester.pumpAndSettle();
   });
 
+  testWidgets('new debt form defaults to the globally selected month', (tester) async {
+    final now = DateTime.now();
+    final previousDate = DateTime(now.year, now.month - 1, 1);
+    final previousMonth = MonthKey(
+      year: previousDate.year,
+      month: previousDate.month,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          workEntriesProvider.overrideWith((ref) => Stream.value([])),
+          workTransfersProvider.overrideWith((ref) => Stream.value([])),
+          homeExpensesProvider.overrideWith((ref) => Stream.value([])),
+          homeExpenseCategoriesProvider.overrideWith(
+            (ref) async => HomeExpenseCategory.defaults,
+          ),
+          homeBillsProvider.overrideWith((ref) async => []),
+          homeBillPaymentsForMonthProvider.overrideWith(
+            (ref, selected) async => 0,
+          ),
+          debtsProvider.overrideWith((ref) => Stream.value([])),
+          selectedMonthProvider.overrideWith(
+            () => _FixedSelectedMonthNotifier(previousMonth),
+          ),
+        ],
+        child: const MyApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('الديون').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+
+    final values = tester
+        .widgetList<TextField>(find.byType(TextField))
+        .map((field) => field.controller?.text ?? '');
+    expect(values, contains(previousMonth.toString()));
+    await tester.tap(find.text('إلغاء'));
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('work records show their note in the records page', (tester) async {
     final now = DateTime.now();
     final entry = WorkEntry(
@@ -560,6 +605,65 @@ void main() {
     await tester.pumpAndSettle();
     expect(fieldValues(), contains(previousMonth.toString()));
     await tester.tap(find.text('إلغاء'));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('debt payment form exposes time selection and history shows time', (tester) async {
+    final now = DateTime.now();
+    final month = MonthKey(year: now.year, month: now.month);
+    final debt = DebtEntry(
+      id: 'widget-debt-payment-time',
+      direction: DebtDirection.debtor,
+      originalAmount: Money.fromMinorUnits(500),
+      outstandingAmount: Money.fromMinorUnits(400),
+      dueMonth: month,
+      createdAt: now,
+      counterparty: 'دين اختبار الوقت',
+    );
+    final payment = DebtPayment(
+      id: 'widget-debt-payment-time-record',
+      debtId: debt.id,
+      amount: Money.fromMinorUnits(100),
+      paidAt: DateTime(now.year, now.month, now.day, 14, 35),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          workEntriesProvider.overrideWith((ref) => Stream.value([])),
+          workTransfersProvider.overrideWith((ref) => Stream.value([])),
+          homeExpensesProvider.overrideWith((ref) => Stream.value([])),
+          homeExpenseCategoriesProvider.overrideWith(
+            (ref) async => HomeExpenseCategory.defaults,
+          ),
+          homeBillsProvider.overrideWith((ref) async => []),
+          homeBillPaymentsForMonthProvider.overrideWith(
+            (ref, selected) async => 0,
+          ),
+          debtsProvider.overrideWith((ref) => Stream.value([debt])),
+          debtPaymentsProvider.overrideWith(
+            (ref, debtId) => Stream.value(
+              debtId == debt.id ? [payment] : const <DebtPayment>[],
+            ),
+          ),
+          selectedMonthProvider.overrideWith(
+            () => _FixedSelectedMonthNotifier(month),
+          ),
+        ],
+        child: const MyApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('الديون').last);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('الوقت:'), findsOneWidget);
+
+    await tester.tap(find.text('تسجيل دفعة').last);
+    await tester.pumpAndSettle();
+    expect(find.text('الوقت'), findsOneWidget);
+    expect(find.byTooltip('الوقت'), findsOneWidget);
+    await tester.tap(find.text('إلغاء').last);
     await tester.pumpAndSettle();
   });
 
