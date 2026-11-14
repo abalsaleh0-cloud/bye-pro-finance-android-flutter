@@ -775,6 +775,10 @@ void main() {
 
     await tester.tap(find.text('الديون').last);
     await tester.pumpAndSettle();
+    expect(find.text('سجل الدفعات'), findsOneWidget);
+    expect(find.textContaining('الوقت:'), findsNothing);
+    await tester.tap(find.text('سجل الدفعات').last);
+    await tester.pumpAndSettle();
     expect(find.textContaining('الوقت:'), findsOneWidget);
 
     await tester.tap(find.text('تسجيل دفعة').last);
