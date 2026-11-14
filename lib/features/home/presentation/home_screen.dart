@@ -603,6 +603,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           : null,
       body: ListView(padding: const EdgeInsets.all(16), children: [
         DropdownButtonFormField<MonthKey>(
+          key: const Key('home-selected-month-picker'),
           initialValue: selectedMonth,
           decoration: InputDecoration(labelText: strings.currentMonth),
           items: availableMonths.map((month) => DropdownMenuItem(value: month, child: Text(month.toString()))).toList(),
