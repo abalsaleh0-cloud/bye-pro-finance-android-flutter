@@ -150,6 +150,13 @@ void main() {
 
     await tester.tap(find.text('العمل').last);
     await tester.pumpAndSettle();
+
+    // Mount both stateful navigation branches before changing the shared month.
+    await tester.tap(find.text('المنزل').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('العمل').last);
+    await tester.pumpAndSettle();
+
     await tester.tap(find.byKey(const Key('work-selected-month-picker')));
     await tester.pumpAndSettle();
     await tester.tap(find.text(previousMonth.toString()).last);
