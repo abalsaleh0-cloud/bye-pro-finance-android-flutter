@@ -666,7 +666,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(TimePickerDialog), findsOneWidget);
 
-    await tester.pageBack();
+    Navigator.of(tester.element(find.byType(TimePickerDialog))).pop();
     await tester.pumpAndSettle();
     await tester.tap(find.text('إلغاء').last);
     await tester.pumpAndSettle();
