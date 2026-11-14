@@ -440,7 +440,6 @@ class DashboardScreen extends ConsumerWidget {
     final scale = transfers > expenses ? transfers : expenses;
     final transferRatio = scale == 0 ? 0.0 : transfers / scale;
     final expenseRatio = scale == 0 ? 0.0 : expenses / scale;
-    final theme = Theme.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
