@@ -165,7 +165,7 @@ void main() {
     await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('المنزل')));
     await tester.pumpAndSettle();
     expect(find.text(previousMonth.toString()), findsNWidgets(2));
-    final homeMonthPicker = find.byType(DropdownButtonFormField<MonthKey>);
+    final homeMonthPicker = find.byKey(const Key('home-selected-month-picker'));
     expect(
       find.descendant(
         of: homeMonthPicker,
@@ -174,7 +174,7 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(find.byType(DropdownButtonFormField<MonthKey>));
+    await tester.tap(find.byKey(const Key('home-selected-month-picker')));
     await tester.pumpAndSettle();
     await tester.tap(find.text(currentMonth.toString()).last);
     await tester.pumpAndSettle();
