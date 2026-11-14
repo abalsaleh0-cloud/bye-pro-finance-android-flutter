@@ -1235,6 +1235,27 @@ void main() {
   });
 
 
+  test('rejects restoring a debt with reduced balance but no payment history', () async {
+    final repository = DebtRepository(database);
+    final debt = DebtEntry(
+      id: 'restored-debt-missing-history',
+      direction: DebtDirection.debtor,
+      originalAmount: Money.fromMinorUnits(1000),
+      outstandingAmount: Money.fromMinorUnits(700),
+      dueMonth: MonthKey(year: 2026, month: 11),
+      createdAt: DateTime.utc(2026, 11, 1),
+      counterparty: 'Counterparty',
+    );
+
+    await expectLater(
+      repository.restoreDebt(debt, const []),
+      throwsArgumentError,
+    );
+
+    expect(await database.select(database.debts).get(), isEmpty);
+    expect(await database.select(database.debtPayments).get(), isEmpty);
+  });
+
   test('restores a debt only with matching payment history', () async {
     final repository = DebtRepository(database);
     final debt = DebtEntry(
