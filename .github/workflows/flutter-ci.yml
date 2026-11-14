@@ -42,7 +42,8 @@ jobs:
       - name: Format Dart sources
         run: dart format .
       - run: flutter analyze
-      - run: flutter test
+      - name: Run Flutter tests with per-test timeout and progress output
+        run: flutter test --reporter expanded --timeout 90s
       - name: Commit generated and formatted sources
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/feature/task-')
         run: |
