@@ -193,5 +193,9 @@
   "calculatorPerPerson": "نصيب الشخص",
   "calculatorRemainder": "المتبقي من القسمة",
   "calculatorMoneyUnitHint": "أدخل المبلغ بأصغر وحدة نقدية لتجنب التقريب أو فقدان الدقة.",
-  "calculatorInvalidFinancialInputs": "أدخل مبلغاً صحيحاً غير سالب ونسبة صالحة أو عدد أشخاص أكبر من صفر."
+  "calculatorInvalidFinancialInputs": "أدخل مبلغاً صحيحاً غير سالب ونسبة صالحة أو عدد أشخاص أكبر من صفر.",
+  "financialSnapshot": "الصورة المالية",
+  "quickActions": "إجراءات سريعة",
+  "recentActivity": "آخر العمليات",
+  "noRecentActivity": "لا توجد عمليات مسجلة بعد"
 }
