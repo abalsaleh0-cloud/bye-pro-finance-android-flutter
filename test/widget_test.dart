@@ -402,6 +402,48 @@ void main() {
     expect(find.text('20'), findsOneWidget);
   });
 
+
+  testWidgets('dashboard follows the globally selected historical month', (tester) async {
+    final now = DateTime.now();
+    final currentMonth = MonthKey(year: now.year, month: now.month);
+    final previousDate = DateTime(now.year, now.month - 1, 10);
+    final previousMonth = MonthKey(year: previousDate.year, month: previousDate.month);
+    final selectedSalary = WorkEntry(
+      id: 'dashboard-selected-month-salary',
+      kind: WorkEntryKind.salary,
+      amount: Money.fromMinorUnits(321),
+      dueMonth: previousMonth,
+      recordedAt: previousDate,
+    );
+    final currentSalary = WorkEntry(
+      id: 'dashboard-current-month-salary',
+      kind: WorkEntryKind.salary,
+      amount: Money.fromMinorUnits(999),
+      dueMonth: currentMonth,
+      recordedAt: now,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          workEntriesProvider.overrideWith((ref) => Stream.value([selectedSalary, currentSalary])),
+          workTransfersProvider.overrideWith((ref) => Stream.value([])),
+          homeExpensesProvider.overrideWith((ref) => Stream.value([])),
+          debtsProvider.overrideWith((ref) => Stream.value([])),
+          selectedMonthProvider.overrideWith(
+            () => _FixedSelectedMonthNotifier(previousMonth),
+          ),
+        ],
+        child: const MyApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(previousMonth.toString()), findsOneWidget);
+    expect(find.text('321'), findsWidgets);
+    expect(find.text('999'), findsNothing);
+  });
+
 }
 
 class _FixedSelectedMonthNotifier extends SelectedMonthNotifier {
