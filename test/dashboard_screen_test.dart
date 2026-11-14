@@ -80,7 +80,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('dashboard-content')), findsOneWidget);
-    expect(find.text(month.toString()), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const Key('dashboard-selected-month-label'))).data,
+      month.toString(),
+    );
     expect(
       tester.widget<Text>(find.byKey(const Key('dashboard-home-balance'))).data,
       '20',
