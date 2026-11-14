@@ -3,6 +3,7 @@ import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
 import 'package:expense_app/core/widgets/entry_tools.dart';
+import 'package:expense_app/core/widgets/entry_form_dialog.dart';
 import 'package:expense_app/features/work/domain/work_entry.dart';
 import 'package:expense_app/features/work/data/work_repository.dart';
 import 'package:expense_app/features/work/domain/work_balance_allocation.dart';
@@ -81,7 +82,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
       await showDialog<void>(
         context: context,
         builder: (dialogContext) => StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
+          builder: (context, setDialogState) => EntryFormDialog(
             title: Text(
               existing == null ? strings.addEntry : strings.editRecord,
             ),
@@ -229,7 +230,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
       await showDialog<void>(
         context: context,
         builder: (dialogContext) => StatefulBuilder(
-          builder: (context, setDialogState) => AlertDialog(
+          builder: (context, setDialogState) => EntryFormDialog(
             title: Text(strings.addTransfer),
             content: Column(
               mainAxisSize: MainAxisSize.min,
