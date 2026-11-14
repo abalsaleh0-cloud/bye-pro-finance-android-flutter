@@ -39,7 +39,7 @@ void main() {
     await tester.tap(find.byKey(const Key('calculator-key-equals')));
     await tester.pumpAndSettle();
 
-    expect(find.text('84'), findsOneWidget);
+    expect(tester.widget<SelectableText>(find.byKey(const Key('calculator-result'))).data, '84');
     await tester.tap(find.text('استخدام النتيجة'));
     await tester.pumpAndSettle();
     expect(find.text('النتيجة: 84'), findsOneWidget);
@@ -63,7 +63,7 @@ void main() {
     await tester.tap(find.byKey(const Key('calculator-financial-calculate')));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('7500'), findsOneWidget);
+    expect(tester.widget<SelectableText>(find.byKey(const Key('calculator-result'))).data, 'النتيجة: 7500');
     await tester.tap(find.text('استخدام النتيجة'));
     await tester.pumpAndSettle();
     expect(find.text('النتيجة: 7500'), findsOneWidget);
