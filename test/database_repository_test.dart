@@ -1235,10 +1235,10 @@ void main() {
   });
 
 
-  test('rejects restoring a debt with reduced balance but no payment history', () async {
+  test('restores a debt with an opening balance and no tracked payments', () async {
     final repository = DebtRepository(database);
     final debt = DebtEntry(
-      id: 'restored-debt-missing-history',
+      id: 'restored-debt-opening-balance',
       direction: DebtDirection.debtor,
       originalAmount: Money.fromMinorUnits(1000),
       outstandingAmount: Money.fromMinorUnits(700),
@@ -1247,12 +1247,12 @@ void main() {
       counterparty: 'Counterparty',
     );
 
-    await expectLater(
-      repository.restoreDebt(debt, const []),
-      throwsArgumentError,
-    );
+    await repository.restoreDebt(debt, const []);
 
-    expect(await database.select(database.debts).get(), isEmpty);
+    final rows = await database.select(database.debts).get();
+    expect(rows, hasLength(1));
+    expect(rows.single.originalAmountMinorUnits, 1000);
+    expect(rows.single.outstandingAmountMinorUnits, 700);
     expect(await database.select(database.debtPayments).get(), isEmpty);
   });
 
