@@ -12,6 +12,7 @@ void main() {
     expect(arabic.aiAudioAttachmentLabel, 'تسجيل صوتي');
     expect(arabic.assistantClarificationFallback, 'يرجى التوضيح.');
     expect(arabic.aiVoiceInput, 'إملاء صوتي بالعربية');
+    expect(arabic.aiSectionOpened, 'تم فتح القسم');
     expect(arabic.aiVoiceOfflineUnavailable, contains('غير متاح'));
     expect(arabic.aiVoiceRepliesOff, 'تشغيل الرد الصوتي');
     expect(arabic.aiArabicTtsUnavailable, contains('صوت عربي محلي'));
@@ -21,6 +22,7 @@ void main() {
     expect(english.aiAudioAttachmentLabel, 'Audio recording');
     expect(english.assistantClarificationFallback, 'Please clarify.');
     expect(english.aiVoiceInput, 'Dictate in Arabic');
+    expect(english.aiSectionOpened, 'Opened section');
     expect(english.aiVoiceOfflineUnavailable, contains('not available'));
     expect(english.aiVoiceRepliesOff, 'Turn on spoken replies');
     expect(english.aiArabicTtsUnavailable, contains('offline Arabic voice'));
