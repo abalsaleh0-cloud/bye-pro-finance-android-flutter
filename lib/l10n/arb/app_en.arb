@@ -197,5 +197,6 @@
   "financialSnapshot": "Financial snapshot",
   "quickActions": "Quick actions",
   "recentActivity": "Recent activity",
-  "noRecentActivity": "No recent activity"
+  "noRecentActivity": "No recent activity",
+  "debtBalancesCurrentNote": "These are current outstanding debt balances, not historical balances for the selected month."
 }
