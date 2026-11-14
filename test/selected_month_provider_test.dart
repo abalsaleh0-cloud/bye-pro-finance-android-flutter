@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:drift/native.dart';
 import 'package:expense_app/core/database/app_database.dart';
 import 'package:expense_app/core/database/database_providers.dart';
