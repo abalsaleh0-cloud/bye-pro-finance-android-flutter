@@ -1580,4 +1580,50 @@ void main() {
     expect(stored.note, 'Legacy salary payment');
   });
 
+
+  test('deleting a bill with payment history is blocked and preserves records', () async {
+    final repository = HomeBillRepository(database);
+    final bill = HomeBill(
+      id: 'bill-protected-delete',
+      title: 'Protected bill',
+      kind: HomeBillKind.monthly,
+      amount: Money.fromMinorUnits(500),
+      dueMonth: MonthKey(year: 2026, month: 11),
+    );
+    await repository.saveBill(bill);
+    await database.customStatement(
+      'INSERT INTO home_bill_payments '
+      '(id, bill_id, amount_minor_units, paid_at_epoch_millis, note) '
+      'VALUES (?, ?, ?, ?, ?)',
+      [
+        'bill-protected-delete-payment',
+        bill.id,
+        100,
+        DateTime(2026, 11, 10, 14, 30).millisecondsSinceEpoch,
+        null,
+      ],
+    );
+
+    await expectLater(
+      repository.deleteBill(bill.id),
+      throwsA(isA<BillHasPaymentHistoryException>()),
+    );
+    expect((await repository.getBills()).single.remainingMinorUnits, 400);
+    expect(await repository.paymentsFor(bill.id), hasLength(1));
+  });
+
+  test('deleting an unpaid bill removes the bill', () async {
+    final repository = HomeBillRepository(database);
+    final bill = HomeBill(
+      id: 'bill-unpaid-delete',
+      title: 'Unpaid bill',
+      kind: HomeBillKind.monthly,
+      amount: Money.fromMinorUnits(250),
+      dueMonth: MonthKey(year: 2026, month: 11),
+    );
+    await repository.saveBill(bill);
+    await repository.deleteBill(bill.id);
+    expect(await repository.getBills(), isEmpty);
+  });
+
 }

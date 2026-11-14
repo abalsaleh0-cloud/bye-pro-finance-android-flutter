@@ -170,5 +170,6 @@
   "addCategory": "إضافة تصنيف",
   "editCategory": "تعديل التصنيف",
   "categoryName": "اسم التصنيف",
-  "duplicateCategory": "يوجد تصنيف آخر بالاسم نفسه"
+  "duplicateCategory": "يوجد تصنيف آخر بالاسم نفسه",
+  "billDeleteHasPayments": "لا يمكن حذف هذه الفاتورة لوجود دفعات مسجلة عليها. احتفظ بسجل الدفعات أو عالجها أولاً."
 }

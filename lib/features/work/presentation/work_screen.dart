@@ -67,8 +67,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
     );
     final due = TextEditingController(
       text:
-          existing?.dueMonth.toString() ??
-          '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}',
+          existing?.dueMonth.toString() ?? ref.read(selectedMonthProvider).toString(),
     );
     final recordedAt = TextEditingController(text: formatCalendarDate(existing?.recordedAt ?? DateTime.now()));
     final note = TextEditingController(text: existing?.note ?? '');
@@ -224,7 +223,17 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
     final amount = TextEditingController(
       text: existing?.amount.minorUnits.toString() ?? '',
     );
-    final transferredAt = TextEditingController(text: formatCalendarDate(existing?.transferredAt ?? DateTime.now()));
+    final selectedMonth = ref.read(selectedMonthProvider);
+    final now = DateTime.now();
+    final lastDay = DateTime(selectedMonth.year, selectedMonth.month + 1, 0).day;
+    final defaultTransferDate = DateTime(
+      selectedMonth.year,
+      selectedMonth.month,
+      now.day > lastDay ? lastDay : now.day,
+    );
+    final transferredAt = TextEditingController(
+      text: formatCalendarDate(existing?.transferredAt ?? defaultTransferDate),
+    );
     final note = TextEditingController(text: existing?.note ?? '');
     String? error;
     try {

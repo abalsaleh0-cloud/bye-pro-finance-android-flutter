@@ -231,8 +231,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
     final due = TextEditingController(
       text:
-          existing?.dueMonth.toString() ??
-          '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}',
+          existing?.dueMonth.toString() ?? ref.read(selectedMonthProvider).toString(),
     );
     final note = TextEditingController(text: existing?.note ?? '');
     String? error;

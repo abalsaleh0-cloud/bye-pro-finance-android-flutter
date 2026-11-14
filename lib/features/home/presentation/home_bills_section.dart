@@ -15,16 +15,16 @@ class HomeBillsSection extends ConsumerWidget {
 
   final MonthKey? selectedMonth;
 
-  Future<void> _addBill(BuildContext context, WidgetRef ref, AppLocalizations strings, HomeBillKind kind) async {
-    final title = TextEditingController();
-    final amount = TextEditingController();
-    final month = TextEditingController(text: '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}');
-    final note = TextEditingController();
+  Future<void> _addBill(BuildContext context, WidgetRef ref, AppLocalizations strings, HomeBillKind kind, {HomeBill? existing}) async {
+    final title = TextEditingController(text: existing?.title ?? '');
+    final amount = TextEditingController(text: existing?.amount.minorUnits.toString() ?? '');
+    final month = TextEditingController(text: existing?.dueMonth.toString() ?? (selectedMonth ?? MonthKey(year: DateTime.now().year, month: DateTime.now().month)).toString());
+    final note = TextEditingController(text: existing?.note ?? '');
     String? error;
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(builder: (context, setState) => EntryFormDialog(
-        title: Text(kind == HomeBillKind.rent ? strings.addRent : strings.addMonthlyBill),
+        title: Text(existing != null ? strings.editRecord : kind == HomeBillKind.rent ? strings.addRent : strings.addMonthlyBill),
         content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
           TextField(controller: title, decoration: InputDecoration(labelText: strings.billName)),
           TextField(controller: amount, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: strings.billAmount, suffixIcon: calculatorSuffix(context, amount, strings))),
@@ -45,9 +45,9 @@ class HomeBillsSection extends ConsumerWidget {
             }
             try {
               await ref.read(homeBillRepositoryProvider).saveBill(HomeBill(
-                id: DateTime.now().microsecondsSinceEpoch.toString(),
+                id: existing?.id ?? DateTime.now().microsecondsSinceEpoch.toString(),
                 title: title.text.trim(),
-                kind: kind,
+                kind: existing?.kind ?? kind,
                 amount: Money.fromMinorUnits(value),
                 dueMonth: MonthKey(year: year, month: monthValue),
                 note: note.text.trim().isEmpty ? null : note.text.trim(),
@@ -115,6 +115,37 @@ class HomeBillsSection extends ConsumerWidget {
     paidAt.dispose();
   }
 
+  Future<void> _deleteBill(BuildContext context, WidgetRef ref, AppLocalizations strings, HomeBill bill) async {
+    final accepted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(strings.deleteRecord),
+        content: Text(strings.confirmDelete),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(strings.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(strings.delete),
+          ),
+        ],
+      ),
+    );
+    if (accepted != true || !context.mounted) return;
+    try {
+      await ref.read(homeBillRepositoryProvider).deleteBill(bill.id);
+      ref.invalidate(homeBillsProvider);
+      ref.invalidate(homeBillPaymentsForMonthProvider);
+    } on BillHasPaymentHistoryException {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(strings.billDeleteHasPayments)),
+      );
+    }
+  }
+
   Future<void> _showHistory(BuildContext context, WidgetRef ref, AppLocalizations strings, HomeBill bill) async {
     final payments = await ref.read(homeBillRepositoryProvider).paymentsFor(bill.id);
     if (!context.mounted) return;
@@ -163,18 +194,24 @@ class HomeBillsSection extends ConsumerWidget {
                   if (bill.note != null && bill.note!.trim().isNotEmpty) bill.note!.trim(),
                 ].join('\n')),
                 isThreeLine: true,
-                trailing: bill.isSettled ? IconButton(tooltip: strings.billHistory, onPressed: () => _showHistory(context, ref, strings, bill), icon: const Icon(Icons.history)) : PopupMenuButton<String>(
+                trailing: PopupMenuButton<String>(
                   onSelected: (value) {
                     if (value == 'pay') {
                       _payBill(context, ref, strings, bill);
-                    }
-                    if (value == 'history') {
+                    } else if (value == 'history') {
                       _showHistory(context, ref, strings, bill);
+                    } else if (value == 'edit') {
+                      _addBill(context, ref, strings, bill.kind, existing: bill);
+                    } else if (value == 'delete') {
+                      _deleteBill(context, ref, strings, bill);
                     }
                   },
                   itemBuilder: (context) => [
-                    PopupMenuItem(value: 'pay', child: Text(strings.payBill)),
+                    if (!bill.isSettled)
+                      PopupMenuItem(value: 'pay', child: Text(strings.payBill)),
                     PopupMenuItem(value: 'history', child: Text(strings.billHistory)),
+                    PopupMenuItem(value: 'edit', child: Text(strings.editRecord)),
+                    PopupMenuItem(value: 'delete', child: Text(strings.deleteRecord)),
                   ],
                 ),
               ));
