@@ -82,6 +82,16 @@ final class AssistantInputNormalizer {
 
   int? extractAmount(String input) {
     var value = _numbers.normalizeDigits(input);
+
+    // Remove complete dates before looking for a monetary amount.
+    value = value.replaceAll(
+      RegExp(r'\b20\d{2}[-/.](?:0?[1-9]|1[0-2])[-/.](?:0?[1-9]|[12]\d|3[01])\b'),
+      ' ',
+    );
+    value = value.replaceAll(
+      RegExp(r'\b(?:0?[1-9]|[12]\d|3[01])[-/.](?:0?[1-9]|1[0-2])[-/.]20\d{2}\b'),
+      ' ',
+    );
     value = value.replaceAll(
       RegExp(r'\b20\d{2}[-/](?:0?[1-9]|1[0-2])\b'),
       ' ',
@@ -91,27 +101,59 @@ final class AssistantInputNormalizer {
       ' ',
     );
 
+    // Exclude expressions such as "month 10 of 2026".
     value = value.replaceAll(
       RegExp(
-        r'(?:شهر|الشهر)\\s+(?:0?[1-9]|1[0-2])(?:\\s+(?:لسنة|سنة|عام)\\s+20\\d{2})?',
+        r'(?:شهر|الشهر)\s+(?:0?[1-9]|1[0-2])(?:\s+(?:لسنة|سنة|عام)\s+20\d{2})?',
       ),
       ' ',
     );
 
-    final numeric = RegExp(
-      r'(?<![A-Za-z\u0600-\u06FF])([0-9]+(?:[,٬،][0-9]{3})*)(?![A-Za-z\u0600-\u06FF])',
-    ).firstMatch(value);
-    if (numeric != null) {
-      return _numbers.parseInteger(numeric.group(1)!);
+    // Exclude both "November 2026" and "14 November 2026" date forms.
+    for (final monthName in _months.keys) {
+      final escapedMonth = RegExp.escape(monthName);
+      value = value.replaceAll(
+        RegExp(r'\b' + escapedMonth + r'\s+20\d{2}\b', caseSensitive: false),
+        ' ',
+      );
+      value = value.replaceAll(
+        RegExp(
+          r'\b\d{1,2}\s+' + escapedMonth + r'\s+20\d{2}\b',
+          caseSensitive: false,
+        ),
+        ' ',
+      );
+      value = value.replaceAll(
+        RegExp(
+          r'\b20\d{2}\s+' + escapedMonth + r'\b',
+          caseSensitive: false,
+        ),
+        ' ',
+      );
     }
 
+    // A decimal amount is ambiguous without the app's currency precision.
+    if (RegExp(r'(?<!\d)\d+[.]\d{1,2}(?!\d)').hasMatch(value)) {
+      return null;
+    }
+
+    // Keep conventional thousands separators together: 1,500 or ١٬٥٠٠.
+    value = value.replaceAllMapped(
+      RegExp(r'(?<=\d)[,٬،](?=\d{3}(?:\D|$))'),
+      (_) => '',
+    );
+
     final normalized = normalize(value);
-    final tokens = normalized.split(' ').where((item) => item.isNotEmpty).toList();
+    final tokens = normalized
+        .split(' ')
+        .where((item) => item.isNotEmpty)
+        .toList(growable: false);
     int? best;
     var bestLength = 0;
+
     for (var start = 0; start < tokens.length; start++) {
       for (var end = start + 1;
-          end <= tokens.length && end <= start + 7;
+          end <= tokens.length && end <= start + 8;
           end++) {
         final candidate = tokens.sublist(start, end).join(' ');
         final parsed = _numbers.parseInteger(candidate);
@@ -145,6 +187,13 @@ final class AssistantInputNormalizer {
     if (monthFirst != null) {
       return (int.parse(monthFirst.group(2)!), int.parse(monthFirst.group(1)!));
     }
+    final dayFirst = RegExp(
+      r'(?<!\d)(?:0?[1-9]|[12]\d|3[01])[-/.](0?[1-9]|1[0-2])[-/.](20\d{2})(?!\d)',
+    ).firstMatch(raw);
+    if (dayFirst != null) {
+      return (int.parse(dayFirst.group(2)!), int.parse(dayFirst.group(1)!));
+    }
+
 
     if (containsAny(normalized, const [
       'الشهر الماضي',
