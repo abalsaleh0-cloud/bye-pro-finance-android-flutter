@@ -165,6 +165,14 @@ void main() {
     await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('المنزل')));
     await tester.pumpAndSettle();
     expect(find.text(previousMonth.toString()), findsNWidgets(2));
+    final homeMonthPicker = find.byType(DropdownButtonFormField<MonthKey>);
+    expect(
+      find.descendant(
+        of: homeMonthPicker,
+        matching: find.text(previousMonth.toString()),
+      ),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byType(DropdownButtonFormField<MonthKey>));
     await tester.pumpAndSettle();
@@ -173,7 +181,14 @@ void main() {
 
     await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('العمل')));
     await tester.pumpAndSettle();
-    expect(find.text(currentMonth.toString()), findsWidgets);
+final workMonthPicker = find.byKey(const Key('work-selected-month-picker'));
+    expect(
+      find.descendant(
+        of: workMonthPicker,
+        matching: find.text(currentMonth.toString()),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('debt form allows selecting and saving creditor direction', (tester) async {
