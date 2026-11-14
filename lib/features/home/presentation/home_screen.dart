@@ -67,6 +67,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
 
+  HomeExpenseCategory _categoryForExpense(
+    List<HomeExpenseCategory> categories,
+    String categoryId,
+  ) {
+    for (final category in categories) {
+      if (category.id == categoryId) return category;
+    }
+    return HomeExpenseCategory(id: categoryId, name: categoryId);
+  }
+
   Future<String?> _askCategoryName(
     BuildContext context,
     AppLocalizations strings, {
@@ -640,8 +650,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     leading: const Icon(Icons.receipt_long_outlined),
                     title: Text(_categoryLabel(
                       strings,
-                      expenseCategories.value?.where((item) => item.id == expense.categoryId).firstOrNull ??
-                          HomeExpenseCategory(id: expense.categoryId, name: expense.categoryId),
+                      _categoryForExpense(
+                        expenseCategories.value ?? const <HomeExpenseCategory>[],
+                        expense.categoryId,
+                      ),
                     )),
                     subtitle: Text([
                       '${strings.expenseDate}: ${formatCalendarDate(expense.expenseDate)}',
