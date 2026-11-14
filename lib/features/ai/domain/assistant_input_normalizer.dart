@@ -134,24 +134,20 @@ final class AssistantInputNormalizer {
     );
 
     // Exclude both "November 2026" and "14 November 2026" date forms.
+    // Avoid \b here: Arabic letters are not treated as word characters by
+    // the regex engine's ASCII word-boundary implementation.
     for (final monthName in _months.keys) {
       final escapedMonth = RegExp.escape(monthName);
       value = value.replaceAll(
-        RegExp(r'\b' + escapedMonth + r'\s+20\d{2}\b', caseSensitive: false),
+        RegExp(r'\d{1,2}\s+' + escapedMonth + r'\s+20\d{2}', caseSensitive: false),
         ' ',
       );
       value = value.replaceAll(
-        RegExp(
-          r'\b\d{1,2}\s+' + escapedMonth + r'\s+20\d{2}\b',
-          caseSensitive: false,
-        ),
+        RegExp(escapedMonth + r'\s+20\d{2}', caseSensitive: false),
         ' ',
       );
       value = value.replaceAll(
-        RegExp(
-          r'\b20\d{2}\s+' + escapedMonth + r'\b',
-          caseSensitive: false,
-        ),
+        RegExp(r'20\d{2}\s+' + escapedMonth, caseSensitive: false),
         ' ',
       );
     }
