@@ -14,9 +14,9 @@ String formatCalculatorValue(double value) {
   if (value.abs() >= 1e12 || value.abs() < 1e-8) {
     return value.toStringAsPrecision(10);
   }
-  return value
-      .toStringAsFixed(10)
-      .replaceFirst(RegExp(r'\.?0+$'), '');
+  final fixed = value.toStringAsFixed(10);
+  if (!fixed.contains('.')) return fixed;
+  return fixed.replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '');
 }
 
 /// A calculator result may enter a money field only when it is a safe,

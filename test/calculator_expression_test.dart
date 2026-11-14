@@ -28,6 +28,12 @@ void main() {
       expect(() => calculateCalculatorExpression('2 +'), throwsFormatException);
     });
 
+    test('preserves trailing zeroes in integer results', () {
+      expect(formatCalculatorValue(100), '100');
+      expect(formatCalculatorValue(1000), '1000');
+      expect(formatCalculatorValue(100.5), '100.5');
+    });
+
     test('only permits safe whole non-negative values in money fields', () {
       expect(calculatorValueAsMinorUnits(42), 42);
       expect(calculatorValueAsMinorUnits(42.5), isNull);
