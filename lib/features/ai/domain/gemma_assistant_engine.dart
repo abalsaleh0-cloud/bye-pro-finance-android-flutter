@@ -1,5 +1,6 @@
 import 'package:expense_app/features/ai/domain/action_registry.dart';
 import 'package:expense_app/features/ai/domain/assistant_engine.dart';
+import 'package:expense_app/features/ai/domain/assistant_input_normalizer.dart';
 import 'package:expense_app/features/ai/domain/number_normalizer.dart';
 
 final class GemmaFunctionSpec {
@@ -51,6 +52,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
   final GemmaTurnGenerator generator;
   final Duration timeout;
   static const _numbers = NumberNormalizer();
+  static const _inputNormalizer = AssistantInputNormalizer();
 
   @override
   Future<AssistantResult> interpret(
@@ -304,11 +306,20 @@ final class GemmaAssistantEngine implements AssistantEngine {
     for (final entry in arguments.entries) {
       final key = entry.key;
       final value = entry.value;
-      if (const {'amountMinorUnits', 'year', 'month'}.contains(key) &&
-          value is String) {
-        final parsed = _numbers.parseInteger(value);
+      if (value is String && key == 'amountMinorUnits') {
+        final parsed = _numbers.parseInteger(value) ??
+            _inputNormalizer.extractAmount(value);
         if (parsed == null) return null;
         result[key] = parsed;
+      } else if (value is String && (key == 'year' || key == 'month')) {
+        final parsed = _numbers.parseInteger(value);
+        if (parsed != null) {
+          result[key] = parsed;
+        } else {
+          final month = _inputNormalizer.extractMonth(value);
+          if (month == null) return null;
+          result[key] = key == 'year' ? month.$1 : month.$2;
+        }
       } else {
         result[key] = value;
       }
