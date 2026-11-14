@@ -128,6 +128,18 @@ void main() {
       expect(result.command!.name, 'read_dashboard_summary');
     });
 
+    test('uses a specifically requested month for dashboard summary', () async {
+      final result = await engine.interpret(
+        'اعطني ملخص شهر 2026-10',
+        actions,
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'read_dashboard_summary');
+      expect(result.command!.parameters['year'], 2026);
+      expect(result.command!.parameters['month'], 10);
+    });
+
     test('navigates to a requested app section', () async {
       final result = await engine.interpret('افتح قسم الديون', actions);
       expect(result.kind, AssistantResultKind.command);
