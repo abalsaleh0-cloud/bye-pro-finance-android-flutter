@@ -203,5 +203,11 @@
   "recentActivity": "Recent activity",
   "noRecentActivity": "No recent activity",
   "debtBalancesCurrentNote": "These are current outstanding debt balances, not historical balances for the selected month.",
-  "cashFlowComparison": "Transfers and expenses comparison"
+  "cashFlowComparison": "Transfers and expenses comparison",
+  "aiDefaultImagePrompt": "Please analyze the attached image.",
+  "aiDefaultAudioPrompt": "Please listen to the attached audio and do what is requested, if possible.",
+  "aiImageAttachmentLabel": "Image",
+  "aiAudioAttachmentLabel": "Audio recording",
+  "aiAttachmentFallback": "Attachment",
+  "assistantClarificationFallback": "Please clarify."
 }
