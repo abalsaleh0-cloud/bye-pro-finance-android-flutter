@@ -8,6 +8,7 @@ import 'package:expense_app/core/database/app_database.dart'
         WorkHomeTransfersCompanion;
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
+import 'package:expense_app/features/home/data/home_bill_repository.dart';
 import 'package:expense_app/features/work/domain/work_entry.dart';
 import 'package:expense_app/features/work/domain/work_home_transfer.dart';
 
@@ -163,6 +164,34 @@ final class WorkRepository {
           requestedMinorUnits: transfer.amount.minorUnits,
         );
       }
+      // If an existing transfer is moved to another month, protect the
+      // obligations in its original month as well as those in the target.
+      if (previous != null) {
+        final previousDate = DateTime.fromMillisecondsSinceEpoch(
+          previous.transferredAtEpochMillis,
+        ).toLocal();
+        final previousYear = previousDate.year;
+        final previousMonth = previousDate.month;
+        if (previousYear != year || previousMonth != month) {
+          final remainingPreviousMonth = _transferTotalForMonth(
+                transfers,
+                previousYear,
+                previousMonth,
+              ) -
+              previousAmount;
+          final previousCommitted = await _homeCommittedAmount(
+            previousYear,
+            previousMonth,
+          );
+          if (remainingPreviousMonth < previousCommitted) {
+            throw TransferWouldOverdrawHomeException(
+              remainingTransfersMinorUnits: remainingPreviousMonth,
+              homeCommittedMinorUnits: previousCommitted,
+            );
+          }
+        }
+      }
+
       final committed = await _homeCommittedAmount(year, month);
       if (transferredAfter < committed) {
         throw TransferWouldOverdrawHomeException(
@@ -213,17 +242,19 @@ final class WorkRepository {
       final date = DateTime.fromMillisecondsSinceEpoch(row.expenseDateEpochMillis).toLocal();
       return date.year == year && date.month == month;
     }).fold<int>(0, (sum, row) => sum + row.amountMinorUnits);
-    final tableRows = await _database.customSelect(
-      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'home_bill_payments'",
-    ).get();
-    if (tableRows.isEmpty) return expenses;
+    final monthKey = MonthKey(year: year, month: month);
+    final outstandingBills = await HomeBillRepository(
+      _database,
+    ).outstandingForMonth(monthKey);
     final start = DateTime(year, month).millisecondsSinceEpoch;
     final finish = DateTime(year, month + 1).millisecondsSinceEpoch;
     final paymentRows = await _database.customSelect(
       'SELECT COALESCE(SUM(amount_minor_units), 0) AS total FROM home_bill_payments WHERE paid_at_epoch_millis >= ? AND paid_at_epoch_millis < ?',
       variables: [Variable.withInt(start), Variable.withInt(finish)],
     ).get();
-    return expenses + paymentRows.single.read<int>('total');
+    return expenses +
+        paymentRows.single.read<int>('total') +
+        outstandingBills;
   }
 
   int _receivedCashForMonth(List<WorkEntryRow> entries, int year, int month) =>
