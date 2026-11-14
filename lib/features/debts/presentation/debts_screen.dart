@@ -56,7 +56,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
     var direction = existing?.direction ?? DebtDirection.debtor;
     String? error;
     try {
-      final dialogRoute = DialogRoute<void>(
+      await showDialog<void>(
         context: context,
         builder: (dialogContext) => StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
@@ -221,9 +221,9 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
     final note = TextEditingController();
     String? error;
     try {
-      await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
+      final dialogRoute = DialogRoute<void>(
+        context: context,
+        builder: (dialogContext) => StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
             title: Text(strings.recordDebtPayment),
             content: SingleChildScrollView(
