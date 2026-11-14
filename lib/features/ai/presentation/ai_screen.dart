@@ -165,7 +165,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     final mediaBytes = _attachmentBytes;
     final image = _attachmentIsImage;
     final text = _input.text.trim().isEmpty && mediaBytes != null
-        ? (image ? 'حلّل الصورة المرفقة.' : 'استمع إلى التسجيل الصوتي المرفق ونفّذ المطلوب إن أمكن.')
+        ? (image ? strings.aiDefaultImagePrompt : strings.aiDefaultAudioPrompt)
         : _input.text.trim();
     if ((text.isEmpty && mediaBytes == null) || _busy || _recording) return;
     final media = mediaBytes == null ? null : AssistantMedia(
@@ -180,14 +180,19 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         return;
       }
     }
-    final displayedText = media == null ? text : '$text\n[${image ? 'صورة' : 'تسجيل صوتي'}: ${_attachmentName ?? 'مرفق'}]';
+    final attachmentLabel = image
+        ? strings.aiImageAttachmentLabel
+        : strings.aiAudioAttachmentLabel;
+    final displayedText = media == null
+        ? text
+        : '$text\n[$attachmentLabel: ${_attachmentName ?? strings.aiAttachmentFallback}]';
     setState(() { _busy = true; ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(displayedText, fromUser: true)); _input.clear(); _attachmentBytes = null; _attachmentName = null; _confirmation.cancel(); _undo = null; });
     final registry = _registry();
     try {
       final result = await ref.read(assistantEngineProvider).interpret(text, registry.actionNames, media: media);
       if (!mounted) return;
       if (result.kind == AssistantResultKind.clarification || result.kind == AssistantResultKind.answer) {
-        setState(() => ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(result.message ?? 'يرجى التوضيح.')));
+        setState(() => ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(result.message ?? strings.assistantClarificationFallback)));
       } else if (result.kind == AssistantResultKind.notUnderstood || result.command == null) {
         setState(() => ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(strings.assistantNotUnderstood)));
         await _openManual();
