@@ -6,6 +6,8 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:record/record.dart';
+import 'package:flutter/services.dart';
+import 'package:expense_app/features/ai/data/android_assistant_voice_service.dart';
 
 import 'package:expense_app/features/ai/domain/wav_audio_validator.dart';
 
@@ -45,6 +47,9 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   UndoOperation? _undo;
   bool _busy = false;
   final AudioRecorder _recorder = AudioRecorder();
+  final AndroidAssistantVoiceService _voiceService = const AndroidAssistantVoiceService();
+  bool _recognizing = false;
+  bool _speakReplies = false;
   Uint8List? _attachmentBytes;
   bool _attachmentIsImage = false;
   String? _attachmentName;
@@ -114,6 +119,137 @@ class _AiScreenState extends ConsumerState<AiScreen> {
 
   bool _isValidWav(Uint8List bytes) => isValidGemmaWavAudio(bytes);
 
+  void _addAssistantMessage(
+    String text, {
+    bool includeInModelContext = false,
+  }) {
+    ref.read(aiChatMessagesProvider.notifier).add(
+      AiChatMessage(text, includeInModelContext: includeInModelContext),
+    );
+    if (_speakReplies) unawaited(_speakAssistantReply(text));
+  }
+
+  Future<void> _speakAssistantReply(String text) async {
+    if (!_speakReplies || text.trim().isEmpty) return;
+    try {
+      await _voiceService.speakArabic(text);
+    } on PlatformException {
+      if (!mounted) return;
+      setState(() => _speakReplies = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.aiArabicTtsUnavailable),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _speakReplies = false);
+    }
+  }
+
+  Future<void> _toggleSpokenReplies() async {
+    if (_busy || _recognizing || _recording) return;
+    if (_speakReplies) {
+      setState(() => _speakReplies = false);
+      try {
+        await _voiceService.stopSpeaking();
+      } catch (_) {}
+      return;
+    }
+
+    final strings = AppLocalizations.of(context)!;
+    try {
+      final available = await _voiceService.hasOfflineArabicTts();
+      if (!mounted) return;
+      if (!available) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(strings.aiArabicTtsUnavailable)),
+        );
+        return;
+      }
+      setState(() => _speakReplies = true);
+    } on PlatformException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(strings.aiArabicTtsUnavailable)),
+      );
+    }
+  }
+
+  Future<void> _showVoiceOptions() async {
+    if (_busy || _recognizing || _recording) return;
+    final strings = AppLocalizations.of(context)!;
+    final option = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.mic_none_rounded),
+              title: Text(strings.aiVoiceInput),
+              onTap: () => Navigator.pop(context, 'dictate'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.graphic_eq_rounded),
+              title: Text(strings.aiRecordAudio),
+              onTap: () => Navigator.pop(context, 'record'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || option == null) return;
+    if (option == 'dictate') {
+      await _recognizeArabicSpeech();
+    } else if (option == 'record') {
+      await _toggleRecording();
+    }
+  }
+
+  Future<void> _recognizeArabicSpeech() async {
+    if (_busy || _recording || _recognizing) return;
+    setState(() => _recognizing = true);
+    final strings = AppLocalizations.of(context)!;
+    try {
+      final transcript = await _voiceService.recognizeArabicSpeech();
+      if (!mounted) return;
+      if (transcript.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(strings.aiSpeechNoMatch)),
+        );
+        return;
+      }
+      _input.value = TextEditingValue(
+        text: transcript,
+        selection: TextSelection.collapsed(offset: transcript.length),
+      );
+      await _send();
+    } on PlatformException catch (error) {
+      if (!mounted || error.code == 'speech_cancelled') return;
+      final message = switch (error.code) {
+        'offline_speech_unavailable' => strings.aiVoiceOfflineUnavailable,
+        'arabic_language_unavailable' => strings.aiArabicLanguageUnavailable,
+        'permission_denied' => strings.aiMicrophonePermission,
+        'speech_no_match' => strings.aiSpeechNoMatch,
+        _ => strings.aiSpeechFailed,
+      };
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(strings.aiSpeechFailed)),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _recognizing = false);
+    }
+  }
+
+
+
   Future<void> _toggleRecording() async {
     final strings = AppLocalizations.of(context)!;
     if (_busy) return;
@@ -168,28 +304,45 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         ? (image ? strings.aiDefaultImagePrompt : strings.aiDefaultAudioPrompt)
         : _input.text.trim();
     if ((text.isEmpty && mediaBytes == null) || _busy || _recording) return;
-    final media = mediaBytes == null ? null : AssistantMedia(
-      imageBytes: image ? mediaBytes : null,
-      audioBytes: image ? null : mediaBytes,
-    );
+    final media = mediaBytes == null
+        ? null
+        : AssistantMedia(
+            imageBytes: image ? mediaBytes : null,
+            audioBytes: image ? null : mediaBytes,
+          );
     if (media != null) {
       final settings = ref.read(appSettingsProvider);
       final modelState = ref.read(gemmaModelManagerProvider);
       if (!settings.useGemma || modelState.status != GemmaModelStatus.ready) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(strings.aiGemmaRequired)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(strings.aiGemmaRequired)),
+        );
         return;
       }
     }
+
     final attachmentLabel = image
         ? strings.aiImageAttachmentLabel
         : strings.aiAudioAttachmentLabel;
     final displayedText = media == null
         ? text
-        : '$text\n[$attachmentLabel: ${_attachmentName ?? strings.aiAttachmentFallback}]';
+        : '$text\\n[$attachmentLabel: ${_attachmentName ?? strings.aiAttachmentFallback}]';
     final conversationContext = buildAiConversationContext(
       ref.read(aiChatMessagesProvider),
     );
-    setState(() { _busy = true; ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(displayedText, fromUser: true)); _input.clear(); _attachmentBytes = null; _attachmentName = null; _confirmation.cancel(); _undo = null; });
+
+    setState(() {
+      _busy = true;
+      ref.read(aiChatMessagesProvider.notifier).add(
+        AiChatMessage(displayedText, fromUser: true),
+      );
+      _input.clear();
+      _attachmentBytes = null;
+      _attachmentName = null;
+      _confirmation.cancel();
+      _undo = null;
+    });
+
     final registry = _registry();
     try {
       final result = await ref.read(assistantEngineProvider).interpret(
@@ -199,35 +352,42 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         conversationContext: conversationContext,
       );
       if (!mounted) return;
-      if (result.kind == AssistantResultKind.clarification || result.kind == AssistantResultKind.answer) {
-        setState(() => ref.read(aiChatMessagesProvider.notifier).add(
-          AiChatMessage(
-            result.message ?? strings.assistantClarificationFallback,
-            includeInModelContext: true,
-          ),
-        ));
-      } else if (result.kind == AssistantResultKind.notUnderstood || result.command == null) {
-        setState(() => ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(strings.assistantNotUnderstood)));
+
+      if (result.kind == AssistantResultKind.clarification ||
+          result.kind == AssistantResultKind.answer) {
+        _addAssistantMessage(
+          result.message ?? strings.assistantClarificationFallback,
+          includeInModelContext: true,
+        );
+      } else if (result.kind == AssistantResultKind.notUnderstood ||
+          result.command == null) {
+        _addAssistantMessage(strings.assistantNotUnderstood);
         await _openManual();
       } else {
         final command = result.command!;
         final error = registry.validate(command.name, command.parameters);
         if (error != null) {
-          setState(() => ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(strings.assistantNotUnderstood)));
+          _addAssistantMessage(strings.assistantNotUnderstood);
           await _openManual();
         } else if (registry.descriptor(command.name)!.readOnly) {
-          final execution = await registry.execute(command.name, command.parameters);
-          if (mounted) setState(() => ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(execution.message)));
+          final execution = await registry.execute(
+            command.name,
+            command.parameters,
+          );
+          if (mounted) _addAssistantMessage(execution.message);
         } else {
-          setState(() { _confirmation.request(command); ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(strings.assistantReview)); });
+          setState(() => _confirmation.request(command));
+          _addAssistantMessage(strings.assistantReview);
         }
       }
     } catch (_) {
       if (mounted) {
-        setState(() => ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(strings.assistantNotUnderstood)));
+        _addAssistantMessage(strings.assistantNotUnderstood);
         await _openManual();
       }
-    } finally { if (mounted) setState(() => _busy = false); }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   Future<void> _confirm() async {
@@ -238,22 +398,41 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       final execution = await _confirmation.approve(
         (command) => _registry().execute(command.name, command.parameters),
       );
-      if (execution == null) return;
-      if (!mounted) return;
-      setState(() { _undo = execution.undo; ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(execution.message)); });
+      if (execution == null || !mounted) return;
+      setState(() => _undo = execution.undo);
+      _addAssistantMessage(execution.message);
     } catch (_) {
-      if (mounted) setState(() { _confirmation.cancel(); ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(strings.assistantNotUnderstood)); });
+      if (mounted) {
+        setState(_confirmation.cancel);
+        _addAssistantMessage(strings.assistantNotUnderstood);
+      }
       await _openManual();
-    } finally { if (mounted) setState(() => _busy = false); }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   Future<void> _undoLast() async {
     final undo = _undo;
     if (undo == null || _busy) return;
     setState(() => _busy = true);
-    try { await undo(); if (mounted) setState(() { _undo = null; ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(AppLocalizations.of(context)!.assistantUndone)); }); }
-    catch (_) { if (mounted) setState(() => ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(AppLocalizations.of(context)!.assistantUndoFailed))); }
-    finally { if (mounted) setState(() => _busy = false); }
+    try {
+      await undo();
+      if (mounted) {
+        setState(() => _undo = null);
+        _addAssistantMessage(
+          AppLocalizations.of(context)!.assistantUndone,
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        _addAssistantMessage(
+          AppLocalizations.of(context)!.assistantUndoFailed,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   Future<void> _openManual() async {
@@ -646,7 +825,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
               ],
             ),
           ),
-          if (_attachmentName != null || _recording)
+          if (_attachmentName != null || _recording || _recognizing)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: Card(
@@ -658,7 +837,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                   child: Row(
                     children: [
                       Icon(
-                        _recording
+                        (_recording || _recognizing)
                             ? Icons.mic
                             : (_attachmentIsImage
                                   ? Icons.image_outlined
@@ -667,12 +846,12 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          _recording ? strings.aiRecording : _attachmentName!,
+                          _recognizing ? strings.aiVoiceListening : (_recording ? strings.aiRecording : _attachmentName!),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (!_recording)
+                      if (!_recording && !_recognizing && _attachmentName != null)
                         IconButton(
                           onPressed: _busy ? null : _removeAttachment,
                           icon: const Icon(Icons.close),
@@ -694,12 +873,14 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                   child: Row(
                     children: [
                       IconButton(
-                        onPressed: _busy || _recording ? null : _chooseAttachment,
+                        onPressed: _busy || _recording || _recognizing ? null : _chooseAttachment,
                         icon: const Icon(Icons.attach_file_rounded),
                         tooltip: strings.aiAttachImage,
                       ),
                       IconButton(
-                        onPressed: _busy ? null : _toggleRecording,
+                        onPressed: _busy || _recognizing
+                            ? null
+                            : (_recording ? _toggleRecording : _showVoiceOptions),
                         icon: Icon(
                           _recording
                               ? Icons.stop_circle_outlined
@@ -707,7 +888,20 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                         ),
                         tooltip: _recording
                             ? strings.aiStopRecording
-                            : strings.aiRecordAudio,
+                            : strings.aiVoiceOptions,
+                      ),
+                      IconButton(
+                        onPressed: _busy || _recording || _recognizing
+                            ? null
+                            : _toggleSpokenReplies,
+                        icon: Icon(
+                          _speakReplies
+                              ? Icons.volume_up_rounded
+                              : Icons.volume_off_outlined,
+                        ),
+                        tooltip: _speakReplies
+                            ? strings.aiVoiceRepliesOn
+                            : strings.aiVoiceRepliesOff,
                       ),
                       Expanded(
                         child: TextField(
@@ -733,7 +927,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                       ),
                       const SizedBox(width: 4),
                       IconButton.filled(
-                        onPressed: _busy || _recording ? null : _send,
+                        onPressed: _busy || _recording || _recognizing ? null : _send,
                         tooltip: strings.assistantSend,
                         icon: _busy
                             ? const SizedBox(
