@@ -277,7 +277,10 @@ final class GemmaAssistantEngine implements AssistantEngine {
           'year': integer,
           'month': integer,
         },
-      'read_dashboard_summary' => <String, Map<String, Object>>{},
+      'read_dashboard_summary' => {
+          'year': integer,
+          'month': integer,
+        },
       'navigate_to_section' => {
           'section': {
             'type': 'string',
