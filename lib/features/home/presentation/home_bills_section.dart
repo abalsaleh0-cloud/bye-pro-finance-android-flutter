@@ -18,7 +18,7 @@ class HomeBillsSection extends ConsumerWidget {
   Future<void> _addBill(BuildContext context, WidgetRef ref, AppLocalizations strings, HomeBillKind kind, {HomeBill? existing}) async {
     final title = TextEditingController(text: existing?.title ?? '');
     final amount = TextEditingController(text: existing?.amount.minorUnits.toString() ?? '');
-    final month = TextEditingController(text: existing?.dueMonth.toString() ?? '${DateTime.now().year}-${DateTime.now().month.toString().padLeft(2, '0')}');
+    final month = TextEditingController(text: existing?.dueMonth.toString() ?? (selectedMonth ?? MonthKey(year: DateTime.now().year, month: DateTime.now().month)).toString());
     final note = TextEditingController(text: existing?.note ?? '');
     String? error;
     await showDialog<void>(
