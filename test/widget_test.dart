@@ -242,7 +242,7 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('debt form allows selecting and saving creditor direction', (tester) async {
+  testWidgets('debt form allows selecting creditor direction', (tester) async {
     final now = DateTime.now();
     final currentMonth = MonthKey(year: now.year, month: now.month);
     await tester.pumpWidget(
@@ -411,4 +411,9 @@ class _FixedSelectedMonthNotifier extends SelectedMonthNotifier {
 
   @override
   MonthKey build() => month;
+
+  @override
+  void select(MonthKey selected) {
+    state = selected;
+  }
 }
