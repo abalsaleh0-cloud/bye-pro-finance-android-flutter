@@ -242,10 +242,10 @@ class _AmountCalculatorDialogState extends State<_AmountCalculatorDialog> {
     final strings = widget.strings;
     return AlertDialog(
       title: Text(strings.calculator),
-      scrollable: true,
       content: SizedBox(
         width: 440,
-        child: Column(
+        child: SingleChildScrollView(
+          child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -377,6 +377,7 @@ class _AmountCalculatorDialogState extends State<_AmountCalculatorDialog> {
               ),
             ],
           ],
+          ),
         ),
       ),
       actions: [
