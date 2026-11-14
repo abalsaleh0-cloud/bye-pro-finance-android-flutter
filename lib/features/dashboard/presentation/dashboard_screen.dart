@@ -489,9 +489,21 @@ class DashboardScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            _comparisonRow(context, strings.transfersTotal, transfers, transferRatio),
+            _comparisonRow(
+              context,
+              strings.transfersTotal,
+              transfers,
+              transferRatio,
+              theme.colorScheme.primary,
+            ),
             const SizedBox(height: 16),
-            _comparisonRow(context, strings.homeExpensesTotal, expenses, expenseRatio),
+            _comparisonRow(
+              context,
+              strings.homeExpensesTotal,
+              expenses,
+              expenseRatio,
+              theme.colorScheme.tertiary,
+            ),
           ],
         ),
       ),
@@ -503,6 +515,7 @@ class DashboardScreen extends ConsumerWidget {
     String title,
     int amount,
     double ratio,
+    Color indicatorColor,
   ) {
     final theme = Theme.of(context);
     return Column(
@@ -525,6 +538,7 @@ class DashboardScreen extends ConsumerWidget {
           child: LinearProgressIndicator(
             value: ratio,
             minHeight: 9,
+            color: indicatorColor,
             backgroundColor: theme.colorScheme.surfaceContainerHighest,
           ),
         ),
