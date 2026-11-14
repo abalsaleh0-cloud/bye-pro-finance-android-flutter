@@ -243,6 +243,30 @@ final class HomeBillRepository {
     return rows.single.read<int>('total');
   }
 
+  /// Returns unpaid bills due in [month], considering payments made by
+  /// the end of that month only. Later payments do not rewrite history.
+  Future<int> outstandingForMonthAsOfEnd(MonthKey month) async {
+    await ensureTables();
+    final monthEndExclusive =
+        DateTime(month.year, month.month + 1).millisecondsSinceEpoch;
+    final rows = await _database.customSelect(
+      'SELECT COALESCE(SUM(b.amount_minor_units - COALESCE(p.paid_minor_units, 0)), 0) AS total '
+      'FROM home_bills b '
+      'LEFT JOIN ('
+      'SELECT bill_id, SUM(amount_minor_units) AS paid_minor_units '
+      'FROM home_bill_payments WHERE paid_at_epoch_millis < ? '
+      'GROUP BY bill_id'
+      ') p ON p.bill_id = b.id '
+      'WHERE b.due_year = ? AND b.due_month = ?',
+      variables: [
+        Variable.withInt(monthEndExclusive),
+        Variable.withInt(month.year),
+        Variable.withInt(month.month),
+      ],
+    ).get();
+    return rows.single.read<int>('total');
+  }
+
   Future<int> paymentsTotalForMonth(MonthKey month) async {
     await ensureTables();
     final start = DateTime(month.year, month.month).millisecondsSinceEpoch;
@@ -258,6 +282,29 @@ final class HomeBillRepository {
     await ensureTables();
     final rows = await _database.customSelect('SELECT id, bill_id, amount_minor_units, paid_at_epoch_millis, note FROM home_bill_payments WHERE bill_id = ? ORDER BY paid_at_epoch_millis', variables: [Variable.withString(billId)]).get();
     return rows.map((row) => HomeBillPayment(id: row.read<String>('id'), billId: row.read<String>('bill_id'), amount: Money.fromMinorUnits(row.read<int>('amount_minor_units')), paidAt: DateTime.fromMillisecondsSinceEpoch(row.read<int>('paid_at_epoch_millis')), note: row.read<String?>('note'))).toList(growable: false);
+  }
+
+  /// Returns every recorded bill payment, newest first, for recent activity.
+  Future<List<HomeBillPayment>> getAllPayments() async {
+    await ensureTables();
+    final rows = await _database.customSelect(
+      'SELECT id, bill_id, amount_minor_units, paid_at_epoch_millis, note '
+      'FROM home_bill_payments '
+      'ORDER BY paid_at_epoch_millis DESC, id DESC',
+    ).get();
+    return rows
+        .map(
+          (row) => HomeBillPayment(
+            id: row.read<String>('id'),
+            billId: row.read<String>('bill_id'),
+            amount: Money.fromMinorUnits(row.read<int>('amount_minor_units')),
+            paidAt: DateTime.fromMillisecondsSinceEpoch(
+              row.read<int>('paid_at_epoch_millis'),
+            ),
+            note: row.read<String?>('note'),
+          ),
+        )
+        .toList(growable: false);
   }
 
   Future<void> deleteBill(String id) async {

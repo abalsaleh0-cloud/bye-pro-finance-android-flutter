@@ -275,4 +275,22 @@ class AppLocalizationsAr extends AppLocalizations {
   String get gemmaWifiWarning => 'حجم ملف النموذج نحو 2.59 GB. استخدم Wi-Fi ومساحة تخزين كافية. سيعمل التنزيل في الخلفية مع إشعار؛ اسمح بإذن الإشعارات عندما يطلبه الهاتف، ويمكنك بعدها إطفاء الشاشة. إذا انقطع التنزيل فقد يبدأ من البداية لأن خادم Hugging Face لا يدعم استكمال الجزء المتبقي.';
 
 
+  @override
+  String get financialSnapshot => 'الصورة المالية';
+
+  @override
+  String get quickActions => 'إجراءات سريعة';
+
+  @override
+  String get recentActivity => 'آخر العمليات';
+
+  @override
+  String get noRecentActivity => 'لا توجد عمليات مسجلة بعد';
+
+  @override
+  String get debtBalancesCurrentNote => 'الأرصدة المعروضة هنا هي الأرصدة الحالية لجميع الديون، وليست رصيداً تاريخياً للشهر المختار.';
+
+  @override
+  String get cashFlowComparison => 'مقارنة التحويلات والمصروفات';
+
 }

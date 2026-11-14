@@ -193,5 +193,11 @@
   "calculatorPerPerson": "Per person",
   "calculatorRemainder": "Remainder",
   "calculatorMoneyUnitHint": "Enter amounts in the smallest currency unit to avoid rounding or precision loss.",
-  "calculatorInvalidFinancialInputs": "Enter a valid non-negative amount and percentage, or a number of people greater than zero."
+  "calculatorInvalidFinancialInputs": "Enter a valid non-negative amount and percentage, or a number of people greater than zero.",
+  "financialSnapshot": "Financial snapshot",
+  "quickActions": "Quick actions",
+  "recentActivity": "Recent activity",
+  "noRecentActivity": "No recent activity",
+  "debtBalancesCurrentNote": "These are current outstanding debt balances, not historical balances for the selected month.",
+  "cashFlowComparison": "Transfers and expenses comparison"
 }

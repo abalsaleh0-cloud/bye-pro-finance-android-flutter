@@ -54,6 +54,7 @@ class HomeBillsSection extends ConsumerWidget {
               ));
               ref.invalidate(homeBillsProvider);
               ref.invalidate(homeBillPaymentsForMonthProvider);
+              ref.invalidate(homeBillOutstandingAsOfMonthProvider);
               if (dialogContext.mounted) Navigator.pop(dialogContext);
             } catch (_) {
               setState(() => error = strings.invalidRecord);
@@ -101,6 +102,8 @@ class HomeBillsSection extends ConsumerWidget {
                   MonthKey(year: paymentDate.year, month: paymentDate.month),
                 ),
               );
+              ref.invalidate(homeBillOutstandingAsOfMonthProvider);
+              ref.invalidate(allHomeBillPaymentsProvider);
               if (dialogContext.mounted) Navigator.pop(dialogContext);
             } on InsufficientBillPaymentBalanceException catch (exception) {
               setState(() => error = strings.insufficientHomeBalance(exception.availableMinorUnits.toString(), value.toString()));
@@ -138,6 +141,7 @@ class HomeBillsSection extends ConsumerWidget {
       await ref.read(homeBillRepositoryProvider).deleteBill(bill.id);
       ref.invalidate(homeBillsProvider);
       ref.invalidate(homeBillPaymentsForMonthProvider);
+      ref.invalidate(homeBillOutstandingAsOfMonthProvider);
     } on BillHasPaymentHistoryException {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

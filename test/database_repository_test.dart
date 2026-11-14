@@ -144,6 +144,11 @@ void main() {
         paymentHistory.singleWhere((payment) => payment.id == 'payment-2').paidAt.millisecondsSinceEpoch,
         DateTime.utc(2026, 11, 13, 16, 20).millisecondsSinceEpoch,
       );
+      final allPaymentHistory = await repository.watchAllPayments().first;
+      expect(
+        allPaymentHistory.map((payment) => payment.id),
+        ['payment-2', 'payment-1'],
+      );
     },
   );
 
@@ -1589,6 +1594,78 @@ void main() {
     expect(stored.note, 'Legacy salary payment');
   });
 
+
+  test('historical bill balance ignores payments made after the selected month', () async {
+    final work = WorkRepository(database);
+    final october = MonthKey(year: 2026, month: 10);
+    await work.saveEntry(
+      WorkEntry(
+        id: 'historical-october-cash',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(750),
+        dueMonth: october,
+        recordedAt: DateTime.utc(2026, 10, 9),
+      ),
+    );
+    await work.saveTransfer(
+      WorkHomeTransfer(
+        id: 'historical-october-transfer',
+        amount: Money.fromMinorUnits(750),
+        transferredAt: DateTime.utc(2026, 10, 10),
+      ),
+    );
+    await work.saveEntry(
+      WorkEntry(
+        id: 'historical-november-cash',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(480),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime.utc(2026, 11, 9),
+      ),
+    );
+    await work.saveTransfer(
+      WorkHomeTransfer(
+        id: 'historical-november-transfer',
+        amount: Money.fromMinorUnits(480),
+        transferredAt: DateTime.utc(2026, 11, 10),
+      ),
+    );
+
+    final repository = HomeBillRepository(database);
+    final bill = HomeBill(
+      id: 'historical-rent',
+      title: 'Rent',
+      kind: HomeBillKind.rent,
+      amount: Money.fromMinorUnits(580),
+      dueMonth: october,
+    );
+    await repository.saveBill(bill);
+    await repository.recordPayment(
+      HomeBillPayment(
+        id: 'historical-october-payment',
+        billId: bill.id,
+        amount: Money.fromMinorUnits(100),
+        paidAt: DateTime.utc(2026, 10, 15),
+      ),
+    );
+    await repository.recordPayment(
+      HomeBillPayment(
+        id: 'historical-november-payment',
+        billId: bill.id,
+        amount: Money.fromMinorUnits(480),
+        paidAt: DateTime.utc(2026, 11, 15),
+      ),
+    );
+
+    expect(await repository.outstandingForMonth(october), 0);
+    expect(await repository.outstandingForMonthAsOfEnd(october), 480);
+    expect(await repository.paymentsTotalForMonth(october), 100);
+    final paymentHistory = await repository.getAllPayments();
+    expect(
+      paymentHistory.map((payment) => payment.id),
+      ['historical-november-payment', 'historical-october-payment'],
+    );
+  });
 
   test('deleting a bill with payment history is blocked and preserves records', () async {
     final repository = HomeBillRepository(database);

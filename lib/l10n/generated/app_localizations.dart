@@ -467,6 +467,13 @@ abstract class AppLocalizations {
   /// **'تمت التسوية بالكامل'**
   String get settled;
 
+  String get financialSnapshot;
+  String get quickActions;
+  String get recentActivity;
+  String get noRecentActivity;
+  String get debtBalancesCurrentNote;
+  String get cashFlowComparison;
+
   String get gemmaEngine;
   String get gemmaEngineDescription;
   String get gemmaModelManagement;

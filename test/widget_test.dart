@@ -166,6 +166,12 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          homeBillOutstandingAsOfMonthProvider.overrideWith(
+            (ref, selected) async => 0,
+          ),
+          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
+          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
+
           workEntriesProvider.overrideWith(
             (ref) => Stream.value([previousWorkEntry]),
           ),
@@ -237,6 +243,12 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          homeBillOutstandingAsOfMonthProvider.overrideWith(
+            (ref, selected) async => 0,
+          ),
+          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
+          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
+
           workEntriesProvider.overrideWith((ref) => Stream.value([])),
           workTransfersProvider.overrideWith((ref) => Stream.value([])),
           homeExpensesProvider.overrideWith((ref) => Stream.value([])),
@@ -286,6 +298,12 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          homeBillOutstandingAsOfMonthProvider.overrideWith(
+            (ref, selected) async => 0,
+          ),
+          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
+          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
+
           workEntriesProvider.overrideWith((ref) => Stream.value([])),
           workTransfersProvider.overrideWith((ref) => Stream.value([])),
           homeExpensesProvider.overrideWith((ref) => Stream.value([])),
@@ -336,6 +354,12 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          homeBillOutstandingAsOfMonthProvider.overrideWith(
+            (ref, selected) async => 0,
+          ),
+          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
+          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
+
           workEntriesProvider.overrideWith((ref) => Stream.value([])),
           workTransfersProvider.overrideWith((ref) => Stream.value([])),
           homeExpensesProvider.overrideWith((ref) => Stream.value([])),
@@ -383,6 +407,12 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          homeBillOutstandingAsOfMonthProvider.overrideWith(
+            (ref, selected) async => 0,
+          ),
+          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
+          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
+
           workEntriesProvider.overrideWith((ref) => Stream.value([entry])),
           selectedMonthProvider.overrideWith(
             () => _FixedSelectedMonthNotifier(
@@ -418,6 +448,12 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          homeBillOutstandingAsOfMonthProvider.overrideWith(
+            (ref, selected) async => 0,
+          ),
+          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
+          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
+
           homeBillsProvider.overrideWith((ref) async => [bill]),
           selectedMonthProvider.overrideWith(
             () => _FixedSelectedMonthNotifier(month),
@@ -464,6 +500,12 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          homeBillOutstandingAsOfMonthProvider.overrideWith(
+            (ref, selected) async => 580,
+          ),
+          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
+          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
+
           homeExpensesProvider.overrideWith((ref) => Stream.value([expense])),
           workTransfersProvider.overrideWith((ref) => Stream.value([transfer])),
           homeBillsProvider.overrideWith((ref) async => [rent]),
@@ -508,10 +550,18 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          homeBillOutstandingAsOfMonthProvider.overrideWith(
+            (ref, selected) async => 0,
+          ),
+          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
+          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
+
           workEntriesProvider.overrideWith((ref) => Stream.value([selectedSalary, currentSalary])),
           workTransfersProvider.overrideWith((ref) => Stream.value([])),
           homeExpensesProvider.overrideWith((ref) => Stream.value([])),
           debtsProvider.overrideWith((ref) => Stream.value([])),
+          homeBillsProvider.overrideWith((ref) async => []),
+          homeBillPaymentsForMonthProvider.overrideWith((ref, selected) async => 0),
           selectedMonthProvider.overrideWith(
             () => _FixedSelectedMonthNotifier(previousMonth),
           ),
@@ -521,7 +571,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text(previousMonth.toString()), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const Key('dashboard-selected-month-label'))).data,
+      previousMonth.toString(),
+    );
     expect(find.text('321'), findsWidgets);
     expect(find.text('999'), findsNothing);
   });
@@ -542,6 +595,12 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          homeBillOutstandingAsOfMonthProvider.overrideWith(
+            (ref, selected) async => 0,
+          ),
+          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
+          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
+
           homeBillsProvider.overrideWith((ref) async => [bill]),
           selectedMonthProvider.overrideWith(
             () => _FixedSelectedMonthNotifier(month),
@@ -581,6 +640,12 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          homeBillOutstandingAsOfMonthProvider.overrideWith(
+            (ref, selected) async => 0,
+          ),
+          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
+          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
+
           workEntriesProvider.overrideWith((ref) => Stream.value([])),
           workTransfersProvider.overrideWith((ref) => Stream.value([])),
           homeExpensesProvider.overrideWith((ref) => Stream.value([])),
@@ -666,6 +731,12 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          homeBillOutstandingAsOfMonthProvider.overrideWith(
+            (ref, selected) async => 0,
+          ),
+          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
+          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
+
           workEntriesProvider.overrideWith((ref) => Stream.value([])),
           workTransfersProvider.overrideWith((ref) => Stream.value([])),
           homeExpensesProvider.overrideWith((ref) => Stream.value([])),

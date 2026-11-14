@@ -424,8 +424,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     AppLocalizations strings,
     List<HomeExpense> expenses,
     List<WorkHomeTransfer> transfers,
-    List<HomeBill> bills,
     MonthKey month,
+    int outstandingBillsAtMonthEnd,
     int billPaymentsThisMonth,
   ) {
     final expenseTotal = expenses.where((item) {
@@ -436,12 +436,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final date = item.transferredAt.toLocal();
       return date.year == month.year && date.month == month.month;
     }).fold<int>(0, (sum, item) => sum + item.amount.minorUnits);
-    final outstandingBills = bills.where((bill) => bill.dueMonth == month)
-      .fold<int>(0, (sum, bill) => sum + bill.remainingMinorUnits);
-    // Reserve unpaid bills as well as amounts already paid this month.
-    // A partially paid bill is therefore counted exactly once in total.
-    final availableBalance =
-        transferTotal - expenseTotal - billPaymentsThisMonth - outstandingBills;
+    // Use the unpaid amount at month end so later payments do not change
+    // the balance shown when the user revisits a historical month.
+    final availableBalance = transferTotal -
+        expenseTotal -
+        billPaymentsThisMonth -
+        outstandingBillsAtMonthEnd;
 
     return Card(
       child: Padding(
@@ -455,7 +455,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             const SizedBox(height: 6),
             Row(children: [Expanded(child: Text(strings.receivedFromWork)), Text(transferTotal.toString())]),
             const SizedBox(height: 6),
-            Row(children: [Expanded(child: Text(strings.totalBillsOutstanding)), Text(outstandingBills.toString())]),
+            Row(children: [Expanded(child: Text(strings.totalBillsOutstanding)), Text(outstandingBillsAtMonthEnd.toString())]),
             const Divider(height: 20),
             Row(
               children: [
@@ -576,6 +576,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final currentMonth = MonthKey(year: now.year, month: now.month);
     final selectedMonth = ref.watch(selectedMonthProvider);
     final billPayments = ref.watch(homeBillPaymentsForMonthProvider(selectedMonth));
+    final billOutstandingAtMonthEnd =
+        ref.watch(homeBillOutstandingAsOfMonthProvider(selectedMonth));
     final availableMonths = <MonthKey>{
       currentMonth,
       selectedMonth,
@@ -614,7 +616,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         const SizedBox(height: 12),
         if (overview) ...[
-          _homeSummaryCard(context, strings, expenses.value ?? const [], transfers.value ?? const [], bills.value ?? const [], selectedMonth, billPayments.value ?? 0),
+          if (billPayments.isLoading || billOutstandingAtMonthEnd.isLoading)
+            Text(strings.loading)
+          else if (billPayments.hasError || billOutstandingAtMonthEnd.hasError)
+            Text(strings.dataError)
+          else
+            _homeSummaryCard(
+              context,
+              strings,
+              expenses.value ?? const [],
+              transfers.value ?? const [],
+              selectedMonth,
+              billOutstandingAtMonthEnd.value ?? 0,
+              billPayments.value ?? 0,
+            ),
           const SizedBox(height: 16),
         ],
         if (transferPage) ...[
