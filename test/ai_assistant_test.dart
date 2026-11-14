@@ -160,7 +160,7 @@ void main() {
       expect(result.kind, AssistantResultKind.notUnderstood);
     });
     test('parses amount words and month without model', () async {
-      final result = await engine.interpret('راتب ألف وخمسمئة لشهر 2026-11', actions);
+      final result = await engine.interpret('سجل راتب ألف وخمسمئة لشهر 2026-11', actions);
       expect(result.command!.parameters['amountMinorUnits'], 1500);
     });
   });
