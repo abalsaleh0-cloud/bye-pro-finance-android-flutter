@@ -101,6 +101,9 @@ final class ActionRegistry {
     final year = p['year']; final month = p['month'];
     if (year != null && (year is! int || year < 1 || year > 9999)) return 'invalid year';
     if (month != null && (month is! int || month < 1 || month > 12)) return 'invalid month';
+    if (name == 'read_dashboard_summary' && (year == null) != (month == null)) {
+      return 'dashboard month requires both year and month';
+    }
     if (name == 'save_work_entry' && !{'salary','advance','payment','salaryPayment'}.contains(p['kind'])) return 'invalid kind';
     if (name == 'save_debt' && !{'creditor','debtor'}.contains(p['direction'])) return 'invalid direction';
     if (name == 'save_home_bill' && !{'monthly','rent'}.contains(p['kind'])) return 'invalid bill kind';
@@ -191,7 +194,9 @@ final class ActionRegistry {
         );
       case 'read_work_records':
         final now = DateTime.now();
-        final month = _selectedMonth ?? MonthKey(year: now.year, month: now.month);
+        final month = p['year'] == null
+            ? (_selectedMonth ?? MonthKey(year: now.year, month: now.month))
+            : MonthKey(year: p['year']! as int, month: p['month']! as int);
         final workEntries = (await _work.watchEntries().first)
             .where((entry) => entry.dueMonth == month)
             .toList(growable: false);
@@ -388,7 +393,7 @@ final class ActionRegistry {
     'record_debt_payment' => const {'debtId': String, 'amountMinorUnits': int, 'note': String},
     'read_work_remaining' => const {},
     'read_month_total' => const {'section': String, 'year': int, 'month': int},
-    'read_dashboard_summary' => const {},
+    'read_dashboard_summary' => const {'year': int, 'month': int},
     'navigate_to_section' => const {'section': String},
     _ => const {},
   };
