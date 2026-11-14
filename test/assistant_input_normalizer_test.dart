@@ -33,6 +33,9 @@ void main() {
       expect(input.extractAmount('سجل مبلغ خمسمية دينار'), 500);
       expect(input.extractAmount('سجل مبلغ مائة دينار'), 100);
       expect(input.extractAmount('سجل مبلغ ميتين دينار'), 200);
+      expect(input.extractAmount('سجل مبلغ خمس مئة دينار'), 500);
+      expect(input.extractAmount('أضف راتب one thousand five hundred'), 1500);
+      expect(input.extractAmount('أضف راتب fifteen hundred'), 1500);
     });
 
     test('parses grouped digits and does not mistake a month for an amount', () {
@@ -42,6 +45,10 @@ void main() {
       expect(input.extractAmount('سجل راتب لسنة 2026'), isNull);
       expect(input.extractAmount('سجل راتب تشرين الثاني 2026'), isNull);
       expect(input.extractAmount('سجل راتب 14 تشرين الثاني 2026'), isNull);
+      expect(input.extractAmount('سجل راتب November 2026'), isNull);
+      expect(input.extractAmount('سجل راتب لسنة 2026'), isNull);
+      expect(input.extractAmount('سجل راتب 1.500'), 1500);
+      expect(input.extractAmount('سجل راتب 1.50'), isNull);
       expect(input.extractAmount('سجل راتب 1500 لشهر نوفمبر 2026'), 1500);
     });
 
