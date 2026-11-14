@@ -58,6 +58,7 @@
   "recordDebtPayment": "Record payment",
   "paymentHistory": "Payment history",
   "paidAt": "Paid at",
+  "time": "Time",
   "paymentAmount": "Payment amount",
   "settled": "Fully settled",
   "assistantHint": "Write a request… e.g. Add salary 1500 for 2026-11",
