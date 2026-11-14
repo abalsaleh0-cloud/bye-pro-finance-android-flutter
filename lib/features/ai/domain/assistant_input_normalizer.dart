@@ -88,14 +88,16 @@ final class AssistantInputNormalizer {
       if (normalizedPhrase.isEmpty) continue;
       final candidates = <String>[
         normalizedPhrase,
-        'ال' + normalizedPhrase,
-        'لل' + normalizedPhrase,
-        'بال' + normalizedPhrase,
-        'فال' + normalizedPhrase,
+        'ال$normalizedPhrase',
+        'لل$normalizedPhrase',
+        'بال$normalizedPhrase',
+        'فال$normalizedPhrase',
       ];
       for (final candidate in candidates) {
+        const prefix = '(^| )';
+        const suffix = r'( |$)';
         if (RegExp(
-          '(^| )' + RegExp.escape(candidate) + r'( |$)',
+          '$prefix${RegExp.escape(candidate)}$suffix',
         ).hasMatch(normalizedText)) {
           return true;
         }
@@ -272,8 +274,10 @@ final class AssistantInputNormalizer {
       ..sort((a, b) => b.key.length.compareTo(a.key.length));
     for (final entry in words) {
       final monthName = normalize(entry.key);
+      const prefix = '(^| )';
+      const suffix = r'( |$)';
       if (RegExp(
-        '(^| )' + RegExp.escape(monthName) + r'( |$)',
+        '$prefix${RegExp.escape(monthName)}$suffix',
       ).hasMatch(normalized)) {
         final year = RegExp(r'(?<!\d)(20\d{2})(?!\d)')
             .firstMatch(normalized)
