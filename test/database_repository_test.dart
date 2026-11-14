@@ -1096,6 +1096,82 @@ void main() {
     );
   });
 
+  test('leaves exactly 20 minor units after rent and daily household expenses', () async {
+    final work = WorkRepository(database);
+    final month = MonthKey(year: 2026, month: 11);
+    await work.saveEntry(
+      WorkEntry(
+        id: 'exact-home-balance-income',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(750),
+        dueMonth: month,
+        recordedAt: DateTime.utc(2026, 11, 1),
+      ),
+    );
+    await work.saveTransfer(
+      WorkHomeTransfer(
+        id: 'exact-home-balance-transfer',
+        amount: Money.fromMinorUnits(750),
+        transferredAt: DateTime.utc(2026, 11, 2),
+      ),
+    );
+    final bills = HomeBillRepository(database);
+    await bills.saveBill(
+      HomeBill(
+        id: 'exact-home-balance-rent',
+        title: 'Rent',
+        kind: HomeBillKind.rent,
+        amount: Money.fromMinorUnits(580),
+        dueMonth: month,
+      ),
+    );
+    final expenses = HomeExpenseRepository(database);
+    await expenses.save(
+      HomeExpense(
+        id: 'exact-home-balance-daily-expense',
+        amount: Money.fromMinorUnits(150),
+        categoryId: 'other',
+        expenseDate: DateTime.utc(2026, 11, 3),
+        dueMonth: month,
+      ),
+    );
+
+    final transfers = await database.select(database.workHomeTransfers).get();
+    final dailyExpenses = await database.select(database.homeExpenses).get();
+    final unpaidRent = await bills.outstandingForMonth(month);
+    final remaining = transfers.fold<int>(
+          0,
+          (sum, item) => sum + item.amountMinorUnits,
+        ) -
+        dailyExpenses.fold<int>(
+          0,
+          (sum, item) => sum + item.amountMinorUnits,
+        ) -
+        await bills.paymentsTotalForMonth(month) -
+        unpaidRent;
+
+    expect(unpaidRent, 580);
+    expect(remaining, 20);
+
+    await expectLater(
+      expenses.save(
+        HomeExpense(
+          id: 'exact-home-balance-exceeds-remainder',
+          amount: Money.fromMinorUnits(21),
+          categoryId: 'other',
+          expenseDate: DateTime.utc(2026, 11, 4),
+          dueMonth: month,
+        ),
+      ),
+      throwsA(
+        isA<InsufficientHomeBalanceException>()
+            .having((error) => error.availableMinorUnits, 'available', 20)
+            .having((error) => error.requestedMinorUnits, 'requested', 21),
+      ),
+    );
+    expect(await database.select(database.homeExpenses).get(), hasLength(1));
+  });
+
   test('cannot reduce or delete transfers reserved for unpaid monthly bills', () async {
     final work = WorkRepository(database);
     final month = MonthKey(year: 2026, month: 11);
