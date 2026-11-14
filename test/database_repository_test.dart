@@ -1580,4 +1580,46 @@ void main() {
     expect(stored.note, 'Legacy salary payment');
   });
 
+
+  test('deleting a bill with payment history is blocked and preserves records', () async {
+    final repository = HomeBillRepository(database);
+    final bill = HomeBill(
+      id: 'bill-protected-delete',
+      title: 'Protected bill',
+      kind: HomeBillKind.monthly,
+      amount: Money.fromMinorUnits(500),
+      dueMonth: MonthKey(year: 2026, month: 11),
+    );
+    await repository.saveBill(bill);
+    await repository.recordPayment(
+      HomeBillPayment(
+        id: 'bill-protected-delete-payment',
+        billId: bill.id,
+        amount: Money.fromMinorUnits(100),
+        paidAt: DateTime(2026, 11, 10),
+      ),
+    );
+
+    await expectLater(
+      repository.deleteBill(bill.id),
+      throwsA(isA<BillHasPaymentHistoryException>()),
+    );
+    expect((await repository.getBills()).single.remainingMinorUnits, 400);
+    expect(await repository.paymentsFor(bill.id), hasLength(1));
+  });
+
+  test('deleting an unpaid bill removes the bill', () async {
+    final repository = HomeBillRepository(database);
+    final bill = HomeBill(
+      id: 'bill-unpaid-delete',
+      title: 'Unpaid bill',
+      kind: HomeBillKind.monthly,
+      amount: Money.fromMinorUnits(250),
+      dueMonth: MonthKey(year: 2026, month: 11),
+    );
+    await repository.saveBill(bill);
+    await repository.deleteBill(bill.id);
+    expect(await repository.getBills(), isEmpty);
+  });
+
 }
