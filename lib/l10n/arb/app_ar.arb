@@ -152,6 +152,7 @@
   "aiAttachWav": "إرفاق ملف صوتي WAV",
   "aiRecordAudio": "تسجيل صوت",
   "aiVoiceOptions": "خيارات الصوت",
+  "aiSectionOpened": "تم فتح القسم",
   "aiVoiceInput": "إملاء صوتي بالعربية",
   "aiVoiceListening": "جارٍ الاستماع إلى كلامك…",
   "aiVoiceOfflineUnavailable": "التعرّف الصوتي المحلي غير متاح على هذا الجهاز.",
