@@ -3,6 +3,7 @@
 import 'dart:typed_data';
 
 import 'assistant_input_normalizer.dart';
+import 'number_normalizer.dart';
 
 enum AssistantResultKind { command, answer, clarification, notUnderstood }
 final class AssistantCommand {
