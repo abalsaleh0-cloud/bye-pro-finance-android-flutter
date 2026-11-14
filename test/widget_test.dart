@@ -157,7 +157,7 @@ void main() {
 
     await tester.tap(find.text('المنزل').last);
     await tester.pumpAndSettle();
-    expect(find.text(previousMonth.toString()), findsOneWidget);
+    expect(find.text(previousMonth.toString()), findsNWidgets(2));
 
     await tester.tap(find.byType(DropdownButtonFormField<MonthKey>));
     await tester.pumpAndSettle();
