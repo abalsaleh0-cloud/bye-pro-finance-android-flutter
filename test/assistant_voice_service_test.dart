@@ -49,6 +49,19 @@ void main() {
     expect(calls.first.arguments, {'text': 'تم حفظ السجل بعد موافقتك'});
   });
 
+  test('cancels the active local recognition request', () async {
+    var cancelled = false;
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      expect(call.method, 'cancelArabicSpeechRecognition');
+      cancelled = true;
+      return null;
+    });
+
+    await service.cancelArabicSpeechRecognition();
+
+    expect(cancelled, isTrue);
+  });
+
   test('ignores empty spoken replies', () async {
     var callCount = 0;
     messenger.setMockMethodCallHandler(channel, (call) async {
