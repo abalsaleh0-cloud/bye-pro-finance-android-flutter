@@ -251,6 +251,10 @@ class DashboardScreen extends ConsumerWidget {
               icon: Icons.task_alt_outlined,
             ),
           ]),
+          const SizedBox(height: 16),
+          _sectionHeading(context, strings.cashFlowComparison),
+          const SizedBox(height: 8),
+          _comparisonCard(context, strings, monthTransfers, monthExpenses),
           const SizedBox(height: 20),
           _sectionHeading(context, strings.debts),
           const SizedBox(height: 4),
@@ -424,6 +428,64 @@ class DashboardScreen extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+
+  static Widget _comparisonCard(
+    BuildContext context,
+    AppLocalizations strings,
+    int transfers,
+    int expenses,
+  ) {
+    final scale = transfers > expenses ? transfers : expenses;
+    final transferRatio = scale == 0 ? 0.0 : transfers / scale;
+    final expenseRatio = scale == 0 ? 0.0 : expenses / scale;
+    final theme = Theme.of(context);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            _comparisonRow(context, strings.transfersTotal, transfers, transferRatio),
+            const SizedBox(height: 16),
+            _comparisonRow(context, strings.homeExpensesTotal, expenses, expenseRatio),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static Widget _comparisonRow(
+    BuildContext context,
+    String title,
+    int amount,
+    double ratio,
+  ) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(child: Text(title)),
+            Text(
+              amount.toString(),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: LinearProgressIndicator(
+            value: ratio,
+            minHeight: 9,
+            backgroundColor: theme.colorScheme.surfaceContainerHighest,
+          ),
+        ),
+      ],
     );
   }
 
