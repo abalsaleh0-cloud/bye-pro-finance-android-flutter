@@ -186,13 +186,26 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     final displayedText = media == null
         ? text
         : '$text\n[$attachmentLabel: ${_attachmentName ?? strings.aiAttachmentFallback}]';
+    final conversationContext = buildAiConversationContext(
+      ref.read(aiChatMessagesProvider),
+    );
     setState(() { _busy = true; ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(displayedText, fromUser: true)); _input.clear(); _attachmentBytes = null; _attachmentName = null; _confirmation.cancel(); _undo = null; });
     final registry = _registry();
     try {
-      final result = await ref.read(assistantEngineProvider).interpret(text, registry.actionNames, media: media);
+      final result = await ref.read(assistantEngineProvider).interpret(
+        text,
+        registry.actionNames,
+        media: media,
+        conversationContext: conversationContext,
+      );
       if (!mounted) return;
       if (result.kind == AssistantResultKind.clarification || result.kind == AssistantResultKind.answer) {
-        setState(() => ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(result.message ?? strings.assistantClarificationFallback)));
+        setState(() => ref.read(aiChatMessagesProvider.notifier).add(
+          AiChatMessage(
+            result.message ?? strings.assistantClarificationFallback,
+            includeInModelContext: true,
+          ),
+        ));
       } else if (result.kind == AssistantResultKind.notUnderstood || result.command == null) {
         setState(() => ref.read(aiChatMessagesProvider.notifier).add(AiChatMessage(strings.assistantNotUnderstood)));
         await _openManual();
