@@ -84,6 +84,7 @@
   "totalCreditor": "إجمالي الدائن",
   "totalDebtor": "إجمالي المدين",
   "currentMonth": "الشهر الحالي",
+  "selectedMonth": "الشهر المعروض",
   "homeAvailableBalance": "الرصيد المتاح في المنزل",
   "insufficientHomeBalance": "الرصيد غير كافٍ. المتاح: {available}، المطلوب: {requested}",
   "@insufficientHomeBalance": {
