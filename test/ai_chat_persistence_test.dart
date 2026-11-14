@@ -46,6 +46,58 @@ void main() {
     }
   });
 
+  test('restores whether an assistant message may be used as dialogue context', () async {
+    final controller = container.read(aiChatMessagesProvider.notifier);
+    controller.add(const AiChatMessage('ما الشهر المقصود؟', includeInModelContext: true));
+    controller.add(const AiChatMessage('نتيجة مالية من قاعدة البيانات: 2500'));
+    await controller.flush();
+
+    final restoredContainer = ProviderContainer(
+      overrides: [appDatabaseProvider.overrideWithValue(database)],
+    );
+    try {
+      final restoredController = restoredContainer.read(aiChatMessagesProvider.notifier);
+      await restoredController.flush();
+      final messages = restoredContainer.read(aiChatMessagesProvider);
+      expect(messages.first.includeInModelContext, isTrue);
+      expect(messages.last.includeInModelContext, isFalse);
+    } finally {
+      restoredContainer.dispose();
+    }
+  });
+
+  test('builds context from dialogue and excludes tool results', () {
+    final messages = [
+      const AiChatMessage('أضف راتب 1500', fromUser: true),
+      const AiChatMessage('أي شهر تقصد؟', includeInModelContext: true),
+      const AiChatMessage('النتيجة المالية: 2500'),
+      const AiChatMessage('لهذا الشهر', fromUser: true),
+    ];
+
+    final context = buildAiConversationContext(messages);
+    expect(context, contains('أضف راتب 1500'));
+    expect(context, contains('أي شهر تقصد؟'));
+    expect(context, contains('لهذا الشهر'));
+    expect(context, isNot(contains('2500')));
+  });
+
+  test('limits context to the newest messages and character budget', () {
+    final messages = List.generate(
+      12,
+      (index) => AiChatMessage('رسالة رقم $index', fromUser: true),
+    );
+
+    final context = buildAiConversationContext(
+      messages,
+      maxMessages: 3,
+      maxCharacters: 80,
+    );
+    expect(context, contains('رسالة رقم 11'));
+    expect(context, contains('رسالة رقم 10'));
+    expect(context, isNot(contains('رسالة رقم 0')));
+    expect(context.length, lessThanOrEqualTo(80));
+  });
+
   test('clear persists an empty conversation', () async {
     final controller = container.read(aiChatMessagesProvider.notifier);
     controller.add(const AiChatMessage('رسالة'));

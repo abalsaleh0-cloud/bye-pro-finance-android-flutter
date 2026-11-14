@@ -34,13 +34,23 @@ final class AssistantMedia {
 }
 
 abstract interface class AssistantEngine {
-  Future<AssistantResult> interpret(String input, List<String> availableActions, {AssistantMedia? media});
+  Future<AssistantResult> interpret(
+    String input,
+    List<String> availableActions, {
+    AssistantMedia? media,
+    String conversationContext = '',
+  });
 }
 final class FakeAssistantEngine implements AssistantEngine {
   const FakeAssistantEngine();
   static const _numbers=NumberNormalizer();
   @override
-  Future<AssistantResult> interpret(String input,List<String> availableActions,{AssistantMedia? media}) async {
+  Future<AssistantResult> interpret(
+    String input,
+    List<String> availableActions, {
+    AssistantMedia? media,
+    String conversationContext = '',
+  }) async {
     final text=input.trim();
     if(text.isEmpty || media != null) return const AssistantResult.notUnderstood();
     if(RegExp(r'الباقي|المتبقي').hasMatch(text)) {
