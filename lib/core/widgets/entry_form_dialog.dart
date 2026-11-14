@@ -17,6 +17,11 @@ class EntryFormDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return AlertDialog(
       scrollable: true,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+      contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
+      actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+      actionsAlignment: MainAxisAlignment.end,
       title: title,
       content: content,
       actions: actions,
