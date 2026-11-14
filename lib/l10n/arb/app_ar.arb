@@ -197,5 +197,6 @@
   "financialSnapshot": "الصورة المالية",
   "quickActions": "إجراءات سريعة",
   "recentActivity": "آخر العمليات",
-  "noRecentActivity": "لا توجد عمليات مسجلة بعد"
+  "noRecentActivity": "لا توجد عمليات مسجلة بعد",
+  "debtBalancesCurrentNote": "الأرصدة المعروضة هنا هي الأرصدة الحالية لجميع الديون، وليست رصيداً تاريخياً للشهر المختار."
 }
