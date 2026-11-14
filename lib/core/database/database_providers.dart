@@ -32,6 +32,13 @@ final homeExpenseCategoriesProvider = FutureProvider<List<HomeExpenseCategory>>(
 final homeBillRepositoryProvider = Provider<HomeBillRepository>((ref) => HomeBillRepository(ref.watch(appDatabaseProvider)));
 final homeBillsProvider = FutureProvider<List<HomeBill>>((ref) => ref.watch(homeBillRepositoryProvider).getBills());
 final homeBillPaymentsForMonthProvider = FutureProvider.family<int, MonthKey>((ref, month) => ref.watch(homeBillRepositoryProvider).paymentsTotalForMonth(month));
+final homeBillOutstandingAsOfMonthProvider = FutureProvider.family<int, MonthKey>(
+  (ref, month) =>
+      ref.watch(homeBillRepositoryProvider).outstandingForMonthAsOfEnd(month),
+);
+final allHomeBillPaymentsProvider = FutureProvider<List<HomeBillPayment>>(
+  (ref) => ref.watch(homeBillRepositoryProvider).getAllPayments(),
+);
 final workRepositoryProvider = Provider<WorkRepository>(
   (ref) => WorkRepository(ref.watch(appDatabaseProvider)),
 );
@@ -56,3 +63,6 @@ final debtPaymentsProvider = StreamProvider.family<List<DebtPayment>, String>((
 ) {
   return ref.watch(debtRepositoryProvider).watchPayments(debtId);
 });
+final allDebtPaymentsProvider = StreamProvider<List<DebtPayment>>(
+  (ref) => ref.watch(debtRepositoryProvider).watchAllPayments(),
+);

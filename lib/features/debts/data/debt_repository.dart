@@ -22,6 +22,16 @@ final class DebtRepository {
         .map((rows) => rows.map(_toDomain).toList(growable: false));
   }
 
+  Stream<List<DebtPayment>> watchAllPayments() {
+    return (_database.select(_database.debtPayments)
+          ..orderBy([
+            (row) => OrderingTerm.desc(row.paidAtEpochMillis),
+            (row) => OrderingTerm.desc(row.id),
+          ]))
+        .watch()
+        .map((rows) => rows.map(_paymentToDomain).toList(growable: false));
+  }
+
   Stream<List<DebtPayment>> watchPayments(String debtId) {
     return (_database.select(_database.debtPayments)
           ..where((row) => row.debtId.equals(debtId))

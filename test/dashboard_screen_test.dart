@@ -4,6 +4,7 @@ import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
 import 'package:expense_app/features/dashboard/presentation/dashboard_screen.dart';
 import 'package:expense_app/features/debts/domain/debt_entry.dart';
+import 'package:expense_app/features/debts/domain/debt_payment.dart';
 import 'package:expense_app/features/home/domain/home_bill.dart';
 import 'package:expense_app/features/home/domain/home_expense.dart';
 import 'package:expense_app/features/work/domain/work_entry.dart';
@@ -42,6 +43,13 @@ void main() {
       kind: HomeBillKind.rent,
       amount: Money.fromMinorUnits(580),
       dueMonth: month,
+      paidMinorUnits: 50,
+    );
+    final billPayment = HomeBillPayment(
+      id: 'dashboard-bill-payment',
+      billId: bill.id,
+      amount: Money.fromMinorUnits(50),
+      paidAt: DateTime(2026, 10, 11),
     );
     final debt = DebtEntry(
       id: 'dashboard-debt',
@@ -52,6 +60,12 @@ void main() {
       createdAt: DateTime(2026, 10, 5),
       counterparty: 'Test',
     );
+    final debtPayment = DebtPayment(
+      id: 'dashboard-debt-payment',
+      debtId: debt.id,
+      amount: Money.fromMinorUnits(25),
+      paidAt: DateTime(2026, 10, 13),
+    );
 
     await tester.pumpWidget(
       ProviderScope(
@@ -61,7 +75,18 @@ void main() {
           workTransfersProvider.overrideWith((ref) => Stream.value([transfer])),
           debtsProvider.overrideWith((ref) => Stream.value([debt])),
           homeBillsProvider.overrideWith((ref) async => [bill]),
-          homeBillPaymentsForMonthProvider.overrideWith((ref, selected) async => 0),
+          homeBillPaymentsForMonthProvider.overrideWith(
+            (ref, selected) async => 50,
+          ),
+          homeBillOutstandingAsOfMonthProvider.overrideWith(
+            (ref, selected) async => 530,
+          ),
+          allHomeBillPaymentsProvider.overrideWith(
+            (ref) async => [billPayment],
+          ),
+          allDebtPaymentsProvider.overrideWith(
+            (ref) => Stream.value([debtPayment]),
+          ),
           selectedMonthProvider.overrideWith(
             () => _FixedDashboardMonthNotifier(month),
           ),
@@ -95,6 +120,8 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('آخر العمليات'), findsOneWidget);
+    expect(find.textContaining('Rent'), findsOneWidget);
+    expect(find.textContaining('Test'), findsOneWidget);
   });
 }
 

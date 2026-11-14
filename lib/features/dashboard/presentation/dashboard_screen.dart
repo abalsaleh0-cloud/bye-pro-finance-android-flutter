@@ -4,6 +4,7 @@ import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
 import 'package:expense_app/features/dashboard/domain/monthly_overview.dart';
 import 'package:expense_app/features/debts/domain/debt_entry.dart';
+import 'package:expense_app/features/debts/domain/debt_payment.dart';
 import 'package:expense_app/features/home/domain/home_bill.dart';
 import 'package:expense_app/features/home/domain/home_expense.dart';
 import 'package:expense_app/features/work/domain/work_entry.dart';
@@ -26,13 +27,20 @@ class DashboardScreen extends ConsumerWidget {
     final bills = ref.watch(homeBillsProvider);
     final month = ref.watch(selectedMonthProvider);
     final billPayments = ref.watch(homeBillPaymentsForMonthProvider(month));
+    final billOutstandingAtMonthEnd =
+        ref.watch(homeBillOutstandingAsOfMonthProvider(month));
+    final allBillPayments = ref.watch(allHomeBillPaymentsProvider);
+    final allDebtPayments = ref.watch(allDebtPaymentsProvider);
 
     if (work.isLoading ||
         home.isLoading ||
         transfers.isLoading ||
         debts.isLoading ||
         bills.isLoading ||
-        billPayments.isLoading) {
+        billPayments.isLoading ||
+        billOutstandingAtMonthEnd.isLoading ||
+        allBillPayments.isLoading ||
+        allDebtPayments.isLoading) {
       return Scaffold(body: Center(child: Text(strings.loading)));
     }
     if (work.hasError ||
@@ -40,7 +48,10 @@ class DashboardScreen extends ConsumerWidget {
         transfers.hasError ||
         debts.hasError ||
         bills.hasError ||
-        billPayments.hasError) {
+        billPayments.hasError ||
+        billOutstandingAtMonthEnd.hasError ||
+        allBillPayments.hasError ||
+        allDebtPayments.hasError) {
       return Scaffold(
         body: Center(
           child: Padding(
@@ -72,13 +83,12 @@ class DashboardScreen extends ConsumerWidget {
       final date = item.transferredAt.toLocal();
       return date.year == month.year && date.month == month.month;
     }).fold<int>(0, (sum, item) => sum + item.amount.minorUnits);
-    final outstandingBills = billItems
-        .where((bill) => bill.dueMonth == month)
-        .fold<int>(0, (sum, bill) => sum + bill.remainingMinorUnits);
+    final outstandingBillsAtMonthEnd =
+        billOutstandingAtMonthEnd.value ?? 0;
     final homeBalance = monthTransfers -
         monthExpenses -
         (billPayments.value ?? 0) -
-        outstandingBills;
+        outstandingBillsAtMonthEnd;
 
     final availableMonths = <MonthKey>{
       MonthKey(year: DateTime.now().year, month: DateTime.now().month),
@@ -104,6 +114,9 @@ class DashboardScreen extends ConsumerWidget {
       homeItems,
       transferItems,
       debtItems,
+      billItems,
+      allBillPayments.value ?? const <HomeBillPayment>[],
+      allDebtPayments.value ?? const <DebtPayment>[],
     );
 
     return Scaffold(
@@ -516,8 +529,13 @@ class DashboardScreen extends ConsumerWidget {
     List<HomeExpense> home,
     List<WorkHomeTransfer> transfers,
     List<DebtEntry> debts,
+    List<HomeBill> bills,
+    List<HomeBillPayment> billPayments,
+    List<DebtPayment> debtPayments,
   ) {
     final items = <_RecentActivity>[];
+    final billsById = {for (final bill in bills) bill.id: bill};
+    final debtsById = {for (final debt in debts) debt.id: debt};
     for (final entry in work) {
       final title = switch (entry.kind) {
         WorkEntryKind.salary => strings.salary,
@@ -548,6 +566,28 @@ class DashboardScreen extends ConsumerWidget {
         amount: transfer.amount.minorUnits,
         icon: Icons.swap_horiz,
         route: '/work',
+      ));
+    }
+    for (final payment in billPayments) {
+      final bill = billsById[payment.billId];
+      if (bill == null) continue;
+      items.add(_RecentActivity(
+        date: payment.paidAt,
+        title: '${strings.payment}: ${bill.title}',
+        amount: payment.amount.minorUnits,
+        icon: Icons.receipt_long_outlined,
+        route: '/home',
+      ));
+    }
+    for (final payment in debtPayments) {
+      final debt = debtsById[payment.debtId];
+      if (debt == null) continue;
+      items.add(_RecentActivity(
+        date: payment.paidAt,
+        title: '${strings.payment}: ${debt.counterparty}',
+        amount: payment.amount.minorUnits,
+        icon: Icons.handshake_outlined,
+        route: '/debts',
       ));
     }
     for (final debt in debts) {
