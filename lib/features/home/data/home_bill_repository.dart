@@ -75,7 +75,8 @@ final class HomeBillRepository {
           previousDueMonth == bill.dueMonth ? previousRemaining : 0;
       final projectedCommitted =
           targetCommitted - targetAlreadyIncluded + nextRemaining;
-      if (projectedCommitted > targetTransfers) {
+      if (projectedCommitted > targetTransfers &&
+          projectedCommitted > targetCommitted) {
         throw InsufficientBillPaymentBalanceException(
           targetTransfers - targetCommitted + targetAlreadyIncluded,
         );
