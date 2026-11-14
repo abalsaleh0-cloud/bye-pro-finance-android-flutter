@@ -330,7 +330,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       strings.debtBalancesCurrentNote,
       '${strings.creditorBalance}: ${overview.creditorBalance.minorUnits}',
       '${strings.debtorBalance}: ${overview.debtorBalance.minorUnits}',
-    ].join('\\n');
+    ].join('\n');
   }
 
   String _sectionLabel(String section, AppLocalizations strings) =>
