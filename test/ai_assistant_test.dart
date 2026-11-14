@@ -516,6 +516,32 @@ void main() {
       expect(result.undo, isNull);
     });
 
+    test('uses explicit dashboard month instead of selected month', () async {
+      final selectedRegistry = ActionRegistry(
+        work: WorkRepository(database),
+        home: HomeExpenseRepository(database),
+        bills: HomeBillRepository(database),
+        debts: DebtRepository(database),
+        selectedMonth: MonthKey(year: 2026, month: 11),
+      );
+
+      expect(
+        selectedRegistry.validate('read_dashboard_summary', {'year': 2026}),
+        isNotNull,
+      );
+      expect(
+        selectedRegistry.validate('read_dashboard_summary', {'month': 10}),
+        isNotNull,
+      );
+
+      final result = await selectedRegistry.execute(
+        'read_dashboard_summary',
+        {'year': 2026, 'month': 10},
+      );
+
+      expect(result.dashboardSummary!.month, MonthKey(year: 2026, month: 10));
+    });
+
     test('validates only supported navigation destinations', () async {
       const sections = [
         'dashboard',
