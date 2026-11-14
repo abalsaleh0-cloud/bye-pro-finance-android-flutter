@@ -1,4 +1,6 @@
+import 'package:drift/native.dart';
 import 'package:expense_app/app/app.dart';
+import 'package:expense_app/core/database/app_database.dart';
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
@@ -18,7 +20,7 @@ void main() {
   testWidgets('starts in Arabic with five navigation destinations', (
     tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await _pumpApp(tester);
     await tester.pumpAndSettle();
 
     expect(find.text('الرئيسية'), findsWidgets);
@@ -28,7 +30,7 @@ void main() {
   });
 
   testWidgets('global calculator evaluates expressions and returns a safe result', (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await _pumpApp(tester);
     await tester.tap(find.byKey(const Key('open-calculator')));
     await tester.pumpAndSettle();
 
@@ -52,7 +54,7 @@ void main() {
   });
 
   testWidgets('financial calculator calculates percentages in minor units', (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await _pumpApp(tester);
     await tester.tap(find.byKey(const Key('open-calculator')));
     await tester.pumpAndSettle();
 
@@ -81,7 +83,7 @@ void main() {
   });
 
   testWidgets('settings can switch theme and language', (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await _pumpApp(tester);
 
     await tester.tap(find.byKey(const Key('open-settings')));
     await tester.pumpAndSettle();
@@ -108,7 +110,7 @@ void main() {
   });
 
   testWidgets('bottom navigation changes the active section', (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await _pumpApp(tester);
 
     await tester.tap(find.text('العمل').last);
     await tester.pumpAndSettle();
@@ -163,9 +165,9 @@ void main() {
       transferredAt: previousDate,
     );
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
+    await _pumpApp(
+      tester,
+      overrides: [
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -189,8 +191,6 @@ void main() {
             () => _FixedSelectedMonthNotifier(currentMonth),
           ),
         ],
-        child: const MyApp(),
-      ),
     );
     await tester.pumpAndSettle();
 
@@ -240,9 +240,9 @@ void main() {
   testWidgets('work form offers salary advance and payment entry types', (tester) async {
     final now = DateTime.now();
     final currentMonth = MonthKey(year: now.year, month: now.month);
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
+    await _pumpApp(
+      tester,
+      overrides: [
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -262,8 +262,6 @@ void main() {
             () => _FixedSelectedMonthNotifier(currentMonth),
           ),
         ],
-        child: const MyApp(),
-      ),
     );
     await tester.pumpAndSettle();
 
@@ -295,9 +293,9 @@ void main() {
   testWidgets('debt form allows selecting creditor direction', (tester) async {
     final now = DateTime.now();
     final currentMonth = MonthKey(year: now.year, month: now.month);
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
+    await _pumpApp(
+      tester,
+      overrides: [
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -317,8 +315,6 @@ void main() {
             () => _FixedSelectedMonthNotifier(currentMonth),
           ),
         ],
-        child: const MyApp(),
-      ),
     );
     await tester.pumpAndSettle();
 
@@ -351,9 +347,9 @@ void main() {
       month: previousDate.month,
     );
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
+    await _pumpApp(
+      tester,
+      overrides: [
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -375,8 +371,6 @@ void main() {
             () => _FixedSelectedMonthNotifier(previousMonth),
           ),
         ],
-        child: const MyApp(),
-      ),
     );
     await tester.pumpAndSettle();
 
@@ -404,9 +398,9 @@ void main() {
       note: 'ملاحظة الراتب',
     );
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
+    await _pumpApp(
+      tester,
+      overrides: [
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -420,8 +414,6 @@ void main() {
             ),
           ),
         ],
-        child: const MyApp(),
-      ),
     );
     await tester.pumpAndSettle();
 
@@ -445,9 +437,9 @@ void main() {
       note: 'ملاحظة فاتورة مباشرة',
     );
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
+    await _pumpApp(
+      tester,
+      overrides: [
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -459,8 +451,6 @@ void main() {
             () => _FixedSelectedMonthNotifier(month),
           ),
         ],
-        child: const MyApp(),
-      ),
     );
     await tester.pumpAndSettle();
 
@@ -497,9 +487,9 @@ void main() {
       dueMonth: month,
     );
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
+    await _pumpApp(
+      tester,
+      overrides: [
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 580,
           ),
@@ -514,8 +504,6 @@ void main() {
             () => _FixedSelectedMonthNotifier(month),
           ),
         ],
-        child: const MyApp(),
-      ),
     );
     await tester.pumpAndSettle();
 
@@ -547,9 +535,9 @@ void main() {
       recordedAt: now,
     );
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
+    await _pumpApp(
+      tester,
+      overrides: [
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -566,8 +554,6 @@ void main() {
             () => _FixedSelectedMonthNotifier(previousMonth),
           ),
         ],
-        child: const MyApp(),
-      ),
     );
     await tester.pumpAndSettle();
 
@@ -592,9 +578,9 @@ void main() {
       note: 'ملاحظة موجودة',
     );
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
+    await _pumpApp(
+      tester,
+      overrides: [
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -606,8 +592,6 @@ void main() {
             () => _FixedSelectedMonthNotifier(month),
           ),
         ],
-        child: const MyApp(),
-      ),
     );
     await tester.pumpAndSettle();
 
@@ -637,9 +621,9 @@ void main() {
       month: previousDate.month,
     );
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
+    await _pumpApp(
+      tester,
+      overrides: [
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -661,8 +645,6 @@ void main() {
             () => _FixedSelectedMonthNotifier(previousMonth),
           ),
         ],
-        child: const MyApp(),
-      ),
     );
     await tester.pumpAndSettle();
 
@@ -728,9 +710,9 @@ void main() {
       paidAt: DateTime(now.year, now.month, now.day, 14, 35),
     );
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
+    await _pumpApp(
+      tester,
+      overrides: [
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -757,8 +739,6 @@ void main() {
             () => _FixedSelectedMonthNotifier(month),
           ),
         ],
-        child: const MyApp(),
-      ),
     );
     await tester.pumpAndSettle();
 
@@ -775,6 +755,33 @@ void main() {
   });
 
 }
+
+
+Future<void> _pumpApp(
+  WidgetTester tester, {
+  List<dynamic> overrides = const [],
+}) async {
+  final database = AppDatabase.forTesting(NativeDatabase.memory());
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        appDatabaseProvider.overrideWithValue(database),
+        ...overrides,
+      ],
+      child: const MyApp(),
+    ),
+  );
+  addTearDown(() async {
+    // Disposing Riverpod stream providers schedules Drift's query-store
+    // cleanup on a zero-duration timer. Flush it inside the widget-test zone
+    // before closing the isolated in-memory database.
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await database.close();
+    await tester.pump();
+  });
+}
+
 
 class _FixedSelectedMonthNotifier extends SelectedMonthNotifier {
   _FixedSelectedMonthNotifier(this.month);

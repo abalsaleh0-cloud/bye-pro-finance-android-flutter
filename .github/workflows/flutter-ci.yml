@@ -28,8 +28,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
       - uses: subosito/flutter-action@v2
-        env:
-          FLUTTER_STORAGE_BASE_URL: https://storage.flutter-io.cn
+        timeout-minutes: 10
         with:
           channel: stable
           flutter-version: 3.50.0
@@ -42,7 +41,8 @@ jobs:
       - name: Format Dart sources
         run: dart format .
       - run: flutter analyze
-      - run: flutter test
+      - name: Run Flutter tests with per-test timeout and progress output
+        run: flutter test --reporter expanded --timeout 90s
       - name: Commit generated and formatted sources
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/feature/task-')
         run: |
