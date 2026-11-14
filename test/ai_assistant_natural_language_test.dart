@@ -94,7 +94,8 @@ void main() {
         actions,
       );
 
-      expect(result.kind, AssistantResultKind.notUnderstood);
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'read_work_records');
     });
   });
 
