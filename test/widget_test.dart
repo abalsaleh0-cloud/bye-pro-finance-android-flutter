@@ -32,10 +32,9 @@ void main() {
     await tester.tap(find.byKey(const Key('open-calculator')));
     await tester.pumpAndSettle();
 
-    await tester.enterText(
-      find.byKey(const Key('calculator-expression')),
-      '(12 + 30) × 2',
-    );
+    for (final key in ['(', '1', '2', '+', '3', '0', ')', '×', '2']) {
+      await tester.tap(find.byKey(Key('calculator-key-$key')));
+    }
     await tester.tap(find.byKey(const Key('calculator-key-equals')));
     await tester.pumpAndSettle();
 

@@ -402,15 +402,10 @@ class _AmountCalculatorDialogState extends State<_AmountCalculatorDialog> {
         TextField(
           key: const Key('calculator-expression'),
           controller: expression,
-          autofocus: true,
+          readOnly: true,
           textDirection: TextDirection.ltr,
           textAlign: TextAlign.end,
-          keyboardType: const TextInputType.numberWithOptions(
-            decimal: true,
-            signed: true,
-          ),
           onChanged: (_) => setState(_clearResult),
-          onSubmitted: (_) => _calculateExpression(),
           decoration: InputDecoration(
             labelText: strings.calculatorExpression,
             hintText: '0',
@@ -441,6 +436,7 @@ class _AmountCalculatorDialogState extends State<_AmountCalculatorDialog> {
               );
             }
             return OutlinedButton(
+              key: Key('calculator-key-$key'),
               onPressed: () => _pressKey(key),
               style: OutlinedButton.styleFrom(padding: EdgeInsets.zero),
               child: Text(key, style: const TextStyle(fontSize: 17)),
