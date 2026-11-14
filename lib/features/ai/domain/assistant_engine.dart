@@ -302,6 +302,7 @@ final class FakeAssistantEngine implements AssistantEngine {
       'where',
       'how',
     ]) || input.contains('؟') || input.contains('?');
+    final isWriteIntent = !isQuestion && (writeVerb || receiptVerb);
 
     final amount = _input.extractAmount(effectiveInput);
     final requestedMonth = _input.extractMonth(effectiveInput);
@@ -319,7 +320,7 @@ final class FakeAssistantEngine implements AssistantEngine {
       'للبيت',
       'transfer',
     ]) && has(const ['المنزل', 'البيت', 'للبيت', 'للمنزل', 'home']);
-    if (isTransfer && (writeVerb || (!isQuestion && !readVerb))) {
+    if (isTransfer && !isQuestion && !readVerb) {
       if (amount == null) {
         return const AssistantResult.clarification('كم مبلغ التحويل؟');
       }
@@ -365,7 +366,7 @@ final class FakeAssistantEngine implements AssistantEngine {
       'paycheck',
     ]);
 
-    if ((writeVerb || (receiptVerb && !isQuestion)) && (isSalary || isAdvance || isPayment)) {
+    if (isWriteIntent && (isSalary || isAdvance || isPayment)) {
       if (amount == null) {
         return const AssistantResult.clarification('ما المبلغ المطلوب تسجيله؟');
       }
@@ -408,7 +409,7 @@ final class FakeAssistantEngine implements AssistantEngine {
       'اشتراك',
       'bill',
     ]);
-    if ((writeVerb || (receiptVerb && !isQuestion)) && (isRent || isBill)) {
+    if (isWriteIntent && (isRent || isBill)) {
       if (amount == null) {
         return const AssistantResult.clarification(
           'ما قيمة الفاتورة أو الإيجار؟',
@@ -452,7 +453,7 @@ final class FakeAssistantEngine implements AssistantEngine {
       'expense',
       'groceries',
     ]);
-    if ((writeVerb || (receiptVerb && !isQuestion)) && isHomeExpense) {
+    if (isWriteIntent && isHomeExpense) {
       if (amount == null) {
         return const AssistantResult.clarification('كم قيمة مصروف المنزل؟');
       }
@@ -499,7 +500,7 @@ final class FakeAssistantEngine implements AssistantEngine {
       'لي دين',
       'debt',
     ]);
-    if (writeVerb && isDebt) {
+    if (isWriteIntent && isDebt) {
       if (amount == null) {
         return const AssistantResult.clarification('ما مبلغ الدين؟');
       }
