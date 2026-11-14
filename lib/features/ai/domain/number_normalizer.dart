@@ -30,6 +30,27 @@ final class NumberNormalizer {
     'سبعتعش': 17,
     'تمنتعش': 18,
     'تسعتعش': 19,
+    'zero': 0,
+    'a': 1,
+    'one': 1,
+    'two': 2,
+    'three': 3,
+    'four': 4,
+    'five': 5,
+    'six': 6,
+    'seven': 7,
+    'eight': 8,
+    'nine': 9,
+    'ten': 10,
+    'eleven': 11,
+    'twelve': 12,
+    'thirteen': 13,
+    'fourteen': 14,
+    'fifteen': 15,
+    'sixteen': 16,
+    'seventeen': 17,
+    'eighteen': 18,
+    'nineteen': 19,
   };
 
   static const Map<String, int> _tens = {
@@ -41,6 +62,14 @@ final class NumberNormalizer {
     'سبعين': 70, 'سبعون': 70,
     'ثمانين': 80, 'ثمانون': 80,
     'تسعين': 90, 'تسعون': 90,
+    'twenty': 20,
+    'thirty': 30,
+    'forty': 40,
+    'fifty': 50,
+    'sixty': 60,
+    'seventy': 70,
+    'eighty': 80,
+    'ninety': 90,
   };
 
   static const Map<String, int> _hundreds = {
@@ -53,6 +82,7 @@ final class NumberNormalizer {
     'سبعمئة': 700, 'سبعمائه': 700, 'سبعمية': 700, 'سبعماية': 700,
     'ثمانمئة': 800, 'ثمانمائه': 800, 'تمنمية': 800, 'تمنماية': 800,
     'تسعمئة': 900, 'تسعمائه': 900, 'تسعمية': 900, 'تسعماية': 900,
+    'hundred': 100,
   };
 
   static const Map<String, int> _scales = {
@@ -65,6 +95,8 @@ final class NumberNormalizer {
     'مليون': 1000000,
     'مليونين': 2000000,
     'ملايين': 1000000,
+    'thousand': 1000,
+    'million': 1000000,
   };
 
   String normalizeDigits(String input) => String.fromCharCodes(
@@ -78,6 +110,7 @@ final class NumberNormalizer {
         .replaceAll(RegExp(r'[\u064B-\u065F\u0670\u0640]'), '')
         .replaceAll(RegExp('[أإآٱ]'), 'ا')
         .replaceAll('ى', 'ي')
+        .replaceAll(RegExp(r'\band\b', caseSensitive: false), ' ')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
   }
@@ -130,7 +163,7 @@ final class NumberNormalizer {
       } else if (ten != null) {
         group += ten;
       } else if (hundred != null) {
-        group += hundred;
+        group = group == 0 ? hundred : group * hundred;
       } else if (scale != null) {
         if (scale == 2000 || scale == 2000000) {
           total += scale;
