@@ -40,7 +40,16 @@ final class WorkRepository {
     return (_database.select(_database.workEntries)
           ..orderBy([(row) => OrderingTerm.desc(row.recordedAtEpochMillis)]))
         .watch()
-        .map((rows) => rows.map(_entryToDomain).toList(growable: false));
+        .map((rows) {
+          final entries = rows.map(_entryToDomain).toList();
+          entries.sort((a, b) {
+            final categoryOrder = a.kind.index.compareTo(b.kind.index);
+            return categoryOrder != 0
+                ? categoryOrder
+                : b.recordedAt.compareTo(a.recordedAt);
+          });
+          return entries.toList(growable: false);
+        });
   }
 
   Future<void> saveEntry(WorkEntry entry) {
