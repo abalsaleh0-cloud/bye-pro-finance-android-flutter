@@ -131,6 +131,15 @@ class DashboardScreen extends ConsumerWidget {
               }
             },
           ),
+          const SizedBox(height: 6),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: Text(
+              month.toString(),
+              key: const Key('dashboard-selected-month-label'),
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+          ),
           const SizedBox(height: 20),
           _sectionHeading(context, strings.financialSnapshot),
           const SizedBox(height: 8),
