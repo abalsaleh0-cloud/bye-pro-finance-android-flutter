@@ -31,7 +31,7 @@ void main() {
         ),
         WorkEntry(
           id: 'old-payment',
-          kind: WorkEntryKind.payment,
+          kind: WorkEntryKind.salaryPayment,
           amount: Money.fromMinorUnits(5000),
           dueMonth: MonthKey(year: 2026, month: 10),
           recordedAt: DateTime(2026, 10, 2),
@@ -160,7 +160,7 @@ void main() {
       ),
       WorkEntry(
         id: 'historical-october-payment',
-        kind: WorkEntryKind.payment,
+        kind: WorkEntryKind.salaryPayment,
         amount: Money.fromMinorUnits(100),
         dueMonth: october,
         recordedAt: DateTime(2026, 10, 15),
@@ -231,7 +231,7 @@ void main() {
         ),
         WorkEntry(
           id: 'payment',
-          kind: WorkEntryKind.payment,
+          kind: WorkEntryKind.salaryPayment,
           amount: Money.fromMinorUnits(250),
           dueMonth: month,
           recordedAt: DateTime(2026, 11, 3),
