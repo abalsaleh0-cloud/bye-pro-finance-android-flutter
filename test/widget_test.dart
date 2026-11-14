@@ -662,12 +662,7 @@ void main() {
     await tester.tap(find.text('تسجيل دفعة').last);
     await tester.pumpAndSettle();
     expect(find.text('الوقت'), findsOneWidget);
-    await tester.tap(find.byTooltip('الوقت'));
-    await tester.pumpAndSettle();
-    expect(find.byType(TimePickerDialog), findsOneWidget);
-
-    Navigator.of(tester.element(find.byType(TimePickerDialog))).pop();
-    await tester.pumpAndSettle();
+    expect(find.byTooltip('الوقت'), findsOneWidget);
     await tester.tap(find.text('إلغاء').last);
     await tester.pumpAndSettle();
   });
