@@ -191,6 +191,53 @@ final workMonthPicker = find.byKey(const Key('work-selected-month-picker'));
     );
   });
 
+  testWidgets('work form offers salary advance and payment entry types', (tester) async {
+    final database = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(database.close);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(database),
+        ],
+        child: const MyApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text('العمل'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+
+    final kindField = find.byType(DropdownButtonFormField<WorkEntryKind>);
+    expect(kindField, findsOneWidget);
+    await tester.tap(kindField);
+    await tester.pumpAndSettle();
+    expect(find.text('راتب'), findsWidgets);
+    expect(find.text('سلفة'), findsOneWidget);
+    expect(find.text('دفعة'), findsOneWidget);
+    await tester.tap(find.text('دفعة').last);
+    await tester.pumpAndSettle();
+
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.at(0), '750');
+    await tester.enterText(fields.at(3), 'دفعة راتب للاختبار');
+    await tester.tap(find.text('حفظ'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('work-tab-2')));
+    await tester.pumpAndSettle();
+    expect(find.text('دفعة'), findsOneWidget);
+    expect(find.text('750'), findsOneWidget);
+    expect(find.textContaining('دفعة راتب للاختبار'), findsOneWidget);
+  });
+
   testWidgets('debt form allows selecting and saving creditor direction', (tester) async {
     final database = AppDatabase.forTesting(NativeDatabase.memory());
     addTearDown(database.close);
