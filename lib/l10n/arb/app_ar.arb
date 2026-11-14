@@ -156,5 +156,19 @@
   "aiMicrophonePermission": "يلزم السماح باستخدام الميكروفون لتسجيل الصوت.",
   "aiRecordingSaveFailed": "تعذر حفظ التسجيل الصوتي.",
   "aiInvalidRecording": "التسجيل الناتج ليس WAV صالحاً بدقة 16 kHz.",
-  "aiGemmaRequired": "فعّل Gemma ونزّل النموذج أولاً لاستخدام الصور والصوت."
+  "aiGemmaRequired": "فعّل Gemma ونزّل النموذج أولاً لاستخدام الصور والصوت.",
+  "homeCategoryGroceries": "المواد الغذائية",
+  "homeCategoryUtilities": "الفواتير والخدمات",
+  "homeCategoryHousing": "الإيجار والسكن",
+  "homeCategoryCleaning": "المنظفات والاحتياجات المنزلية",
+  "homeCategoryMaintenance": "الصيانة والإصلاحات",
+  "homeCategoryTransport": "النقل والمواصلات",
+  "homeCategoryPersonal": "المستلزمات الشخصية",
+  "homeCategoryHealth": "الصحة والأدوية",
+  "homeCategoryOther": "متفرقات",
+  "manageCategories": "إدارة التصنيفات",
+  "addCategory": "إضافة تصنيف",
+  "editCategory": "تعديل التصنيف",
+  "categoryName": "اسم التصنيف",
+  "duplicateCategory": "يوجد تصنيف آخر بالاسم نفسه"
 }

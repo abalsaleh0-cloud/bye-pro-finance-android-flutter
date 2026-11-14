@@ -130,6 +130,48 @@ class AppLocalizationsEn extends AppLocalizations {
   String get category => 'Category';
 
   @override
+  String get homeCategoryGroceries => 'Groceries';
+
+  @override
+  String get homeCategoryUtilities => 'Bills and utilities';
+
+  @override
+  String get homeCategoryHousing => 'Rent and housing';
+
+  @override
+  String get homeCategoryCleaning => 'Cleaning and household supplies';
+
+  @override
+  String get homeCategoryMaintenance => 'Maintenance and repairs';
+
+  @override
+  String get homeCategoryTransport => 'Transport';
+
+  @override
+  String get homeCategoryPersonal => 'Personal items';
+
+  @override
+  String get homeCategoryHealth => 'Health and medicines';
+
+  @override
+  String get homeCategoryOther => 'Other';
+
+  @override
+  String get manageCategories => 'Manage categories';
+
+  @override
+  String get addCategory => 'Add category';
+
+  @override
+  String get editCategory => 'Edit category';
+
+  @override
+  String get categoryName => 'Category name';
+
+  @override
+  String get duplicateCategory => 'A category with this name already exists';
+
+  @override
   String get expenseDate => 'Expense date';
 
   @override

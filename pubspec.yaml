@@ -1,7 +1,7 @@
 name: expense_app
 description: "Personal expenses app built with Flutter."
 publish_to: 'none'
-version: 1.0.53+54
+version: 1.0.54+55
 
 environment:
   sdk: ^3.14.0

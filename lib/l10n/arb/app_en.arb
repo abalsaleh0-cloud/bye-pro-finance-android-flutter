@@ -156,5 +156,19 @@
   "aiMicrophonePermission": "Microphone permission is required to record audio.",
   "aiRecordingSaveFailed": "Unable to save the recording.",
   "aiInvalidRecording": "The recording is not a valid 16 kHz WAV file.",
-  "aiGemmaRequired": "Enable Gemma and download the model before using image or audio input."
+  "aiGemmaRequired": "Enable Gemma and download the model before using image or audio input.",
+  "homeCategoryGroceries": "Groceries",
+  "homeCategoryUtilities": "Bills and utilities",
+  "homeCategoryHousing": "Rent and housing",
+  "homeCategoryCleaning": "Cleaning and household supplies",
+  "homeCategoryMaintenance": "Maintenance and repairs",
+  "homeCategoryTransport": "Transport",
+  "homeCategoryPersonal": "Personal items",
+  "homeCategoryHealth": "Health and medicines",
+  "homeCategoryOther": "Other",
+  "manageCategories": "Manage categories",
+  "addCategory": "Add category",
+  "editCategory": "Edit category",
+  "categoryName": "Category name",
+  "duplicateCategory": "A category with this name already exists"
 }

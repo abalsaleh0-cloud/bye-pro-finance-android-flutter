@@ -6,6 +6,7 @@ import 'package:expense_app/core/widgets/entry_tools.dart';
 import 'package:expense_app/core/widgets/entry_form_dialog.dart';
 import 'package:expense_app/features/home/data/home_expense_repository.dart';
 import 'package:expense_app/features/home/domain/home_expense.dart';
+import 'package:expense_app/features/home/domain/home_expense_category.dart';
 import 'package:expense_app/features/home/domain/home_bill.dart';
 import 'package:expense_app/features/home/presentation/home_bills_section.dart';
 import 'package:expense_app/features/work/domain/work_home_transfer.dart';
@@ -49,6 +50,166 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
+  String _categoryLabel(AppLocalizations strings, HomeExpenseCategory category) {
+    if (category.name.trim().isNotEmpty) return category.name;
+    return switch (category.id) {
+      'groceries' => strings.homeCategoryGroceries,
+      'utilities' => strings.homeCategoryUtilities,
+      'housing' => strings.homeCategoryHousing,
+      'cleaning' => strings.homeCategoryCleaning,
+      'maintenance' => strings.homeCategoryMaintenance,
+      'transport' => strings.homeCategoryTransport,
+      'personal' => strings.homeCategoryPersonal,
+      'health' => strings.homeCategoryHealth,
+      'other' => strings.homeCategoryOther,
+      _ => category.id,
+    };
+  }
+
+
+  HomeExpenseCategory _categoryForExpense(
+    List<HomeExpenseCategory> categories,
+    String categoryId,
+  ) {
+    for (final category in categories) {
+      if (category.id == categoryId) return category;
+    }
+    return HomeExpenseCategory(id: categoryId, name: categoryId);
+  }
+
+  Future<String?> _askCategoryName(
+    BuildContext context,
+    AppLocalizations strings, {
+    String initialName = '',
+  }) async {
+    final controller = TextEditingController(text: initialName);
+    try {
+      return await showDialog<String>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(initialName.isEmpty ? strings.addCategory : strings.editCategory),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: InputDecoration(labelText: strings.categoryName),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(strings.cancel),
+            ),
+            FilledButton(
+              onPressed: () {
+                final name = controller.text.trim();
+                if (name.isNotEmpty) Navigator.pop(dialogContext, name);
+              },
+              child: Text(strings.save),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      controller.dispose();
+    }
+  }
+
+  Future<void> _manageCategories(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations strings,
+  ) async {
+    var categories = await ref.read(homeExpenseCategoriesProvider.future);
+    if (!context.mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(strings.manageCategories),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: [
+                      for (final category in categories)
+                        ListTile(
+                          dense: true,
+                          title: Text(_categoryLabel(strings, category)),
+                          trailing: IconButton(
+                            tooltip: strings.editCategory,
+                            icon: const Icon(Icons.edit_outlined),
+                            onPressed: () async {
+                              final name = await _askCategoryName(
+                                context,
+                                strings,
+                                initialName: category.name.isEmpty
+                                    ? _categoryLabel(strings, category)
+                                    : category.name,
+                              );
+                              if (name == null) return;
+                              try {
+                                await ref.read(homeExpenseCategoryRepositoryProvider)
+                                    .save(category.copyWith(name: name));
+                                ref.invalidate(homeExpenseCategoriesProvider);
+                                final refreshed = await ref.read(homeExpenseCategoriesProvider.future);
+                                setState(() => categories = refreshed);
+                              } catch (_) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(strings.duplicateCategory)),
+                                  );
+                                }
+                              }
+                            },
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: TextButton.icon(
+                    onPressed: () async {
+                      final name = await _askCategoryName(context, strings);
+                      if (name == null) return;
+                      final category = HomeExpenseCategory(
+                        id: 'custom-${DateTime.now().microsecondsSinceEpoch}',
+                        name: name,
+                      );
+                      try {
+                        await ref.read(homeExpenseCategoryRepositoryProvider).save(category);
+                        ref.invalidate(homeExpenseCategoriesProvider);
+                        final refreshed = await ref.read(homeExpenseCategoriesProvider.future);
+                        setState(() => categories = refreshed);
+                      } catch (_) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(strings.duplicateCategory)),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.add),
+                    label: Text(strings.addCategory),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(strings.cancel),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _editExpense(
     BuildContext context,
     WidgetRef ref,
@@ -58,7 +219,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final amount = TextEditingController(
       text: existing?.amount.minorUnits.toString() ?? '',
     );
-    final category = TextEditingController(text: existing?.categoryId ?? '');
+    var categories = await ref.read(homeExpenseCategoriesProvider.future);
+    if (!context.mounted) return;
+    if (existing != null && !categories.any((item) => item.id == existing.categoryId)) {
+      categories = [...categories, HomeExpenseCategory(id: existing.categoryId, name: existing.categoryId)];
+    }
+    String selectedCategoryId = existing?.categoryId ?? categories.first.id;
     final date = TextEditingController(
       text: formatCalendarDate(existing?.expenseDate ?? DateTime.now()),
     );
@@ -89,9 +255,40 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       suffixIcon: calculatorSuffix(context, amount, strings),
                     ),
                   ),
-                  TextField(
-                    controller: category,
-                    decoration: InputDecoration(labelText: strings.category),
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedCategoryId,
+                    decoration: InputDecoration(
+                      labelText: strings.category,
+                      suffixIcon: IconButton(
+                        tooltip: strings.manageCategories,
+                        icon: const Icon(Icons.tune),
+                        onPressed: () async {
+                          await _manageCategories(context, ref, strings);
+                          if (!context.mounted) return;
+                          final refreshed = await ref.refresh(homeExpenseCategoriesProvider.future);
+                          setDialogState(() {
+                            categories = [
+                              ...refreshed,
+                              if (existing != null &&
+                                  !refreshed.any((item) => item.id == existing.categoryId))
+                                HomeExpenseCategory(id: existing.categoryId, name: existing.categoryId),
+                            ];
+                            if (!categories.any((item) => item.id == selectedCategoryId)) {
+                              selectedCategoryId = categories.first.id;
+                            }
+                          });
+                        },
+                      ),
+                    ),
+                    items: categories.map((item) => DropdownMenuItem(
+                      value: item.id,
+                      child: Text(_categoryLabel(strings, item)),
+                    )).toList(),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setDialogState(() => selectedCategoryId = value);
+                      }
+                    },
                   ),
                   TextField(
                     controller: date,
@@ -146,7 +343,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       : null;
                   if (parsedAmount == null ||
                       parsedAmount <= 0 ||
-                      category.text.trim().isEmpty ||
+                      selectedCategoryId.trim().isEmpty ||
                       parsedDate == null ||
                       year == null ||
                       month == null ||
@@ -162,7 +359,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           existing?.id ??
                           DateTime.now().microsecondsSinceEpoch.toString(),
                       amount: Money.fromMinorUnits(parsedAmount),
-                      categoryId: category.text.trim(),
+                      categoryId: selectedCategoryId,
                       expenseDate: parsedDate,
                       dueMonth: MonthKey(year: year, month: month),
                       note: note.text.trim().isEmpty ? null : note.text.trim(),
@@ -188,7 +385,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       );
     } finally {
       amount.dispose();
-      category.dispose();
       date.dispose();
       due.dispose();
       note.dispose();
@@ -373,6 +569,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       return _buildSwipeShell(strings);
     }
     final expenses = ref.watch(homeExpensesProvider);
+    final expenseCategories = ref.watch(homeExpenseCategoriesProvider);
     final transfers = ref.watch(workTransfersProvider);
     final bills = ref.watch(homeBillsProvider);
     final now = DateTime.now();
@@ -455,7 +652,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               return monthItems.isEmpty ? Text(strings.noRecords) : Column(children: [
                 for (final expense in monthItems)
                   Card(child: ListTile(
-                    leading: const Icon(Icons.receipt_long_outlined), title: Text(expense.categoryId),
+                    leading: const Icon(Icons.receipt_long_outlined),
+                    title: Text(_categoryLabel(
+                      strings,
+                      _categoryForExpense(
+                        expenseCategories.value ?? const <HomeExpenseCategory>[],
+                        expense.categoryId,
+                      ),
+                    )),
                     subtitle: Text([
                       '${strings.expenseDate}: ${formatCalendarDate(expense.expenseDate)}',
                       if (expense.note != null && expense.note!.isNotEmpty) expense.note!,
