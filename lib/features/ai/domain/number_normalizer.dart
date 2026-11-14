@@ -78,7 +78,7 @@ final class NumberNormalizer {
         .replaceAll(RegExp(r'[\u064B-\u065F\u0670\u0640]'), '')
         .replaceAll(RegExp('[أإآٱ]'), 'ا')
         .replaceAll('ى', 'ي')
-                .replaceAll(RegExp(r'\s+'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
   }
 
@@ -117,12 +117,15 @@ final class NumberNormalizer {
         }
       }
 
+      final numericToken = int.tryParse(token);
       final unit = _units[token];
       final ten = _tens[token];
       final hundred = _hundreds[token];
       final scale = _scales[token];
 
-      if (unit != null) {
+      if (numericToken != null && numericToken >= 0) {
+        group += numericToken;
+      } else if (unit != null) {
         group += unit;
       } else if (ten != null) {
         group += ten;
