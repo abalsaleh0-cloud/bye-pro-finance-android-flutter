@@ -160,7 +160,7 @@
   "aiSpeechFailed": "تعذر التعرف على الكلام.",
   "aiVoiceRepliesOn": "إيقاف الرد الصوتي",
   "aiVoiceRepliesOff": "تشغيل الرد الصوتي",
-  "aiArabicTtsUnavailable": "لا يتوفر صوت عربي محلي. ثبّت صوتاً عربياً يدعم العمل دون إنترنت من إعدادات تحويل النص إلى كلام."
+  "aiArabicTtsUnavailable": "لا يتوفر صوت عربي محلي. ثبّت صوتاً عربياً يدعم العمل دون إنترنت من إعدادات تحويل النص إلى كلام.",
   "aiStopRecording": "إيقاف التسجيل",
   "aiRecording": "جارٍ تسجيل الصوت…",
   "aiRemoveAttachment": "إزالة المرفق",
