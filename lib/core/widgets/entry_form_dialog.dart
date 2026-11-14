@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Shared shell for add/edit forms across the work and home sections.
 class EntryFormDialog extends StatelessWidget {
