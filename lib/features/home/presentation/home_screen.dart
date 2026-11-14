@@ -6,6 +6,7 @@ import 'package:expense_app/core/widgets/entry_tools.dart';
 import 'package:expense_app/core/widgets/entry_form_dialog.dart';
 import 'package:expense_app/features/home/data/home_expense_repository.dart';
 import 'package:expense_app/features/home/domain/home_expense.dart';
+import 'package:expense_app/features/home/domain/home_expense_category.dart';
 import 'package:expense_app/features/home/domain/home_bill.dart';
 import 'package:expense_app/features/home/presentation/home_bills_section.dart';
 import 'package:expense_app/features/work/domain/work_home_transfer.dart';
@@ -49,6 +50,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
+  String _categoryLabel(AppLocalizations strings, HomeExpenseCategory category) {
+    if (category.name.trim().isNotEmpty) return category.name;
+    return switch (category.id) {
+      'groceries' => strings.homeCategoryGroceries,
+      'utilities' => strings.homeCategoryUtilities,
+      'housing' => strings.homeCategoryHousing,
+      'cleaning' => strings.homeCategoryCleaning,
+      'maintenance' => strings.homeCategoryMaintenance,
+      'transport' => strings.homeCategoryTransport,
+      'personal' => strings.homeCategoryPersonal,
+      'health' => strings.homeCategoryHealth,
+      'other' => strings.homeCategoryOther,
+      _ => category.id,
+    };
+  }
+
   Future<void> _editExpense(
     BuildContext context,
     WidgetRef ref,
@@ -58,7 +75,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final amount = TextEditingController(
       text: existing?.amount.minorUnits.toString() ?? '',
     );
-    final category = TextEditingController(text: existing?.categoryId ?? '');
+    var categories = await ref.read(homeExpenseCategoriesProvider.future);
+    if (existing != null && !categories.any((item) => item.id == existing.categoryId)) {
+      categories = [...categories, HomeExpenseCategory(id: existing.categoryId, name: existing.categoryId)];
+    }
+    String selectedCategoryId = existing?.categoryId ?? categories.first.id;
     final date = TextEditingController(
       text: formatCalendarDate(existing?.expenseDate ?? DateTime.now()),
     );
@@ -89,9 +110,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       suffixIcon: calculatorSuffix(context, amount, strings),
                     ),
                   ),
-                  TextField(
-                    controller: category,
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedCategoryId,
                     decoration: InputDecoration(labelText: strings.category),
+                    items: categories.map((item) => DropdownMenuItem(
+                      value: item.id,
+                      child: Text(_categoryLabel(strings, item)),
+                    )).toList(),
+                    onChanged: (value) {
+                      if (value != null) setDialogState(() => selectedCategoryId = value);
+                    },
                   ),
                   TextField(
                     controller: date,
@@ -146,7 +174,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       : null;
                   if (parsedAmount == null ||
                       parsedAmount <= 0 ||
-                      category.text.trim().isEmpty ||
+                      selectedCategoryId.trim().isEmpty ||
                       parsedDate == null ||
                       year == null ||
                       month == null ||
@@ -162,7 +190,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           existing?.id ??
                           DateTime.now().microsecondsSinceEpoch.toString(),
                       amount: Money.fromMinorUnits(parsedAmount),
-                      categoryId: category.text.trim(),
+                      categoryId: selectedCategoryId,
                       expenseDate: parsedDate,
                       dueMonth: MonthKey(year: year, month: month),
                       note: note.text.trim().isEmpty ? null : note.text.trim(),
@@ -188,7 +216,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       );
     } finally {
       amount.dispose();
-      category.dispose();
       date.dispose();
       due.dispose();
       note.dispose();
@@ -373,6 +400,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       return _buildSwipeShell(strings);
     }
     final expenses = ref.watch(homeExpensesProvider);
+    final expenseCategories = ref.watch(homeExpenseCategoriesProvider);
     final transfers = ref.watch(workTransfersProvider);
     final bills = ref.watch(homeBillsProvider);
     final now = DateTime.now();
@@ -455,7 +483,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               return monthItems.isEmpty ? Text(strings.noRecords) : Column(children: [
                 for (final expense in monthItems)
                   Card(child: ListTile(
-                    leading: const Icon(Icons.receipt_long_outlined), title: Text(expense.categoryId),
+                    leading: const Icon(Icons.receipt_long_outlined),
+                    title: Text(_categoryLabel(
+                      strings,
+                      expenseCategories.value?.where((item) => item.id == expense.categoryId).firstOrNull ??
+                          HomeExpenseCategory(id: expense.categoryId, name: expense.categoryId),
+                    )),
                     subtitle: Text([
                       '${strings.expenseDate}: ${formatCalendarDate(expense.expenseDate)}',
                       if (expense.note != null && expense.note!.isNotEmpty) expense.note!,
