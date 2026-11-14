@@ -220,7 +220,8 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
     final paidTime = TextEditingController(text: paymentTime.format(context));
     final note = TextEditingController();
     String? error;
-    await showDialog<void>(
+    try {
+      await showDialog<void>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
@@ -332,6 +333,12 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
           ),
         ),
       );
+    } finally {
+      amount.dispose();
+      paidAt.dispose();
+      paidTime.dispose();
+      note.dispose();
+    }
   }
 
   Future<void> _deleteDebt(
