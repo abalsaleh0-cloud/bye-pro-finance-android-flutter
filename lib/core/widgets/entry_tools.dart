@@ -1,4 +1,5 @@
 import 'package:expense_app/core/money/integer_calculator.dart';
+import 'package:expense_app/core/time/calendar_date.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -135,12 +136,9 @@ Widget calculatorSuffix(
   icon: const Icon(Icons.calculate_outlined),
   onPressed: () async {
     final value = await showAmountCalculator(context, strings);
-    if (value != null) controller.text = value;
+    if (context.mounted && value != null) controller.text = value;
   },
 );
-
-String formatCalendarDate(DateTime value) =>
-    '${value.year}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
 
 Widget calendarSuffix(
   BuildContext context,
@@ -169,7 +167,7 @@ Widget calendarSuffix(
       firstDate: DateTime(1900),
       lastDate: DateTime(2100),
     );
-    if (picked == null) return;
+    if (!context.mounted || picked == null) return;
     final y = picked.year.toString().padLeft(4, '0');
     final m = picked.month.toString().padLeft(2, '0');
     final d = picked.day.toString().padLeft(2, '0');
