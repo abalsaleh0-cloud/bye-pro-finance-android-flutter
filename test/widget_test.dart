@@ -444,20 +444,6 @@ void main() {
     expect(find.text('999'), findsNothing);
   });
 
-}
-
-class _FixedSelectedMonthNotifier extends SelectedMonthNotifier {
-  _FixedSelectedMonthNotifier(this.month);
-
-  final MonthKey month;
-
-  @override
-  MonthKey build() => month;
-
-  @override
-  void select(MonthKey selected) {
-    state = selected;
-  }
 
   testWidgets('home bill menu exposes edit and delete and edit form is prefilled', (tester) async {
     final now = DateTime.now();
@@ -501,5 +487,20 @@ class _FixedSelectedMonthNotifier extends SelectedMonthNotifier {
     expect(find.text('420'), findsOneWidget);
     expect(find.text('ملاحظة موجودة'), findsOneWidget);
   });
+
+}
+
+class _FixedSelectedMonthNotifier extends SelectedMonthNotifier {
+  _FixedSelectedMonthNotifier(this.month);
+
+  final MonthKey month;
+
+  @override
+  MonthKey build() => month;
+
+  @override
+  void select(MonthKey selected) {
+    state = selected;
+  }
 
 }
