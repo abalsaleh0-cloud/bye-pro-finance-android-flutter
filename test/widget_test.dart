@@ -1,4 +1,6 @@
 import 'package:expense_app/app/app.dart';
+import 'package:drift/native.dart';
+import 'package:expense_app/core/database/app_database.dart' show AppDatabase;
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
@@ -101,6 +103,69 @@ void main() {
       tester.widget<PageView>(find.byKey(const Key('home-section-pages'))).controller!.page,
       3,
     );
+  });
+
+  testWidgets('selected month stays synchronized between work and home sections', (tester) async {
+    final database = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(database.close);
+    final now = DateTime.now();
+    final currentMonth = MonthKey(year: now.year, month: now.month);
+    final previousDate = DateTime(now.year, now.month - 1, 10);
+    final previousMonth = MonthKey(
+      year: previousDate.year,
+      month: previousDate.month,
+    );
+    final previousWorkEntry = WorkEntry(
+      id: 'month-sync-work-entry',
+      kind: WorkEntryKind.salary,
+      amount: Money.fromMinorUnits(100),
+      dueMonth: previousMonth,
+      recordedAt: previousDate,
+    );
+    final previousTransfer = WorkHomeTransfer(
+      id: 'month-sync-home-transfer',
+      amount: Money.fromMinorUnits(100),
+      transferredAt: previousDate,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(database),
+          workEntriesProvider.overrideWith(
+            (ref) => Stream.value([previousWorkEntry]),
+          ),
+          workTransfersProvider.overrideWith(
+            (ref) => Stream.value([previousTransfer]),
+          ),
+          selectedMonthProvider.overrideWith(
+            () => _FixedSelectedMonthNotifier(currentMonth),
+          ),
+        ],
+        child: const MyApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('العمل').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('work-selected-month-picker')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(previousMonth.toString()).last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('المنزل').last);
+    await tester.pumpAndSettle();
+    expect(find.text(previousMonth.toString()), findsOneWidget);
+
+    await tester.tap(find.byType(DropdownButtonFormField<MonthKey>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text(currentMonth.toString()).last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('العمل').last);
+    await tester.pumpAndSettle();
+    expect(find.text(currentMonth.toString()), findsWidgets);
   });
 
   testWidgets('work records show their note in the records page', (tester) async {
