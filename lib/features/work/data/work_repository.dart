@@ -230,7 +230,11 @@ final class WorkRepository {
 
   WorkEntry _entryToDomain(WorkEntryRow row) => WorkEntry(
     id: row.id,
-    kind: WorkEntryKind.values.byName(row.kind),
+    // Older records stored `payment`; expose it through the current unified
+    // salary-payment category without rewriting the persisted record eagerly.
+    kind: row.kind == WorkEntryKind.payment.name
+        ? WorkEntryKind.salaryPayment
+        : WorkEntryKind.values.byName(row.kind),
     amount: Money.fromMinorUnits(row.amountMinorUnits),
     dueMonth: MonthKey(year: row.dueYear, month: row.dueMonth),
     recordedAt: DateTime.fromMillisecondsSinceEpoch(row.recordedAtEpochMillis),
