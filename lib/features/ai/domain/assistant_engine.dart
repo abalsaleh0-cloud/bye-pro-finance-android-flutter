@@ -41,6 +41,41 @@ abstract interface class AssistantEngine {
     String conversationContext = '',
   });
 }
+/// Tries the local language model first and the deterministic Arabic
+/// parser only when the model cannot interpret the request.
+final class FallbackAssistantEngine implements AssistantEngine {
+  const FallbackAssistantEngine({
+    required this.primary,
+    required this.fallback,
+  });
+
+  final AssistantEngine primary;
+  final AssistantEngine fallback;
+
+  @override
+  Future<AssistantResult> interpret(
+    String input,
+    List<String> availableActions, {
+    AssistantMedia? media,
+    String conversationContext = '',
+  }) async {
+    final result = await primary.interpret(
+      input,
+      availableActions,
+      media: media,
+      conversationContext: conversationContext,
+    );
+    if (result.kind != AssistantResultKind.notUnderstood || media != null) {
+      return result;
+    }
+    return fallback.interpret(
+      input,
+      availableActions,
+      conversationContext: conversationContext,
+    );
+  }
+}
+
 final class FakeAssistantEngine implements AssistantEngine {
   const FakeAssistantEngine();
 
