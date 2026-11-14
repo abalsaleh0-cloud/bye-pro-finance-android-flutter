@@ -203,5 +203,11 @@
   "recentActivity": "آخر العمليات",
   "noRecentActivity": "لا توجد عمليات مسجلة بعد",
   "debtBalancesCurrentNote": "الأرصدة المعروضة هنا هي الأرصدة الحالية لجميع الديون، وليست رصيداً تاريخياً للشهر المختار.",
-  "cashFlowComparison": "مقارنة التحويلات والمصروفات"
+  "cashFlowComparison": "مقارنة التحويلات والمصروفات",
+  "aiDefaultImagePrompt": "يرجى تحليل الصورة المرفقة.",
+  "aiDefaultAudioPrompt": "يرجى الاستماع إلى التسجيل الصوتي المرفق وتنفيذ المطلوب إن أمكن.",
+  "aiImageAttachmentLabel": "صورة",
+  "aiAudioAttachmentLabel": "تسجيل صوتي",
+  "aiAttachmentFallback": "مرفق",
+  "assistantClarificationFallback": "يرجى التوضيح."
 }
