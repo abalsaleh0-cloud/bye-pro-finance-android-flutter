@@ -56,8 +56,15 @@ final class FakeAssistantEngine implements AssistantEngine {
 
     if (RegExp(r'ملخص|كيف\s+وضعي|وضعي\s+المالي|الوضع\s+المالي').hasMatch(text) &&
         availableActions.contains('read_dashboard_summary')) {
-      return const AssistantResult.command(
-        AssistantCommand(name: 'read_dashboard_summary', parameters: {}),
+      final requestedMonth = _month(text);
+      return AssistantResult.command(
+        AssistantCommand(
+          name: 'read_dashboard_summary',
+          parameters: {
+            if (requestedMonth != null) 'year': requestedMonth.$1,
+            if (requestedMonth != null) 'month': requestedMonth.$2,
+          },
+        ),
       );
     }
 
