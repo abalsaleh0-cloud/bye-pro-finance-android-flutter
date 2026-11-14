@@ -159,7 +159,7 @@ class HomeBillsSection extends ConsumerWidget {
                   '${bill.kind == HomeBillKind.rent ? strings.rent : strings.monthlyBills} • ${bill.dueMonth} • $status',
                   '${strings.billPaid}: ${bill.paidMinorUnits} / ${bill.amount.minorUnits} • ${strings.billRemaining}: ${bill.remainingMinorUnits}',
                   if (bill.note != null && bill.note!.trim().isNotEmpty) bill.note!.trim(),
-                ].join('\\n')),
+                ].join('\n')),
                 isThreeLine: true,
                 trailing: bill.isSettled ? IconButton(tooltip: strings.billHistory, onPressed: () => _showHistory(context, ref, strings, bill), icon: const Icon(Icons.history)) : PopupMenuButton<String>(
                   onSelected: (value) {
