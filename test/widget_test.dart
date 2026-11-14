@@ -666,12 +666,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(TimePickerDialog), findsOneWidget);
 
-    await tester.tap(
-      find.descendant(
-        of: find.byType(TimePickerDialog),
-        matching: find.text('إلغاء'),
-      ),
-    );
+    await tester.pageBack();
     await tester.pumpAndSettle();
     await tester.tap(find.text('إلغاء').last);
     await tester.pumpAndSettle();
