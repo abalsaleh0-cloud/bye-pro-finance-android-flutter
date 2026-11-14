@@ -148,7 +148,15 @@ void main() {
         (item) => item.name == 'navigate_to_section',
       );
       expect(summary.required, isEmpty);
-      expect(summary.properties, isEmpty);
+      expect(summary.properties.keys, containsAll(['year', 'month']));
+      expect(navigation.properties['section']!['enum'], [
+        'dashboard',
+        'work',
+        'home',
+        'debts',
+        'ai',
+        'settings',
+      ]);
       expect(navigation.required, ['section']);
       expect(navigation.properties['section']!['enum'], [
         'dashboard',
