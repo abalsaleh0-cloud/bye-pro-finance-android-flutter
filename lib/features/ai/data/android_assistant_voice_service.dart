@@ -30,7 +30,19 @@ class AndroidAssistantVoiceService {
     );
   }
 
+  Future<void> cancelArabicSpeechRecognition() async {
+    try {
+      await _channel.invokeMethod<void>('cancelArabicSpeechRecognition');
+    } on PlatformException {
+      // The native activity may already be shutting down.
+    }
+  }
+
   Future<void> stopSpeaking() async {
-    await _channel.invokeMethod<void>('stopSpeaking');
+    try {
+      await _channel.invokeMethod<void>('stopSpeaking');
+    } on PlatformException {
+      // The native activity may already be shutting down.
+    }
   }
 }
