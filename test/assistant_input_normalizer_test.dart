@@ -58,7 +58,7 @@ void main() {
   });
 
   group('Arabic month formats', () {
-    const referenceDate = DateTime(2026, 11, 14);
+    final referenceDate = DateTime(2026, 11, 14);
 
     test('parses year-month and month-year number forms', () {
       expect(
