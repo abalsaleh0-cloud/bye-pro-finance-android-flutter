@@ -9,6 +9,10 @@ final class InsufficientBillPaymentBalanceException implements Exception {
   final int availableMinorUnits;
 }
 
+final class BillHasPaymentHistoryException implements Exception {
+  const BillHasPaymentHistoryException();
+}
+
 final class HomeBillRepository {
   const HomeBillRepository(this._database);
   final AppDatabase _database;
@@ -258,6 +262,18 @@ final class HomeBillRepository {
 
   Future<void> deleteBill(String id) async {
     await ensureTables();
-    await _database.customStatement('DELETE FROM home_bills WHERE id = ?', [id]);
+    await _database.transaction(() async {
+      final rows = await _database.customSelect(
+        'SELECT COUNT(*) AS total FROM home_bill_payments WHERE bill_id = ?',
+        variables: [Variable.withString(id)],
+      ).get();
+      if (rows.single.read<int>('total') > 0) {
+        throw const BillHasPaymentHistoryException();
+      }
+      await _database.customStatement(
+        'DELETE FROM home_bills WHERE id = ?',
+        [id],
+      );
+    });
   }
 }
