@@ -225,7 +225,7 @@ final class WorkRepository {
 
   bool _isCashReceived(String kind) =>
       kind == WorkEntryKind.advance.name ||
-      kind == WorkEntryKind.payment.name ||
+      kind == 'payment' ||
       kind == WorkEntryKind.salaryPayment.name;
 
   WorkEntry _entryToDomain(WorkEntryRow row) => WorkEntry(
