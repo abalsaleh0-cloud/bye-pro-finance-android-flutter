@@ -104,6 +104,18 @@ void main() {
         input.extractMonth('راتب لهذا الشهر', referenceDate: referenceDate),
         (2026, 11),
       );
+      expect(
+        input.extractMonth('salary for this month', referenceDate: referenceDate),
+        (2026, 11),
+      );
+      expect(
+        input.extractMonth('salary last month', referenceDate: referenceDate),
+        (2026, 10),
+      );
+      expect(
+        input.extractMonth('salary next month', referenceDate: referenceDate),
+        (2026, 12),
+      );
     });
 
     test('parses current, previous and next month expressions', () {
