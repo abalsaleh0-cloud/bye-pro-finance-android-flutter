@@ -91,12 +91,12 @@ void main() {
       await GemmaAssistantEngine(generator).interpret(
         'لهذا الشهر',
         actions,
-        conversationContext: 'المستخدم: أضف راتب 1500\\nالمساعد: أي شهر تقصد؟',
+        conversationContext: 'المستخدم: أضف راتب 1500\nالمساعد: أي شهر تقصد؟',
       );
 
       expect(generator.receivedInput, contains('أضف راتب 1500'));
       expect(generator.receivedInput, contains('أي شهر تقصد؟'));
-      expect(generator.receivedInput, endsWith('رسالة المستخدم الحالية:\\nلهذا الشهر'));
+      expect(generator.receivedInput, endsWith('رسالة المستخدم الحالية:\nلهذا الشهر'));
     });
 
     test('returns a natural-language answer for multimodal input', () async {
