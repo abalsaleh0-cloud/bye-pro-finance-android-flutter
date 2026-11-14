@@ -555,6 +555,7 @@ final class FakeAssistantEngine implements AssistantEngine {
     String currentInput,
     String conversationContext,
   ) {
+    const normalizer = AssistantInputNormalizer();
     final lines = conversationContext
         .split('\n')
         .map((line) => line.trim())
@@ -565,35 +566,134 @@ final class FakeAssistantEngine implements AssistantEngine {
     }
 
     final question = lines.last.substring('المساعد:'.length).trim();
-    final isClarification = AssistantInputNormalizer().containsAny(
-      AssistantInputNormalizer().normalize(question),
-      const [
-        'ما المبلغ',
-        'كم المبلغ',
-        'أي شهر',
-        'ما الشهر',
-        'لأي شهر',
-        'ما تصنيف',
-        'ما فئة',
-        'ما اسم',
-        'هل المبلغ لك',
-        'هل الدين دائن',
-        'هل الدين مدين',
-        'من الشخص',
-      ],
-    );
-    if (!isClarification) return currentInput;
+    final normalizedQuestion = normalizer.normalize(question);
+    final normalizedAnswer = normalizer.normalize(currentInput);
+    final amountQuestion = normalizer.containsAny(normalizedQuestion, const [
+      'ما المبلغ',
+      'كم المبلغ',
+      'قيمة المبلغ',
+      'كم قيمة',
+    ]);
+    final monthQuestion = normalizer.containsAny(normalizedQuestion, const [
+      'اي شهر',
+      'ما الشهر',
+      'لأي شهر',
+      'الشهر المستحق',
+      'السنة والشهر',
+    ]);
+    final directionQuestion = normalizer.containsAny(normalizedQuestion, const [
+      'هل المبلغ لك',
+      'هل الدين دائن',
+      'هل الدين مدين',
+      'دائن ام مدين',
+    ]);
+    final nameQuestion = normalizer.containsAny(normalizedQuestion, const [
+      'ما اسم الشخص',
+      'اسم الشخص او الجهة',
+      'ما اسم الطرف',
+      'اسم الفاتورة',
+      'اسم الاشتراك',
+    ]);
+    final categoryQuestion = normalizer.containsAny(normalizedQuestion, const [
+      'ما تصنيف المصروف',
+      'ما فئة المصروف',
+      'تصنيف المصروف',
+    ]);
+    final dateQuestion = normalizer.containsAny(normalizedQuestion, const [
+      'ما تاريخ المصروف',
+      'ما التاريخ',
+    ]);
+    final identifierQuestion = normalizer.containsAny(normalizedQuestion, const [
+      'رقم السجل',
+      'رقم الفاتورة',
+      'اي فاتورة تريد',
+      'اي دين تريد',
+      'معرف السجل',
+    ]);
 
+    final answerHasAmount = normalizer.extractAmount(currentInput) != null;
+    final answerHasMonth = normalizer.extractMonth(currentInput) != null;
+    final answerHasDirection = _debtDirection(
+      (phrases) => normalizer.containsAny(normalizedAnswer, phrases),
+    ) != null;
+    final answerHasCategory = _category(
+      (phrases) => normalizer.containsAny(normalizedAnswer, phrases),
+      normalizedAnswer,
+    ) != null;
+    final answerHasDate = DateTime.tryParse(currentInput.trim()) != null ||
+        RegExp(r'\b\d{1,2}[-/.]\d{1,2}[-/.]20\d{2}\b')
+            .hasMatch(_numbersForClarification.normalizeDigits(currentInput));
+    final answerHasIdentifier = RegExp(r'^[A-Za-z0-9_-]{2,64}$')
+        .hasMatch(currentInput.trim());
+    final answerIsShortText = currentInput.trim().isNotEmpty &&
+        currentInput.trim().length <= 80 &&
+        !normalizer.containsAny(normalizedAnswer, const [
+          'اضف',
+          'ضيف',
+          'سجل',
+          'احذف',
+          'عدل',
+          'افتح',
+          'حول',
+          'add',
+          'delete',
+          'update',
+          'open',
+        ]);
+
+    final isExpectedAnswer =
+        (amountQuestion && answerHasAmount) ||
+        (monthQuestion && answerHasMonth) ||
+        (directionQuestion && answerHasDirection) ||
+        ((nameQuestion || categoryQuestion) && answerIsShortText) ||
+        (dateQuestion && answerHasDate) ||
+        (identifierQuestion && answerHasIdentifier);
+    if (!isExpectedAnswer) return currentInput;
+
+    var originalRequestIndex = -1;
     for (var index = lines.length - 2; index >= 0; index--) {
-      if (lines[index].startsWith('المستخدم:')) {
-        final previousRequest =
-            lines[index].substring('المستخدم:'.length).trim();
-        if (previousRequest.isEmpty) return currentInput;
-        return previousRequest + ' ' + currentInput;
+      if (!lines[index].startsWith('المستخدم:')) continue;
+      final candidate = lines[index].substring('المستخدم:'.length).trim();
+      final normalizedCandidate = normalizer.normalize(candidate);
+      final looksLikeWrite = normalizer.containsAny(
+        normalizedCandidate,
+        const [
+          'اضف',
+          'اضافة',
+          'ضيف',
+          'سجل',
+          'تسجيل',
+          'احفظ',
+          'ادخل',
+          'حط',
+          'سوي',
+          'انشئ',
+          'add',
+          'create',
+          'record',
+          'save',
+        ],
+      );
+      if (looksLikeWrite) {
+        originalRequestIndex = index;
+        break;
       }
     }
-    return currentInput;
+    if (originalRequestIndex < 0) return currentInput;
+
+    final previousUserTurns = <String>[];
+    for (var index = originalRequestIndex; index < lines.length - 1; index++) {
+      final line = lines[index];
+      if (line.startsWith('المستخدم:')) {
+        final turn = line.substring('المستخدم:'.length).trim();
+        if (turn.isNotEmpty) previousUserTurns.add(turn);
+      }
+    }
+    if (previousUserTurns.isEmpty) return currentInput;
+    return [...previousUserTurns, currentInput.trim()].join(' ');
   }
+
+  static const _numbersForClarification = NumberNormalizer();
 
   static String? _navigationSection(
     bool Function(Iterable<String>) has,
