@@ -105,7 +105,7 @@ class _AmountCalculatorDialogState extends State<_AmountCalculatorDialog> {
       case '±':
         final current = expression.text.trim();
         if (current.isNotEmpty) {
-          expression.text = '-(' + current + ')';
+          expression.text = '-($current)';
           expression.selection = TextSelection.collapsed(
             offset: expression.text.length,
           );
@@ -167,23 +167,15 @@ class _AmountCalculatorDialogState extends State<_AmountCalculatorDialog> {
         });
         return;
       }
-      final formatted = widget.strings.calculatorPerPerson +
-          ': ' +
-          split.perPerson.toString() +
-          ' · ' +
-          widget.strings.calculatorRemainder +
-          ': ' +
-          split.remainder.toString();
+      final formatted =
+          '${widget.strings.calculatorPerPerson}: ${split.perPerson} · '
+          '${widget.strings.calculatorRemainder}: ${split.remainder}';
       setState(() {
         resultText = formatted;
         resultForInsertion = _toInsertableAmount(split.perPerson);
         errorText = null;
         _addHistory(
-          widget.strings.calculatorSplit +
-              ': ' +
-              amountValue.toString() +
-              ' / ' +
-              peopleValue.toString(),
+          '${widget.strings.calculatorSplit}: $amountValue / $peopleValue',
           formatted,
         );
       });
@@ -206,18 +198,13 @@ class _AmountCalculatorDialogState extends State<_AmountCalculatorDialog> {
     final label = financialMode == _FinancialMode.percentage
         ? widget.strings.calculatorPercentage
         : widget.strings.calculatorDiscount;
-    final formatted = widget.strings.result + ': ' + value.toString();
+    final formatted = '${widget.strings.result}: $value';
     setState(() {
       resultText = formatted;
       resultForInsertion = _toInsertableAmount(value);
       errorText = null;
       _addHistory(
-        label +
-            ': ' +
-            amountValue.toString() +
-            ' · ' +
-            percentageText +
-            '%',
+        '$label: $amountValue · $percentageText%',
         value.toString(),
       );
     });
