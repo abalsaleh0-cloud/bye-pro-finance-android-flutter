@@ -347,7 +347,9 @@ final class ActionRegistry {
         return ActionExecution(message:'مجموع ' + section + ' لشهر ' + month.toString() + ': ' + total.toString());
       case 'read_dashboard_summary':
         final now = DateTime.now();
-        final month = _selectedMonth ?? MonthKey(year: now.year, month: now.month);
+        final month = p['year'] == null
+            ? (_selectedMonth ?? MonthKey(year: now.year, month: now.month))
+            : MonthKey(year: p['year']! as int, month: p['month']! as int);
         final workEntries = await _work.watchEntries().first;
         final homeExpenses = await _home.watchAll().first;
         final transfers = await _work.watchTransfers().first;
