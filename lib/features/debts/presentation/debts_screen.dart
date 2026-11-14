@@ -219,10 +219,9 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
     final paidTime = TextEditingController(text: paymentTime.format(context));
     final note = TextEditingController();
     String? error;
-    try {
-      await showDialog<void>(
-        context: context,
-        builder: (dialogContext) => StatefulBuilder(
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
             title: Text(strings.recordDebtPayment),
             content: SingleChildScrollView(
