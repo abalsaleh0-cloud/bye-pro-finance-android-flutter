@@ -113,18 +113,19 @@ final class AssistantInputNormalizer {
     DateTime? referenceDate,
   }) {
     final now = referenceDate ?? DateTime.now();
+    final raw = _numbers.normalizeDigits(input);
     final normalized = normalize(input);
 
     final yearFirst = RegExp(
       r'(?<!\d)(20\d{2})\s*[-/.]\s*(0?[1-9]|1[0-2])(?!\d)',
-    ).firstMatch(normalized);
+    ).firstMatch(raw);
     if (yearFirst != null) {
       return (int.parse(yearFirst.group(1)!), int.parse(yearFirst.group(2)!));
     }
 
     final monthFirst = RegExp(
       r'(?<!\d)(0?[1-9]|1[0-2])\s*[-/.]\s*(20\d{2})(?!\d)',
-    ).firstMatch(normalized);
+    ).firstMatch(raw);
     if (monthFirst != null) {
       return (int.parse(monthFirst.group(2)!), int.parse(monthFirst.group(1)!));
     }
