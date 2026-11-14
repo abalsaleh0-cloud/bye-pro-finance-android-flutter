@@ -456,7 +456,6 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     final maxBubbleWidth = MediaQuery.sizeOf(context).width * 0.84;
 
     return Scaffold(
-      appBar: AppBar(title: Text(strings.ai)),
       body: Column(
         children: [
           Expanded(
