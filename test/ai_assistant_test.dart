@@ -85,6 +85,8 @@ void main() {
       'save_work_entry',
       'save_work_home_transfer',
       'save_home_expense',
+      'read_dashboard_summary',
+      'navigate_to_section',
     ];
     test('returns a read-only command for remaining balance', () async {
       final result = await engine.interpret('كم الباقي؟', actions);
@@ -120,6 +122,27 @@ void main() {
       );
       expect(result.kind, AssistantResultKind.notUnderstood);
     });
+    test('reads a dashboard summary on a financial overview request', () async {
+      final result = await engine.interpret('اعطني ملخص وضعي المالي', actions);
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'read_dashboard_summary');
+    });
+
+    test('navigates to a requested app section', () async {
+      final result = await engine.interpret('افتح قسم الديون', actions);
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'navigate_to_section');
+      expect(result.command!.parameters['section'], 'debts');
+    });
+
+    test('does not navigate when the navigation action is unavailable', () async {
+      final result = await engine.interpret(
+        'افتح قسم الديون',
+        ['read_work_remaining'],
+      );
+      expect(result.kind, AssistantResultKind.notUnderstood);
+    });
+
     test('returns not understood for unsupported input', () async {
       final result = await engine.interpret('افعل شيئاً غير معروف', actions);
       expect(result.kind, AssistantResultKind.notUnderstood);
@@ -413,6 +436,97 @@ void main() {
         'billId': 'bill-history',
       });
       expect(result.message, contains('125'));
+    });
+
+    test('reads dashboard metrics using the same calculations as the dashboard', () async {
+      final now = DateTime.now();
+      final month = MonthKey(year: now.year, month: now.month);
+
+      await registry.execute('save_work_entry', {
+        'kind': 'salary',
+        'amountMinorUnits': 1500,
+        'year': now.year,
+        'month': now.month,
+      });
+      await registry.execute('save_work_entry', {
+        'kind': 'advance',
+        'amountMinorUnits': 300,
+        'year': now.year,
+        'month': now.month,
+      });
+      await registry.execute('save_work_entry', {
+        'kind': 'salaryPayment',
+        'amountMinorUnits': 200,
+        'year': now.year,
+        'month': now.month,
+      });
+      await registry.execute('save_work_home_transfer', {
+        'amountMinorUnits': 400,
+        'date': now.toIso8601String(),
+      });
+      await registry.execute('save_home_expense', {
+        'amountMinorUnits': 100,
+        'categoryId': 'groceries',
+        'date': now.toIso8601String(),
+        'year': now.year,
+        'month': now.month,
+      });
+      await registry.execute('save_home_bill', {
+        'title': 'Internet',
+        'kind': 'monthly',
+        'amountMinorUnits': 150,
+        'year': now.year,
+        'month': now.month,
+        'id': 'summary-internet',
+      });
+      await registry.execute('record_home_bill_payment', {
+        'billId': 'summary-internet',
+        'amountMinorUnits': 50,
+      });
+
+      final result = await registry.execute('read_dashboard_summary', {});
+      final summary = result.dashboardSummary!;
+
+      expect(summary.month, month);
+      expect(summary.overview.salary.minorUnits, 1500);
+      expect(summary.overview.advances.minorUnits, 300);
+      expect(summary.overview.payments.minorUnits, 200);
+      expect(summary.overview.currentSalaryOutstandingMinorUnits, 1000);
+      expect(summary.overview.salaryPaymentsApplied.minorUnits, 200);
+      expect(summary.overview.workRemainingMinorUnits, 100);
+      expect(summary.overview.homeExpenses.minorUnits, 100);
+      expect(summary.overview.transfers.minorUnits, 400);
+      expect(summary.homeBillPaymentsMinorUnits, 50);
+      expect(summary.outstandingBillsAtMonthEndMinorUnits, 100);
+      expect(summary.homeBalanceMinorUnits, 150);
+      expect(summary.overview.creditorBalance.minorUnits, 0);
+      expect(summary.overview.debtorBalance.minorUnits, 0);
+      expect(result.undo, isNull);
+    });
+
+    test('validates only supported navigation destinations', () async {
+      const sections = [
+        'dashboard',
+        'work',
+        'home',
+        'debts',
+        'ai',
+        'settings',
+      ];
+      for (final section in sections) {
+        expect(
+          registry.validate('navigate_to_section', {'section': section}),
+          isNull,
+        );
+      }
+      expect(
+        registry.validate('navigate_to_section', {'section': 'payments'}),
+        isNotNull,
+      );
+      expect(
+        registry.descriptor('navigate_to_section')!.readOnly,
+        isTrue,
+      );
     });
 
     test('reports received work cash minus transfers as remaining at work', () async {
