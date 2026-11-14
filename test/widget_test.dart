@@ -688,7 +688,7 @@ void main() {
 
 Future<void> _pumpApp(
   WidgetTester tester, {
-  List<Override> overrides = const [],
+  List<dynamic> overrides = const [],
 }) async {
   final database = AppDatabase.forTesting(NativeDatabase.memory());
   await tester.pumpWidget(
