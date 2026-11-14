@@ -27,21 +27,46 @@ void main() {
     expect(find.byKey(const Key('open-calculator')), findsOneWidget);
   });
 
-  testWidgets('global calculator is available and returns a result', (tester) async {
+  testWidgets('global calculator evaluates expressions and returns a safe result', (tester) async {
     await tester.pumpWidget(const ProviderScope(child: MyApp()));
     await tester.tap(find.byKey(const Key('open-calculator')));
     await tester.pumpAndSettle();
 
-    final fields = find.byType(TextField);
-    await tester.enterText(fields.at(0), '12');
-    await tester.enterText(fields.at(1), '30');
-    await tester.tap(find.text('احسب'));
+    await tester.enterText(
+      find.byKey(const Key('calculator-expression')),
+      '(12 + 30) × 2',
+    );
+    await tester.tap(find.byKey(const Key('calculator-key-equals')));
     await tester.pumpAndSettle();
 
-    expect(find.text('النتيجة: 42'), findsOneWidget);
+    expect(find.text('84'), findsOneWidget);
     await tester.tap(find.text('استخدام النتيجة'));
     await tester.pumpAndSettle();
-    expect(find.text('النتيجة: 42'), findsOneWidget);
+    expect(find.text('النتيجة: 84'), findsOneWidget);
+  });
+
+  testWidgets('financial calculator calculates percentages in minor units', (tester) async {
+    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await tester.tap(find.byKey(const Key('open-calculator')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('calculator-financial-mode')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('calculator-financial-amount')),
+      '75000',
+    );
+    await tester.enterText(
+      find.byKey(const Key('calculator-financial-percentage')),
+      '10',
+    );
+    await tester.tap(find.byKey(const Key('calculator-financial-calculate')));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('7500'), findsOneWidget);
+    await tester.tap(find.text('استخدام النتيجة'));
+    await tester.pumpAndSettle();
+    expect(find.text('النتيجة: 7500'), findsOneWidget);
   });
 
   testWidgets('settings can switch theme and language', (tester) async {
