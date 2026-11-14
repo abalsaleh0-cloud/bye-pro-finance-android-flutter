@@ -240,13 +240,17 @@ class _AmountCalculatorDialogState extends State<_AmountCalculatorDialog> {
   @override
   Widget build(BuildContext context) {
     final strings = widget.strings;
+    final screenSize = MediaQuery.sizeOf(context);
+    final dialogWidth = (screenSize.width - 80).clamp(0.0, 440.0).toDouble();
+
     return AlertDialog(
       title: Text(strings.calculator),
       content: SizedBox(
-        width: 440,
-        height: MediaQuery.of(context).size.height * 0.55,
-        child: SingleChildScrollView(
-          child: Column(
+        width: dialogWidth,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: screenSize.height * 0.68),
+          child: SingleChildScrollView(
+            child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -378,6 +382,7 @@ class _AmountCalculatorDialogState extends State<_AmountCalculatorDialog> {
               ),
             ],
           ],
+            ),
           ),
         ),
       ),
