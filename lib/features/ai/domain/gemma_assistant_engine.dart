@@ -150,9 +150,9 @@ final class GemmaAssistantEngine implements AssistantEngine {
   static String _composePrompt(String currentText, String conversationContext) {
     final context = conversationContext.trim();
     if (context.isEmpty) return currentText;
-    return 'سياق المحادثة السابق للرجوع إليه لفهم الإحالات واستكمال الحوار فقط:\\n'
-        '$context\\n\\n'
-        'رسالة المستخدم الحالية:\\n$currentText';
+    return 'سياق المحادثة السابق للرجوع إليه لفهم الإحالات واستكمال الحوار فقط:\n'
+        '$context\n\n'
+        'رسالة المستخدم الحالية:\n$currentText';
   }
 
   GemmaFunctionSpec _functionFor(ActionDescriptor descriptor) {
