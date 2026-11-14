@@ -1,5 +1,5 @@
 import 'package:expense_app/core/database/database_providers.dart';
-import 'package:expense_app/core/time/month_key.dart';
+import 'package:expense_app/core/time/selected_month_provider.dart';
 import 'package:expense_app/features/dashboard/domain/monthly_overview.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,6 +15,7 @@ class DashboardScreen extends ConsumerWidget {
     final home = ref.watch(homeExpensesProvider);
     final transfers = ref.watch(workTransfersProvider);
     final debts = ref.watch(debtsProvider);
+    final month = ref.watch(selectedMonthProvider);
 
     if (work.isLoading ||
         home.isLoading ||
@@ -29,8 +30,6 @@ class DashboardScreen extends ConsumerWidget {
       return Scaffold(body: Center(child: Text(strings.dataError)));
     }
 
-    final now = DateTime.now();
-    final month = MonthKey(year: now.year, month: now.month);
     final overview = MonthlyOverview.calculate(
       month: month,
       workEntries: work.value ?? const [],
