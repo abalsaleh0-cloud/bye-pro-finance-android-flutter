@@ -228,6 +228,30 @@ void main() {
       }), isNull);
     });
 
+    test('normalizes the assistant payment alias to a salary payment record', () async {
+      final now = DateTime.now();
+      await registry.execute('save_work_entry', {
+        'kind': 'salary',
+        'amountMinorUnits': 1500,
+        'year': now.year,
+        'month': now.month,
+      });
+
+      final result = await registry.execute('save_work_entry', {
+        'kind': 'payment',
+        'amountMinorUnits': 1000,
+        'year': now.year,
+        'month': now.month,
+      });
+
+      final saved = await WorkRepository(database).watchEntries().first;
+      final payment = saved.singleWhere(
+        (entry) => entry.kind == WorkEntryKind.salaryPayment,
+      );
+      expect(payment.amount.minorUnits, 1000);
+      expect(result.message, 'تم حفظ سجل العمل');
+    });
+
     test('creates and undoes work entry', () async {
       final result = await registry.execute('save_work_entry', {
         'kind':'salary','amountMinorUnits':1000,'year':2026,'month':11,
