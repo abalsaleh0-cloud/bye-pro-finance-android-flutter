@@ -212,6 +212,11 @@ final class FakeAssistantEngine implements AssistantEngine {
       'زيد',
       'سجل',
       'سجلي',
+      'سجلت',
+      'سجللي',
+      'ضفت',
+      'ضيفلي',
+      'أضفت',
       'احفظ',
       'ادخل',
       'دخل',
@@ -233,7 +238,9 @@ final class FakeAssistantEngine implements AssistantEngine {
 
     final receiptVerb = has(const [
       'استلمت',
+      'استلم',
       'قبضت',
+      'قبض',
       'وصلني',
       'وصلتني',
       'نزل بحسابي',
@@ -244,6 +251,22 @@ final class FakeAssistantEngine implements AssistantEngine {
       'received',
       'got paid',
     ]);
+
+    final isQuestion = has(const [
+      'هل',
+      'كم',
+      'قديش',
+      'شكد',
+      'متى',
+      'وين',
+      'شو',
+      'ما هو',
+      'ما هي',
+      'what',
+      'when',
+      'where',
+      'how',
+    ]) || input.contains('؟') || input.contains('?');
 
     final amount = _input.extractAmount(effectiveInput);
     final requestedMonth = _input.extractMonth(input);
@@ -261,7 +284,7 @@ final class FakeAssistantEngine implements AssistantEngine {
       'للبيت',
       'transfer',
     ]) && has(const ['المنزل', 'البيت', 'للبيت', 'للمنزل', 'home']);
-    if (isTransfer) {
+    if (isTransfer && (writeVerb || (!isQuestion && !readVerb))) {
       if (amount == null) {
         return const AssistantResult.clarification('كم مبلغ التحويل؟');
       }
@@ -307,7 +330,7 @@ final class FakeAssistantEngine implements AssistantEngine {
       'paycheck',
     ]);
 
-    if ((writeVerb || receiptVerb) && (isSalary || isAdvance || isPayment)) {
+    if ((writeVerb || (receiptVerb && !isQuestion)) && (isSalary || isAdvance || isPayment)) {
       if (amount == null) {
         return const AssistantResult.clarification('ما المبلغ المطلوب تسجيله؟');
       }
@@ -350,7 +373,7 @@ final class FakeAssistantEngine implements AssistantEngine {
       'اشتراك',
       'bill',
     ]);
-    if ((writeVerb || receiptVerb) && (isRent || isBill)) {
+    if ((writeVerb || (receiptVerb && !isQuestion)) && (isRent || isBill)) {
       if (amount == null) {
         return const AssistantResult.clarification(
           'ما قيمة الفاتورة أو الإيجار؟',
@@ -394,7 +417,7 @@ final class FakeAssistantEngine implements AssistantEngine {
       'expense',
       'groceries',
     ]);
-    if ((writeVerb || receiptVerb) && isHomeExpense) {
+    if ((writeVerb || (receiptVerb && !isQuestion)) && isHomeExpense) {
       if (amount == null) {
         return const AssistantResult.clarification('كم قيمة مصروف المنزل؟');
       }
@@ -549,7 +572,7 @@ final class FakeAssistantEngine implements AssistantEngine {
     if (has(const ['الديون', 'الدين', 'ديوني', 'المبالغ المستحقة', 'debts'])) {
       return 'read_debts';
     }
-    if (has(const ['سجلات العمل', 'الرواتب', 'الراتب', 'السلف', 'الدفعات', 'work records'])) {
+    if (has(const ['سجلات العمل', 'الرواتب', 'الراتب', 'السلف', 'الدفعات', 'راتبي', 'معاشي', 'work records'])) {
       return 'read_work_records';
     }
     return null;
