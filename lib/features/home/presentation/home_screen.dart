@@ -66,6 +66,139 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     };
   }
 
+
+  Future<String?> _askCategoryName(
+    BuildContext context,
+    AppLocalizations strings, {
+    String initialName = '',
+  }) async {
+    final controller = TextEditingController(text: initialName);
+    try {
+      return await showDialog<String>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(initialName.isEmpty ? strings.addCategory : strings.editCategory),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: InputDecoration(labelText: strings.categoryName),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(strings.cancel),
+            ),
+            FilledButton(
+              onPressed: () {
+                final name = controller.text.trim();
+                if (name.isNotEmpty) Navigator.pop(dialogContext, name);
+              },
+              child: Text(strings.save),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      controller.dispose();
+    }
+  }
+
+  Future<void> _manageCategories(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations strings,
+  ) async {
+    var categories = await ref.read(homeExpenseCategoriesProvider.future);
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(strings.manageCategories),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: [
+                      for (final category in categories)
+                        ListTile(
+                          dense: true,
+                          title: Text(_categoryLabel(strings, category)),
+                          trailing: IconButton(
+                            tooltip: strings.editCategory,
+                            icon: const Icon(Icons.edit_outlined),
+                            onPressed: () async {
+                              final name = await _askCategoryName(
+                                context,
+                                strings,
+                                initialName: category.name.isEmpty
+                                    ? _categoryLabel(strings, category)
+                                    : category.name,
+                              );
+                              if (name == null) return;
+                              try {
+                                await ref.read(homeExpenseCategoryRepositoryProvider)
+                                    .save(category.copyWith(name: name));
+                                ref.invalidate(homeExpenseCategoriesProvider);
+                                final refreshed = await ref.read(homeExpenseCategoriesProvider.future);
+                                setState(() => categories = refreshed);
+                              } catch (_) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text(strings.duplicateCategory)),
+                                  );
+                                }
+                              }
+                            },
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: TextButton.icon(
+                    onPressed: () async {
+                      final name = await _askCategoryName(context, strings);
+                      if (name == null) return;
+                      final category = HomeExpenseCategory(
+                        id: 'custom-${DateTime.now().microsecondsSinceEpoch}',
+                        name: name,
+                      );
+                      try {
+                        await ref.read(homeExpenseCategoryRepositoryProvider).save(category);
+                        ref.invalidate(homeExpenseCategoriesProvider);
+                        final refreshed = await ref.read(homeExpenseCategoriesProvider.future);
+                        setState(() => categories = refreshed);
+                      } catch (_) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(strings.duplicateCategory)),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.add),
+                    label: Text(strings.addCategory),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(strings.cancel),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _editExpense(
     BuildContext context,
     WidgetRef ref,
@@ -112,7 +245,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   DropdownButtonFormField<String>(
                     initialValue: selectedCategoryId,
-                    decoration: InputDecoration(labelText: strings.category),
+                    decoration: InputDecoration(
+                      labelText: strings.category,
+                      suffixIcon: IconButton(
+                        tooltip: strings.manageCategories,
+                        icon: const Icon(Icons.tune),
+                        onPressed: () async {
+                          await _manageCategories(context, ref, strings);
+                          final refreshed = await ref.refresh(homeExpenseCategoriesProvider.future);
+                          setDialogState(() {
+                            categories = [
+                              ...refreshed,
+                              if (existing != null &&
+                                  !refreshed.any((item) => item.id == existing.categoryId))
+                                HomeExpenseCategory(id: existing.categoryId, name: existing.categoryId),
+                            ];
+                            if (!categories.any((item) => item.id == selectedCategoryId)) {
+                              selectedCategoryId = categories.first.id;
+                            }
+                          });
+                        },
+                      ),
+                    ),
                     items: categories.map((item) => DropdownMenuItem(
                       value: item.id,
                       child: Text(_categoryLabel(strings, item)),
