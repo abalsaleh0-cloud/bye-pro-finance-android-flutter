@@ -5,6 +5,8 @@ import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
 import 'package:expense_app/features/work/domain/work_entry.dart';
 import 'package:expense_app/features/home/domain/home_bill.dart';
+import 'package:expense_app/features/home/domain/home_expense.dart';
+import 'package:expense_app/features/work/domain/work_home_transfer.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
@@ -167,6 +169,53 @@ void main() {
 
     expect(find.text('فاتورة اختبار'), findsOneWidget);
     expect(find.textContaining('ملاحظة فاتورة مباشرة'), findsOneWidget);
+  });
+
+
+  testWidgets('home summary displays the exact remaining balance after rent and daily expenses', (tester) async {
+    final now = DateTime.now();
+    final month = MonthKey(year: now.year, month: now.month);
+    final expense = HomeExpense(
+      id: 'widget-home-expense-balance',
+      amount: Money.fromMinorUnits(150),
+      categoryId: 'groceries',
+      expenseDate: now,
+      dueMonth: month,
+    );
+    final transfer = WorkHomeTransfer(
+      id: 'widget-home-transfer-balance',
+      amount: Money.fromMinorUnits(750),
+      transferredAt: now,
+    );
+    final rent = HomeBill(
+      id: 'widget-home-rent-balance',
+      title: 'إيجار المنزل للاختبار',
+      kind: HomeBillKind.rent,
+      amount: Money.fromMinorUnits(580),
+      dueMonth: month,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          homeExpensesProvider.overrideWith((ref) => Stream.value([expense])),
+          workTransfersProvider.overrideWith((ref) => Stream.value([transfer])),
+          homeBillsProvider.overrideWith((ref) async => [rent]),
+          homeBillPaymentsForMonthProvider.overrideWith((ref, selected) async => 0),
+          selectedMonthProvider.overrideWith(
+            () => _FixedSelectedMonthNotifier(month),
+          ),
+        ],
+        child: const MyApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('المنزل').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('الرصيد المتاح في المنزل'), findsOneWidget);
+    expect(find.text('20'), findsOneWidget);
   });
 
 }
