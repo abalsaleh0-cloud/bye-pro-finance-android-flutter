@@ -51,7 +51,6 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
       switch (kind) {
         WorkEntryKind.salary => strings.salary,
         WorkEntryKind.advance => strings.advance,
-        WorkEntryKind.payment => strings.payment,
         WorkEntryKind.salaryPayment => strings.payment,
       };
 
@@ -76,7 +75,6 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
       WorkEntryKind.salary,
       WorkEntryKind.advance,
       WorkEntryKind.salaryPayment,
-      if (existing?.kind == WorkEntryKind.payment) WorkEntryKind.payment,
     ];
     String? error;
     try {
