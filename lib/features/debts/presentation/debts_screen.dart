@@ -57,8 +57,8 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
     String? error;
     try {
       await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
+        context: context,
+        builder: (dialogContext) => StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
             title: Text(
               existing == null ? strings.addDebt : strings.editRecord,
@@ -220,9 +220,10 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
     final paidTime = TextEditingController(text: paymentTime.format(context));
     final note = TextEditingController();
     String? error;
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
+    try {
+      final dialogRoute = DialogRoute<void>(
+        context: context,
+        builder: (dialogContext) => StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
             title: Text(strings.recordDebtPayment),
             content: SingleChildScrollView(
@@ -332,6 +333,14 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
           ),
         ),
       );
+      await Navigator.of(context).push(dialogRoute);
+      await dialogRoute.completed;
+    } finally {
+      amount.dispose();
+      paidAt.dispose();
+      paidTime.dispose();
+      note.dispose();
+    }
   }
 
   Future<void> _deleteDebt(
