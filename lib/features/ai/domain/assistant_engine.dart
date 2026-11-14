@@ -174,6 +174,11 @@ final class FakeAssistantEngine implements AssistantEngine {
     final remainingQuestion = has(const [
       'الباقي',
       'المتبقي',
+      'الباقي عندي',
+      'المتبقي عندي',
+      'كم بقي عندي',
+      'قديش ضل عندي',
+      'قديش باقي عندي',
       'شو ضل',
       'كم بقي',
       'قديش بقي',
