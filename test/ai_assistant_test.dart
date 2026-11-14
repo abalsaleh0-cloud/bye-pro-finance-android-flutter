@@ -250,6 +250,20 @@ void main() {
       );
       expect(payment.amount.minorUnits, 1000);
       expect(result.message, 'تم حفظ سجل العمل');
+
+      final summary = await registry.execute('read_dashboard_summary', {});
+      expect(
+        summary.dashboardSummary!.overview.salary.minorUnits,
+        1500,
+      );
+      expect(
+        summary.dashboardSummary!.overview.payments.minorUnits,
+        1000,
+      );
+      expect(
+        summary.dashboardSummary!.overview.currentSalaryOutstandingMinorUnits,
+        500,
+      );
     });
 
     test('creates and undoes work entry', () async {
