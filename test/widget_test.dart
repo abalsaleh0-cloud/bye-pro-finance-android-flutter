@@ -27,21 +27,57 @@ void main() {
     expect(find.byKey(const Key('open-calculator')), findsOneWidget);
   });
 
-  testWidgets('global calculator is available and returns a result', (tester) async {
+  testWidgets('global calculator evaluates expressions and returns a safe result', (tester) async {
     await tester.pumpWidget(const ProviderScope(child: MyApp()));
     await tester.tap(find.byKey(const Key('open-calculator')));
     await tester.pumpAndSettle();
 
-    final fields = find.byType(TextField);
-    await tester.enterText(fields.at(0), '12');
-    await tester.enterText(fields.at(1), '30');
-    await tester.tap(find.text('احسب'));
+    for (final key in ['(', '1', '2', '+', '3', '0', ')', '×', '2']) {
+      final keypadButton = find.byKey(Key('calculator-key-$key'));
+      await tester.ensureVisible(keypadButton);
+      await tester.pumpAndSettle();
+      await tester.tap(keypadButton);
+      await tester.pumpAndSettle();
+    }
+    final equalsButton = find.byKey(const Key('calculator-key-equals'));
+    await tester.ensureVisible(equalsButton);
+    await tester.pumpAndSettle();
+    await tester.tap(equalsButton);
     await tester.pumpAndSettle();
 
-    expect(find.text('النتيجة: 42'), findsOneWidget);
+    expect(tester.widget<SelectableText>(find.byKey(const Key('calculator-result'))).data, '84');
     await tester.tap(find.text('استخدام النتيجة'));
     await tester.pumpAndSettle();
-    expect(find.text('النتيجة: 42'), findsOneWidget);
+    expect(find.text('النتيجة: 84'), findsOneWidget);
+  });
+
+  testWidgets('financial calculator calculates percentages in minor units', (tester) async {
+    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await tester.tap(find.byKey(const Key('open-calculator')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('calculator-financial-mode')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('calculator-financial-amount')),
+      '75000',
+    );
+    await tester.enterText(
+      find.byKey(const Key('calculator-financial-percentage')),
+      '10',
+    );
+    final calculateButton = find.byKey(
+      const Key('calculator-financial-calculate'),
+    );
+    await tester.ensureVisible(calculateButton);
+    await tester.pumpAndSettle();
+    await tester.tap(calculateButton);
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<SelectableText>(find.byKey(const Key('calculator-result'))).data, 'النتيجة: 7500');
+    await tester.tap(find.text('استخدام النتيجة'));
+    await tester.pumpAndSettle();
+    expect(find.text('النتيجة: 7500'), findsOneWidget);
   });
 
   testWidgets('settings can switch theme and language', (tester) async {
