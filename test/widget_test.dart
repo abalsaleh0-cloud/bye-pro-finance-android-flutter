@@ -168,6 +168,12 @@ void main() {
     await _pumpApp(
       tester,
       overrides: [
+          homeBillOutstandingAsOfMonthProvider.overrideWith(
+            (ref, selected) async => 0,
+          ),
+          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
+          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
+
           workEntriesProvider.overrideWith(
             (ref) => Stream.value([previousWorkEntry]),
           ),
@@ -184,7 +190,7 @@ void main() {
           selectedMonthProvider.overrideWith(
             () => _FixedSelectedMonthNotifier(currentMonth),
           ),
-      ],
+        ],
     );
     await tester.pumpAndSettle();
 
@@ -237,6 +243,12 @@ void main() {
     await _pumpApp(
       tester,
       overrides: [
+          homeBillOutstandingAsOfMonthProvider.overrideWith(
+            (ref, selected) async => 0,
+          ),
+          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
+          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
+
           workEntriesProvider.overrideWith((ref) => Stream.value([])),
           workTransfersProvider.overrideWith((ref) => Stream.value([])),
           homeExpensesProvider.overrideWith((ref) => Stream.value([])),
@@ -249,7 +261,7 @@ void main() {
           selectedMonthProvider.overrideWith(
             () => _FixedSelectedMonthNotifier(currentMonth),
           ),
-      ],
+        ],
     );
     await tester.pumpAndSettle();
 
@@ -284,6 +296,12 @@ void main() {
     await _pumpApp(
       tester,
       overrides: [
+          homeBillOutstandingAsOfMonthProvider.overrideWith(
+            (ref, selected) async => 0,
+          ),
+          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
+          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
+
           workEntriesProvider.overrideWith((ref) => Stream.value([])),
           workTransfersProvider.overrideWith((ref) => Stream.value([])),
           homeExpensesProvider.overrideWith((ref) => Stream.value([])),
@@ -296,7 +314,7 @@ void main() {
           selectedMonthProvider.overrideWith(
             () => _FixedSelectedMonthNotifier(currentMonth),
           ),
-      ],
+        ],
     );
     await tester.pumpAndSettle();
 
@@ -332,6 +350,12 @@ void main() {
     await _pumpApp(
       tester,
       overrides: [
+          homeBillOutstandingAsOfMonthProvider.overrideWith(
+            (ref, selected) async => 0,
+          ),
+          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
+          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
+
           workEntriesProvider.overrideWith((ref) => Stream.value([])),
           workTransfersProvider.overrideWith((ref) => Stream.value([])),
           homeExpensesProvider.overrideWith((ref) => Stream.value([])),
@@ -346,7 +370,7 @@ void main() {
           selectedMonthProvider.overrideWith(
             () => _FixedSelectedMonthNotifier(previousMonth),
           ),
-      ],
+        ],
     );
     await tester.pumpAndSettle();
 
@@ -377,13 +401,19 @@ void main() {
     await _pumpApp(
       tester,
       overrides: [
+          homeBillOutstandingAsOfMonthProvider.overrideWith(
+            (ref, selected) async => 0,
+          ),
+          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
+          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
+
           workEntriesProvider.overrideWith((ref) => Stream.value([entry])),
           selectedMonthProvider.overrideWith(
             () => _FixedSelectedMonthNotifier(
               MonthKey(year: now.year, month: now.month),
             ),
           ),
-      ],
+        ],
     );
     await tester.pumpAndSettle();
 
@@ -410,11 +440,17 @@ void main() {
     await _pumpApp(
       tester,
       overrides: [
+          homeBillOutstandingAsOfMonthProvider.overrideWith(
+            (ref, selected) async => 0,
+          ),
+          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
+          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
+
           homeBillsProvider.overrideWith((ref) async => [bill]),
           selectedMonthProvider.overrideWith(
             () => _FixedSelectedMonthNotifier(month),
           ),
-      ],
+        ],
     );
     await tester.pumpAndSettle();
 
@@ -454,6 +490,12 @@ void main() {
     await _pumpApp(
       tester,
       overrides: [
+          homeBillOutstandingAsOfMonthProvider.overrideWith(
+            (ref, selected) async => 580,
+          ),
+          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
+          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
+
           homeExpensesProvider.overrideWith((ref) => Stream.value([expense])),
           workTransfersProvider.overrideWith((ref) => Stream.value([transfer])),
           homeBillsProvider.overrideWith((ref) async => [rent]),
@@ -461,7 +503,7 @@ void main() {
           selectedMonthProvider.overrideWith(
             () => _FixedSelectedMonthNotifier(month),
           ),
-      ],
+        ],
     );
     await tester.pumpAndSettle();
 
@@ -496,18 +538,29 @@ void main() {
     await _pumpApp(
       tester,
       overrides: [
+          homeBillOutstandingAsOfMonthProvider.overrideWith(
+            (ref, selected) async => 0,
+          ),
+          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
+          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
+
           workEntriesProvider.overrideWith((ref) => Stream.value([selectedSalary, currentSalary])),
           workTransfersProvider.overrideWith((ref) => Stream.value([])),
           homeExpensesProvider.overrideWith((ref) => Stream.value([])),
           debtsProvider.overrideWith((ref) => Stream.value([])),
+          homeBillsProvider.overrideWith((ref) async => []),
+          homeBillPaymentsForMonthProvider.overrideWith((ref, selected) async => 0),
           selectedMonthProvider.overrideWith(
             () => _FixedSelectedMonthNotifier(previousMonth),
           ),
-      ],
+        ],
     );
     await tester.pumpAndSettle();
 
-    expect(find.text(previousMonth.toString()), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const Key('dashboard-selected-month-label'))).data,
+      previousMonth.toString(),
+    );
     expect(find.text('321'), findsWidgets);
     expect(find.text('999'), findsNothing);
   });
@@ -528,11 +581,17 @@ void main() {
     await _pumpApp(
       tester,
       overrides: [
+          homeBillOutstandingAsOfMonthProvider.overrideWith(
+            (ref, selected) async => 0,
+          ),
+          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
+          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
+
           homeBillsProvider.overrideWith((ref) async => [bill]),
           selectedMonthProvider.overrideWith(
             () => _FixedSelectedMonthNotifier(month),
           ),
-      ],
+        ],
     );
     await tester.pumpAndSettle();
 
@@ -565,6 +624,12 @@ void main() {
     await _pumpApp(
       tester,
       overrides: [
+          homeBillOutstandingAsOfMonthProvider.overrideWith(
+            (ref, selected) async => 0,
+          ),
+          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
+          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
+
           workEntriesProvider.overrideWith((ref) => Stream.value([])),
           workTransfersProvider.overrideWith((ref) => Stream.value([])),
           homeExpensesProvider.overrideWith((ref) => Stream.value([])),
@@ -579,7 +644,7 @@ void main() {
           selectedMonthProvider.overrideWith(
             () => _FixedSelectedMonthNotifier(previousMonth),
           ),
-      ],
+        ],
     );
     await tester.pumpAndSettle();
 
@@ -648,64 +713,6 @@ void main() {
     await _pumpApp(
       tester,
       overrides: [
-          workEntriesProvider.overrideWith((ref) => Stream.value([])),
-          workTransfersProvider.overrideWith((ref) => Stream.value([])),
-          homeExpensesProvider.overrideWith((ref) => Stream.value([])),
-          homeExpenseCategoriesProvider.overrideWith(
-            (ref) async => HomeExpenseCategory.defaults,
-          ),
-          homeBillsProvider.overrideWith((ref) async => []),
-          homeBillPaymentsForMonthProvider.overrideWith(
-            (ref, selected) async => 0,
-          ),
-          debtsProvider.overrideWith((ref) => Stream.value([debt])),
-          debtPaymentsProvider.overrideWith(
-            (ref, debtId) => Stream.value(
-              debtId == debt.id ? [payment] : const <DebtPayment>[],
-            ),
-          ),
-          selectedMonthProvider.overrideWith(
-            () => _FixedSelectedMonthNotifier(month),
-          ),
-      ],
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('الديون').last);
-    await tester.pumpAndSettle();
-    expect(find.textContaining('الوقت:'), findsOneWidget);
-
-    await tester.tap(find.text('تسجيل دفعة').last);
-    await tester.pumpAndSettle();
-    expect(find.text('الوقت'), findsOneWidget);
-    expect(find.byTooltip('الوقت'), findsOneWidget);
-    await tester.tap(find.text('إلغاء').last);
-    await tester.pumpAndSettle();
-  });
-
-
-  testWidgets('debt payment form exposes time selection and history shows time', (tester) async {
-    final now = DateTime.now();
-    final month = MonthKey(year: now.year, month: now.month);
-    final debt = DebtEntry(
-      id: 'widget-debt-payment-time',
-      direction: DebtDirection.debtor,
-      originalAmount: Money.fromMinorUnits(500),
-      outstandingAmount: Money.fromMinorUnits(400),
-      dueMonth: month,
-      createdAt: now,
-      counterparty: 'دين اختبار الوقت',
-    );
-    final payment = DebtPayment(
-      id: 'widget-debt-payment-time-record',
-      debtId: debt.id,
-      amount: Money.fromMinorUnits(100),
-      paidAt: DateTime(now.year, now.month, now.day, 14, 35),
-    );
-
-    await _pumpApp(
-      tester,
-      overrides: [
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -731,7 +738,7 @@ void main() {
           selectedMonthProvider.overrideWith(
             () => _FixedSelectedMonthNotifier(month),
           ),
-      ],
+        ],
     );
     await tester.pumpAndSettle();
 
@@ -769,6 +776,7 @@ Future<void> _pumpApp(
     await database.close();
   });
 }
+
 
 class _FixedSelectedMonthNotifier extends SelectedMonthNotifier {
   _FixedSelectedMonthNotifier(this.month);
