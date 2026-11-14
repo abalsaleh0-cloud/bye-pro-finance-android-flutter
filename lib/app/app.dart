@@ -2,7 +2,6 @@ import 'package:expense_app/core/providers/app_settings_provider.dart';
 import 'package:expense_app/core/router/app_router.dart';
 import 'package:expense_app/core/theme/app_theme.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
-import 'package:flutter_localizations/flutter_localizations.dart' as flutter_localizations;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -24,9 +23,7 @@ class MyApp extends ConsumerWidget {
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: [
         AppLocalizations.delegate,
-        flutter_localizations.GlobalMaterialLocalizations.delegate,
-        flutter_localizations.GlobalWidgetsLocalizations.delegate,
-        flutter_localizations.GlobalCupertinoLocalizations.delegate,
+        ...GlobalMaterialLocalizations.delegates,
       ],
       builder: (context, child) => Directionality(
         textDirection: TextDirection.rtl,
