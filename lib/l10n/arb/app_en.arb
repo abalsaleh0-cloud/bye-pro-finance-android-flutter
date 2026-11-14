@@ -160,7 +160,7 @@
   "aiSpeechFailed": "Speech recognition failed.",
   "aiVoiceRepliesOn": "Turn off spoken replies",
   "aiVoiceRepliesOff": "Turn on spoken replies",
-  "aiArabicTtsUnavailable": "No offline Arabic voice is available. Install an Arabic offline voice in your text-to-speech settings."
+  "aiArabicTtsUnavailable": "No offline Arabic voice is available. Install an Arabic offline voice in your text-to-speech settings.",
   "aiStopRecording": "Stop recording",
   "aiRecording": "Recording audio…",
   "aiRemoveAttachment": "Remove attachment",
