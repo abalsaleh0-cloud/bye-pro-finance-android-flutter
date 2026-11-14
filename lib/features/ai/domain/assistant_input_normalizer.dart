@@ -91,6 +91,13 @@ final class AssistantInputNormalizer {
       ' ',
     );
 
+    value = value.replaceAll(
+      RegExp(
+        r'(?:شهر|الشهر)\\s+(?:0?[1-9]|1[0-2])(?:\\s+(?:لسنة|سنة|عام)\\s+20\\d{2})?',
+      ),
+      ' ',
+    );
+
     final numeric = RegExp(
       r'(?<![A-Za-z\u0600-\u06FF])([0-9]+(?:[,٬،][0-9]{3})*)(?![A-Za-z\u0600-\u06FF])',
     ).firstMatch(value);
