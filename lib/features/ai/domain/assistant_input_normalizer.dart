@@ -231,6 +231,8 @@ final class AssistantInputNormalizer {
       'شهر فات',
       'الشهر الذي فات',
       'قبل شهر',
+      'last month',
+      'previous month',
     ])) {
       final previous = DateTime(now.year, now.month - 1);
       return (previous.year, previous.month);
@@ -260,6 +262,8 @@ final class AssistantInputNormalizer {
       'الشهر الجاري',
       'الشهر الحاليه',
       'الشهر الحاضر',
+      'this month',
+      'current month',
     ])) {
       return (now.year, now.month);
     }
