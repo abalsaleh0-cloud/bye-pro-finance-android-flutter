@@ -528,27 +528,26 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                               ),
                             ],
                           ),
-                          ExpansionTile(
-                            key: Key('debt-payment-history-${debt.id}'),
-                            tilePadding: EdgeInsets.zero,
-                            childrenPadding: EdgeInsets.zero,
-                            title: Text(
-                              strings.paymentHistory,
-                              style: Theme.of(context).textTheme.titleSmall,
-                            ),
-                            children: [
-                              Consumer(
-                                builder: (context, ref, child) {
-                                  final payments = ref.watch(
-                                    debtPaymentsProvider(debt.id),
-                                  );
-                                  return payments.when(
+                          Consumer(
+                            builder: (context, ref, child) {
+                              final payments = ref.watch(
+                                debtPaymentsProvider(debt.id),
+                              );
+                              return ExpansionTile(
+                                key: Key('debt-payment-history-${debt.id}'),
+                                tilePadding: EdgeInsets.zero,
+                                childrenPadding: EdgeInsets.zero,
+                                title: Text(
+                                  strings.paymentHistory,
+                                  style: Theme.of(context).textTheme.titleSmall,
+                                ),
+                                children: [
+                                  payments.when(
                                     loading: () => Padding(
                                       padding: const EdgeInsets.all(12),
                                       child: Text(strings.loading),
                                     ),
-                                    error: (error, stackTrace) =>
-                                        Padding(
+                                    error: (error, stackTrace) => Padding(
                                       padding: const EdgeInsets.all(12),
                                       child: Text(strings.dataError),
                                     ),
@@ -586,10 +585,10 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                                                 ),
                                             ],
                                           ),
-                                  );
-                                },
-                              ),
-                            ],
+                                  ),
+                                ],
+                              );
+                            },
                           ),
                         ],
                       ),
