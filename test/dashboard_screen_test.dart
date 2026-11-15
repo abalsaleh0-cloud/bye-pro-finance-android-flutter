@@ -113,6 +113,7 @@ void main() {
       '20',
     );
     expect(find.text('الصورة المالية'), findsOneWidget);
+    expect(find.text('إجراءات سريعة'), findsNothing);
     await tester.drag(
       find.byKey(const Key('dashboard-content')),
       const Offset(0, -2400),
