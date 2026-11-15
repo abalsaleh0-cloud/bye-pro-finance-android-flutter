@@ -353,6 +353,25 @@ class AppTheme {
           fontWeight: FontWeight.w700,
         ),
       ),
+      datePickerTheme: DatePickerThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(tokens.dialogRadius),
+          side: border,
+        ),
+      ),
+      timePickerTheme: TimePickerThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(tokens.dialogRadius),
+          side: border,
+        ),
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: scheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(tokens.dialogRadius),
+          side: border,
+        ),
+      ),
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: scheme.surface,
         surfaceTintColor: Colors.transparent,
