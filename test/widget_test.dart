@@ -794,6 +794,7 @@ void main() {
       const Key('debt-payment-history-widget-debt-payment-time'),
     );
     await tester.ensureVisible(paymentHistory);
+    await tester.pumpAndSettle();
     await tester.tap(paymentHistory);
     await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsOneWidget);
