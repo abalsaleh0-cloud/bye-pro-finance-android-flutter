@@ -82,7 +82,8 @@ class MonthSelector extends StatelessWidget {
         ),
       ),
     );
-  }}
+  }
+}
 
 class SummaryMetricData {
   const SummaryMetricData({
@@ -108,27 +109,13 @@ class SummaryMetricGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns = metrics.length == 1
-            ? 1
-            : constraints.maxWidth >= 560
-                ? 3
-                : 2;
-        final width = (constraints.maxWidth - (columns - 1) * 10) / columns;
-
-        return Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: [
-            for (final metric in metrics)
-              SizedBox(
-                width: width,
-                child: _SummaryMetricTile(metric: metric),
-              ),
-          ],
-        );
-      },
+    return Column(
+      children: [
+        for (var index = 0; index < metrics.length; index++) ...[
+          if (index > 0) const SizedBox(height: 10),
+          _SummaryMetricTile(metric: metrics[index]),
+        ],
+      ],
     );
   }
 }
@@ -147,13 +134,13 @@ class _SummaryMetricTile extends StatelessWidget {
         metric.emphasized ? scheme.onPrimaryContainer : scheme.onSurface;
 
     return Container(
-      constraints: const BoxConstraints(minHeight: 104),
+      constraints: const BoxConstraints(minHeight: 96),
       padding: EdgeInsets.all(tokens.cardPadding - 2),
       decoration: BoxDecoration(
         color: metric.emphasized
             ? scheme.primaryContainer
             : scheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(tokens.controlRadius + 2),
+        borderRadius: BorderRadius.circular(tokens.cardRadius),
         border: Border.all(
           color: metric.emphasized
               ? scheme.primaryContainer
