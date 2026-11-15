@@ -22,16 +22,13 @@ CustomTransitionPage<void> _sectionPage({
   return CustomTransitionPage<void>(
     key: state.pageKey,
     child: child,
-    transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      final offset = Tween<Offset>(
-        begin: const Offset(0.025, 0),
-        end: Offset.zero,
-      ).animate(animation);
-      return FadeTransition(
-        opacity: animation,
-        child: SlideTransition(position: offset, child: child),
-      );
-    },
+    // Tab destinations are kept alive by StatefulShellRoute.indexedStack.
+    // Zero-duration branch transitions avoid an inactive fade/ignore-pointer
+    // snapshot intercepting taps on the newly selected destination.
+    transitionDuration: Duration.zero,
+    reverseTransitionDuration: Duration.zero,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+        child,
   );
 }
 
