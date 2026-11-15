@@ -10,12 +10,14 @@ class MonthSelector extends StatelessWidget {
     required this.selectedMonth,
     required this.availableMonths,
     required this.onChanged,
+    this.trailing,
   });
 
   final Key pickerKey;
   final MonthKey selectedMonth;
   final List<MonthKey> availableMonths;
   final ValueChanged<MonthKey> onChanged;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -78,6 +80,10 @@ class MonthSelector extends StatelessWidget {
                 },
               ),
             ),
+            if (trailing != null) ...[
+              const SizedBox(width: 4),
+              trailing!,
+            ],
           ],
         ),
       ),
