@@ -34,6 +34,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get darkTheme => 'Dark mode';
 
   @override
+  String get appearancePreset => 'Color identity';
+
+  @override
+  String get appearanceDescription => 'Choose a consistent color palette for every app screen.';
+
+  @override
+  String get themeNavyGold => 'Navy & Gold';
+
+  @override
+  String get themeEmerald => 'Emerald';
+
+  @override
+  String get themeGraphite => 'Graphite';
+
+  @override
+  String get displayDensity => 'Display density';
+
+  @override
+  String get densityComfortable => 'Comfortable';
+
+  @override
+  String get densityCompact => 'Compact';
+
+  @override
   String get language => 'Language';
 
   @override

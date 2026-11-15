@@ -146,6 +146,54 @@ abstract class AppLocalizations {
   /// **'الوضع الداكن'**
   String get darkTheme;
 
+  /// No description provided for @appearancePreset.
+  ///
+  /// In ar, this message translates to:
+  /// **'هوية الألوان'**
+  String get appearancePreset;
+
+  /// No description provided for @appearanceDescription.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر لوحة ألوان موحدة لجميع شاشات التطبيق.'**
+  String get appearanceDescription;
+
+  /// No description provided for @themeNavyGold.
+  ///
+  /// In ar, this message translates to:
+  /// **'كحلي وذهبي'**
+  String get themeNavyGold;
+
+  /// No description provided for @themeEmerald.
+  ///
+  /// In ar, this message translates to:
+  /// **'زمردي'**
+  String get themeEmerald;
+
+  /// No description provided for @themeGraphite.
+  ///
+  /// In ar, this message translates to:
+  /// **'فحمي'**
+  String get themeGraphite;
+
+  /// No description provided for @displayDensity.
+  ///
+  /// In ar, this message translates to:
+  /// **'كثافة العرض'**
+  String get displayDensity;
+
+  /// No description provided for @densityComfortable.
+  ///
+  /// In ar, this message translates to:
+  /// **'مريح'**
+  String get densityComfortable;
+
+  /// No description provided for @densityCompact.
+  ///
+  /// In ar, this message translates to:
+  /// **'مضغوط'**
+  String get densityCompact;
+
   /// No description provided for @language.
   ///
   /// In ar, this message translates to:

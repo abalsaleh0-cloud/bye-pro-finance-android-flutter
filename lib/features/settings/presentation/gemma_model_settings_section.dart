@@ -1,3 +1,4 @@
+import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:expense_app/features/ai/data/gemma_model_manager.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -65,6 +66,7 @@ class GemmaModelSettingsSection extends ConsumerWidget {
     final strings = AppLocalizations.of(context)!;
     final model = ref.watch(gemmaModelManagerProvider);
     final manager = ref.read(gemmaModelManagerProvider.notifier);
+    final tokens = AppDesignTokens.of(context);
     final status = switch (model.status) {
       GemmaModelStatus.notDownloaded => strings.gemmaNotDownloaded,
       GemmaModelStatus.downloading => strings.gemmaDownloading,
@@ -74,7 +76,7 @@ class GemmaModelSettingsSection extends ConsumerWidget {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(tokens.cardPadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -82,19 +84,20 @@ class GemmaModelSettingsSection extends ConsumerWidget {
               strings.gemmaModelManagement,
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: tokens.sectionSpacing / 3),
             Text(strings.gemmaModelDetails),
-            const SizedBox(height: 8),
+            SizedBox(height: tokens.sectionSpacing / 2),
             Text(status),
             if (model.status == GemmaModelStatus.downloading) ...[
-              const SizedBox(height: 8),
+              SizedBox(height: tokens.sectionSpacing / 2),
               LinearProgressIndicator(value: model.progress / 100),
               Text('${model.progress.toStringAsFixed(0)}%'),
             ],
             if (model.error != null) Text(model.error!),
-            const SizedBox(height: 8),
+            SizedBox(height: tokens.sectionSpacing / 2),
             Wrap(
-              spacing: 8,
+              spacing: tokens.pageHorizontalPadding / 2,
+              runSpacing: tokens.pageVerticalPadding / 2,
               children: [
                 if (model.status == GemmaModelStatus.downloading)
                   OutlinedButton(
@@ -123,7 +126,7 @@ class GemmaModelSettingsSection extends ConsumerWidget {
                 ],
               ],
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: tokens.sectionSpacing / 3),
             Text(
               strings.gemmaDownloadResumeNote,
               style: Theme.of(context).textTheme.bodySmall,

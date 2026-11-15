@@ -3,6 +3,7 @@ import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/calendar_date.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
+import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:expense_app/core/widgets/entry_tools.dart';
 import 'package:expense_app/core/widgets/financial_record_card.dart';
 import 'package:expense_app/core/widgets/month_selector.dart';
@@ -374,6 +375,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
+    final tokens = AppDesignTokens.of(context);
     final debts = ref.watch(debtsProvider);
     return Scaffold(
       floatingActionButton: FloatingActionButton(
@@ -390,9 +392,9 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
         data: (items) => items.isEmpty
             ? Center(child: Text(strings.noRecords))
             : ListView.separated(
-                padding: const EdgeInsets.all(16),
+                padding: tokens.pageInsets(),
                 itemCount: items.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 8),
+                separatorBuilder: (context, index) => SizedBox(height: tokens.sectionSpacing / 2),
                 itemBuilder: (context, index) {
                   final debt = items[index];
                   final direction = debt.direction == DebtDirection.creditor

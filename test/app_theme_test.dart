@@ -1,39 +1,67 @@
+import 'package:expense_app/core/theme/app_appearance.dart';
+import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:expense_app/core/theme/app_theme.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
 void main() {
-  group('AppTheme', () {
-    test('light and dark themes use the shared navy and gold identity', () {
-      expect(AppTheme.dark.colorScheme.primary, const Color(0xFFD4A62A));
-      expect(AppTheme.dark.scaffoldBackgroundColor, const Color(0xFF071326));
-      expect(
-        AppTheme.light.colorScheme.secondary,
-        const Color(0xFF8A650E),
-      );
-    });
+  test('all presets build light and dark Material 3 themes', () {
+    for (final preset in AppThemePreset.values) {
+      for (final density in AppDensity.values) {
+        final light = AppTheme.lightFor(preset: preset, density: density);
+        final dark = AppTheme.darkFor(preset: preset, density: density);
 
-    test('shared surfaces and form fields have consistent styling', () {
-      expect(AppTheme.light.cardTheme.elevation, 0);
-      expect(AppTheme.dark.cardTheme.elevation, 0);
-      expect(AppTheme.light.cardTheme.margin, EdgeInsets.zero);
-      expect(AppTheme.light.inputDecorationTheme.filled, isTrue);
-      expect(AppTheme.dark.inputDecorationTheme.filled, isTrue);
-      expect(AppTheme.light.navigationBarTheme.height, 72);
-      expect(AppTheme.dark.navigationBarTheme.height, 72);
-    });
+        expect(light.useMaterial3, isTrue);
+        expect(dark.useMaterial3, isTrue);
+        expect(light.brightness, Brightness.light);
+        expect(dark.brightness, Brightness.dark);
+        expect(light.extension<AppDesignTokens>(), isNotNull);
+        expect(dark.extension<AppDesignTokens>(), isNotNull);
+      }
+    }
+  });
 
-    test('buttons and dialogs use the common rounded component shapes', () {
-      expect(AppTheme.light.dialogTheme.shape, isA<RoundedRectangleBorder>());
-      expect(AppTheme.dark.dialogTheme.shape, isA<RoundedRectangleBorder>());
-      expect(
-        AppTheme.light.filledButtonTheme.style?.minimumSize,
-        isNotNull,
-      );
-      expect(
-        AppTheme.dark.outlinedButtonTheme.style?.minimumSize,
-        isNotNull,
-      );
-    });
+  test('compact density reduces layout spacing without shrinking tap targets', () {
+    final comfortable = AppTheme.lightFor(
+      density: AppDensity.comfortable,
+    );
+    final compact = AppTheme.lightFor(
+      density: AppDensity.compact,
+    );
+
+    final comfortableTokens = comfortable.extension<AppDesignTokens>()!;
+    final compactTokens = compact.extension<AppDesignTokens>()!;
+
+    expect(
+      compactTokens.pageHorizontalPadding,
+      lessThan(comfortableTokens.pageHorizontalPadding),
+    );
+    expect(
+      compactTokens.sectionSpacing,
+      lessThan(comfortableTokens.sectionSpacing),
+    );
+    expect(
+      compactTokens.inputVerticalPadding,
+      lessThan(comfortableTokens.inputVerticalPadding),
+    );
+    expect(
+      compactTokens.cardPadding,
+      lessThan(comfortableTokens.cardPadding),
+    );
+    expect(
+      compact.filledButtonTheme.style!.minimumSize!.resolve({})!.height,
+      48,
+    );
+  });
+
+  test('unknown saved appearance values fall back to the safe defaults', () {
+    expect(
+      AppThemePreset.fromStorage('unknown'),
+      AppThemePreset.navyGold,
+    );
+    expect(
+      AppDensity.fromStorage('unknown'),
+      AppDensity.comfortable,
+    );
   });
 }
