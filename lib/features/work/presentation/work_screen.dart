@@ -513,6 +513,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
     return Column(
       children: [
         SectionPillTabs(
+          keyPrefix: 'work-tab',
           labels: labels,
           selectedIndex: _activePage,
           onSelected: (index) => _pageController.animateToPage(
