@@ -553,10 +553,18 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
     final transferPage = widget.mode == WorkScreenMode.transfers;
     return Scaffold(
       appBar: overview || widget.swipePage ? null : AppBar(title: Text(records ? strings.entries : strings.transfers)),
-      floatingActionButton: overview
-          ? FloatingActionButton(onPressed: () => _editEntry(context, ref, strings), tooltip: strings.addEntry, child: const Icon(Icons.add))
+      floatingActionButton: overview || records
+          ? FloatingActionButton(
+              onPressed: () => _editEntry(context, ref, strings),
+              tooltip: strings.addEntry,
+              child: const Icon(Icons.add_rounded),
+            )
           : transferPage
-              ? FloatingActionButton(onPressed: () => _editTransfer(context, ref, strings), tooltip: strings.addTransfer, child: const Icon(Icons.add))
+              ? FloatingActionButton(
+                  onPressed: () => _editTransfer(context, ref, strings),
+                  tooltip: strings.addTransfer,
+                  child: const Icon(Icons.add_rounded),
+                )
               : null,
       body: ListView(padding: tokens.pageInsets(), children: [
         MonthSelector(

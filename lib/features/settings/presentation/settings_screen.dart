@@ -74,10 +74,13 @@ class SettingsScreen extends ConsumerWidget {
     final tokens = AppDesignTokens.of(context);
     final settings = ref.watch(appSettingsProvider);
     final controller = ref.read(appSettingsProvider.notifier);
-    final activeTab = int.tryParse(
-          GoRouterState.of(context).uri.queryParameters['tab'] ?? '',
-        )?.clamp(0, 4) ??
-        0;
+    final requestedTab = int.tryParse(
+      GoRouterState.of(context).uri.queryParameters['tab'] ?? '',
+    );
+    final activeTab =
+        requestedTab != null && requestedTab >= 0 && requestedTab <= 4
+            ? requestedTab
+            : 0;
 
     return Scaffold(
       appBar: AppBar(title: Text(strings.settings)),
