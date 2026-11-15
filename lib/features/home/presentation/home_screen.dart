@@ -665,7 +665,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           trailing: overview
               ? IconButton.filledTonal(
                   key: const Key('home-add-action'),
-                  tooltip: strings.addEntry,
+                  tooltip: strings.addHomeItem,
                   icon: const Icon(Icons.add_rounded),
                   onPressed: () =>
                       _showHomeAddOptions(context, ref, strings),
