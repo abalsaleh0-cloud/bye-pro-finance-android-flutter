@@ -790,7 +790,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('سجل الدفعات'), findsOneWidget);
     expect(find.textContaining('الوقت:'), findsNothing);
-    await tester.tap(find.text('سجل الدفعات').last);
+    final paymentHistory = find.byKey(
+      const Key('debt-payment-history-widget-debt-payment-time'),
+    );
+    await tester.ensureVisible(paymentHistory);
+    await tester.tap(paymentHistory);
     await tester.pumpAndSettle();
     expect(find.textContaining('الوقت:'), findsOneWidget);
 
