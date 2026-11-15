@@ -328,7 +328,7 @@ class AppTheme {
         backgroundColor: scheme.primary,
         foregroundColor: scheme.onPrimary,
         elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: radius),
+        shape: const CircleBorder(),
       ),
       navigationBarTheme: NavigationBarThemeData(
         height: 72,

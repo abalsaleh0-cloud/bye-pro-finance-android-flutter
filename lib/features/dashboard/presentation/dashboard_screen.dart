@@ -137,59 +137,7 @@ class DashboardScreen extends ConsumerWidget {
           SizedBox(height: tokens.sectionSpacing),
           _sectionHeading(context, strings.financialSnapshot),
           const SizedBox(height: 8),
-          _heroBalanceCard(
-            context,
-            strings.homeAvailableBalance,
-            homeBalance,
-            strings.amountMinorUnits,
-          ),
-          const SizedBox(height: 12),
-          _metricGrid(context, [
-            _MetricData(
-              title: strings.workRemaining,
-              amount: overview.workRemainingMinorUnits,
-              icon: Icons.account_balance_outlined,
-            ),
-            _MetricData(
-              title: strings.totalWorkOutstanding,
-              amount: overview.totalWorkOutstandingMinorUnits,
-              icon: Icons.pending_actions_outlined,
-            ),
-          ]),
-          SizedBox(height: tokens.sectionSpacing),
-          _sectionHeading(context, strings.quickActions),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _quickAction(
-                context,
-                strings.addEntry,
-                Icons.add_card_outlined,
-                () => context.go('/work', extra: true),
-              ),
-              _quickAction(
-                context,
-                strings.addExpense,
-                Icons.shopping_bag_outlined,
-                () => context.go('/home', extra: true),
-              ),
-              _quickAction(
-                context,
-                strings.ai,
-                Icons.auto_awesome_outlined,
-                () => context.go('/ai'),
-              ),
-              _quickAction(
-                context,
-                strings.addDebt,
-                Icons.handshake_outlined,
-                () => context.go('/debts', extra: true),
-              ),
-            ],
-          ),
-          SizedBox(height: tokens.sectionSpacing),
+
           _sectionHeading(context, strings.work),
           const SizedBox(height: 8),
           _metricGrid(context, [
@@ -332,132 +280,17 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  static Widget _heroBalanceCard(
-    BuildContext context,
-    String title,
-    int amount,
-    String unitLabel,
-  ) {
-    final scheme = Theme.of(context).colorScheme;
-    return Card(
-      color: scheme.primaryContainer,
-      child: SizedBox(
-        height: 96,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              Icon(Icons.account_balance_wallet_outlined,
-                  color: scheme.onPrimaryContainer, size: 22),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: scheme.onPrimaryContainer,
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      unitLabel,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: scheme.onPrimaryContainer,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                amount.toString(),
-                key: const Key('dashboard-home-balance'),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: scheme.onPrimaryContainer,
-                      fontWeight: FontWeight.w800,
-                    ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   static Widget _metricGrid(BuildContext context, List<_MetricData> metrics) {
-    return Column(
-      children: [
-        for (var index = 0; index < metrics.length; index++) ...[
-          if (index > 0) const SizedBox(height: 10),
-          _metricCard(context, metrics[index]),
-        ],
-      ],
-    );
-  }
-
-  static Widget _metricCard(BuildContext context, _MetricData metric) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    return Card(
-      child: SizedBox(
-        height: 96,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: scheme.secondaryContainer,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                alignment: Alignment.center,
-                child: Icon(
-                  metric.icon,
-                  color: scheme.onSecondaryContainer,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      metric.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      metric.amount.toString(),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+    return SummaryMetricGrid(
+      metrics: [
+        for (final metric in metrics)
+          SummaryMetricData(
+            title: metric.title,
+            value: metric.amount.toString(),
+            icon: metric.icon,
+            emphasized: metric.emphasized,
           ),
-        ),
-      ),
+      ],
     );
   }
 
@@ -530,19 +363,6 @@ class DashboardScreen extends ConsumerWidget {
           ),
         ),
       ],
-    );
-  }
-
-  static Widget _quickAction(
-    BuildContext context,
-    String title,
-    IconData icon,
-    VoidCallback onPressed,
-  ) {
-    return FilledButton.tonalIcon(
-      onPressed: onPressed,
-      icon: Icon(icon),
-      label: Text(title),
     );
   }
 
@@ -634,11 +454,13 @@ final class _MetricData {
     required this.title,
     required this.amount,
     required this.icon,
+    this.emphasized = false,
   });
 
   final String title;
   final int amount;
   final IconData icon;
+  final bool emphasized;
 }
 
 final class _RecentActivity {
