@@ -25,63 +25,64 @@ class MonthSelector extends StatelessWidget {
 
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(tokens.cardPadding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsetsDirectional.fromSTEB(14, 6, 10, 6),
+        child: Row(
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.secondaryContainer,
-                    borderRadius: BorderRadius.circular(11),
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(
-                    Icons.calendar_month_outlined,
-                    color: theme.colorScheme.onSecondaryContainer,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    strings.selectedMonth,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ],
+            Icon(
+              Icons.calendar_month_outlined,
+              color: theme.colorScheme.primary,
+              size: 20,
             ),
-            const SizedBox(height: 10),
-            DropdownButtonFormField<MonthKey>(
-              key: pickerKey,
-              initialValue: selectedMonth,
-              isExpanded: true,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                strings.selectedMonth,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-              items: availableMonths
-                  .map(
-                    (month) => DropdownMenuItem(
-                      value: month,
-                      child: Text(month.toString()),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) onChanged(value);
-              },
+            ),
+            SizedBox(
+              width: 148,
+              child: DropdownButtonFormField<MonthKey>(
+                key: pickerKey,
+                initialValue: selectedMonth,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  isDense: true,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                ),
+                borderRadius: BorderRadius.circular(tokens.controlRadius),
+                items: availableMonths
+                    .map(
+                      (month) => DropdownMenuItem(
+                        value: month,
+                        child: Text(
+                          month.toString(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) onChanged(value);
+                },
+              ),
             ),
           ],
         ),
       ),
     );
-  }
-}
+  }}
 
 class SummaryMetricData {
   const SummaryMetricData({
