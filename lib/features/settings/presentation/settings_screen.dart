@@ -1,5 +1,6 @@
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/providers/app_settings_provider.dart';
+import 'package:expense_app/core/theme/app_appearance.dart';
 import 'package:expense_app/features/settings/presentation/gemma_model_settings_section.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -69,6 +70,7 @@ class SettingsScreen extends ConsumerWidget {
     final strings = AppLocalizations.of(context)!;
     final settings = ref.watch(appSettingsProvider);
     final controller = ref.read(appSettingsProvider.notifier);
+    final isArabic = settings.locale.languageCode == 'ar';
 
     return Scaffold(
       appBar: AppBar(title: Text(strings.settings)),
@@ -85,6 +87,49 @@ class SettingsScreen extends ConsumerWidget {
                   secondary: const Icon(Icons.dark_mode_outlined),
                   value: settings.themeMode == ThemeMode.dark,
                   onChanged: controller.setDarkMode,
+                ),
+                const Divider(height: 1, indent: 16, endIndent: 16),
+                ListTile(
+                  leading: const Icon(Icons.palette_outlined),
+                  title: Text(strings.appearancePreset),
+                  subtitle: Text(strings.appearanceDescription),
+                  trailing: DropdownButton<AppThemePreset>(
+                    key: const Key('appearance-preset-selector'),
+                    value: settings.themePreset,
+                    underline: const SizedBox.shrink(),
+                    items: AppThemePreset.values
+                        .map(
+                          (preset) => DropdownMenuItem(
+                            value: preset,
+                            child: Text(preset.label(isArabic: isArabic)),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) controller.setThemePreset(value);
+                    },
+                  ),
+                ),
+                const Divider(height: 1, indent: 16, endIndent: 16),
+                ListTile(
+                  leading: const Icon(Icons.space_dashboard_outlined),
+                  title: Text(strings.displayDensity),
+                  trailing: DropdownButton<AppDensity>(
+                    key: const Key('appearance-density-selector'),
+                    value: settings.density,
+                    underline: const SizedBox.shrink(),
+                    items: AppDensity.values
+                        .map(
+                          (density) => DropdownMenuItem(
+                            value: density,
+                            child: Text(density.label(isArabic: isArabic)),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) controller.setDensity(value);
+                    },
+                  ),
                 ),
                 const Divider(height: 1, indent: 16, endIndent: 16),
                 ListTile(
