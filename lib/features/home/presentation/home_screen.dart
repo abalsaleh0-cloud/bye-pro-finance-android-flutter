@@ -507,6 +507,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Column(
       children: [
         SectionPillTabs(
+          keyPrefix: 'home-tab',
           labels: labels,
           selectedIndex: _activePage,
           onSelected: (index) => _pageController.animateToPage(
