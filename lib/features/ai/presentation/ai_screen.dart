@@ -12,6 +12,7 @@ import 'package:expense_app/features/ai/domain/wav_audio_validator.dart';
 
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/providers/app_settings_provider.dart';
+import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
 import 'package:expense_app/features/ai/data/gemma_model_manager.dart';
 import 'package:expense_app/features/ai/domain/action_registry.dart';
@@ -728,6 +729,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     final messages = ref.watch(aiChatMessagesProvider);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final tokens = AppDesignTokens.of(context);
     final maxBubbleWidth = MediaQuery.sizeOf(context).width * 0.84;
 
     return Scaffold(
@@ -735,13 +737,13 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         children: [
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              padding: tokens.pageInsets(bottom: tokens.pageVerticalPadding * 2),
               children: [
                 if (messages.isEmpty)
                   Card(
                     color: scheme.surfaceContainerLow,
                     child: Padding(
-                      padding: const EdgeInsets.all(18),
+                      padding: EdgeInsets.all(tokens.cardPadding + 4),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -781,7 +783,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                       child: ConstrainedBox(
                         constraints: BoxConstraints(maxWidth: maxBubbleWidth),
                         child: AnimatedSize(
-                          duration: const Duration(milliseconds: 220),
+                          duration: tokens.motionDuration,
                           curve: Curves.easeOut,
                           child: Card(
                             margin: EdgeInsets.zero,
@@ -789,12 +791,12 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                                 ? scheme.secondaryContainer
                                 : scheme.surfaceContainerHigh,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(18),
+                              borderRadius: BorderRadius.circular(tokens.cardRadius),
                             ),
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 15,
-                                vertical: 12,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: tokens.cardPadding + 1,
+                                vertical: tokens.cardPadding - 2,
                               ),
                               child: Text(
                                 messages[i].text,
@@ -841,14 +843,14 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                   ),
                 if (pending != null)
                   AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 250),
+                    duration: tokens.motionDuration,
                     child: Card(
                       key: ValueKey(
                         pending.name + pending.parameters.toString(),
                       ),
                       color: scheme.secondaryContainer,
                       child: Padding(
-                        padding: const EdgeInsets.all(16),
+                        padding: EdgeInsets.all(tokens.cardPadding + 2),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -946,7 +948,12 @@ class _AiScreenState extends ConsumerState<AiScreen> {
           SafeArea(
             top: false,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(8, 6, 8, 10),
+              padding: EdgeInsetsDirectional.fromSTEB(
+                tokens.pageHorizontalPadding / 2,
+                tokens.pageVerticalPadding / 2,
+                tokens.pageHorizontalPadding / 2,
+                tokens.pageVerticalPadding,
+              ),
               child: Card(
                 margin: EdgeInsets.zero,
                 child: Padding(
@@ -996,9 +1003,9 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                               minHeight: 48,
                               maxHeight: 48,
                             ),
-                            contentPadding: const EdgeInsets.symmetric(
+                            contentPadding: EdgeInsets.symmetric(
                               horizontal: 16,
-                              vertical: 12,
+                              vertical: tokens.inputVerticalPadding,
                             ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(28),

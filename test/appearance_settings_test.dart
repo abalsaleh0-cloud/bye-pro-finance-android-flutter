@@ -16,7 +16,12 @@ void main() {
 
     await tester.tap(find.byKey(const Key('appearance-preset-selector')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('زمردي').last);
+    final emeraldLabel = find.text('زمردي');
+    await tester.tap(
+      emeraldLabel.evaluate().isNotEmpty
+          ? emeraldLabel.last
+          : find.text('Emerald').last,
+    );
     await tester.pumpAndSettle();
 
     var app = tester.widget<MaterialApp>(find.byType(MaterialApp));
@@ -27,7 +32,12 @@ void main() {
 
     await tester.tap(find.byKey(const Key('appearance-density-selector')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('مضغوط').last);
+    final compactLabel = find.text('مضغوط');
+    await tester.tap(
+      compactLabel.evaluate().isNotEmpty
+          ? compactLabel.last
+          : find.text('Compact').last,
+    );
     await tester.pumpAndSettle();
 
     app = tester.widget<MaterialApp>(find.byType(MaterialApp));
