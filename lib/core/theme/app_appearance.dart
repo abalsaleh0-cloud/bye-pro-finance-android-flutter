@@ -13,14 +13,6 @@ enum AppThemePreset {
       orElse: () => AppThemePreset.navyGold,
     );
   }
-
-  String label({required bool isArabic}) {
-    return switch (this) {
-      AppThemePreset.navyGold => isArabic ? 'كحلي وذهبي' : 'Navy & Gold',
-      AppThemePreset.emerald => isArabic ? 'زمردي' : 'Emerald',
-      AppThemePreset.graphite => isArabic ? 'فحمي' : 'Graphite',
-    };
-  }
 }
 
 enum AppDensity {
@@ -36,13 +28,5 @@ enum AppDensity {
       (density) => density.storageKey == value,
       orElse: () => AppDensity.comfortable,
     );
-  }
-
-  String label({required bool isArabic}) {
-    return switch (this) {
-      AppDensity.comfortable =>
-        isArabic ? 'مريح' : 'Comfortable',
-      AppDensity.compact => isArabic ? 'مضغوط' : 'Compact',
-    };
   }
 }

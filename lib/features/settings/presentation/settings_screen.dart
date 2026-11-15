@@ -70,7 +70,6 @@ class SettingsScreen extends ConsumerWidget {
     final strings = AppLocalizations.of(context)!;
     final settings = ref.watch(appSettingsProvider);
     final controller = ref.read(appSettingsProvider.notifier);
-    final isArabic = settings.locale.languageCode == 'ar';
 
     return Scaffold(
       appBar: AppBar(title: Text(strings.settings)),
@@ -101,7 +100,13 @@ class SettingsScreen extends ConsumerWidget {
                         .map(
                           (preset) => DropdownMenuItem(
                             value: preset,
-                            child: Text(preset.label(isArabic: isArabic)),
+                            child: Text(
+                              switch (preset) {
+                                AppThemePreset.navyGold => strings.themeNavyGold,
+                                AppThemePreset.emerald => strings.themeEmerald,
+                                AppThemePreset.graphite => strings.themeGraphite,
+                              },
+                            ),
                           ),
                         )
                         .toList(),
@@ -122,7 +127,13 @@ class SettingsScreen extends ConsumerWidget {
                         .map(
                           (density) => DropdownMenuItem(
                             value: density,
-                            child: Text(density.label(isArabic: isArabic)),
+                            child: Text(
+                              switch (density) {
+                                AppDensity.comfortable =>
+                                  strings.densityComfortable,
+                                AppDensity.compact => strings.densityCompact,
+                              },
+                            ),
                           ),
                         )
                         .toList(),
