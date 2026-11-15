@@ -386,29 +386,27 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
       ),
       body: Column(
         children: [
-          if (debts.hasValue) ...[
-            Padding(
-              padding: tokens.pageInsets(bottom: 8),
-              child: MonthSelector(
-                pickerKey: const Key('debts-selected-month-picker'),
-                selectedMonth: selectedMonth,
-                availableMonths: {
-                  MonthKey(year: DateTime.now().year, month: DateTime.now().month),
-                  selectedMonth,
-                  ...(debts.value ?? const []).map((debt) => debt.dueMonth),
-                }.toList()..sort((a, b) => b.compareTo(a)),
-                onChanged: (value) =>
-                    ref.read(selectedMonthProvider.notifier).select(value),
-              ),
+          Padding(
+            padding: tokens.pageInsets(bottom: 8),
+            child: MonthSelector(
+              pickerKey: const Key('debts-selected-month-picker'),
+              selectedMonth: selectedMonth,
+              availableMonths: {
+                MonthKey(year: DateTime.now().year, month: DateTime.now().month),
+                selectedMonth,
+                ...(debts.value ?? const []).map((debt) => debt.dueMonth),
+              }.toList()..sort((a, b) => b.compareTo(a)),
+              onChanged: (value) =>
+                  ref.read(selectedMonthProvider.notifier).select(value),
             ),
-            _debtSummaryCard(
-              context,
-              strings,
-              (debts.value ?? const [])
-                  .where((debt) => debt.dueMonth == selectedMonth)
-                  .toList(),
-            ),
-          ],
+          ),
+          _debtSummaryCard(
+            context,
+            strings,
+            (debts.value ?? const [])
+                .where((debt) => debt.dueMonth == selectedMonth)
+                .toList(),
+          ),
           Expanded(child: debts.when(
         loading: () => Center(child: Text(strings.loading)),
         error: (error, stackTrace) => Center(child: Text(strings.dataError)),
