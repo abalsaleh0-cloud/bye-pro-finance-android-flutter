@@ -331,9 +331,12 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: radius),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        height: density == AppDensity.compact ? 68 : 72,
+        height: 72,
         backgroundColor: scheme.surface,
         indicatorColor: scheme.secondaryContainer,
+        indicatorShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(tokens.controlRadius),
+        ),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
       ),
       dialogTheme: DialogThemeData(
