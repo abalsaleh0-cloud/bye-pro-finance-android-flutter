@@ -141,7 +141,7 @@ class _SummaryMetricTile extends StatelessWidget {
 
     return Container(
       constraints: const BoxConstraints(minHeight: 96),
-      padding: EdgeInsets.all(tokens.cardPadding - 2),
+      padding: EdgeInsets.all(tokens.cardPadding),
       decoration: BoxDecoration(
         color: metric.emphasized
             ? scheme.primaryContainer
