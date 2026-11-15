@@ -2,9 +2,11 @@ import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/providers/app_settings_provider.dart';
 import 'package:expense_app/core/theme/app_appearance.dart';
 import 'package:expense_app/core/theme/app_design_tokens.dart';
+import 'package:expense_app/core/widgets/app_bottom_navigation_bar.dart';
 import 'package:expense_app/features/settings/presentation/gemma_model_settings_section.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -75,6 +77,13 @@ class SettingsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(strings.settings)),
+      bottomNavigationBar: AppBottomNavigationBar(
+        selectedIndex: -1,
+        onDestinationSelected: (index) {
+          const routes = ['/dashboard', '/work', '/home', '/debts', '/ai'];
+          context.go(routes[index]);
+        },
+      ),
       body: ListView(
         padding: tokens.pageInsets(bottom: tokens.pageVerticalPadding * 2),
         children: [
