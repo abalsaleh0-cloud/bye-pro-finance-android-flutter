@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:record/record.dart';
 import 'package:flutter/services.dart';
 import 'package:expense_app/features/ai/data/android_assistant_voice_service.dart';
@@ -24,6 +25,8 @@ import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
+
+enum _AssistantAttachmentChoice { camera, gallery, files }
 
 final assistantEngineProvider = Provider<AssistantEngine>((ref) {
   final settings = ref.watch(appSettingsProvider);
@@ -52,9 +55,9 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   UndoOperation? _undo;
   bool _busy = false;
   final AudioRecorder _recorder = AudioRecorder();
+  final ImagePicker _imagePicker = ImagePicker();
   final AndroidAssistantVoiceService _voiceService = const AndroidAssistantVoiceService();
   bool _recognizing = false;
-  bool _speakReplies = false;
   Uint8List? _attachmentBytes;
   bool _attachmentIsImage = false;
   String? _attachmentName;
@@ -72,9 +75,6 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     if (_recognizing) {
       unawaited(_voiceService.cancelArabicSpeechRecognition());
     }
-    if (_speakReplies) {
-      unawaited(_voiceService.stopSpeaking());
-    }
     if (_recording) unawaited(_recorder.stop());
     unawaited(_recorder.dispose());
     unawaited(_gemmaModelManager.releaseModel());
@@ -90,48 +90,146 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   );
 
   Future<void> _chooseAttachment() async {
+    if (_busy || _recording || _recognizing) return;
     final strings = AppLocalizations.of(context)!;
-    final image = await showModalBottomSheet<bool>(
+    final choice = await showModalBottomSheet<_AssistantAttachmentChoice>(
       context: context,
-      builder: (context) => SafeArea(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        ListTile(leading: const Icon(Icons.image_outlined), title: Text(strings.aiAttachImage), onTap: () => Navigator.pop(context, true)),
-        ListTile(leading: const Icon(Icons.audio_file_outlined), title: Text(strings.aiAttachWav), onTap: () => Navigator.pop(context, false)),
-      ])),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppDesignTokens.of(context).dialogRadius),
+        ),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: Text(strings.aiCamera),
+              onTap: () => Navigator.pop(
+                sheetContext,
+                _AssistantAttachmentChoice.camera,
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: Text(strings.aiGallery),
+              onTap: () => Navigator.pop(
+                sheetContext,
+                _AssistantAttachmentChoice.gallery,
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.folder_outlined),
+              title: Text(strings.aiFiles),
+              onTap: () => Navigator.pop(
+                sheetContext,
+                _AssistantAttachmentChoice.files,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
-    if (image != null && mounted) await _pickAttachment(image: image);
+    if (!mounted || choice == null) return;
+    switch (choice) {
+      case _AssistantAttachmentChoice.camera:
+        await _pickImage(ImageSource.camera);
+        break;
+      case _AssistantAttachmentChoice.gallery:
+        await _pickImage(ImageSource.gallery);
+        break;
+      case _AssistantAttachmentChoice.files:
+        await _pickDocumentOrMedia();
+        break;
+    }
   }
 
-  Future<void> _pickAttachment({required bool image}) async {
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final file = await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 85,
+      );
+      if (file == null || !mounted) return;
+      await _storeAttachment(
+        bytes: await file.readAsBytes(),
+        name: file.name,
+        image: true,
+      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error.toString().replaceFirst('Bad state: ', '')),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _pickDocumentOrMedia() async {
     final strings = AppLocalizations.of(context)!;
     if (_busy || _recording) return;
     try {
-      final file = await FilePicker.pickFile(
-        type: image ? FileType.image : FileType.custom,
-        allowedExtensions: image ? null : ['wav'],
-      );
+      final file = await FilePicker.pickFile(type: FileType.any);
       if (file == null) return;
-      final limit = image ? 12 * 1024 * 1024 : 20 * 1024 * 1024;
+      final extension = file.name.split('.').last.toLowerCase();
+      const imageExtensions = {
+        'jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'heic', 'heif',
+      };
+      final image = imageExtensions.contains(extension);
+      if (!image && extension != 'wav') {
+        throw StateError(strings.aiUnsupportedAttachment);
+      }
       final length = file.lengthSync() ?? await file.length();
+      final limit = image ? 12 * 1024 * 1024 : 20 * 1024 * 1024;
       if (length == null || length <= 0) {
         throw StateError(strings.aiReadFileFailed);
       }
       if (length > limit) {
-        throw StateError(image
-            ? strings.aiImageTooLarge
-            : strings.aiAudioTooLarge);
+        throw StateError(
+          image ? strings.aiImageTooLarge : strings.aiAudioTooLarge,
+        );
       }
-      final bytes = await file.readAsBytes();
-      if (bytes.isEmpty) throw StateError(strings.aiReadFileFailed);
-      if (!image && !_isValidWav(bytes)) throw StateError(strings.aiInvalidWav);
-      if (!mounted) return;
-      setState(() {
-        _attachmentBytes = bytes;
-        _attachmentIsImage = image;
-        _attachmentName = file.name;
-      });
+      await _storeAttachment(
+        bytes: await file.readAsBytes(),
+        name: file.name,
+        image: image,
+      );
     } catch (error) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString().replaceFirst('Bad state: ', ''))));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(error.toString().replaceFirst('Bad state: ', '')),
+          ),
+        );
+      }
     }
+  }
+
+  Future<void> _storeAttachment({
+    required Uint8List bytes,
+    required String name,
+    required bool image,
+  }) async {
+    final strings = AppLocalizations.of(context)!;
+    final limit = image ? 12 * 1024 * 1024 : 20 * 1024 * 1024;
+    if (bytes.isEmpty) throw StateError(strings.aiReadFileFailed);
+    if (bytes.length > limit) {
+      throw StateError(
+        image ? strings.aiImageTooLarge : strings.aiAudioTooLarge,
+      );
+    }
+    if (!image && !_isValidWav(bytes)) {
+      throw StateError(strings.aiInvalidWav);
+    }
+    if (!mounted) return;
+    setState(() {
+      _attachmentBytes = bytes;
+      _attachmentIsImage = image;
+      _attachmentName = name;
+    });
   }
 
   bool _isValidWav(Uint8List bytes) => isValidGemmaWavAudio(bytes);
@@ -143,16 +241,22 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     ref.read(aiChatMessagesProvider.notifier).add(
       AiChatMessage(text, includeInModelContext: includeInModelContext),
     );
-    if (_speakReplies) unawaited(_speakAssistantReply(text));
+  }
+
+  Future<void> _copyMessage(String text) async {
+    await Clipboard.setData(ClipboardData(text: text));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppLocalizations.of(context)!.aiCopied)),
+    );
   }
 
   Future<void> _speakAssistantReply(String text) async {
-    if (!_speakReplies || text.trim().isEmpty) return;
+    if (text.trim().isEmpty) return;
     try {
       await _voiceService.speakArabic(text);
     } on PlatformException {
       if (!mounted) return;
-      setState(() => _speakReplies = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(AppLocalizations.of(context)!.aiArabicTtsUnavailable),
@@ -160,35 +264,10 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       );
     } catch (_) {
       if (!mounted) return;
-      setState(() => _speakReplies = false);
-    }
-  }
-
-  Future<void> _toggleSpokenReplies() async {
-    if (_busy || _recognizing || _recording) return;
-    if (_speakReplies) {
-      setState(() => _speakReplies = false);
-      try {
-        await _voiceService.stopSpeaking();
-      } catch (_) {}
-      return;
-    }
-
-    final strings = AppLocalizations.of(context)!;
-    try {
-      final available = await _voiceService.hasOfflineArabicTts();
-      if (!mounted) return;
-      if (!available) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(strings.aiArabicTtsUnavailable)),
-        );
-        return;
-      }
-      setState(() => _speakReplies = true);
-    } on PlatformException {
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.aiArabicTtsUnavailable)),
+        SnackBar(
+          content: Text(AppLocalizations.of(context)!.aiArabicTtsUnavailable),
+        ),
       );
     }
   }
@@ -780,42 +859,76 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                       ),
                     ),
                   ),
-                for (var i = 0; i < messages.length; i++)
+                for (final message in messages)
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.only(bottom: 12),
                     child: Align(
-                      alignment: messages[i].fromUser
+                      alignment: message.fromUser
                           ? AlignmentDirectional.centerEnd
                           : AlignmentDirectional.centerStart,
                       child: ConstrainedBox(
                         constraints: BoxConstraints(maxWidth: maxBubbleWidth),
-                        child: AnimatedSize(
-                          duration: tokens.motionDuration,
-                          curve: Curves.easeOut,
-                          child: Card(
-                            margin: EdgeInsets.zero,
-                            color: messages[i].fromUser
-                                ? scheme.secondaryContainer
-                                : scheme.surfaceContainerHigh,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(tokens.cardRadius),
-                            ),
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: tokens.cardPadding + 1,
-                                vertical: tokens.cardPadding - 2,
-                              ),
-                              child: Text(
-                                messages[i].text,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: messages[i].fromUser
-                                      ? scheme.onSecondaryContainer
-                                      : scheme.onSurface,
-                                  height: 1.4,
+                        child: Column(
+                          crossAxisAlignment: message.fromUser
+                              ? CrossAxisAlignment.end
+                              : CrossAxisAlignment.start,
+                          children: [
+                            AnimatedSize(
+                              duration: tokens.motionDuration,
+                              curve: Curves.easeOut,
+                              child: Card(
+                                margin: EdgeInsets.zero,
+                                color: message.fromUser
+                                    ? scheme.secondaryContainer
+                                    : scheme.surfaceContainerHigh,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(22),
+                                ),
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: tokens.cardPadding + 1,
+                                    vertical: tokens.cardPadding - 2,
+                                  ),
+                                  child: Text(
+                                    message.text,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: message.fromUser
+                                          ? scheme.onSecondaryContainer
+                                          : scheme.onSurface,
+                                      height: 1.4,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
+                            Padding(
+                              padding: const EdgeInsetsDirectional.only(
+                                start: 4,
+                                end: 4,
+                                top: 2,
+                              ),
+                              child: Wrap(
+                                spacing: 4,
+                                children: [
+                                  TextButton.icon(
+                                    onPressed: () => _copyMessage(message.text),
+                                    icon: const Icon(Icons.copy_rounded, size: 16),
+                                    label: Text(strings.aiCopy),
+                                  ),
+                                  TextButton.icon(
+                                    onPressed: _busy
+                                        ? null
+                                        : () => _speakAssistantReply(message.text),
+                                    icon: const Icon(
+                                      Icons.volume_up_outlined,
+                                      size: 16,
+                                    ),
+                                    label: Text(strings.aiListen),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -961,80 +1074,91 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                 tokens.pageHorizontalPadding / 2,
                 tokens.pageVerticalPadding,
               ),
-              child: Card(
-                margin: EdgeInsets.zero,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        onPressed: _busy || _recording || _recognizing ? null : _chooseAttachment,
-                        icon: const Icon(Icons.attach_file_rounded),
-                        tooltip: strings.aiAttachImage,
+              child: Row(
+                children: [
+                  IconButton.filledTonal(
+                    key: const Key('ai-attach-button'),
+                    onPressed: _busy || _recording || _recognizing
+                        ? null
+                        : _chooseAttachment,
+                    icon: const Icon(Icons.attach_file_rounded),
+                    tooltip: strings.aiFiles,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Container(
+                      constraints: const BoxConstraints(minHeight: 52),
+                      decoration: BoxDecoration(
+                        color: scheme.surfaceContainerLow,
+                        border: Border.all(color: scheme.outlineVariant),
+                        borderRadius: BorderRadius.circular(28),
                       ),
-                      IconButton(
-                        onPressed: _busy || _recognizing
-                            ? null
-                            : (_recording ? _toggleRecording : _showVoiceOptions),
-                        icon: Icon(
-                          _recording
-                              ? Icons.stop_circle_outlined
-                              : Icons.mic_none_rounded,
-                        ),
-                        tooltip: _recording
-                            ? strings.aiStopRecording
-                            : strings.aiVoiceOptions,
-                      ),
-                      IconButton(
-                        onPressed: _busy || _recording || _recognizing
-                            ? null
-                            : _toggleSpokenReplies,
-                        icon: Icon(
-                          _speakReplies
-                              ? Icons.volume_up_rounded
-                              : Icons.volume_off_outlined,
-                        ),
-                        tooltip: _speakReplies
-                            ? strings.aiVoiceRepliesOn
-                            : strings.aiVoiceRepliesOff,
-                      ),
-                      Expanded(
-                        child: TextField(
-                          controller: _input,
-                          textInputAction: TextInputAction.send,
-                          onSubmitted: (_) => _send(),
-                          decoration: InputDecoration(
-                            hintText: strings.assistantHint,
-                            isDense: true,
-                            constraints: const BoxConstraints(
-                              minHeight: 48,
-                              maxHeight: 48,
-                            ),
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: tokens.inputVerticalPadding,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(28),
+                      padding: const EdgeInsetsDirectional.fromSTEB(12, 4, 4, 4),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              key: const Key('ai-message-input'),
+                              controller: _input,
+                              minLines: 1,
+                              maxLines: 4,
+                              textInputAction: TextInputAction.send,
+                              onSubmitted: (_) => _send(),
+                              decoration: InputDecoration(
+                                hintText: strings.assistantHint,
+                                filled: false,
+                                isDense: true,
+                                contentPadding: const EdgeInsetsDirectional.fromSTEB(
+                                  4, 12, 4, 12,
+                                ),
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                              ),
                             ),
                           ),
-                        ),
+                          ValueListenableBuilder<TextEditingValue>(
+                            valueListenable: _input,
+                            builder: (context, value, child) {
+                              final hasText = value.text.trim().isNotEmpty;
+                              final canInteract =
+                                  !_busy && !_recording && !_recognizing;
+                              return IconButton.filled(
+                                key: const Key('ai-contextual-input-action'),
+                                onPressed: !canInteract
+                                    ? (_recording ? _toggleRecording : null)
+                                    : hasText
+                                        ? _send
+                                        : _showVoiceOptions,
+                                tooltip: _recording
+                                    ? strings.aiStopRecording
+                                    : hasText
+                                        ? strings.assistantSend
+                                        : strings.aiVoiceOptions,
+                                icon: _busy
+                                    ? const SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : Icon(
+                                        _recording
+                                            ? Icons.stop_rounded
+                                            : hasText
+                                                ? Icons.send_rounded
+                                                : Icons.mic_none_rounded,
+                                      ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 4),
-                      IconButton.filled(
-                        onPressed: _busy || _recording || _recognizing ? null : _send,
-                        tooltip: strings.assistantSend,
-                        icon: _busy
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(Icons.send_rounded),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           ),

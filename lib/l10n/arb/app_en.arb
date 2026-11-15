@@ -228,6 +228,13 @@
   "aiDefaultAudioPrompt": "Please listen to the attached audio and do what is requested, if possible.",
   "aiImageAttachmentLabel": "Image",
   "aiAudioAttachmentLabel": "Audio recording",
+  "aiCamera": "Camera",
+  "aiGallery": "Gallery",
+  "aiFiles": "Files",
+  "aiCopy": "Copy",
+  "aiListen": "Listen",
+  "aiCopied": "Message copied",
+  "aiUnsupportedAttachment": "Only images and WAV audio files can be attached.",
   "aiAttachmentFallback": "Attachment",
   "assistantClarificationFallback": "Please clarify."
 }

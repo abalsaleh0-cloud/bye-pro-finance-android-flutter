@@ -228,6 +228,13 @@
   "aiDefaultAudioPrompt": "يرجى الاستماع إلى التسجيل الصوتي المرفق وتنفيذ المطلوب إن أمكن.",
   "aiImageAttachmentLabel": "صورة",
   "aiAudioAttachmentLabel": "تسجيل صوتي",
+  "aiCamera": "الكاميرا",
+  "aiGallery": "المعرض",
+  "aiFiles": "الملفات",
+  "aiCopy": "نسخ",
+  "aiListen": "استماع",
+  "aiCopied": "تم نسخ الرسالة",
+  "aiUnsupportedAttachment": "يمكن إرفاق الصور وملفات WAV فقط.",
   "aiAttachmentFallback": "مرفق",
   "assistantClarificationFallback": "يرجى التوضيح."
 }
