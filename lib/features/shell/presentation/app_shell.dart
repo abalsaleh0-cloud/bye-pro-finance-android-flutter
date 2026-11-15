@@ -21,12 +21,14 @@ class AppShell extends ConsumerWidget {
     Icons.work_outline,
     Icons.home_outlined,
     Icons.account_balance_wallet_outlined,
+    Icons.auto_awesome_outlined,
   ];
   static const _selectedIcons = [
     Icons.dashboard_rounded,
     Icons.work_rounded,
     Icons.home_rounded,
     Icons.account_balance_wallet_rounded,
+    Icons.auto_awesome_rounded,
   ];
 
   int get _selectedIndex {
@@ -34,6 +36,7 @@ class AppShell extends ConsumerWidget {
       '/work' => 1,
       '/home' => 2,
       '/debts' => 3,
+      '/ai' => 4,
       _ => 0,
     };
   }
@@ -46,6 +49,7 @@ class AppShell extends ConsumerWidget {
       strings.work,
       strings.homeSection,
       strings.debts,
+      strings.ai,
     ];
 
     return Scaffold(
