@@ -34,6 +34,30 @@ class AppLocalizationsAr extends AppLocalizations {
   String get darkTheme => 'الوضع الداكن';
 
   @override
+  String get appearancePreset => 'هوية الألوان';
+
+  @override
+  String get appearanceDescription => 'اختر لوحة ألوان موحدة لجميع شاشات التطبيق.';
+
+  @override
+  String get themeNavyGold => 'كحلي وذهبي';
+
+  @override
+  String get themeEmerald => 'زمردي';
+
+  @override
+  String get themeGraphite => 'فحمي';
+
+  @override
+  String get displayDensity => 'كثافة العرض';
+
+  @override
+  String get densityComfortable => 'مريح';
+
+  @override
+  String get densityCompact => 'مضغوط';
+
+  @override
   String get language => 'اللغة';
 
   @override
