@@ -137,7 +137,25 @@ class DashboardScreen extends ConsumerWidget {
           SizedBox(height: tokens.sectionSpacing),
           _sectionHeading(context, strings.financialSnapshot),
           const SizedBox(height: 8),
-
+          _metricGrid(context, [
+            _MetricData(
+              title: strings.homeAvailableBalance,
+              amount: homeBalance,
+              icon: Icons.account_balance_wallet_outlined,
+              emphasized: true,
+            ),
+            _MetricData(
+              title: strings.workRemaining,
+              amount: overview.workRemainingMinorUnits,
+              icon: Icons.account_balance_outlined,
+            ),
+            _MetricData(
+              title: strings.totalWorkOutstanding,
+              amount: overview.totalWorkOutstandingMinorUnits,
+              icon: Icons.pending_actions_outlined,
+            ),
+          ]),
+          SizedBox(height: tokens.sectionSpacing),
           _sectionHeading(context, strings.work),
           const SizedBox(height: 8),
           _metricGrid(context, [
