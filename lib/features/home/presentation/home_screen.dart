@@ -3,6 +3,7 @@ import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/calendar_date.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
+import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:expense_app/core/widgets/month_selector.dart';
 import 'package:expense_app/core/widgets/financial_record_card.dart';
 import 'package:expense_app/core/widgets/entry_tools.dart';
@@ -580,6 +581,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
+    final tokens = AppDesignTokens.of(context);
     if (!widget.swipePage && widget.mode == HomeScreenMode.overview) {
       return _buildSwipeShell(strings);
     }
@@ -617,7 +619,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       floatingActionButton: expensePage
           ? FloatingActionButton(onPressed: () => _editExpense(context, ref, strings), tooltip: strings.addExpense, child: const Icon(Icons.add))
           : null,
-      body: ListView(padding: const EdgeInsets.all(16), children: [
+      body: ListView(padding: tokens.pageInsets(), children: [
         MonthSelector(
           pickerKey: const Key('home-selected-month-picker'),
           selectedMonth: selectedMonth,
@@ -625,7 +627,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           onChanged: (month) =>
               ref.read(selectedMonthProvider.notifier).select(month),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: tokens.sectionSpacing * 0.67),
         if (overview) ...[
           if (billPayments.isLoading || billOutstandingAtMonthEnd.isLoading)
             Text(strings.loading)

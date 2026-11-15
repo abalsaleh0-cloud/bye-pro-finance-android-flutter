@@ -1,6 +1,7 @@
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/providers/app_settings_provider.dart';
 import 'package:expense_app/core/theme/app_appearance.dart';
+import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:expense_app/features/settings/presentation/gemma_model_settings_section.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -68,13 +69,14 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final strings = AppLocalizations.of(context)!;
+    final tokens = AppDesignTokens.of(context);
     final settings = ref.watch(appSettingsProvider);
     final controller = ref.read(appSettingsProvider.notifier);
 
     return Scaffold(
       appBar: AppBar(title: Text(strings.settings)),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        padding: tokens.pageInsets(bottom: tokens.pageVerticalPadding * 2),
         children: [
           _sectionTitle(context, strings.settingsAppearance),
           Card(
@@ -168,7 +170,7 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: tokens.sectionSpacing),
           _sectionTitle(context, strings.settingsAssistant),
           Card(
             child: SwitchListTile(
@@ -182,7 +184,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 10),
           const GemmaModelSettingsSection(),
-          const SizedBox(height: 18),
+          SizedBox(height: tokens.sectionSpacing),
           _sectionTitle(context, strings.settingsData),
           Card(
             child: ListTile(

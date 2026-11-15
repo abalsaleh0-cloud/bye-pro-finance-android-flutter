@@ -3,6 +3,7 @@ import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/calendar_date.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
+import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:expense_app/core/widgets/entry_tools.dart';
 import 'package:expense_app/core/widgets/entry_form_dialog.dart';
 import 'package:expense_app/core/widgets/month_selector.dart';
@@ -586,6 +587,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
+    final tokens = AppDesignTokens.of(context);
     if (!widget.swipePage && widget.mode == WorkScreenMode.overview) {
       return _buildSwipeShell(strings);
     }
@@ -613,7 +615,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
           : transferPage
               ? FloatingActionButton(onPressed: () => _editTransfer(context, ref, strings), tooltip: strings.addTransfer, child: const Icon(Icons.add))
               : null,
-      body: ListView(padding: const EdgeInsets.all(16), children: [
+      body: ListView(padding: tokens.pageInsets(), children: [
         MonthSelector(
           pickerKey: const Key('work-selected-month-picker'),
           selectedMonth: selectedMonth,
@@ -621,7 +623,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
           onChanged: (month) =>
               ref.read(selectedMonthProvider.notifier).select(month),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: tokens.sectionSpacing * 0.67),
         if (overview) ...[
           _workSummaryCard(context, strings, entries.value ?? const [], transfers.value ?? const [], selectedMonth),
           const SizedBox(height: 16),
