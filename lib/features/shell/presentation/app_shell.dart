@@ -1,4 +1,5 @@
 import 'package:expense_app/core/time/month_key.dart';
+import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
 import 'package:expense_app/core/widgets/entry_tools.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
@@ -44,6 +45,7 @@ class AppShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final strings = AppLocalizations.of(context)!;
+    final tokens = AppDesignTokens.of(context);
     final labels = [
       strings.dashboard,
       strings.work,
@@ -106,7 +108,7 @@ class AppShell extends ConsumerWidget {
           child: DecoratedBox(
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.96),
-              borderRadius: BorderRadius.circular(28),
+              borderRadius: BorderRadius.circular(tokens.cardRadius),
               border: Border.all(
                 color: Theme.of(context).colorScheme.outlineVariant,
               ),
@@ -121,13 +123,13 @@ class AppShell extends ConsumerWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(28),
               child: NavigationBar(
-                height: 68,
+                height: 72,
                 backgroundColor: Colors.transparent,
                 elevation: 0,
                 selectedIndex: _selectedIndex,
                 onDestinationSelected: (index) => navigationShell.goBranch(index),
                 indicatorShape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(tokens.controlRadius),
                 ),
                 destinations: List.generate(
                   labels.length,
