@@ -42,6 +42,7 @@
   "loading": "جارٍ التحميل",
   "dataError": "تعذر تحميل البيانات",
   "addExpense": "إضافة مصروف",
+  "addHomeItem": "إضافة إلى المنزل",
   "addEntry": "إضافة سجل عمل",
   "addDebt": "إضافة دين",
   "editRecord": "تعديل السجل",
