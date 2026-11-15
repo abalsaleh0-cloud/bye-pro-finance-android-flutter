@@ -21,6 +21,8 @@ import 'package:material_ui/material_ui.dart';
 
 enum HomeScreenMode { overview, transfers, dailyExpenses, monthlyBills }
 
+enum _HomeAddAction { dailyExpense, monthlyBill, rent }
+
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key, this.openManualEntry = false, this.mode = HomeScreenMode.overview, this.initialMonth, this.swipePage = false});
 
@@ -213,6 +215,82 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _showHomeAddOptions(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations strings,
+  ) async {
+    final selected = await showModalBottomSheet<_HomeAddAction>(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppDesignTokens.of(context).dialogRadius),
+        ),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsetsDirectional.fromSTEB(16, 12, 16, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                key: const Key('home-add-daily-expense'),
+                leading: const Icon(Icons.shopping_bag_outlined),
+                title: Text(strings.addExpense),
+                onTap: () => Navigator.pop(
+                  sheetContext,
+                  _HomeAddAction.dailyExpense,
+                ),
+              ),
+              ListTile(
+                key: const Key('home-add-monthly-bill'),
+                leading: const Icon(Icons.receipt_long_outlined),
+                title: Text(strings.addMonthlyBill),
+                onTap: () => Navigator.pop(
+                  sheetContext,
+                  _HomeAddAction.monthlyBill,
+                ),
+              ),
+              ListTile(
+                key: const Key('home-add-rent'),
+                leading: const Icon(Icons.home_work_outlined),
+                title: Text(strings.addRent),
+                onTap: () => Navigator.pop(
+                  sheetContext,
+                  _HomeAddAction.rent,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (!context.mounted || selected == null) return;
+    switch (selected) {
+      case _HomeAddAction.dailyExpense:
+        await _editExpense(context, ref, strings);
+      case _HomeAddAction.monthlyBill:
+        await HomeBillsSection(
+          selectedMonth: ref.read(selectedMonthProvider),
+        ).showAddBill(
+          context,
+          ref,
+          strings,
+          HomeBillKind.monthly,
+        );
+      case _HomeAddAction.rent:
+        await HomeBillsSection(
+          selectedMonth: ref.read(selectedMonthProvider),
+        ).showAddBill(
+          context,
+          ref,
+          strings,
+          HomeBillKind.rent,
+        );
+    }
   }
 
   Future<void> _editExpense(
@@ -574,13 +652,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final pageTitle = transferPage ? strings.receivedFromWork : expensePage ? strings.dailyExpenses : strings.monthlyBills;
     return Scaffold(
       appBar: overview || widget.swipePage ? null : AppBar(title: Text(pageTitle)),
-      floatingActionButton: overview
-          ? FloatingActionButton(
-              onPressed: () => _editExpense(context, ref, strings),
-              tooltip: strings.addExpense,
-              child: const Icon(Icons.add),
-            )
-          : null,
       body: ListView(padding: tokens.pageInsets(), children: [
         MonthSelector(
           pickerKey: const Key('home-selected-month-picker'),
@@ -588,6 +659,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           availableMonths: availableMonths,
           onChanged: (month) =>
               ref.read(selectedMonthProvider.notifier).select(month),
+          trailing: overview
+              ? IconButton.filledTonal(
+                  key: const Key('home-add-action'),
+                  tooltip: strings.addEntry,
+                  icon: const Icon(Icons.add_rounded),
+                  onPressed: () =>
+                      _showHomeAddOptions(context, ref, strings),
+                )
+              : null,
         ),
         SizedBox(height: tokens.sectionSpacing * 0.67),
         if (overview) ...[
