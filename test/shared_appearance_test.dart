@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
 void main() {
-  testWidgets('shared entry dialog adapts its outer spacing to compact density', (
+  testWidgets('shared entry dialog uses the same unified outer spacing', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -37,7 +37,7 @@ void main() {
     final dialog = tester.widget<AlertDialog>(find.byType(AlertDialog));
     expect(
       dialog.insetPadding,
-      const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      const EdgeInsets.all(16),
     );
   });
 }
