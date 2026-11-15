@@ -528,17 +528,17 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                               ),
                             ],
                           ),
-                          Consumer(
-                            builder: (context, ref, child) {
-                              final payments = ref.watch(
-                                debtPaymentsProvider(debt.id),
-                              );
-                              return TextButton.icon(
-                                key: Key('debt-payment-history-${debt.id}'),
-                                onPressed: () {
-                                  showDialog<void>(
-                                    context: context,
-                                    builder: (dialogContext) => AlertDialog(
+                          TextButton.icon(
+                            key: Key('debt-payment-history-${debt.id}'),
+                            onPressed: () {
+                              showDialog<void>(
+                                context: context,
+                                builder: (dialogContext) => Consumer(
+                                  builder: (context, ref, child) {
+                                    final payments = ref.watch(
+                                      debtPaymentsProvider(debt.id),
+                                    );
+                                    return AlertDialog(
                                       scrollable: true,
                                       title: Text(strings.paymentHistory),
                                       content: SizedBox(
@@ -596,13 +596,13 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                                           child: Text(strings.cancel),
                                         ),
                                       ],
-                                    ),
-                                  );
-                                },
-                                icon: const Icon(Icons.history),
-                                label: Text(strings.paymentHistory),
+                                    );
+                                  },
+                                ),
                               );
                             },
+                            icon: const Icon(Icons.history),
+                            label: Text(strings.paymentHistory),
                           ),
                         ],
                       ),
