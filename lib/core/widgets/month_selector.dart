@@ -1,4 +1,5 @@
 import 'package:expense_app/core/time/month_key.dart';
+import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -20,10 +21,11 @@ class MonthSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    final tokens = AppDesignTokens.of(context);
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: EdgeInsets.all(tokens.cardPadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -139,17 +141,18 @@ class _SummaryMetricTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final tokens = AppDesignTokens.of(context);
     final foreground =
         metric.emphasized ? scheme.onPrimaryContainer : scheme.onSurface;
 
     return Container(
       constraints: const BoxConstraints(minHeight: 104),
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(tokens.cardPadding - 2),
       decoration: BoxDecoration(
         color: metric.emphasized
             ? scheme.primaryContainer
             : scheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(tokens.controlRadius + 2),
         border: Border.all(
           color: metric.emphasized
               ? scheme.primaryContainer

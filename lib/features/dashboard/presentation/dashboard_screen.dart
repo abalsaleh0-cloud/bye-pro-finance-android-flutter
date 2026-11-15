@@ -2,6 +2,7 @@ import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/time/calendar_date.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
+import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:expense_app/core/widgets/month_selector.dart';
 import 'package:expense_app/features/dashboard/domain/monthly_overview.dart';
 import 'package:expense_app/features/debts/domain/debt_entry.dart';
@@ -21,6 +22,7 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final strings = AppLocalizations.of(context)!;
+    final tokens = AppDesignTokens.of(context);
     final work = ref.watch(workEntriesProvider);
     final home = ref.watch(homeExpensesProvider);
     final transfers = ref.watch(workTransfersProvider);
@@ -123,7 +125,7 @@ class DashboardScreen extends ConsumerWidget {
     return Scaffold(
       body: ListView(
         key: const Key('dashboard-content'),
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        padding: tokens.pageInsets(bottom: tokens.pageVerticalPadding * 2),
         children: [
           MonthSelector(
             pickerKey: const Key('dashboard-month-picker'),
@@ -132,7 +134,7 @@ class DashboardScreen extends ConsumerWidget {
             onChanged: (value) =>
                 ref.read(selectedMonthProvider.notifier).select(value),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: tokens.sectionSpacing),
           _sectionHeading(context, strings.financialSnapshot),
           const SizedBox(height: 8),
           _heroBalanceCard(
@@ -154,7 +156,7 @@ class DashboardScreen extends ConsumerWidget {
               icon: Icons.pending_actions_outlined,
             ),
           ]),
-          const SizedBox(height: 20),
+          SizedBox(height: tokens.sectionSpacing),
           _sectionHeading(context, strings.quickActions),
           const SizedBox(height: 8),
           Wrap(
@@ -187,7 +189,7 @@ class DashboardScreen extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: tokens.sectionSpacing),
           _sectionHeading(context, strings.work),
           const SizedBox(height: 8),
           _metricGrid(context, [
@@ -227,7 +229,7 @@ class DashboardScreen extends ConsumerWidget {
               icon: Icons.swap_horiz,
             ),
           ]),
-          const SizedBox(height: 20),
+          SizedBox(height: tokens.sectionSpacing),
           _sectionHeading(context, strings.homeSection),
           const SizedBox(height: 8),
           _metricGrid(context, [
@@ -256,7 +258,7 @@ class DashboardScreen extends ConsumerWidget {
           _sectionHeading(context, strings.cashFlowComparison),
           const SizedBox(height: 8),
           _comparisonCard(context, strings, monthTransfers, monthExpenses),
-          const SizedBox(height: 20),
+          SizedBox(height: tokens.sectionSpacing),
           _sectionHeading(context, strings.debts),
           const SizedBox(height: 4),
           Text(
@@ -278,7 +280,7 @@ class DashboardScreen extends ConsumerWidget {
               icon: Icons.call_made_outlined,
             ),
           ]),
-          const SizedBox(height: 20),
+          SizedBox(height: tokens.sectionSpacing),
           _sectionHeading(context, strings.recentActivity),
           const SizedBox(height: 8),
           if (recent.isEmpty)

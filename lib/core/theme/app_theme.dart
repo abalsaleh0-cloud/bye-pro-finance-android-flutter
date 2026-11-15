@@ -331,7 +331,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: radius),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        height: 72,
+        height: density == AppDensity.compact ? 68 : 72,
         backgroundColor: scheme.surface,
         indicatorColor: scheme.secondaryContainer,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,

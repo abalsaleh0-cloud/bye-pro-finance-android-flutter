@@ -14,6 +14,7 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
     required this.controlRadius,
     required this.dialogRadius,
     required this.cardElevation,
+    required this.cardPadding,
     required this.listTileVerticalPadding,
     required this.inputVerticalPadding,
     required this.motionDuration,
@@ -29,6 +30,7 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
       controlRadius: compact ? 10 : 12,
       dialogRadius: compact ? 18 : 22,
       cardElevation: 0,
+      cardPadding: compact ? 12 : 14,
       listTileVerticalPadding: compact ? 0 : 3,
       inputVerticalPadding: compact ? 12 : 15,
       motionDuration: Duration(milliseconds: compact ? 140 : 180),
@@ -42,6 +44,7 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
   final double controlRadius;
   final double dialogRadius;
   final double cardElevation;
+  final double cardPadding;
   final double listTileVerticalPadding;
   final double inputVerticalPadding;
   final Duration motionDuration;
@@ -55,6 +58,7 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
     double? controlRadius,
     double? dialogRadius,
     double? cardElevation,
+    double? cardPadding,
     double? listTileVerticalPadding,
     double? inputVerticalPadding,
     Duration? motionDuration,
@@ -68,6 +72,7 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
       controlRadius: controlRadius ?? this.controlRadius,
       dialogRadius: dialogRadius ?? this.dialogRadius,
       cardElevation: cardElevation ?? this.cardElevation,
+      cardPadding: cardPadding ?? this.cardPadding,
       listTileVerticalPadding:
           listTileVerticalPadding ?? this.listTileVerticalPadding,
       inputVerticalPadding: inputVerticalPadding ?? this.inputVerticalPadding,
@@ -92,6 +97,7 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
       controlRadius: _lerp(controlRadius, other.controlRadius, t),
       dialogRadius: _lerp(dialogRadius, other.dialogRadius, t),
       cardElevation: _lerp(cardElevation, other.cardElevation, t),
+      cardPadding: _lerp(cardPadding, other.cardPadding, t),
       listTileVerticalPadding:
           _lerp(listTileVerticalPadding, other.listTileVerticalPadding, t),
       inputVerticalPadding:
@@ -103,6 +109,20 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
                     t)
             .round(),
       ),
+    );
+  }
+
+  static AppDesignTokens of(BuildContext context) {
+    return Theme.of(context).extension<AppDesignTokens>() ??
+        AppDesignTokens.forDensity(AppDensity.comfortable);
+  }
+
+  EdgeInsetsDirectional pageInsets({double? bottom}) {
+    return EdgeInsetsDirectional.fromSTEB(
+      pageHorizontalPadding,
+      pageVerticalPadding,
+      pageHorizontalPadding,
+      bottom ?? pageVerticalPadding * 2,
     );
   }
 

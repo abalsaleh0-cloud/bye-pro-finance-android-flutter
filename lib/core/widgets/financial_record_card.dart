@@ -1,3 +1,4 @@
+import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:material_ui/material_ui.dart';
 
 class FinancialRecordCard extends StatelessWidget {
@@ -26,12 +27,13 @@ class FinancialRecordCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final tokens = AppDesignTokens.of(context);
     final visibleDetails = details.where((detail) => detail.trim().isNotEmpty);
 
     return Card(
       clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: EdgeInsets.all(tokens.cardPadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
