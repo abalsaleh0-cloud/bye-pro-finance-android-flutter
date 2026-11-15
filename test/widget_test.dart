@@ -797,6 +797,8 @@ void main() {
     await tester.tap(paymentHistory);
     await tester.pumpAndSettle();
     expect(find.textContaining('الوقت:'), findsOneWidget);
+    await tester.tap(find.text('إلغاء').last);
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('تسجيل دفعة').last);
     await tester.pumpAndSettle();
