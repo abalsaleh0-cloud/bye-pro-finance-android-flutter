@@ -574,8 +574,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final pageTitle = transferPage ? strings.receivedFromWork : expensePage ? strings.dailyExpenses : strings.monthlyBills;
     return Scaffold(
       appBar: overview || widget.swipePage ? null : AppBar(title: Text(pageTitle)),
-      floatingActionButton: expensePage
-          ? FloatingActionButton(onPressed: () => _editExpense(context, ref, strings), tooltip: strings.addExpense, child: const Icon(Icons.add))
+      floatingActionButton: overview
+          ? FloatingActionButton(
+              onPressed: () => _editExpense(context, ref, strings),
+              tooltip: strings.addExpense,
+              child: const Icon(Icons.add),
+            )
           : null,
       body: ListView(padding: tokens.pageInsets(), children: [
         MonthSelector(
