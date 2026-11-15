@@ -45,6 +45,10 @@ void main() {
       lessThan(comfortableTokens.inputVerticalPadding),
     );
     expect(
+      compactTokens.cardPadding,
+      lessThan(comfortableTokens.cardPadding),
+    );
+    expect(
       compact.filledButtonTheme.style!.minimumSize!.resolve({})!.height,
       48,
     );
