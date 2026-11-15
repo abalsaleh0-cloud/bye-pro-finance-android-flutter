@@ -42,7 +42,7 @@ void main() {
 
     app = tester.widget<MaterialApp>(find.byType(MaterialApp));
     final tokens = app.theme!.extension<AppDesignTokens>()!;
-    expect(tokens.pageHorizontalPadding, 12);
-    expect(tokens.cardPadding, 12);
+    expect(tokens.pageHorizontalPadding, 16);
+    expect(tokens.cardPadding, 16);
   });
 }
