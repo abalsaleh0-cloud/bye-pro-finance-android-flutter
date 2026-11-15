@@ -405,44 +405,57 @@ class DashboardScreen extends ConsumerWidget {
 
   static Widget _metricCard(BuildContext context, _MetricData metric) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.secondaryContainer,
-                borderRadius: BorderRadius.circular(20),
+      child: SizedBox(
+        height: 96,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: scheme.secondaryContainer,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  metric.icon,
+                  color: scheme.onSecondaryContainer,
+                  size: 20,
+                ),
               ),
-              alignment: Alignment.center,
-              child: Icon(
-                metric.icon,
-                color: theme.colorScheme.onSecondaryContainer,
-                size: 21,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      metric.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      metric.amount.toString(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              metric.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 6),
-            Text(
-              metric.amount.toString(),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
