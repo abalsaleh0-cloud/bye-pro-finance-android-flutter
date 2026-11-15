@@ -377,6 +377,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
     final strings = AppLocalizations.of(context)!;
     final tokens = AppDesignTokens.of(context);
     final debts = ref.watch(debtsProvider);
+    final selectedMonth = ref.watch(selectedMonthProvider);
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         onPressed: () => _editDebt(context, ref, strings),
@@ -385,18 +386,44 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
       ),
       body: Column(
         children: [
-          if (debts.hasValue) _debtSummaryCard(context, strings, debts.value ?? const []),
+          if (debts.hasValue) ...[
+            Padding(
+              padding: tokens.pageInsets(bottom: 8),
+              child: MonthSelector(
+                pickerKey: const Key('debts-selected-month-picker'),
+                selectedMonth: selectedMonth,
+                availableMonths: {
+                  MonthKey(year: DateTime.now().year, month: DateTime.now().month),
+                  selectedMonth,
+                  ...(debts.value ?? const []).map((debt) => debt.dueMonth),
+                }.toList()..sort((a, b) => b.compareTo(a)),
+                onChanged: (value) =>
+                    ref.read(selectedMonthProvider.notifier).select(value),
+              ),
+            ),
+            _debtSummaryCard(
+              context,
+              strings,
+              (debts.value ?? const [])
+                  .where((debt) => debt.dueMonth == selectedMonth)
+                  .toList(),
+            ),
+          ],
           Expanded(child: debts.when(
         loading: () => Center(child: Text(strings.loading)),
         error: (error, stackTrace) => Center(child: Text(strings.dataError)),
-        data: (items) => items.isEmpty
-            ? Center(child: Text(strings.noRecords))
-            : ListView.separated(
+        data: (items) {
+          final visibleItems = items
+              .where((debt) => debt.dueMonth == selectedMonth)
+              .toList();
+          return visibleItems.isEmpty
+              ? Center(child: Text(strings.noRecords))
+              : ListView.separated(
                 padding: tokens.pageInsets(),
-                itemCount: items.length,
+                itemCount: visibleItems.length,
                 separatorBuilder: (context, index) => SizedBox(height: tokens.sectionSpacing / 2),
                 itemBuilder: (context, index) {
-                  final debt = items[index];
+                  final debt = visibleItems[index];
                   final direction = debt.direction == DebtDirection.creditor
                       ? strings.creditor
                       : strings.debtor;
@@ -571,7 +598,8 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                     ),
                   );
                 },
-              ),
+              );
+        },
       )),
         ],
       ),
