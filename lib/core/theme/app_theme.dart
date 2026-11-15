@@ -9,7 +9,6 @@ class AppTheme {
   static const _navySurface = Color(0xFF101F39);
   static const _gold = Color(0xFFD4A62A);
   static const _ivory = Color(0xFFF1E8D2);
-  static const _lightBackground = Color(0xFFF5F6F8);
   static const _lightSurface = Color(0xFFFFFEFC);
   static const _lightSurfaceContainer = Color(0xFFF0F2F5);
   static const _darkSurfaceContainer = Color(0xFF172842);
