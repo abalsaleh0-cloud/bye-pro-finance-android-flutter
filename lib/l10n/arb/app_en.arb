@@ -42,6 +42,7 @@
   "loading": "Loading",
   "dataError": "Unable to load data",
   "addExpense": "Add expense",
+  "addHomeItem": "Add home item",
   "addEntry": "Add work entry",
   "addDebt": "Add debt",
   "editRecord": "Edit record",

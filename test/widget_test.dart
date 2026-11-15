@@ -15,7 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
 void main() {
-  testWidgets('starts in Arabic with five navigation destinations', (
+  testWidgets('starts in Arabic with five primary navigation destinations', (
     tester,
   ) async {
     await tester.pumpWidget(const ProviderScope(child: MyApp()));
@@ -25,6 +25,8 @@ void main() {
     expect(find.byType(NavigationDestination), findsNWidgets(5));
     expect(find.byKey(const Key('open-settings')), findsOneWidget);
     expect(find.byKey(const Key('open-calculator')), findsOneWidget);
+    expect(find.byKey(const Key('open-calendar')), findsOneWidget);
+    expect(find.text('الذكاء الاصطناعي'), findsWidgets);
   });
 
   testWidgets('global calculator evaluates expressions and returns a safe result', (tester) async {
@@ -124,6 +126,14 @@ void main() {
     expect(
       tester.widget<PageView>(find.byKey(const Key('work-section-pages'))).controller!.page,
       2,
+    );
+
+    await tester.tap(find.text('الذكاء الاصطناعي').last);
+    await tester.pumpAndSettle();
+    expect(find.text('الذكاء الاصطناعي'), findsWidgets);
+    expect(
+      tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+      4,
     );
 
     await tester.tap(find.text('المنزل').last);
@@ -703,17 +713,20 @@ void main() {
 
     await tester.tap(find.text('المنزل').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('home-tab-2')));
+    await tester.tap(find.byKey(const Key('home-tab-0')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(FloatingActionButton));
+
+    await tester.tap(find.byKey(const Key('home-add-action')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('home-add-daily-expense')));
     await tester.pumpAndSettle();
     expect(fieldValues(), contains(previousMonth.toString()));
     await tester.tap(find.text('إلغاء'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('home-tab-3')));
+    await tester.tap(find.byKey(const Key('home-add-action')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('إضافة فاتورة شهرية'));
+    await tester.tap(find.byKey(const Key('home-add-monthly-bill')));
     await tester.pumpAndSettle();
     expect(fieldValues(), contains(previousMonth.toString()));
     await tester.tap(find.text('إلغاء'));
@@ -777,9 +790,18 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('سجل الدفعات'), findsOneWidget);
     expect(find.textContaining('الوقت:'), findsNothing);
-    await tester.tap(find.text('سجل الدفعات').last);
+    final paymentHistory = find.byKey(
+      const Key('debt-payment-history-widget-debt-payment-time'),
+    );
+    await tester.ensureVisible(paymentHistory);
     await tester.pumpAndSettle();
+    await tester.tap(paymentHistory);
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.text('لا توجد سجلات'), findsNothing);
     expect(find.textContaining('الوقت:'), findsOneWidget);
+    await tester.tap(find.text('إلغاء').last);
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('تسجيل دفعة').last);
     await tester.pumpAndSettle();

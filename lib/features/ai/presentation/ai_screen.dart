@@ -46,6 +46,7 @@ class AiScreen extends ConsumerStatefulWidget {
 }
 
 class _AiScreenState extends ConsumerState<AiScreen> {
+  late final GemmaModelManager _gemmaModelManager;
   final _input = TextEditingController();
   final AssistantConfirmation _confirmation = AssistantConfirmation();
   UndoOperation? _undo;
@@ -60,6 +61,12 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   bool _recording = false;
 
   @override
+  void initState() {
+    super.initState();
+    _gemmaModelManager = ref.read(gemmaModelManagerProvider.notifier);
+  }
+
+  @override
   void dispose() {
     _input.dispose();
     if (_recognizing) {
@@ -70,7 +77,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     }
     if (_recording) unawaited(_recorder.stop());
     unawaited(_recorder.dispose());
-    unawaited(ref.read(gemmaModelManagerProvider.notifier).releaseModel());
+    unawaited(_gemmaModelManager.releaseModel());
     super.dispose();
   }
 

@@ -377,6 +377,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
     final strings = AppLocalizations.of(context)!;
     final tokens = AppDesignTokens.of(context);
     final debts = ref.watch(debtsProvider);
+    final selectedMonth = ref.watch(selectedMonthProvider);
     return Scaffold(
       floatingActionButton: FloatingActionButton(
         onPressed: () => _editDebt(context, ref, strings),
@@ -385,18 +386,42 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
       ),
       body: Column(
         children: [
-          if (debts.hasValue) _debtSummaryCard(context, strings, debts.value ?? const []),
+          Padding(
+            padding: tokens.pageInsets(bottom: 8),
+            child: MonthSelector(
+              pickerKey: const Key('debts-selected-month-picker'),
+              selectedMonth: selectedMonth,
+              availableMonths: {
+                MonthKey(year: DateTime.now().year, month: DateTime.now().month),
+                selectedMonth,
+                ...(debts.value ?? const []).map((debt) => debt.dueMonth),
+              }.toList()..sort((a, b) => b.compareTo(a)),
+              onChanged: (value) =>
+                  ref.read(selectedMonthProvider.notifier).select(value),
+            ),
+          ),
+          _debtSummaryCard(
+            context,
+            strings,
+            (debts.value ?? const [])
+                .where((debt) => debt.dueMonth == selectedMonth)
+                .toList(),
+          ),
           Expanded(child: debts.when(
         loading: () => Center(child: Text(strings.loading)),
         error: (error, stackTrace) => Center(child: Text(strings.dataError)),
-        data: (items) => items.isEmpty
-            ? Center(child: Text(strings.noRecords))
-            : ListView.separated(
+        data: (items) {
+          final visibleItems = items
+              .where((debt) => debt.dueMonth == selectedMonth)
+              .toList();
+          return visibleItems.isEmpty
+              ? Center(child: Text(strings.noRecords))
+              : ListView.separated(
                 padding: tokens.pageInsets(),
-                itemCount: items.length,
+                itemCount: visibleItems.length,
                 separatorBuilder: (context, index) => SizedBox(height: tokens.sectionSpacing / 2),
                 itemBuilder: (context, index) {
-                  final debt = items[index];
+                  final debt = visibleItems[index];
                   final direction = debt.direction == DebtDirection.creditor
                       ? strings.creditor
                       : strings.debtor;
@@ -503,75 +528,89 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                               ),
                             ],
                           ),
-                          ExpansionTile(
+                          TextButton.icon(
                             key: Key('debt-payment-history-${debt.id}'),
-                            tilePadding: EdgeInsets.zero,
-                            childrenPadding: EdgeInsets.zero,
-                            title: Text(
-                              strings.paymentHistory,
-                              style: Theme.of(context).textTheme.titleSmall,
-                            ),
-                            children: [
-                              Consumer(
-                                builder: (context, ref, child) {
-                                  final payments = ref.watch(
-                                    debtPaymentsProvider(debt.id),
-                                  );
-                                  return payments.when(
-                                    loading: () => Padding(
-                                      padding: const EdgeInsets.all(12),
-                                      child: Text(strings.loading),
-                                    ),
-                                    error: (error, stackTrace) =>
-                                        Padding(
-                                      padding: const EdgeInsets.all(12),
-                                      child: Text(strings.dataError),
-                                    ),
-                                    data: (history) => history.isEmpty
-                                        ? Padding(
+                            onPressed: () {
+                              showDialog<void>(
+                                context: context,
+                                builder: (dialogContext) => Consumer(
+                                  builder: (context, ref, child) {
+                                    final payments = ref.watch(
+                                      debtPaymentsProvider(debt.id),
+                                    );
+                                    return AlertDialog(
+                                      scrollable: true,
+                                      title: Text(strings.paymentHistory),
+                                      content: SizedBox(
+                                        width: double.maxFinite,
+                                        child: payments.when(
+                                          loading: () => Padding(
                                             padding: const EdgeInsets.all(12),
-                                            child: Text(strings.noRecords),
-                                          )
-                                        : Column(
-                                            children: [
-                                              for (final payment in history)
-                                                ListTile(
-                                                  dense: true,
-                                                  contentPadding:
-                                                      EdgeInsets.zero,
-                                                  leading: const Icon(
-                                                    Icons.receipt_long_outlined,
-                                                  ),
-                                                  title: Text(
-                                                    payment.amount.minorUnits
-                                                        .toString(),
-                                                    style: Theme.of(context)
-                                                        .textTheme
-                                                        .titleSmall
-                                                        ?.copyWith(
-                                                          fontWeight:
-                                                              FontWeight.w700,
-                                                        ),
-                                                  ),
-                                                  subtitle: Text(
-                                                    '${strings.paidAt}: ${formatCalendarDate(payment.paidAt)}'
-                                                    '\n${strings.time}: ${TimeOfDay.fromDateTime(payment.paidAt).format(context)}'
-                                                    '${payment.note == null ? '' : '\n${payment.note}'}',
-                                                  ),
-                                                ),
-                                            ],
+                                            child: Text(strings.loading),
                                           ),
-                                  );
-                                },
-                              ),
-                            ],
+                                          error: (error, stackTrace) => Padding(
+                                            padding: const EdgeInsets.all(12),
+                                            child: Text(strings.dataError),
+                                          ),
+                                          data: (history) => history.isEmpty
+                                              ? Padding(
+                                                  padding: const EdgeInsets.all(12),
+                                                  child: Text(strings.noRecords),
+                                                )
+                                              : Column(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    for (final payment in history)
+                                                      ListTile(
+                                                        dense: true,
+                                                        contentPadding:
+                                                            EdgeInsets.zero,
+                                                        leading: const Icon(
+                                                          Icons.receipt_long_outlined,
+                                                        ),
+                                                        title: Text(
+                                                          payment.amount.minorUnits
+                                                              .toString(),
+                                                          style: Theme.of(context)
+                                                              .textTheme
+                                                              .titleSmall
+                                                              ?.copyWith(
+                                                                fontWeight:
+                                                                    FontWeight.w700,
+                                                              ),
+                                                        ),
+                                                        subtitle: Text(
+                                                          '${strings.paidAt}: ${formatCalendarDate(payment.paidAt)}'
+                                                          '\n${strings.time}: ${TimeOfDay.fromDateTime(payment.paidAt).format(context)}'
+                                                          '${payment.note == null ? '' : '\n${payment.note}'}',
+                                                        ),
+                                                      ),
+                                                  ],
+                                                ),
+                                        ),
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(dialogContext),
+                                          child: Text(strings.cancel),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.history),
+                            label: Text(strings.paymentHistory),
                           ),
                         ],
                       ),
                     ),
                   );
                 },
-              ),
+              );
+        },
       )),
         ],
       ),

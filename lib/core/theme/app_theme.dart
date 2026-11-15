@@ -331,9 +331,12 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: radius),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        height: density == AppDensity.compact ? 68 : 72,
+        height: 72,
         backgroundColor: scheme.surface,
         indicatorColor: scheme.secondaryContainer,
+        indicatorShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(tokens.controlRadius),
+        ),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
       ),
       dialogTheme: DialogThemeData(
@@ -348,6 +351,25 @@ class AppTheme {
           color: scheme.onSurface,
           fontSize: 20,
           fontWeight: FontWeight.w700,
+        ),
+      ),
+      datePickerTheme: DatePickerThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(tokens.dialogRadius),
+          side: border,
+        ),
+      ),
+      timePickerTheme: TimePickerThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(tokens.dialogRadius),
+          side: border,
+        ),
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: scheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(tokens.dialogRadius),
+          side: border,
         ),
       ),
       bottomSheetTheme: BottomSheetThemeData(

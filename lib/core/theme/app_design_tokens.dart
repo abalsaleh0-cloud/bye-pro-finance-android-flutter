@@ -20,20 +20,21 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
     required this.motionDuration,
   });
 
-  factory AppDesignTokens.forDensity(AppDensity density) {
-    final compact = density == AppDensity.compact;
-    return AppDesignTokens(
-      pageHorizontalPadding: compact ? 12 : 16,
-      pageVerticalPadding: compact ? 8 : 12,
-      sectionSpacing: compact ? 12 : 18,
-      cardRadius: compact ? 14 : 18,
-      controlRadius: compact ? 10 : 12,
-      dialogRadius: compact ? 18 : 22,
+  /// Density is retained for backwards-compatible saved preferences, while
+  /// geometry stays identical throughout every screen and component.
+  factory AppDesignTokens.forDensity(AppDensity _) {
+    return const AppDesignTokens(
+      pageHorizontalPadding: 16,
+      pageVerticalPadding: 10,
+      sectionSpacing: 14,
+      cardRadius: 24,
+      controlRadius: 24,
+      dialogRadius: 24,
       cardElevation: 0,
-      cardPadding: compact ? 12 : 14,
-      listTileVerticalPadding: compact ? 0 : 3,
-      inputVerticalPadding: compact ? 12 : 15,
-      motionDuration: Duration(milliseconds: compact ? 140 : 180),
+      cardPadding: 16,
+      listTileVerticalPadding: 2,
+      inputVerticalPadding: 14,
+      motionDuration: Duration(milliseconds: 180),
     );
   }
 

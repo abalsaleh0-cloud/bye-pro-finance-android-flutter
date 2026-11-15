@@ -5,6 +5,7 @@ import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
 import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:expense_app/core/widgets/month_selector.dart';
+import 'package:expense_app/core/widgets/section_pill_tabs.dart';
 import 'package:expense_app/core/widgets/financial_record_card.dart';
 import 'package:expense_app/core/widgets/entry_tools.dart';
 import 'package:expense_app/core/widgets/entry_form_dialog.dart';
@@ -19,6 +20,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 enum HomeScreenMode { overview, transfers, dailyExpenses, monthlyBills }
+
+enum _HomeAddAction { dailyExpense, monthlyBill, rent }
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key, this.openManualEntry = false, this.mode = HomeScreenMode.overview, this.initialMonth, this.swipePage = false});
@@ -212,6 +215,85 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _showHomeAddOptions(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations strings,
+  ) async {
+    final selected = await showModalBottomSheet<_HomeAddAction>(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppDesignTokens.of(context).dialogRadius),
+        ),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsetsDirectional.fromSTEB(16, 12, 16, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                key: const Key('home-add-daily-expense'),
+                leading: const Icon(Icons.shopping_bag_outlined),
+                title: Text(strings.addExpense),
+                onTap: () => Navigator.pop(
+                  sheetContext,
+                  _HomeAddAction.dailyExpense,
+                ),
+              ),
+              ListTile(
+                key: const Key('home-add-monthly-bill'),
+                leading: const Icon(Icons.receipt_long_outlined),
+                title: Text(strings.addMonthlyBill),
+                onTap: () => Navigator.pop(
+                  sheetContext,
+                  _HomeAddAction.monthlyBill,
+                ),
+              ),
+              ListTile(
+                key: const Key('home-add-rent'),
+                leading: const Icon(Icons.home_work_outlined),
+                title: Text(strings.addRent),
+                onTap: () => Navigator.pop(
+                  sheetContext,
+                  _HomeAddAction.rent,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (!context.mounted || selected == null) return;
+    switch (selected) {
+      case _HomeAddAction.dailyExpense:
+        await _editExpense(context, ref, strings);
+        break;
+      case _HomeAddAction.monthlyBill:
+        await HomeBillsSection(
+          selectedMonth: ref.read(selectedMonthProvider),
+        ).showAddBill(
+          context,
+          ref,
+          strings,
+          HomeBillKind.monthly,
+        );
+        break;
+      case _HomeAddAction.rent:
+        await HomeBillsSection(
+          selectedMonth: ref.read(selectedMonthProvider),
+        ).showAddBill(
+          context,
+          ref,
+          strings,
+          HomeBillKind.rent,
+        );
+        break;
+    }
   }
 
   Future<void> _editExpense(
@@ -505,59 +587,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Column(
       children: [
-        Material(
-          color: Theme.of(context).colorScheme.surface,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (var index = 0; index < labels.length; index++)
-                  InkWell(
-                    key: Key('home-tab-$index'),
-                    onTap: () => _pageController.animateToPage(
-                      index,
-                      duration: const Duration(milliseconds: 220),
-                      curve: Curves.easeOut,
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            labels[index],
-                            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                              color: _activePage == index
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Theme.of(context).colorScheme.onSurfaceVariant,
-                              fontWeight: _activePage == index
-                                  ? FontWeight.w700
-                                  : FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 7),
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 180),
-                            height: 2,
-                            width: _activePage == index ? 30 : 0,
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.primary,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+        SectionPillTabs(
+          keyPrefix: 'home-tab',
+          labels: labels,
+          selectedIndex: _activePage,
+          onSelected: (index) => _pageController.animateToPage(
+            index,
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOut,
           ),
         ),
-        Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
         Expanded(
           child: PageView(
             key: const Key('home-section-pages'),
@@ -616,9 +655,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final pageTitle = transferPage ? strings.receivedFromWork : expensePage ? strings.dailyExpenses : strings.monthlyBills;
     return Scaffold(
       appBar: overview || widget.swipePage ? null : AppBar(title: Text(pageTitle)),
-      floatingActionButton: expensePage
-          ? FloatingActionButton(onPressed: () => _editExpense(context, ref, strings), tooltip: strings.addExpense, child: const Icon(Icons.add))
-          : null,
       body: ListView(padding: tokens.pageInsets(), children: [
         MonthSelector(
           pickerKey: const Key('home-selected-month-picker'),
@@ -626,6 +662,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           availableMonths: availableMonths,
           onChanged: (month) =>
               ref.read(selectedMonthProvider.notifier).select(month),
+          trailing: overview
+              ? IconButton.filledTonal(
+                  key: const Key('home-add-action'),
+                  tooltip: strings.addHomeItem,
+                  icon: const Icon(Icons.add_rounded),
+                  onPressed: () =>
+                      _showHomeAddOptions(context, ref, strings),
+                )
+              : null,
         ),
         SizedBox(height: tokens.sectionSpacing * 0.67),
         if (overview) ...[

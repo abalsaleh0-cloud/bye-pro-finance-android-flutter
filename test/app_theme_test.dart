@@ -21,7 +21,7 @@ void main() {
     }
   });
 
-  test('compact density reduces layout spacing without shrinking tap targets', () {
+  test('all screens use identical dimensions in every saved density mode', () {
     final comfortable = AppTheme.lightFor(
       density: AppDensity.comfortable,
     );
@@ -32,28 +32,20 @@ void main() {
     final comfortableTokens = comfortable.extension<AppDesignTokens>()!;
     final compactTokens = compact.extension<AppDesignTokens>()!;
 
-    expect(
-      compactTokens.pageHorizontalPadding,
-      lessThan(comfortableTokens.pageHorizontalPadding),
-    );
-    expect(
-      compactTokens.sectionSpacing,
-      lessThan(comfortableTokens.sectionSpacing),
-    );
-    expect(
-      compactTokens.inputVerticalPadding,
-      lessThan(comfortableTokens.inputVerticalPadding),
-    );
-    expect(
-      compactTokens.cardPadding,
-      lessThan(comfortableTokens.cardPadding),
-    );
+    expect(compactTokens.pageHorizontalPadding,
+        comfortableTokens.pageHorizontalPadding);
+    expect(compactTokens.sectionSpacing, comfortableTokens.sectionSpacing);
+    expect(compactTokens.inputVerticalPadding,
+        comfortableTokens.inputVerticalPadding);
+    expect(compactTokens.cardPadding, comfortableTokens.cardPadding);
+    expect(compactTokens.cardRadius, 24);
+    expect(compactTokens.controlRadius, 24);
+    expect(compactTokens.dialogRadius, 24);
     expect(
       compact.filledButtonTheme.style!.minimumSize!.resolve({})!.height,
       48,
     );
   });
-
   test('unknown saved appearance values fall back to the safe defaults', () {
     expect(
       AppThemePreset.fromStorage('unknown'),

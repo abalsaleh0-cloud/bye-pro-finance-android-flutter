@@ -66,6 +66,15 @@ class HomeBillsSection extends ConsumerWidget {
     title.dispose(); amount.dispose(); month.dispose(); note.dispose();
   }
 
+  Future<void> showAddBill(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations strings,
+    HomeBillKind kind,
+  ) {
+    return _addBill(context, ref, strings, kind);
+  }
+
   Future<void> _payBill(BuildContext context, WidgetRef ref, AppLocalizations strings, HomeBill bill) async {
     final amount = TextEditingController();
     final paidAt = TextEditingController(text: formatCalendarDate(DateTime.now()));
@@ -173,11 +182,10 @@ class HomeBillsSection extends ConsumerWidget {
     final strings = AppLocalizations.of(context)!;
     final bills = ref.watch(homeBillsProvider);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [
-        Expanded(child: Text(strings.monthlyBills, style: Theme.of(context).textTheme.titleMedium)),
-        IconButton(tooltip: strings.addMonthlyBill, onPressed: () => _addBill(context, ref, strings, HomeBillKind.monthly), icon: const Icon(Icons.add)),
-        IconButton(tooltip: strings.addRent, onPressed: () => _addBill(context, ref, strings, HomeBillKind.rent), icon: const Icon(Icons.home_work_outlined)),
-      ]),
+      Text(
+        strings.monthlyBills,
+        style: Theme.of(context).textTheme.titleMedium,
+      ),
       bills.when(
         loading: () => Text(strings.loading),
         error: (error, stack) => Text(strings.dataError),

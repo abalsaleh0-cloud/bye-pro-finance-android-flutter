@@ -17,13 +17,13 @@ class EntryFormDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = AppDesignTokens.of(context);
-    final horizontalPadding = tokens.cardPadding + 8;
+    final horizontalPadding = tokens.cardPadding;
 
     return AlertDialog(
       scrollable: true,
       insetPadding: EdgeInsets.symmetric(
-        horizontal: tokens.pageHorizontalPadding + 4,
-        vertical: tokens.pageVerticalPadding * 2,
+        horizontal: tokens.pageHorizontalPadding,
+        vertical: tokens.pageHorizontalPadding,
       ),
       titlePadding: EdgeInsetsDirectional.fromSTEB(
         horizontalPadding,
