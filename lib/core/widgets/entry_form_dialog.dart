@@ -1,3 +1,4 @@
+import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// Shared shell for add/edit forms across the work and home sections.
@@ -15,12 +16,33 @@ class EntryFormDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = AppDesignTokens.of(context);
+    final horizontalPadding = tokens.cardPadding + 8;
+
     return AlertDialog(
       scrollable: true,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
-      contentPadding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
-      actionsPadding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: tokens.pageHorizontalPadding + 4,
+        vertical: tokens.pageVerticalPadding * 2,
+      ),
+      titlePadding: EdgeInsetsDirectional.fromSTEB(
+        horizontalPadding,
+        horizontalPadding,
+        horizontalPadding,
+        tokens.pageVerticalPadding * 0.67,
+      ),
+      contentPadding: EdgeInsetsDirectional.fromSTEB(
+        horizontalPadding,
+        tokens.pageVerticalPadding,
+        horizontalPadding,
+        tokens.pageVerticalPadding * 0.67,
+      ),
+      actionsPadding: EdgeInsetsDirectional.fromSTEB(
+        horizontalPadding,
+        tokens.pageVerticalPadding * 0.67,
+        horizontalPadding,
+        tokens.cardPadding + 6,
+      ),
       actionsAlignment: MainAxisAlignment.end,
       title: title,
       content: content,
