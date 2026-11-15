@@ -483,22 +483,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
         icon: Icons.account_balance_wallet_outlined,
       ),
     ];
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              currentMonth.toString(),
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 12),
-            SummaryMetricGrid(metrics: metrics),
-          ],
-        ),
-      ),
-    );
+    return SummaryMetricGrid(metrics: metrics);
   }
 
 
