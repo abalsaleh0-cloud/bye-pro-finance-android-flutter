@@ -272,6 +272,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     switch (selected) {
       case _HomeAddAction.dailyExpense:
         await _editExpense(context, ref, strings);
+        break;
       case _HomeAddAction.monthlyBill:
         await HomeBillsSection(
           selectedMonth: ref.read(selectedMonthProvider),
@@ -281,6 +282,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           strings,
           HomeBillKind.monthly,
         );
+        break;
       case _HomeAddAction.rent:
         await HomeBillsSection(
           selectedMonth: ref.read(selectedMonthProvider),
@@ -290,6 +292,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           strings,
           HomeBillKind.rent,
         );
+        break;
     }
   }
 
