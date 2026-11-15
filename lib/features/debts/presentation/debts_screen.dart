@@ -533,60 +533,74 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                               final payments = ref.watch(
                                 debtPaymentsProvider(debt.id),
                               );
-                              return ExpansionTile(
+                              return TextButton.icon(
                                 key: Key('debt-payment-history-${debt.id}'),
-                                tilePadding: EdgeInsets.zero,
-                                childrenPadding: EdgeInsets.zero,
-                                title: Text(
-                                  strings.paymentHistory,
-                                  style: Theme.of(context).textTheme.titleSmall,
-                                ),
-                                children: [
-                                  payments.when(
-                                    loading: () => Padding(
-                                      padding: const EdgeInsets.all(12),
-                                      child: Text(strings.loading),
-                                    ),
-                                    error: (error, stackTrace) => Padding(
-                                      padding: const EdgeInsets.all(12),
-                                      child: Text(strings.dataError),
-                                    ),
-                                    data: (history) => history.isEmpty
-                                        ? Padding(
+                                onPressed: () {
+                                  showDialog<void>(
+                                    context: context,
+                                    builder: (dialogContext) => AlertDialog(
+                                      scrollable: true,
+                                      title: Text(strings.paymentHistory),
+                                      content: SizedBox(
+                                        width: double.maxFinite,
+                                        child: payments.when(
+                                          loading: () => Padding(
                                             padding: const EdgeInsets.all(12),
-                                            child: Text(strings.noRecords),
-                                          )
-                                        : Column(
-                                            children: [
-                                              for (final payment in history)
-                                                ListTile(
-                                                  dense: true,
-                                                  contentPadding:
-                                                      EdgeInsets.zero,
-                                                  leading: const Icon(
-                                                    Icons.receipt_long_outlined,
-                                                  ),
-                                                  title: Text(
-                                                    payment.amount.minorUnits
-                                                        .toString(),
-                                                    style: Theme.of(context)
-                                                        .textTheme
-                                                        .titleSmall
-                                                        ?.copyWith(
-                                                          fontWeight:
-                                                              FontWeight.w700,
-                                                        ),
-                                                  ),
-                                                  subtitle: Text(
-                                                    '${strings.paidAt}: ${formatCalendarDate(payment.paidAt)}'
-                                                    '\n${strings.time}: ${TimeOfDay.fromDateTime(payment.paidAt).format(context)}'
-                                                    '${payment.note == null ? '' : '\n${payment.note}'}',
-                                                  ),
-                                                ),
-                                            ],
+                                            child: Text(strings.loading),
                                           ),
-                                  ),
-                                ],
+                                          error: (error, stackTrace) => Padding(
+                                            padding: const EdgeInsets.all(12),
+                                            child: Text(strings.dataError),
+                                          ),
+                                          data: (history) => history.isEmpty
+                                              ? Padding(
+                                                  padding: const EdgeInsets.all(12),
+                                                  child: Text(strings.noRecords),
+                                                )
+                                              : Column(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    for (final payment in history)
+                                                      ListTile(
+                                                        dense: true,
+                                                        contentPadding:
+                                                            EdgeInsets.zero,
+                                                        leading: const Icon(
+                                                          Icons.receipt_long_outlined,
+                                                        ),
+                                                        title: Text(
+                                                          payment.amount.minorUnits
+                                                              .toString(),
+                                                          style: Theme.of(context)
+                                                              .textTheme
+                                                              .titleSmall
+                                                              ?.copyWith(
+                                                                fontWeight:
+                                                                    FontWeight.w700,
+                                                              ),
+                                                        ),
+                                                        subtitle: Text(
+                                                          '${strings.paidAt}: ${formatCalendarDate(payment.paidAt)}'
+                                                          '\n${strings.time}: ${TimeOfDay.fromDateTime(payment.paidAt).format(context)}'
+                                                          '${payment.note == null ? '' : '\n${payment.note}'}',
+                                                        ),
+                                                      ),
+                                                  ],
+                                                ),
+                                        ),
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(dialogContext),
+                                          child: Text(strings.cancel),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.history),
+                                label: Text(strings.paymentHistory),
                               );
                             },
                           ),
