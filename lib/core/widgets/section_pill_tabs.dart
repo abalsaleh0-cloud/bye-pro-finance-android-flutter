@@ -7,11 +7,13 @@ class SectionPillTabs extends StatelessWidget {
     required this.labels,
     required this.selectedIndex,
     required this.onSelected,
+    this.keyPrefix = 'section-pill-tab',
   });
 
   final List<String> labels;
   final int selectedIndex;
   final ValueChanged<int> onSelected;
+  final String keyPrefix;
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +41,7 @@ class SectionPillTabs extends StatelessWidget {
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: InkWell(
-                  key: Key('section-pill-tab-$index'),
+                  key: Key('$keyPrefix-$index'),
                   onTap: () => onSelected(index),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(
