@@ -366,7 +366,8 @@ class AppTheme {
       ),
       listTileTheme: ListTileThemeData(
         iconColor: scheme.onSurfaceVariant,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16).copyWith(
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: 16,
           vertical: tokens.listTileVerticalPadding,
         ),
         minVerticalPadding: tokens.listTileVerticalPadding,
