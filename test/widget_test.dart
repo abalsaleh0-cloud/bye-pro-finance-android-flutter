@@ -796,6 +796,8 @@ void main() {
     await tester.ensureVisible(paymentHistory);
     await tester.tap(paymentHistory);
     await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.text('لا توجد سجلات'), findsNothing);
     expect(find.textContaining('الوقت:'), findsOneWidget);
     await tester.tap(find.text('إلغاء').last);
     await tester.pumpAndSettle();
