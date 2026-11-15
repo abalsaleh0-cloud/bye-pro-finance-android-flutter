@@ -15,17 +15,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
 void main() {
-  testWidgets('starts in Arabic with four primary navigation destinations', (
+  testWidgets('starts in Arabic with five primary navigation destinations', (
     tester,
   ) async {
     await tester.pumpWidget(const ProviderScope(child: MyApp()));
     await tester.pumpAndSettle();
 
     expect(find.text('الرئيسية'), findsWidgets);
-    expect(find.byType(NavigationDestination), findsNWidgets(4));
+    expect(find.byType(NavigationDestination), findsNWidgets(5));
     expect(find.byKey(const Key('open-settings')), findsOneWidget);
     expect(find.byKey(const Key('open-calculator')), findsOneWidget);
     expect(find.byKey(const Key('open-calendar')), findsOneWidget);
+    expect(find.text('الذكاء الاصطناعي'), findsWidgets);
   });
 
   testWidgets('global calculator evaluates expressions and returns a safe result', (tester) async {
@@ -125,6 +126,14 @@ void main() {
     expect(
       tester.widget<PageView>(find.byKey(const Key('work-section-pages'))).controller!.page,
       2,
+    );
+
+    await tester.tap(find.text('الذكاء الاصطناعي').last);
+    await tester.pumpAndSettle();
+    expect(find.text('الذكاء الاصطناعي'), findsWidgets);
+    expect(
+      tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+      4,
     );
 
     await tester.tap(find.text('المنزل').last);
