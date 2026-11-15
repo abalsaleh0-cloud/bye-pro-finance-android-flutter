@@ -74,11 +74,15 @@ class SettingsScreen extends ConsumerWidget {
     final tokens = AppDesignTokens.of(context);
     final settings = ref.watch(appSettingsProvider);
     final controller = ref.read(appSettingsProvider.notifier);
+    final activeTab = int.tryParse(
+          GoRouterState.of(context).uri.queryParameters['tab'] ?? '',
+        )?.clamp(0, 4) ??
+        0;
 
     return Scaffold(
       appBar: AppBar(title: Text(strings.settings)),
       bottomNavigationBar: AppBottomNavigationBar(
-        selectedIndex: -1,
+        selectedIndex: activeTab,
         onDestinationSelected: (index) {
           const routes = ['/dashboard', '/work', '/home', '/debts', '/ai'];
           context.go(routes[index]);

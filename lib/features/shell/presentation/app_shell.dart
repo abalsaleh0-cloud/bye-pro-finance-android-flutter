@@ -49,7 +49,7 @@ class AppShell extends ConsumerWidget {
             key: const Key('open-settings'),
             tooltip: strings.settings,
             icon: const Icon(Icons.settings_outlined),
-            onPressed: () => context.push('/settings'),
+            onPressed: () => context.push('/settings?tab=$_selectedIndex'),
           ),
           IconButton(
             key: const Key('open-calculator'),

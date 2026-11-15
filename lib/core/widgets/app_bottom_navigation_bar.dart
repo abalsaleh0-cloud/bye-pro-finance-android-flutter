@@ -10,7 +10,6 @@ class AppBottomNavigationBar extends StatelessWidget {
     super.key,
   });
 
-  /// Use -1 when a screen such as Settings is outside the five main tabs.
   final int selectedIndex;
   final ValueChanged<int> onDestinationSelected;
 
@@ -65,7 +64,7 @@ class AppBottomNavigationBar extends StatelessWidget {
               height: 72,
               backgroundColor: Colors.transparent,
               elevation: 0,
-              selectedIndex: selectedIndex < 0 ? null : selectedIndex,
+              selectedIndex: selectedIndex,
               onDestinationSelected: onDestinationSelected,
               indicatorShape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(tokens.controlRadius),
