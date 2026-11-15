@@ -53,7 +53,7 @@ class AppShell extends ConsumerWidget {
     ];
 
     return Scaffold(
-      extendBody: true,
+      extendBody: false,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
