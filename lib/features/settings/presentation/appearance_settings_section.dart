@@ -35,102 +35,10 @@ class _AppearanceSettingsSectionState
       Localizations.localeOf(context).languageCode == 'en' ? en : ar;
 
   Future<void> _createFromColor() async {
-    final hexController = TextEditingController(text: '#C026D3');
     final color = await showDialog<Color>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(
-          _text(context, 'اختر لون البداية', 'Choose a seed color'),
-        ),
-        content: SizedBox(
-          width: 320,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                key: const Key('theme-seed-hex'),
-                controller: hexController,
-                textDirection: TextDirection.ltr,
-                decoration: InputDecoration(
-                  labelText: _text(context, 'رمز اللون HEX', 'HEX color'),
-                  hintText: '#C026D3',
-                ),
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 12,
-                runSpacing: 12,
-                children: _seedColors.asMap().entries.map((entry) {
-                  return InkWell(
-                    key: ValueKey('seed-color-${entry.key}'),
-                    borderRadius: BorderRadius.circular(30),
-                    onTap: () => Navigator.pop(dialogContext, entry.value),
-                    child: Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: entry.value,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Theme.of(dialogContext).colorScheme.outline,
-                          width: 1,
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(_text(context, 'إلغاء', 'Cancel')),
-          ),
-          FilledButton(
-            onPressed: () {
-              final value =
-                  hexController.text.trim().replaceFirst('#', '');
-              if (value.length != 6 && value.length != 8) {
-                ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      _text(
-                        context,
-                        'أدخل 6 أو 8 خانات HEX صحيحة.',
-                        'Enter a valid 6 or 8 digit HEX value.',
-                      ),
-                    ),
-                  ),
-                );
-                return;
-              }
-              try {
-                final normalized = value.length == 6 ? 'FF$value' : value;
-                final parsed = int.parse(normalized, radix: 16);
-                Navigator.pop(dialogContext, Color(parsed));
-              } on FormatException {
-                ScaffoldMessenger.of(dialogContext).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      _text(
-                        context,
-                        'رمز اللون غير صالح.',
-                        'The color code is invalid.',
-                      ),
-                    ),
-                  ),
-                );
-              }
-            },
-            child: Text(_text(context, 'استخدام اللون', 'Use color')),
-          ),
-        ],
-      ),
+      builder: (_) => _SeedColorPickerDialog(seedColors: _seedColors),
     );
-    hexController.dispose();
     if (color == null || !mounted) {
       return;
     }
@@ -856,3 +764,125 @@ const darkOnSurface = Color(${hex(dark.onSurface)});
     );
   }
 }
+
+class _SeedColorPickerDialog extends StatefulWidget {
+  const _SeedColorPickerDialog({required this.seedColors});
+
+  final List<Color> seedColors;
+
+  @override
+  State<_SeedColorPickerDialog> createState() => _SeedColorPickerDialogState();
+}
+
+class _SeedColorPickerDialogState extends State<_SeedColorPickerDialog> {
+  late final TextEditingController _hexController;
+
+  @override
+  void initState() {
+    super.initState();
+    _hexController = TextEditingController(text: '#C026D3');
+  }
+
+  @override
+  void dispose() {
+    _hexController.dispose();
+    super.dispose();
+  }
+
+  String _text(String ar, String en) =>
+      Localizations.localeOf(context).languageCode == 'en' ? en : ar;
+
+  void _useHexColor() {
+    final value = _hexController.text.trim().replaceFirst('#', '');
+    if (value.length != 6 && value.length != 8) {
+      _showError(
+        _text(
+          'أدخل 6 أو 8 خانات HEX صحيحة.',
+          'Enter a valid 6 or 8 digit HEX value.',
+        ),
+      );
+      return;
+    }
+
+    try {
+      final normalized = value.length == 6 ? 'FF$value' : value;
+      final parsed = int.parse(normalized, radix: 16);
+      Navigator.of(context).pop(Color(parsed));
+    } on FormatException {
+      _showError(
+        _text('رمز اللون غير صالح.', 'The color code is invalid.'),
+      );
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final outline = Theme.of(context).colorScheme.outline;
+    final heightLimit = MediaQuery.sizeOf(context).height * .55;
+
+    return AlertDialog(
+      title: Text(_text('اختر لون البداية', 'Choose a seed color')),
+      content: SizedBox(
+        width: 320,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: heightLimit),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  key: const Key('theme-seed-hex'),
+                  controller: _hexController,
+                  textDirection: TextDirection.ltr,
+                  decoration: InputDecoration(
+                    labelText: _text('رمز اللون HEX', 'HEX color'),
+                    hintText: '#C026D3',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: widget.seedColors.asMap().entries.map((entry) {
+                    return InkWell(
+                      key: ValueKey('seed-color-' + entry.key.toString()),
+                      borderRadius: BorderRadius.circular(30),
+                      onTap: () => Navigator.of(context).pop(entry.value),
+                      child: Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: entry.value,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: outline, width: 1),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(_text('إلغاء', 'Cancel')),
+        ),
+        FilledButton(
+          onPressed: _useHexColor,
+          child: Text(_text('استخدام اللون', 'Use color')),
+        ),
+      ],
+    );
+  }
+}
+
