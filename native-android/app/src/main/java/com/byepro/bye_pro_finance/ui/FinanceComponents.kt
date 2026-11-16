@@ -278,6 +278,17 @@ object FinanceComponents {
         return row
     }
 
+    /** A grouped Telegram-style list surface: the rows provide their own
+     * horizontal insets, so the container itself must not add another 16dp. */
+    fun groupedList(context: Context, isDark: Boolean): LinearLayout =
+        FinanceDesignSystem.surface(
+            context,
+            isDark,
+            padding = 0,
+            radius = FinanceDesignTokens.CARD_RADIUS
+        )
+
+    /** A content card for charts or panels that need their own inner padding. */
     fun card(context: Context, isDark: Boolean): LinearLayout =
         FinanceDesignSystem.surface(
             context,
