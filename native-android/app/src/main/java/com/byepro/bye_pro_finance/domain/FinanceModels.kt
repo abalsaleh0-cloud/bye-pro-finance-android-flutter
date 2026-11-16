@@ -15,7 +15,12 @@ data class FinanceRecord(
     val title: String,
     val detail: String,
     val amountMinorUnits: Long,
-    val timestamp: Long
+    val timestamp: Long,
+    val dueYear: Int? = null,
+    val dueMonth: Int? = null,
+    val originalAmountMinorUnits: Long? = null,
+    val note: String? = null,
+    val categoryId: String? = null
 )
 
 data class ActivityItem(
