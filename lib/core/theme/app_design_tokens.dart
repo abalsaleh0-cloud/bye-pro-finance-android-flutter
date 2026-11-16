@@ -15,6 +15,13 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
     required this.listTileVerticalPadding,
     required this.inputVerticalPadding,
     required this.motionDuration,
+    required this.buttonHeight,
+    required this.touchTargetSize,
+    required this.navigationBarHeight,
+    required this.sectionTabHeight,
+    required this.metricTileMinHeight,
+    required this.recordIconBoxSize,
+    required this.standardIconSize,
   });
 
   factory AppDesignTokens.standard() => const AppDesignTokens(
@@ -29,6 +36,13 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
         listTileVerticalPadding: 2,
         inputVerticalPadding: 12,
         motionDuration: Duration(milliseconds: 160),
+        buttonHeight: 48,
+        touchTargetSize: 44,
+        navigationBarHeight: 68,
+        sectionTabHeight: 48,
+        metricTileMinHeight: 96,
+        recordIconBoxSize: 40,
+        standardIconSize: 20,
       );
 
   final double pageHorizontalPadding;
@@ -42,6 +56,13 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
   final double listTileVerticalPadding;
   final double inputVerticalPadding;
   final Duration motionDuration;
+  final double buttonHeight;
+  final double touchTargetSize;
+  final double navigationBarHeight;
+  final double sectionTabHeight;
+  final double metricTileMinHeight;
+  final double recordIconBoxSize;
+  final double standardIconSize;
 
   @override
   AppDesignTokens copyWith({
@@ -56,6 +77,13 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
     double? listTileVerticalPadding,
     double? inputVerticalPadding,
     Duration? motionDuration,
+    double? buttonHeight,
+    double? touchTargetSize,
+    double? navigationBarHeight,
+    double? sectionTabHeight,
+    double? metricTileMinHeight,
+    double? recordIconBoxSize,
+    double? standardIconSize,
   }) {
     return AppDesignTokens(
       pageHorizontalPadding:
@@ -71,6 +99,13 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
           listTileVerticalPadding ?? this.listTileVerticalPadding,
       inputVerticalPadding: inputVerticalPadding ?? this.inputVerticalPadding,
       motionDuration: motionDuration ?? this.motionDuration,
+      buttonHeight: buttonHeight ?? this.buttonHeight,
+      touchTargetSize: touchTargetSize ?? this.touchTargetSize,
+      navigationBarHeight: navigationBarHeight ?? this.navigationBarHeight,
+      sectionTabHeight: sectionTabHeight ?? this.sectionTabHeight,
+      metricTileMinHeight: metricTileMinHeight ?? this.metricTileMinHeight,
+      recordIconBoxSize: recordIconBoxSize ?? this.recordIconBoxSize,
+      standardIconSize: standardIconSize ?? this.standardIconSize,
     );
   }
 
@@ -102,6 +137,14 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
                     t)
             .round(),
       ),
+      buttonHeight: d(buttonHeight, other.buttonHeight),
+      touchTargetSize: d(touchTargetSize, other.touchTargetSize),
+      navigationBarHeight: d(navigationBarHeight, other.navigationBarHeight),
+      sectionTabHeight: d(sectionTabHeight, other.sectionTabHeight),
+      metricTileMinHeight:
+          d(metricTileMinHeight, other.metricTileMinHeight),
+      recordIconBoxSize: d(recordIconBoxSize, other.recordIconBoxSize),
+      standardIconSize: d(standardIconSize, other.standardIconSize),
     );
   }
 
