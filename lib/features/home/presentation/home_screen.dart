@@ -657,7 +657,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       appBar: overview || widget.swipePage ? null : AppBar(title: Text(pageTitle)),
       floatingActionButton: switch (widget.mode) {
         HomeScreenMode.overview => FloatingActionButton(
-            key: const Key('home-overview-add-fab'),
+            key: const Key('home-add-action'),
             onPressed: () => _showHomeAddOptions(context, ref, strings),
             tooltip: strings.addHomeItem,
             child: const Icon(Icons.add_rounded),
