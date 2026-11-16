@@ -208,7 +208,7 @@ class _ThemeBackdropPainter extends CustomPainter {
   final Color secondary;
   final bool reduced;
 
-  void _glow(Canvas canvas, Size size, Offset center, double radius, Color color,
+  void _glow(Canvas canvas, Offset center, double radius, Color color,
       double opacity) {
     final rect = Rect.fromCircle(center: center, radius: radius);
     final paint = Paint()
@@ -244,7 +244,6 @@ class _ThemeBackdropPainter extends CustomPainter {
           );
           _glow(
             canvas,
-            size,
             center,
             radius * (.65 + i * .08),
             i.isEven ? primary : secondary,
@@ -256,7 +255,6 @@ class _ThemeBackdropPainter extends CustomPainter {
       case 'smoke':
         _glow(
           canvas,
-          size,
           Offset(width * (.12 + .09 * math.sin(phase * .3)), height * .18),
           radius * .76,
           primary,
@@ -264,7 +262,6 @@ class _ThemeBackdropPainter extends CustomPainter {
         );
         _glow(
           canvas,
-          size,
           Offset(width * (.92 + .06 * math.cos(phase * .2)), height * .72),
           radius * .70,
           secondary,
@@ -370,7 +367,6 @@ class _ThemeBackdropPainter extends CustomPainter {
       default:
         _glow(
           canvas,
-          size,
           Offset(width * .5, height * .5),
           radius,
           primary,
