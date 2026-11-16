@@ -37,20 +37,20 @@ class MonthSelector extends StatelessWidget {
     }
 
     const selectorWidth = 148.0;
-    return Card(
-      child: Padding(
-        padding: EdgeInsetsDirectional.fromSTEB(
-          tokens.cardPadding - 2,
-          tokens.pageVerticalPadding - 2,
-          tokens.pageVerticalPadding - 2,
-          tokens.pageVerticalPadding - 2,
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(tokens.controlRadius),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: SizedBox(
+        height: tokens.buttonHeight,
         child: Row(
           children: [
             Icon(
               Icons.calendar_month_outlined,
               color: theme.colorScheme.primary,
-              size: tokens.standardIconSize,
+              size: 19,
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -59,7 +59,7 @@ class MonthSelector extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
@@ -72,7 +72,6 @@ class MonthSelector extends StatelessWidget {
               decoration: BoxDecoration(
                 color: theme.colorScheme.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(tokens.controlRadius),
-                border: Border.all(color: theme.colorScheme.outlineVariant),
               ),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<MonthKey>(
@@ -149,7 +148,7 @@ class SummaryMetricGrid extends StatelessWidget {
       decoration: BoxDecoration(
         color: scheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(tokens.cardRadius),
-        border: Border.all(color: scheme.outlineVariant.withValues(alpha: .55)),
+        border: Border.all(color: scheme.outlineVariant.withValues(alpha: .30)),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -163,7 +162,10 @@ class SummaryMetricGrid extends StatelessWidget {
                 endIndent: 16,
                 color: scheme.outlineVariant.withValues(alpha: .45),
               ),
-            _SummaryMetricTile(metric: metrics[index]),
+            _SummaryMetricTile(
+              key: Key('summary-metric-row-$index'),
+              metric: metrics[index],
+            ),
           ],
         ],
       ),
@@ -172,7 +174,7 @@ class SummaryMetricGrid extends StatelessWidget {
 }
 
 class _SummaryMetricTile extends StatelessWidget {
-  const _SummaryMetricTile({required this.metric});
+  const _SummaryMetricTile({super.key, required this.metric});
 
   final SummaryMetricData metric;
 
@@ -187,13 +189,14 @@ class _SummaryMetricTile extends StatelessWidget {
         : scheme.surfaceContainerHighest;
 
     return ConstrainedBox(
+      key: key,
       constraints: BoxConstraints(minHeight: tokens.metricTileMinHeight),
       child: Padding(
         padding: EdgeInsetsDirectional.fromSTEB(
           tokens.cardPadding,
-          12,
+          6,
           tokens.cardPadding,
-          12,
+          6,
         ),
         child: Row(
           children: [
@@ -232,7 +235,7 @@ class _SummaryMetricTile extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.end,
-                style: theme.textTheme.titleLarge?.copyWith(
+                style: theme.textTheme.titleMedium?.copyWith(
                   color: metric.emphasized ? scheme.primary : foreground,
                   fontWeight: FontWeight.w800,
                   fontFeatures: const [FontFeature.tabularFigures()],
