@@ -39,7 +39,9 @@ class _AppearanceSettingsSectionState
     final color = await showDialog<Color>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(_text(context, 'اختر لون البداية', 'Choose a seed color')),
+        title: Text(
+          _text(context, 'اختر لون البداية', 'Choose a seed color'),
+        ),
         content: SizedBox(
           width: 320,
           child: Column(
@@ -59,17 +61,16 @@ class _AppearanceSettingsSectionState
                 alignment: WrapAlignment.center,
                 spacing: 12,
                 runSpacing: 12,
-                children: _seedColors.asMap().entries
-                    .map(
-                      (entry) => InkWell(
-                        key: ValueKey('seed-color-${entry.key}'),
-                        borderRadius: BorderRadius.circular(30),
-                        onTap: () => Navigator.pop(dialogContext, entry.value),
-                        child: Container(
-                          width: 42,
-                          height: 42,
-                          decoration: BoxDecoration(
-                            color: entry.value,
+                children: _seedColors.asMap().entries.map((entry) {
+                  return InkWell(
+                    key: ValueKey('seed-color-\${entry.key}'),
+                    borderRadius: BorderRadius.circular(30),
+                    onTap: () => Navigator.pop(dialogContext, entry.value),
+                    child: Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: entry.value,
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: Theme.of(dialogContext).colorScheme.outline,
@@ -77,9 +78,10 @@ class _AppearanceSettingsSectionState
                         ),
                       ),
                     ),
-                  ),
-                )
-                .toList(),
+                  );
+                }).toList(),
+              ),
+            ],
           ),
         ),
         actions: [
@@ -89,16 +91,35 @@ class _AppearanceSettingsSectionState
           ),
           FilledButton(
             onPressed: () {
-              final value = hexController.text.trim().replaceFirst('#', '');
-              final normalized = value.length == 6 ? 'FF$value' : value;
-              try {
-                final color = Color(int.parse(normalized, radix: 16));
-                Navigator.pop(dialogContext, color);
-              } catch (_) {
+              final value =
+                  hexController.text.trim().replaceFirst('#', '');
+              if (value.length != 6 && value.length != 8) {
                 ScaffoldMessenger.of(dialogContext).showSnackBar(
                   SnackBar(
                     content: Text(
-                      _text(context, 'أدخل رمز لون صحيحًا.', 'Enter a valid color code.'),
+                      _text(
+                        context,
+                        'أدخل 6 أو 8 خانات HEX صحيحة.',
+                        'Enter a valid 6 or 8 digit HEX value.',
+                      ),
+                    ),
+                  ),
+                );
+                return;
+              }
+              try {
+                final normalized = value.length == 6 ? 'FF$value' : value;
+                final parsed = int.parse(normalized, radix: 16);
+                Navigator.pop(dialogContext, Color(parsed));
+              } on FormatException {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      _text(
+                        context,
+                        'رمز اللون غير صالح.',
+                        'The color code is invalid.',
+                      ),
                     ),
                   ),
                 );
