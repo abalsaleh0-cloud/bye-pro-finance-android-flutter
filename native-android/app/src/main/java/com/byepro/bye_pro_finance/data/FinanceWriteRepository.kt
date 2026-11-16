@@ -405,7 +405,7 @@ class FinanceWriteRepository(private val helper: LegacyFinanceDatabase) {
             db().insertOrThrow("debt_payments", null, values)
             db().execSQL(
                 "UPDATE debts SET outstanding_amount_minor_units = outstanding_amount_minor_units - ? WHERE id = ?",
-                arrayOf(amountMinorUnits, debtId)
+                arrayOf<Any?>(amountMinorUnits, debtId)
             )
         }
     }
@@ -434,7 +434,7 @@ class FinanceWriteRepository(private val helper: LegacyFinanceDatabase) {
             db().delete("debt_payments", "id = ?", arrayOf(paymentId))
             db().execSQL(
                 "UPDATE debts SET outstanding_amount_minor_units = outstanding_amount_minor_units + ? WHERE id = ?",
-                arrayOf(payment.second, payment.first)
+                arrayOf<Any?>(payment.second, payment.first)
             )
         }
     }
