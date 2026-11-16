@@ -21,7 +21,7 @@ class SectionPillTabs extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final tokens = AppDesignTokens.of(context);
     return SizedBox(
-      height: 48,
+      height: tokens.sectionTabHeight,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
@@ -48,7 +48,7 @@ class SectionPillTabs extends StatelessWidget {
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(
                       minWidth: 88,
-                      minHeight: 44,
+                      minHeight: tokens.touchTargetSize,
                     ),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
