@@ -79,6 +79,7 @@ class AppTheme {
       onTertiary: _bestContentColor(tertiary),
       surface: surface,
       onSurface: text,
+      onSurfaceVariant: mutedText,
       surfaceDim: background,
       surfaceBright: tone(h, surfaceSaturation, isDark ? .23 : .99),
       surfaceContainerLowest: background,
