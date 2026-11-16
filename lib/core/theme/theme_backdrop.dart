@@ -251,6 +251,7 @@ class _ThemeBackdropPainter extends CustomPainter {
             .13 * low,
           );
         }
+        break;
       case 'leaks':
       case 'smoke':
         _glow(
@@ -269,6 +270,7 @@ class _ThemeBackdropPainter extends CustomPainter {
           secondary,
           .15 * low,
         );
+        break;
       case 'flow':
       case 'plasma':
         for (var i = 0; i < 5; i++) {
@@ -292,6 +294,7 @@ class _ThemeBackdropPainter extends CustomPainter {
               ..style = PaintingStyle.fill,
           );
         }
+        break;
       case 'particles':
         final count = reduced ? 22 : 48;
         for (var i = 0; i < count; i++) {
@@ -306,6 +309,7 @@ class _ThemeBackdropPainter extends CustomPainter {
               ..color = primary.withValues(alpha: .30 * low),
           );
         }
+        break;
       case 'stars':
         final count = reduced ? 25 : 60;
         for (var i = 0; i < count; i++) {
@@ -321,6 +325,7 @@ class _ThemeBackdropPainter extends CustomPainter {
               ),
           );
         }
+        break;
       case 'grid':
         final paint = Paint()
           ..color = primary.withValues(alpha: .13 * low)
@@ -338,6 +343,7 @@ class _ThemeBackdropPainter extends CustomPainter {
           final y = height * (.55 + .45 * t * t);
           canvas.drawLine(Offset(0, y), Offset(width, y), paint);
         }
+        break;
       case 'code':
         final paint = TextPainter(textDirection: TextDirection.ltr);
         const chars = '01';
@@ -360,6 +366,7 @@ class _ThemeBackdropPainter extends CustomPainter {
             );
           }
         }
+        break;
       default:
         _glow(
           canvas,
