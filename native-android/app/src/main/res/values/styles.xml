@@ -4,10 +4,20 @@
         <item name="android:fontFamily">sans</item>
         <item name="android:windowActionModeOverlay">true</item>
         <item name="android:windowLightStatusBar">false</item>
-        <item name="android:statusBarColor">#21242B</item>
-        <item name="android:navigationBarColor">#17191F</item>
+        <item name="android:statusBarColor">#17212B</item>
+        <item name="android:navigationBarColor">#17212B</item>
         <item name="android:windowLightNavigationBar">false</item>
-        <item name="android:colorAccent">#6AB2F2</item>
-        <item name="android:windowBackground">#21242B</item>
+        <item name="android:colorAccent">#3390EC</item>
+        <item name="android:windowBackground">#17212B</item>
+    </style>
+
+    <style name="NativeFinanceDialogTheme" parent="@android:style/Theme.Material.Light.Dialog.Alert">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowBackground">@drawable/finance_dialog_background</item>
+        <item name="android:colorAccent">#3390EC</item>
+        <item name="android:textColorPrimary">#17212B</item>
+        <item name="android:textColorSecondary">#71808D</item>
+        <item name="android:windowMinWidthMajor">87%</item>
+        <item name="android:windowMinWidthMinor">87%</item>
     </style>
 </resources>
