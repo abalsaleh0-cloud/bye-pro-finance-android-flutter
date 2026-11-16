@@ -150,7 +150,6 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: radius,
-          side: border,
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
