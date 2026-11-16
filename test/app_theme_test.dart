@@ -66,14 +66,24 @@ void main() {
     expect(darkTokens.standardIconSize, lightTokens.standardIconSize);
   });
 
-  test('the brand accent remains stable across both appearances', () {
+  test('gold accent adapts for contrast in both appearances', () {
     expect(
       AppTheme.light.colorScheme.secondary,
-      AppTheme.dark.colorScheme.secondary,
+      isNot(AppTheme.dark.colorScheme.secondary),
     );
     expect(
-      AppTheme.light.colorScheme.primary,
-      isNot(AppTheme.dark.colorScheme.primary),
+      AppTheme.contrastRatio(
+        AppTheme.light.colorScheme.onSecondary,
+        AppTheme.light.colorScheme.secondary,
+      ),
+      greaterThanOrEqualTo(4.5),
+    );
+    expect(
+      AppTheme.contrastRatio(
+        AppTheme.dark.colorScheme.onSecondary,
+        AppTheme.dark.colorScheme.secondary,
+      ),
+      greaterThanOrEqualTo(4.5),
     );
   });
 }
