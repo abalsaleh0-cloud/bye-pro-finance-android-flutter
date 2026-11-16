@@ -11,13 +11,4 @@
         <item name="android:windowBackground">#17212B</item>
     </style>
 
-    <style name="NativeFinanceDialogTheme" parent="@android:style/Theme.Material.Dialog.Alert">
-        <item name="android:fontFamily">sans</item>
-        <item name="android:windowBackground">@drawable/finance_dialog_background</item>
-        <item name="android:colorAccent">#5AA7E8</item>
-        <item name="android:textColorPrimary">#F2F5F8</item>
-        <item name="android:textColorSecondary">#91A0AE</item>
-        <item name="android:windowMinWidthMajor">87%</item>
-        <item name="android:windowMinWidthMinor">87%</item>
-    </style>
 </resources>
