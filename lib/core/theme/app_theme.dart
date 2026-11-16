@@ -26,7 +26,7 @@ class AppTheme {
           isDark ? const Color(0xFF203F66) : const Color(0xFFDCE9F8),
       onPrimaryContainer:
           isDark ? const Color(0xFFE1EEFF) : const Color(0xFF17385F),
-      secondary: isDark ? const Color(0xFFE0BD69) : const Color(0xFF98701F),
+      secondary: isDark ? const Color(0xFFE0BD69) : const Color(0xFF946D1B),
       onSecondary: isDark ? const Color(0xFF2B210C) : Colors.white,
       secondaryContainer:
           isDark ? const Color(0xFF493919) : const Color(0xFFF3E8CB),
