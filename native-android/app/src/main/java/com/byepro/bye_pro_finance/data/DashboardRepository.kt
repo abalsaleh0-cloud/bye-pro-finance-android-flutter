@@ -192,6 +192,36 @@ class DashboardRepository(private val helper: LegacyFinanceDatabase) {
             }
     }
 
+    fun loadBillPayments(billId: String): List<FinanceRecord> =
+        readBillPayments()
+            .filter { it.billId == billId }
+            .sortedByDescending { it.timestamp }
+            .map { payment ->
+                FinanceRecord(
+                    id = payment.id,
+                    kind = "billPayment",
+                    title = "bill_payment",
+                    detail = "",
+                    amountMinorUnits = payment.amount,
+                    timestamp = payment.timestamp
+                )
+            }
+
+    fun loadDebtPayments(debtId: String): List<FinanceRecord> =
+        readDebtPayments()
+            .filter { it.debtId == debtId }
+            .sortedByDescending { it.timestamp }
+            .map { payment ->
+                FinanceRecord(
+                    id = payment.id,
+                    kind = "debtPayment",
+                    title = "debt_payment",
+                    detail = "",
+                    amountMinorUnits = payment.amount,
+                    timestamp = payment.timestamp
+                )
+            }
+
     private fun sBillKind(kind: String): String =
         if (kind == "rent") "rent" else "monthly"
 
