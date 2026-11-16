@@ -26,8 +26,7 @@ class AppTheme {
     final h = preset.hue % 360;
     final h2 = preset.accentHue % 360;
     final surfaceSaturation = (preset.chroma * 1.15).clamp(.005, .16);
-    final accentSaturation =
-        (preset.accentChroma * 4.1).clamp(.16, .86);
+    final accentSaturation = (preset.accentChroma * 4.1).clamp(.16, .86);
     final secondarySaturation =
         (preset.accentChroma * 3.7).clamp(.14, .78);
 
@@ -44,11 +43,7 @@ class AppTheme {
     final surfaceRaised = tone(h, surfaceSaturation, isDark ? .19 : .875);
     final text = tone(h, .035, isDark ? .955 : .20);
     final mutedText = tone(h, .035, isDark ? .74 : .45);
-    final primary = tone(
-      h2,
-      accentSaturation,
-      isDark ? .73 : .43,
-    );
+    final primary = tone(h2, accentSaturation, isDark ? .73 : .43);
     final secondary = tone(
       h2 + preset.hueOffset,
       secondarySaturation,
@@ -59,9 +54,6 @@ class AppTheme {
       (accentSaturation * .72).clamp(.12, .65),
       isDark ? .72 : .42,
     );
-    final onAccent = primary.computeLuminance() > .43
-        ? const Color(0xFF17131B)
-        : Colors.white;
     final generated = ColorScheme.fromSeed(
       seedColor: primary,
       brightness: isDark ? Brightness.dark : Brightness.light,
@@ -69,21 +61,22 @@ class AppTheme {
 
     return generated.copyWith(
       primary: primary,
-      onPrimary: onAccent,
-      primaryContainer: tone(h2, accentSaturation * .42, isDark ? .30 : .88),
-      onPrimaryContainer: isDark ? Colors.white : tone(h2, .48, .20),
+      onPrimary: _bestContentColor(primary),
+      primaryContainer:
+          tone(h2, accentSaturation * .42, isDark ? .30 : .88),
+      onPrimaryContainer:
+          isDark ? Colors.white : tone(h2, .48, .20),
       secondary: secondary,
-      onSecondary: secondary.computeLuminance() > .43
-          ? const Color(0xFF17131B)
-          : Colors.white,
-      secondaryContainer:
-          tone(h2 + preset.hueOffset, secondarySaturation * .38, isDark ? .29 : .89),
+      onSecondary: _bestContentColor(secondary),
+      secondaryContainer: tone(
+        h2 + preset.hueOffset,
+        secondarySaturation * .38,
+        isDark ? .29 : .89,
+      ),
       onSecondaryContainer:
           isDark ? Colors.white : tone(h2 + preset.hueOffset, .42, .20),
       tertiary: tertiary,
-      onTertiary: tertiary.computeLuminance() > .43
-          ? const Color(0xFF17131B)
-          : Colors.white,
+      onTertiary: _bestContentColor(tertiary),
       surface: surface,
       onSurface: text,
       surfaceDim: background,
@@ -100,6 +93,12 @@ class AppTheme {
       shadow: Colors.black,
       scrim: Colors.black,
     );
+  }
+
+  static Color _bestContentColor(Color background) {
+    final whiteContrast = contrastRatio(Colors.white, background);
+    final blackContrast = contrastRatio(Colors.black, background);
+    return whiteContrast >= blackContrast ? Colors.white : Colors.black;
   }
 
   static ThemeData _buildTheme(
@@ -230,9 +229,7 @@ class AppTheme {
         height: 72,
         backgroundColor: scheme.surface.withValues(alpha: .96),
         indicatorColor: scheme.secondaryContainer,
-        indicatorShape: RoundedRectangleBorder(
-          borderRadius: controlRadius,
-        ),
+        indicatorShape: RoundedRectangleBorder(borderRadius: controlRadius),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
       ),
       dialogTheme: DialogThemeData(
