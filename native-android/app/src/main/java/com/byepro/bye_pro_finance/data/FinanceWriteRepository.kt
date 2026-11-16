@@ -340,9 +340,17 @@ class FinanceWriteRepository(private val helper: LegacyFinanceDatabase) {
                 put("counterparty", counterparty)
                 put("note", note)
             }
-            db().insertWithOnConflict(
-                "debts", null, values, SQLiteDatabase.CONFLICT_REPLACE
-            )
+            val exists = scalar(
+                "SELECT COUNT(*) FROM debts WHERE id = ?",
+                arrayOf(id)
+            ) > 0L
+            if (exists) {
+                // Updating an existing parent row must not REPLACE it:
+                // SQLite REPLACE may cascade-delete immutable payment history.
+                db().update("debts", values, "id = ?", arrayOf(id))
+            } else {
+                db().insertOrThrow("debts", null, values)
+            }
         }
     }
 
