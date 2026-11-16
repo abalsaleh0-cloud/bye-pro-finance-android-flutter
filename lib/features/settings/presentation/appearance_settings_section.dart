@@ -562,10 +562,14 @@ const darkOnSurface = Color(${hex(dark.onSurface)});
         query.isEmpty ||
         theme.nameAr.toLowerCase().contains(query) ||
         theme.nameEn.toLowerCase().contains(query);
-    final basicThemes =
-        builtInThemePresets.take(48).where(matches).toList();
-    final cinemaThemes =
-        builtInThemePresets.skip(48).where(matches).toList();
+    final basicThemes = [
+      ...builtInThemePresets.take(9),
+      ...builtInThemePresets.skip(15).take(33),
+    ].where(matches).toList();
+    final cinemaThemes = [
+      ...builtInThemePresets.skip(9).take(6),
+      ...builtInThemePresets.skip(48),
+    ].where(matches).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
