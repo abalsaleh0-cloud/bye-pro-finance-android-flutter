@@ -7,7 +7,7 @@
         android:theme="@style/NativeFinanceTheme">
         <activity
             android:name=".MainActivity"
-            android:configChanges="orientation|screenSize|keyboardHidden|uiMode|locale|layoutDirection"
+            android:configChanges="orientation|screenSize|keyboardHidden|locale|layoutDirection"
             android:exported="true"
             android:screenOrientation="unspecified"
             android:windowSoftInputMode="adjustResize">
