@@ -98,4 +98,15 @@
     <string name="payment_date">Payment date</string>
     <string name="today">Today</string>
     <string name="remaining_amount">Remaining amount</string>
+    <string name="data_error">Unable to load data. Please try again.</string>
+    <string name="bill_amount_below_payments">The bill amount cannot be lower than its recorded payments</string>
+    <string name="category_groceries">Groceries</string>
+    <string name="category_utilities">Utilities</string>
+    <string name="category_housing">Housing</string>
+    <string name="category_cleaning">Cleaning</string>
+    <string name="category_maintenance">Maintenance</string>
+    <string name="category_transport">Transport</string>
+    <string name="category_personal">Personal</string>
+    <string name="category_health">Health</string>
+    <string name="category_other">Other</string>
 </resources>
