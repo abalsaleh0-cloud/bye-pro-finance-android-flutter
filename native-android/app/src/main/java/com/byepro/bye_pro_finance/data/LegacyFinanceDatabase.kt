@@ -81,6 +81,17 @@ class LegacyFinanceDatabase private constructor(
         )
     }
 
+    /** Remove obsolete appearance preferences without touching finance records. */
+    fun deleteSettings(keys: Collection<String>) {
+        if (keys.isEmpty()) return
+        val placeholders = keys.joinToString(",") { "?" }
+        writableDatabase.delete(
+            "app_settings",
+            "setting_key IN ($placeholders)",
+            keys.toTypedArray()
+        )
+    }
+
     fun databaseLocation(): String = databaseFile.absolutePath
 
     private fun createCoreTables(db: SQLiteDatabase) {
