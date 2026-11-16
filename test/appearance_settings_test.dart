@@ -62,4 +62,35 @@ void main() {
     expect(settings.customThemes, hasLength(1));
     expect(settings.selectedTheme.custom, isTrue);
   });
+
+  testWidgets('imports theme JSON with a dialog-owned controller', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await tester.tap(find.byKey(const Key('open-settings')));
+    await tester.pumpAndSettle();
+
+    final importButton = find.byKey(const Key('import-theme-json'));
+    await tester.ensureVisible(importButton);
+    await tester.pumpAndSettle();
+    await tester.tap(importButton);
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const Key('theme-json-input')),
+      '{"id":"imported-dialog-test","nameAr":"ثيم مستورد","nameEn":"Imported theme","hue":210,"accentHue":190,"chroma":0.14,"accentChroma":0.14,"hueOffset":60,"background":"aurora","effects":"v"}',
+    );
+    await tester.tap(find.text('استيراد'));
+    await tester.pumpAndSettle();
+
+    final context = tester.element(find.byType(MyApp));
+    final settings = ProviderScope.containerOf(context, listen: false)
+        .read(appSettingsProvider);
+    expect(
+      settings.customThemes.any((theme) => theme.id == 'imported-dialog-test'),
+      isTrue,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
 }
