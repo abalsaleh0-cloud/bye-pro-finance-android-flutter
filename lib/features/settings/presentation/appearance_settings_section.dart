@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 
 import 'package:expense_app/core/providers/app_settings_provider.dart';
 import 'package:expense_app/core/theme/app_appearance.dart';
+import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:expense_app/core/theme/app_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
@@ -308,6 +309,7 @@ const darkOnSurface = Color(${hex(dark.onSurface)});
           itemBuilder: (context, index) {
             final theme = themes[index];
             final selected = selectedId == theme.id;
+            final tokens = AppDesignTokens.of(context);
             final name = Localizations.localeOf(context).languageCode == 'en'
                 ? theme.nameEn
                 : theme.nameAr;
@@ -315,13 +317,13 @@ const darkOnSurface = Color(${hex(dark.onSurface)});
             final second = theme.accentSeedColor;
             return InkWell(
               key: ValueKey('theme-${theme.id}'),
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(tokens.cardRadius),
               onTap: () => ref.read(appSettingsProvider.notifier).setTheme(theme),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 160),
                 padding: const EdgeInsets.all(5),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(tokens.cardRadius),
                   border: Border.all(
                     color: selected
                         ? Theme.of(context).colorScheme.primary
@@ -335,7 +337,7 @@ const darkOnSurface = Color(${hex(dark.onSurface)});
                       child: Container(
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(13),
+                          borderRadius: BorderRadius.circular(tokens.controlRadius),
                           gradient: LinearGradient(
                             begin: Alignment.topRight,
                             end: Alignment.bottomLeft,
