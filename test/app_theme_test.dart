@@ -80,9 +80,9 @@ void main() {
     expect(secondTokens.inputVerticalPadding,
         firstTokens.inputVerticalPadding);
     expect(secondTokens.cardPadding, firstTokens.cardPadding);
-    expect(firstTokens.cardRadius, 24);
-    expect(firstTokens.controlRadius, 24);
-    expect(firstTokens.dialogRadius, 24);
+    expect(firstTokens.cardRadius, 16);
+    expect(firstTokens.controlRadius, 12);
+    expect(firstTokens.dialogRadius, 20);
     expect(
       second.filledButtonTheme.style!.minimumSize!.resolve({})!.height,
       48,
