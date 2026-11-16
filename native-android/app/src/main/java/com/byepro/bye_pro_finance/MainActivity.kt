@@ -274,25 +274,25 @@ class MainActivity : Activity() {
         addGap(16)
         addSectionHeading(s(com.byepro.bye_pro_finance.R.string.financial_snapshot))
         addMetricGroup(
-            MetricDisplay(s(com.byepro.bye_pro_finance.R.string.home_available_balance), summary.homeAvailableBalance, "▣", true),
-            MetricDisplay(s(com.byepro.bye_pro_finance.R.string.work_remaining), summary.workRemaining, "▤"),
-            MetricDisplay(s(com.byepro.bye_pro_finance.R.string.total_work_outstanding), summary.totalWorkOutstanding, "◷")
+            MetricDisplay(s(com.byepro.bye_pro_finance.R.string.home_available_balance), summary.homeAvailableBalance, R.drawable.ic_payments, true),
+            MetricDisplay(s(com.byepro.bye_pro_finance.R.string.work_remaining), summary.workRemaining, R.drawable.ic_work),
+            MetricDisplay(s(com.byepro.bye_pro_finance.R.string.total_work_outstanding), summary.totalWorkOutstanding, R.drawable.ic_calendar)
         )
 
         addSectionHeading(s(com.byepro.bye_pro_finance.R.string.work))
         addMetricGroup(
-            MetricDisplay(s(com.byepro.bye_pro_finance.R.string.salary_total), summary.salaryTotal, "▣"),
-            MetricDisplay(s(com.byepro.bye_pro_finance.R.string.advances_total), summary.advancesTotal, "↗"),
-            MetricDisplay(s(com.byepro.bye_pro_finance.R.string.payments_total), summary.paymentsTotal, "↙"),
-            MetricDisplay(s(com.byepro.bye_pro_finance.R.string.current_salary_outstanding), summary.currentSalaryOutstanding, "◷")
+            MetricDisplay(s(com.byepro.bye_pro_finance.R.string.salary_total), summary.salaryTotal, R.drawable.ic_payments),
+            MetricDisplay(s(com.byepro.bye_pro_finance.R.string.advances_total), summary.advancesTotal, R.drawable.ic_advance),
+            MetricDisplay(s(com.byepro.bye_pro_finance.R.string.payments_total), summary.paymentsTotal, R.drawable.ic_payments),
+            MetricDisplay(s(com.byepro.bye_pro_finance.R.string.current_salary_outstanding), summary.currentSalaryOutstanding, R.drawable.ic_calendar)
         )
 
         addSectionHeading(s(com.byepro.bye_pro_finance.R.string.home))
         addMetricGroup(
-            MetricDisplay(s(com.byepro.bye_pro_finance.R.string.home_expenses_total), summary.homeExpensesTotal, "▤"),
-            MetricDisplay(s(com.byepro.bye_pro_finance.R.string.transfers_total), summary.transfersTotal, "⇄"),
-            MetricDisplay(s(com.byepro.bye_pro_finance.R.string.bills_outstanding), summary.billsOutstanding, "▣"),
-            MetricDisplay(s(com.byepro.bye_pro_finance.R.string.bills_paid), summary.billsPaid, "✓")
+            MetricDisplay(s(com.byepro.bye_pro_finance.R.string.home_expenses_total), summary.homeExpensesTotal, R.drawable.ic_work),
+            MetricDisplay(s(com.byepro.bye_pro_finance.R.string.transfers_total), summary.transfersTotal, R.drawable.ic_transfer),
+            MetricDisplay(s(com.byepro.bye_pro_finance.R.string.bills_outstanding), summary.billsOutstanding, R.drawable.ic_payments),
+            MetricDisplay(s(com.byepro.bye_pro_finance.R.string.bills_paid), summary.billsPaid, R.drawable.ic_bill)
         )
 
         addSectionHeading(s(com.byepro.bye_pro_finance.R.string.cash_flow))
@@ -303,8 +303,8 @@ class MainActivity : Activity() {
 
         addSectionHeading(s(com.byepro.bye_pro_finance.R.string.debts))
         addMetricGroup(
-            MetricDisplay(s(com.byepro.bye_pro_finance.R.string.creditor_balance), summary.creditorBalance, "↙"),
-            MetricDisplay(s(com.byepro.bye_pro_finance.R.string.debtor_balance), summary.debtorBalance, "↗")
+            MetricDisplay(s(com.byepro.bye_pro_finance.R.string.creditor_balance), summary.creditorBalance, R.drawable.ic_payments),
+            MetricDisplay(s(com.byepro.bye_pro_finance.R.string.debtor_balance), summary.debtorBalance, R.drawable.ic_advance)
         )
 
         addSectionHeading(s(com.byepro.bye_pro_finance.R.string.recent_activity))
@@ -344,71 +344,36 @@ class MainActivity : Activity() {
     private data class MetricDisplay(
         val label: String,
         val amount: Long,
-        val icon: String,
+        val icon: Int,
         val emphasized: Boolean = false
     )
 
     private fun addMetricGroup(vararg metrics: MetricDisplay) {
-        val group = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setRoundedBackground(FinancePalette.surface(darkTheme), 16f)
-            clipToOutline = true
-        }
+        val group = FinanceComponents.card(this, darkTheme)
         metrics.forEachIndexed { index, metric ->
-            if (index > 0) addDivider(group, 64)
-            val row = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER_VERTICAL
-                layoutDirection = View.LAYOUT_DIRECTION_RTL
-                setPadding(dp(12), dp(7), dp(12), dp(7))
+            if (index > 0) {
+                group.addView(FinanceComponents.bottomDivider(this, darkTheme))
             }
-            val icon = makeText(metric.icon, 18f, true).apply {
-                gravity = Gravity.CENTER
-                setTextColor(
-                    if (metric.emphasized) FinancePalette.text(darkTheme)
-                    else FinancePalette.accent(darkTheme)
+            group.addView(
+                FinanceComponents.metricRow(
+                    context = this,
+                    isDark = darkTheme,
+                    iconResource = metric.icon,
+                    title = metric.label,
+                    value = formatAmount(metric.amount),
+                    emphasized = metric.emphasized
+                ),
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
                 )
-                setRoundedBackground(
-                    if (metric.emphasized) FinancePalette.accent(darkTheme)
-                    else FinancePalette.raised(darkTheme),
-                    30f
-                )
-            }
-            row.addView(icon, LinearLayout.LayoutParams(dp(40), dp(40)))
-            val label = makeText(metric.label, 14f, false).apply {
-                setPadding(dp(12), 0, dp(6), 0)
-                maxLines = 2
-            }
-            row.addView(label, LinearLayout.LayoutParams(0, dp(48), 1f))
-            val amount = makeText(formatAmount(metric.amount), 18f, true).apply {
-                gravity = Gravity.CENTER_VERTICAL or Gravity.END
-                setTextColor(
-                    if (metric.emphasized) FinancePalette.accent(darkTheme)
-                    else FinancePalette.text(darkTheme)
-                )
-            }
-            row.addView(amount, LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, dp(48)
-            ))
-            group.addView(row, LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
-            ))
+            )
         }
         pageContent.addView(group, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply { bottomMargin = dp(14) })
-    }
-
-    private fun addDivider(parent: LinearLayout, indentDp: Int) {
-        val line = View(this).apply {
-            setBackgroundColor(FinancePalette.divider(darkTheme))
-        }
-        parent.addView(line, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, dp(1)
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
         ).apply {
-            marginStart = dp(indentDp)
-            marginEnd = dp(12)
+            bottomMargin = dp(FinanceDesignTokens.SECTION_SPACING)
         })
     }
 
@@ -1408,19 +1373,19 @@ class MainActivity : Activity() {
 
     private fun activityGlyph(icon: String): String = when (icon) {
         "work" -> "▰"
-        "home" -> "▤"
-        "transfer" -> "⇄"
-        "bill" -> "▣"
-        else -> "↗"
+        "home" -> R.drawable.ic_work
+        "transfer" -> R.drawable.ic_transfer
+        "bill" -> R.drawable.ic_payments
+        else -> R.drawable.ic_advance
     }
 
     private fun recordGlyph(kind: String): String = when (kind) {
-        "salary" -> "▣"
-        "advance" -> "↗"
-        "payment" -> "↙"
-        "creditor" -> "↙"
-        "debtor" -> "↗"
-        else -> "▤"
+        "salary" -> R.drawable.ic_payments
+        "advance" -> R.drawable.ic_advance
+        "payment" -> R.drawable.ic_payments
+        "creditor" -> R.drawable.ic_payments
+        "debtor" -> R.drawable.ic_advance
+        else -> R.drawable.ic_work
     }
 
     private fun makeText(value: String, sizeSp: Float, bold: Boolean): TextView =
