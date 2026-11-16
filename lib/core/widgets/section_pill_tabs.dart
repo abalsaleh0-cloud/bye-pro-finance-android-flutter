@@ -46,7 +46,7 @@ class SectionPillTabs extends StatelessWidget {
                   key: Key('$keyPrefix-$index'),
                   onTap: () => onSelected(index),
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(
+                    constraints: BoxConstraints(
                       minWidth: 88,
                       minHeight: tokens.touchTargetSize,
                     ),
