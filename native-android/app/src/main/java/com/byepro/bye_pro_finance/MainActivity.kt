@@ -668,6 +668,648 @@ class MainActivity : Activity() {
         ))
     }
 
+    private fun showCreateMenu(anchor: View) {
+        val menu = PopupMenu(this, anchor)
+        when (activeSection) {
+            Section.WORK -> {
+                addMenuAction(menu, s(com.byepro.bye_pro_finance.R.string.new_salary)) {
+                    showWorkEntryForm("salary")
+                }
+                addMenuAction(menu, s(com.byepro.bye_pro_finance.R.string.new_advance)) {
+                    showWorkEntryForm("advance")
+                }
+                addMenuAction(menu, s(com.byepro.bye_pro_finance.R.string.new_work_payment)) {
+                    showWorkEntryForm("payment")
+                }
+                addMenuAction(menu, s(com.byepro.bye_pro_finance.R.string.new_transfer)) {
+                    showTransferForm()
+                }
+            }
+            Section.HOME -> {
+                addMenuAction(menu, s(com.byepro.bye_pro_finance.R.string.new_expense)) {
+                    showHomeExpenseForm()
+                }
+                addMenuAction(menu, s(com.byepro.bye_pro_finance.R.string.new_bill)) {
+                    showBillForm()
+                }
+            }
+            Section.DEBTS -> {
+                addMenuAction(menu, s(com.byepro.bye_pro_finance.R.string.new_creditor)) {
+                    showDebtForm("creditor")
+                }
+                addMenuAction(menu, s(com.byepro.bye_pro_finance.R.string.new_debtor)) {
+                    showDebtForm("debtor")
+                }
+            }
+            else -> Unit
+        }
+        menu.show()
+    }
+
+    private fun addMenuAction(menu: PopupMenu, title: String, action: () -> Unit) {
+        menu.menu.add(title).setOnMenuItemClickListener {
+            action()
+            true
+        }
+    }
+
+    private fun createForm(): LinearLayout = LinearLayout(this).apply {
+        orientation = LinearLayout.VERTICAL
+        layoutDirection = View.LAYOUT_DIRECTION_RTL
+        setPadding(dp(20), dp(10), dp(20), dp(4))
+    }
+
+    private fun formInput(
+        form: LinearLayout,
+        hint: String,
+        initial: String = "",
+        numeric: Boolean = false
+    ): EditText {
+        val field = EditText(this).apply {
+            this.hint = hint
+            setText(initial)
+            textSize = 15f
+            setTextColor(FinancePalette.text(darkTheme))
+            setHintTextColor(FinancePalette.muted(darkTheme))
+            inputType = if (numeric) {
+                InputType.TYPE_CLASS_NUMBER
+            } else {
+                InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+            }
+            isSingleLine = !hint.contains(s(com.byepro.bye_pro_finance.R.string.note_optional))
+        }
+        form.addView(field, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, dp(54)
+        ))
+        return field
+    }
+
+    private data class DateField(
+        val view: TextView,
+        val value: () -> Long
+    )
+
+    private fun addDateField(
+        form: LinearLayout,
+        label: String,
+        initialEpochMillis: Long
+    ): DateField {
+        var selectedMillis = initialEpochMillis
+        val view = makeText("", 14f, false).apply {
+            setTextColor(FinancePalette.accent(darkTheme))
+            setPadding(dp(12), 0, dp(12), 0)
+            setRoundedBackground(FinancePalette.raised(darkTheme), 10f)
+            isClickable = true
+            isFocusable = true
+        }
+        fun refresh() {
+            view.text = "$label: ${formatDate(selectedMillis)}  ▾"
+        }
+        refresh()
+        view.setOnClickListener {
+            val calendar = java.util.Calendar.getInstance().apply {
+                timeInMillis = selectedMillis
+            }
+            DatePickerDialog(
+                this,
+                { _, year, month, day ->
+                    val date = java.util.Calendar.getInstance().apply {
+                        set(year, month, day, calendar.get(java.util.Calendar.HOUR_OF_DAY),
+                            calendar.get(java.util.Calendar.MINUTE), 0)
+                        set(java.util.Calendar.MILLISECOND, 0)
+                    }
+                    selectedMillis = date.timeInMillis
+                    refresh()
+                },
+                calendar.get(java.util.Calendar.YEAR),
+                calendar.get(java.util.Calendar.MONTH),
+                calendar.get(java.util.Calendar.DAY_OF_MONTH)
+            ).show()
+        }
+        form.addView(view, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, dp(46)
+        ).apply { topMargin = dp(6) })
+        return DateField(view) { selectedMillis }
+    }
+
+    private fun showWorkEntryForm(kind: String, existing: FinanceRecord? = null) {
+        val form = createForm()
+        val amount = formInput(
+            form,
+            s(com.byepro.bye_pro_finance.R.string.amount),
+            existing?.amountMinorUnits?.toString().orEmpty(),
+            numeric = true
+        )
+        val note = formInput(
+            form,
+            s(com.byepro.bye_pro_finance.R.string.note_optional),
+            existing?.note.orEmpty()
+        )
+        val dueYear = existing?.dueYear ?: selectedMonth.year
+        val dueMonth = existing?.dueMonth ?: selectedMonth.monthValue
+
+        AlertDialog.Builder(this)
+            .setTitle(
+                when (kind) {
+                    "salary" -> s(com.byepro.bye_pro_finance.R.string.new_salary)
+                    "advance" -> s(com.byepro.bye_pro_finance.R.string.new_advance)
+                    else -> s(com.byepro.bye_pro_finance.R.string.new_work_payment)
+                }
+            )
+            .setView(form)
+            .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.save)) { _, _ ->
+                val value = amount.text.toString().trim().toLongOrNull()
+                if (value == null || value <= 0L) {
+                    showRuleMessage(FinanceRuleException(FinanceRuleException.Rule.INVALID_AMOUNT))
+                    return@setPositiveButton
+                }
+                try {
+                    writeRepository.saveWorkEntry(
+                        id = existing?.id ?: UUID.randomUUID().toString(),
+                        kind = existing?.kind ?: kind,
+                        amountMinorUnits = value,
+                        dueYear = dueYear,
+                        dueMonth = dueMonth,
+                        recordedAtEpochMillis = existing?.timestamp ?: System.currentTimeMillis(),
+                        note = note.text.toString().trim().ifEmpty { null }
+                    )
+                    showToast(s(com.byepro.bye_pro_finance.R.string.saved_successfully))
+                    renderCurrentSection()
+                } catch (error: Throwable) {
+                    showRuleMessage(error)
+                }
+            }
+            .setNegativeButton(s(com.byepro.bye_pro_finance.R.string.cancel), null)
+            .show()
+    }
+
+    private fun showTransferForm(existing: FinanceRecord? = null) {
+        val form = createForm()
+        val amount = formInput(
+            form,
+            s(com.byepro.bye_pro_finance.R.string.amount),
+            existing?.amountMinorUnits?.toString().orEmpty(),
+            numeric = true
+        )
+        val note = formInput(
+            form,
+            s(com.byepro.bye_pro_finance.R.string.note_optional),
+            existing?.note.orEmpty()
+        )
+        val date = addDateField(
+            form,
+            s(com.byepro.bye_pro_finance.R.string.payment_date),
+            existing?.timestamp ?: System.currentTimeMillis()
+        )
+
+        AlertDialog.Builder(this)
+            .setTitle(s(com.byepro.bye_pro_finance.R.string.new_transfer))
+            .setView(form)
+            .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.save)) { _, _ ->
+                val value = amount.text.toString().trim().toLongOrNull()
+                if (value == null || value <= 0L) {
+                    showRuleMessage(FinanceRuleException(FinanceRuleException.Rule.INVALID_AMOUNT))
+                    return@setPositiveButton
+                }
+                try {
+                    writeRepository.saveTransfer(
+                        id = existing?.id ?: UUID.randomUUID().toString(),
+                        amountMinorUnits = value,
+                        transferredAtEpochMillis = date.value(),
+                        note = note.text.toString().trim().ifEmpty { null }
+                    )
+                    showToast(s(com.byepro.bye_pro_finance.R.string.saved_successfully))
+                    renderCurrentSection()
+                } catch (error: Throwable) {
+                    showRuleMessage(error)
+                }
+            }
+            .setNegativeButton(s(com.byepro.bye_pro_finance.R.string.cancel), null)
+            .show()
+    }
+
+    private fun showHomeExpenseForm(existing: FinanceRecord? = null) {
+        val form = createForm()
+        val amount = formInput(
+            form,
+            s(com.byepro.bye_pro_finance.R.string.amount),
+            existing?.amountMinorUnits?.toString().orEmpty(),
+            numeric = true
+        )
+        val categories = listOf(
+            "groceries", "utilities", "housing", "cleaning", "maintenance",
+            "transport", "personal", "health", "other"
+        )
+        val category = formInput(
+            form,
+            s(com.byepro.bye_pro_finance.R.string.category),
+            existing?.categoryId ?: "other"
+        )
+        val note = formInput(
+            form,
+            s(com.byepro.bye_pro_finance.R.string.note_optional),
+            existing?.note.orEmpty()
+        )
+        val date = addDateField(
+            form,
+            s(com.byepro.bye_pro_finance.R.string.payment_date),
+            existing?.timestamp ?: System.currentTimeMillis()
+        )
+        val dueYear = existing?.dueYear ?: selectedMonth.year
+        val dueMonth = existing?.dueMonth ?: selectedMonth.monthValue
+
+        AlertDialog.Builder(this)
+            .setTitle(s(com.byepro.bye_pro_finance.R.string.new_expense))
+            .setView(form)
+            .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.save)) { _, _ ->
+                val value = amount.text.toString().trim().toLongOrNull()
+                val categoryId = category.text.toString().trim()
+                if (value == null || value <= 0L || categoryId.isBlank()) {
+                    showRuleMessage(FinanceRuleException(FinanceRuleException.Rule.INVALID_AMOUNT))
+                    return@setPositiveButton
+                }
+                try {
+                    writeRepository.saveHomeExpense(
+                        id = existing?.id ?: UUID.randomUUID().toString(),
+                        amountMinorUnits = value,
+                        categoryId = categoryId,
+                        expenseDateEpochMillis = date.value(),
+                        dueYear = dueYear,
+                        dueMonth = dueMonth,
+                        note = note.text.toString().trim().ifEmpty { null }
+                    )
+                    showToast(s(com.byepro.bye_pro_finance.R.string.saved_successfully))
+                    renderCurrentSection()
+                } catch (error: Throwable) {
+                    showRuleMessage(error)
+                }
+            }
+            .setNegativeButton(s(com.byepro.bye_pro_finance.R.string.cancel), null)
+            .show()
+    }
+
+    private fun showDebtForm(direction: String, existing: FinanceRecord? = null) {
+        val form = createForm()
+        val counterparty = formInput(
+            form,
+            s(com.byepro.bye_pro_finance.R.string.counterparty),
+            existing?.title.orEmpty()
+        )
+        val originalAmount = formInput(
+            form,
+            s(com.byepro.bye_pro_finance.R.string.amount),
+            (existing?.originalAmountMinorUnits ?: existing?.amountMinorUnits)
+                ?.toString().orEmpty(),
+            numeric = true
+        )
+        val note = formInput(
+            form,
+            s(com.byepro.bye_pro_finance.R.string.note_optional),
+            existing?.note.orEmpty()
+        )
+        val dueYear = existing?.dueYear ?: selectedMonth.year
+        val dueMonth = existing?.dueMonth ?: selectedMonth.monthValue
+
+        AlertDialog.Builder(this)
+            .setTitle(
+                if (direction == "creditor")
+                    s(com.byepro.bye_pro_finance.R.string.new_creditor)
+                else s(com.byepro.bye_pro_finance.R.string.new_debtor)
+            )
+            .setView(form)
+            .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.save)) { _, _ ->
+                val party = counterparty.text.toString().trim()
+                val value = originalAmount.text.toString().trim().toLongOrNull()
+                if (party.isBlank() || value == null || value <= 0L) {
+                    showRuleMessage(FinanceRuleException(FinanceRuleException.Rule.INVALID_AMOUNT))
+                    return@setPositiveButton
+                }
+                try {
+                    writeRepository.saveDebt(
+                        id = existing?.id ?: UUID.randomUUID().toString(),
+                        direction = existing?.kind ?: direction,
+                        originalAmountMinorUnits = value,
+                        outstandingAmountMinorUnits = existing?.amountMinorUnits ?: value,
+                        dueYear = dueYear,
+                        dueMonth = dueMonth,
+                        createdAtEpochMillis = existing?.timestamp ?: System.currentTimeMillis(),
+                        counterparty = party,
+                        note = note.text.toString().trim().ifEmpty { null }
+                    )
+                    showToast(s(com.byepro.bye_pro_finance.R.string.saved_successfully))
+                    renderCurrentSection()
+                } catch (error: Throwable) {
+                    showRuleMessage(error)
+                }
+            }
+            .setNegativeButton(s(com.byepro.bye_pro_finance.R.string.cancel), null)
+            .show()
+    }
+
+    private fun showBillForm(existing: FinanceRecord? = null) {
+        val form = createForm()
+        val title = formInput(
+            form,
+            s(com.byepro.bye_pro_finance.R.string.bill_title),
+            existing?.title.orEmpty()
+        )
+        val amount = formInput(
+            form,
+            s(com.byepro.bye_pro_finance.R.string.amount),
+            (existing?.originalAmountMinorUnits ?: existing?.amountMinorUnits)
+                ?.toString().orEmpty(),
+            numeric = true
+        )
+        val note = formInput(
+            form,
+            s(com.byepro.bye_pro_finance.R.string.note_optional),
+            existing?.note.orEmpty()
+        )
+        val dueYear = existing?.dueYear ?: selectedMonth.year
+        val dueMonth = existing?.dueMonth ?: selectedMonth.monthValue
+        val kind = if (existing?.detail?.startsWith("rent") == true) "rent" else "monthly"
+
+        AlertDialog.Builder(this)
+            .setTitle(s(com.byepro.bye_pro_finance.R.string.new_bill))
+            .setView(form)
+            .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.save)) { _, _ ->
+                val name = title.text.toString().trim()
+                val value = amount.text.toString().trim().toLongOrNull()
+                if (name.isBlank() || value == null || value <= 0L) {
+                    showRuleMessage(FinanceRuleException(FinanceRuleException.Rule.INVALID_AMOUNT))
+                    return@setPositiveButton
+                }
+                try {
+                    writeRepository.saveBill(
+                        id = existing?.id ?: UUID.randomUUID().toString(),
+                        title = name,
+                        kind = kind,
+                        amountMinorUnits = value,
+                        dueYear = dueYear,
+                        dueMonth = dueMonth,
+                        note = note.text.toString().trim().ifEmpty { null }
+                    )
+                    showToast(s(com.byepro.bye_pro_finance.R.string.saved_successfully))
+                    renderCurrentSection()
+                } catch (error: Throwable) {
+                    showRuleMessage(error)
+                }
+            }
+            .setNegativeButton(s(com.byepro.bye_pro_finance.R.string.cancel), null)
+            .show()
+    }
+
+    private fun showDebtPaymentForm(debt: FinanceRecord) {
+        val form = createForm()
+        form.addView(makeText(
+            s(com.byepro.bye_pro_finance.R.string.remaining_amount) + ": " +
+                formatAmount(debt.amountMinorUnits),
+            14f,
+            true
+        ))
+        val amount = formInput(
+            form,
+            s(com.byepro.bye_pro_finance.R.string.amount),
+            numeric = true
+        )
+        val note = formInput(
+            form,
+            s(com.byepro.bye_pro_finance.R.string.note_optional)
+        )
+        AlertDialog.Builder(this)
+            .setTitle(s(com.byepro.bye_pro_finance.R.string.record_payment))
+            .setView(form)
+            .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.save)) { _, _ ->
+                val value = amount.text.toString().trim().toLongOrNull()
+                if (value == null || value <= 0L) {
+                    showRuleMessage(FinanceRuleException(FinanceRuleException.Rule.INVALID_AMOUNT))
+                    return@setPositiveButton
+                }
+                try {
+                    writeRepository.recordDebtPayment(
+                        id = UUID.randomUUID().toString(),
+                        debtId = debt.id,
+                        amountMinorUnits = value,
+                        paidAtEpochMillis = System.currentTimeMillis(),
+                        note = note.text.toString().trim().ifEmpty { null }
+                    )
+                    showToast(s(com.byepro.bye_pro_finance.R.string.payment_saved))
+                    renderCurrentSection()
+                } catch (error: Throwable) {
+                    showRuleMessage(error)
+                }
+            }
+            .setNegativeButton(s(com.byepro.bye_pro_finance.R.string.cancel), null)
+            .show()
+    }
+
+    private fun showBillPaymentForm(bill: FinanceRecord) {
+        val form = createForm()
+        form.addView(makeText(
+            s(com.byepro.bye_pro_finance.R.string.remaining_amount) + ": " +
+                formatAmount(bill.amountMinorUnits),
+            14f,
+            true
+        ))
+        val amount = formInput(
+            form,
+            s(com.byepro.bye_pro_finance.R.string.amount),
+            numeric = true
+        )
+        val note = formInput(
+            form,
+            s(com.byepro.bye_pro_finance.R.string.note_optional)
+        )
+        AlertDialog.Builder(this)
+            .setTitle(s(com.byepro.bye_pro_finance.R.string.pay_bill))
+            .setView(form)
+            .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.save)) { _, _ ->
+                val value = amount.text.toString().trim().toLongOrNull()
+                if (value == null || value <= 0L) {
+                    showRuleMessage(FinanceRuleException(FinanceRuleException.Rule.INVALID_AMOUNT))
+                    return@setPositiveButton
+                }
+                try {
+                    writeRepository.recordBillPayment(
+                        id = UUID.randomUUID().toString(),
+                        billId = bill.id,
+                        amountMinorUnits = value,
+                        paidAtEpochMillis = System.currentTimeMillis(),
+                        note = note.text.toString().trim().ifEmpty { null }
+                    )
+                    showToast(s(com.byepro.bye_pro_finance.R.string.payment_saved))
+                    renderCurrentSection()
+                } catch (error: Throwable) {
+                    showRuleMessage(error)
+                }
+            }
+            .setNegativeButton(s(com.byepro.bye_pro_finance.R.string.cancel), null)
+            .show()
+    }
+
+    private fun showRecordActions(anchor: View, record: FinanceRecord) {
+        val menu = PopupMenu(this, anchor)
+        when (record.kind) {
+            "creditor", "debtor" -> {
+                addMenuAction(menu, s(com.byepro.bye_pro_finance.R.string.record_payment)) {
+                    showDebtPaymentForm(record)
+                }
+                addMenuAction(menu, s(com.byepro.bye_pro_finance.R.string.payment_history)) {
+                    showPaymentHistory(record, debtPayments = true)
+                }
+                addMenuAction(menu, s(com.byepro.bye_pro_finance.R.string.edit)) {
+                    showDebtForm(record.kind, record)
+                }
+                addMenuAction(menu, s(com.byepro.bye_pro_finance.R.string.delete)) {
+                    confirmDeleteRecord(record)
+                }
+            }
+            "bill" -> {
+                if (record.amountMinorUnits > 0L) {
+                    addMenuAction(menu, s(com.byepro.bye_pro_finance.R.string.pay_bill)) {
+                        showBillPaymentForm(record)
+                    }
+                }
+                addMenuAction(menu, s(com.byepro.bye_pro_finance.R.string.payment_history)) {
+                    showPaymentHistory(record, debtPayments = false)
+                }
+                addMenuAction(menu, s(com.byepro.bye_pro_finance.R.string.edit)) {
+                    showBillForm(record)
+                }
+                addMenuAction(menu, s(com.byepro.bye_pro_finance.R.string.delete)) {
+                    confirmDeleteRecord(record)
+                }
+            }
+            "debtPayment", "billPayment" -> {
+                addMenuAction(menu, s(com.byepro.bye_pro_finance.R.string.undo_payment)) {
+                    confirmUndoPayment(record)
+                }
+            }
+            else -> {
+                addMenuAction(menu, s(com.byepro.bye_pro_finance.R.string.edit)) {
+                    when (record.kind) {
+                        "transfer" -> showTransferForm(record)
+                        "expense" -> showHomeExpenseForm(record)
+                        else -> showWorkEntryForm(record.kind, record)
+                    }
+                }
+                addMenuAction(menu, s(com.byepro.bye_pro_finance.R.string.delete)) {
+                    confirmDeleteRecord(record)
+                }
+            }
+        }
+        menu.show()
+    }
+
+    private fun showPaymentHistory(record: FinanceRecord, debtPayments: Boolean) {
+        val payments = if (debtPayments) {
+            repository.loadDebtPayments(record.id)
+        } else {
+            repository.loadBillPayments(record.id)
+        }
+        if (payments.isEmpty()) {
+            AlertDialog.Builder(this)
+                .setTitle(s(com.byepro.bye_pro_finance.R.string.payment_history))
+                .setMessage(s(com.byepro.bye_pro_finance.R.string.no_payment_history))
+                .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.cancel), null)
+                .show()
+            return
+        }
+        val items = payments.map {
+            formatDate(it.timestamp) + " • " + formatAmount(it.amountMinorUnits)
+        }.toTypedArray()
+        AlertDialog.Builder(this)
+            .setTitle(s(com.byepro.bye_pro_finance.R.string.payment_history))
+            .setItems(items) { _, index ->
+                confirmUndoPayment(payments[index])
+            }
+            .setNegativeButton(s(com.byepro.bye_pro_finance.R.string.cancel), null)
+            .show()
+    }
+
+    private fun confirmUndoPayment(payment: FinanceRecord) {
+        AlertDialog.Builder(this)
+            .setTitle(s(com.byepro.bye_pro_finance.R.string.undo_payment))
+            .setMessage(formatDate(payment.timestamp) + " • " +
+                formatAmount(payment.amountMinorUnits))
+            .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.undo_payment)) { _, _ ->
+                try {
+                    if (payment.kind == "debtPayment") {
+                        writeRepository.undoDebtPayment(payment.id)
+                    } else {
+                        writeRepository.undoBillPayment(payment.id)
+                    }
+                    showToast(s(com.byepro.bye_pro_finance.R.string.deleted_successfully))
+                    renderCurrentSection()
+                } catch (error: Throwable) {
+                    showRuleMessage(error)
+                }
+            }
+            .setNegativeButton(s(com.byepro.bye_pro_finance.R.string.cancel), null)
+            .show()
+    }
+
+    private fun confirmDeleteRecord(record: FinanceRecord) {
+        AlertDialog.Builder(this)
+            .setTitle(s(com.byepro.bye_pro_finance.R.string.delete))
+            .setMessage(s(com.byepro.bye_pro_finance.R.string.confirm_delete))
+            .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.delete)) { _, _ ->
+                try {
+                    when (record.kind) {
+                        "transfer" -> writeRepository.deleteTransfer(record.id)
+                        "expense" -> writeRepository.deleteHomeExpense(record.id)
+                        "creditor", "debtor" -> writeRepository.deleteDebt(record.id)
+                        "bill" -> writeRepository.deleteBill(record.id)
+                        else -> writeRepository.deleteWorkEntry(record.id)
+                    }
+                    showToast(s(com.byepro.bye_pro_finance.R.string.deleted_successfully))
+                    renderCurrentSection()
+                } catch (error: Throwable) {
+                    showRuleMessage(error)
+                }
+            }
+            .setNegativeButton(s(com.byepro.bye_pro_finance.R.string.cancel), null)
+            .show()
+    }
+
+    private fun showRuleMessage(error: Throwable) {
+        val resource = when ((error as? FinanceRuleException)?.rule) {
+            FinanceRuleException.Rule.INVALID_AMOUNT,
+            FinanceRuleException.Rule.INVALID_MONTH ->
+                com.byepro.bye_pro_finance.R.string.invalid_amount
+            FinanceRuleException.Rule.INSUFFICIENT_WORK_BALANCE ->
+                com.byepro.bye_pro_finance.R.string.insufficient_work_balance
+            FinanceRuleException.Rule.TRANSFER_WOULD_OVERDRAW_HOME ->
+                com.byepro.bye_pro_finance.R.string.transfer_overdraw_warning
+            FinanceRuleException.Rule.INSUFFICIENT_HOME_BALANCE ->
+                com.byepro.bye_pro_finance.R.string.insufficient_home_balance
+            FinanceRuleException.Rule.DEBT_PAYMENT_EXCEEDS_BALANCE ->
+                com.byepro.bye_pro_finance.R.string.debt_payment_exceeds
+            FinanceRuleException.Rule.BILL_PAYMENT_EXCEEDS_BALANCE ->
+                com.byepro.bye_pro_finance.R.string.bill_payment_exceeds
+            FinanceRuleException.Rule.DEBT_HAS_PAYMENT_HISTORY,
+            FinanceRuleException.Rule.BILL_HAS_PAYMENT_HISTORY ->
+                com.byepro.bye_pro_finance.R.string.record_has_payment_history
+            FinanceRuleException.Rule.BILL_AMOUNT_BELOW_PAYMENTS ->
+                com.byepro.bye_pro_finance.R.string.bill_payment_exceeds
+            FinanceRuleException.Rule.DEBT_BALANCE_DOES_NOT_MATCH_HISTORY ->
+                com.byepro.bye_pro_finance.R.string.debt_payment_exceeds
+            FinanceRuleException.Rule.INSUFFICIENT_BILL_PAYMENT_BALANCE ->
+                com.byepro.bye_pro_finance.R.string.insufficient_home_balance
+            FinanceRuleException.Rule.RECORD_NOT_FOUND -> 
+                com.byepro.bye_pro_finance.R.string.data_error
+            null -> com.byepro.bye_pro_finance.R.string.data_error
+        }
+        AlertDialog.Builder(this)
+            .setMessage(s(resource))
+            .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.cancel), null)
+            .show()
+    }
+
+    private fun showToast(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    }
+
     private fun showMonthPicker(anchor: View, months: List<YearMonth>? = null) {
         val available = months ?: repository.loadDashboard(selectedMonth).availableMonths
         val popup = PopupMenu(this, anchor)
