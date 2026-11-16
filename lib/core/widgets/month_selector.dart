@@ -144,13 +144,29 @@ class SummaryMetricGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = AppDesignTokens.of(context);
-    return Column(
-      children: [
-        for (var index = 0; index < metrics.length; index++) ...[
-          if (index > 0) SizedBox(height: tokens.sectionSpacing),
-          _SummaryMetricTile(metric: metrics[index]),
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(tokens.cardRadius),
+        border: Border.all(color: scheme.outlineVariant.withValues(alpha: .55)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (var index = 0; index < metrics.length; index++) ...[
+            if (index > 0)
+              Divider(
+                height: 1,
+                thickness: 1,
+                indent: 68,
+                endIndent: 16,
+                color: scheme.outlineVariant.withValues(alpha: .45),
+              ),
+            _SummaryMetricTile(metric: metrics[index]),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
@@ -165,62 +181,66 @@ class _SummaryMetricTile extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final tokens = AppDesignTokens.of(context);
-    final foreground =
-        metric.emphasized ? scheme.onPrimaryContainer : scheme.onSurface;
+    final foreground = scheme.onSurface;
+    final iconBackground = metric.emphasized
+        ? scheme.primaryContainer
+        : scheme.surfaceContainerHighest;
 
-    return Container(
+    return ConstrainedBox(
       constraints: BoxConstraints(minHeight: tokens.metricTileMinHeight),
-      padding: EdgeInsets.all(tokens.cardPadding),
-      decoration: BoxDecoration(
-        color: metric.emphasized
-            ? scheme.primaryContainer
-            : scheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(tokens.cardRadius),
-        border: Border.all(
-          color: metric.emphasized
-              ? scheme.primaryContainer
-              : scheme.outlineVariant,
+      child: Padding(
+        padding: EdgeInsetsDirectional.fromSTEB(
+          tokens.cardPadding,
+          12,
+          tokens.cardPadding,
+          12,
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Icon(
+        child: Row(
+          children: [
+            Container(
+              width: tokens.recordIconBoxSize,
+              height: tokens.recordIconBoxSize,
+              decoration: BoxDecoration(
+                color: iconBackground,
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Icon(
                 metric.icon,
                 size: tokens.standardIconSize,
                 color: metric.emphasized
                     ? scheme.onPrimaryContainer
                     : scheme.primary,
               ),
-              const SizedBox(width: 7),
-              Expanded(
-                child: Text(
-                  metric.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: foreground,
-                    fontWeight: FontWeight.w600,
-                  ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                metric.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: foreground,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            metric.value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.titleLarge?.copyWith(
-              color: foreground,
-              fontWeight: FontWeight.w800,
-              fontFeatures: const [FontFeature.tabularFigures()],
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Flexible(
+              child: Text(
+                metric.value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.end,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: metric.emphasized ? scheme.primary : foreground,
+                  fontWeight: FontWeight.w800,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
