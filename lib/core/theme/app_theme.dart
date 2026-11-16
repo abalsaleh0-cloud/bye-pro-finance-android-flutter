@@ -60,12 +60,6 @@ class AppTheme {
     );
   }
 
-  static Color _bestContentColor(Color background) {
-    final whiteContrast = contrastRatio(Colors.white, background);
-    final blackContrast = contrastRatio(Colors.black, background);
-    return whiteContrast >= blackContrast ? Colors.white : Colors.black;
-  }
-
   static ThemeData _buildTheme({required bool isDark}) {
     final scheme = colorSchemeFor(
       brightness: isDark ? Brightness.dark : Brightness.light,
