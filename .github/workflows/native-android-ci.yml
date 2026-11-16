@@ -55,6 +55,9 @@ jobs:
           gradle-version: "9.5.0"
           cache-provider: basic
 
+      - name: Run native design system tests
+        run: gradle -p native-android :app:testDebugUnitTest --no-daemon
+
       - name: Assemble native debug APK
         run: gradle -p native-android :app:assembleDebug --no-daemon
 
