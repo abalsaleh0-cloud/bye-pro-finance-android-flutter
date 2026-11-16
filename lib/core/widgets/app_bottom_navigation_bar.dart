@@ -56,7 +56,7 @@ class AppBottomNavigationBar extends StatelessWidget {
           elevation: 0,
           selectedIndex: selectedIndex,
           onDestinationSelected: onDestinationSelected,
-          indicatorColor: scheme.secondaryContainer.withValues(alpha: .62),
+          indicatorColor: Colors.transparent,
           indicatorShape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(tokens.controlRadius),
           ),
