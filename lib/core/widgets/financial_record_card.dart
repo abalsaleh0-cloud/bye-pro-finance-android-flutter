@@ -45,7 +45,7 @@ class FinancialRecordCard extends StatelessWidget {
                   height: 40,
                   decoration: BoxDecoration(
                     color: scheme.secondaryContainer,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(tokens.controlRadius),
                   ),
                   alignment: Alignment.center,
                   child: Icon(
