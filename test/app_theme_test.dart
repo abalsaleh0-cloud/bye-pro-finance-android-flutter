@@ -83,9 +83,27 @@ void main() {
     expect(firstTokens.cardRadius, 16);
     expect(firstTokens.controlRadius, 12);
     expect(firstTokens.dialogRadius, 20);
+    expect(firstTokens.buttonHeight, 48);
+    expect(firstTokens.touchTargetSize, 44);
+    expect(firstTokens.navigationBarHeight, 68);
+    expect(firstTokens.sectionTabHeight, 48);
+    expect(firstTokens.metricTileMinHeight, 96);
+    expect(firstTokens.recordIconBoxSize, 40);
+    expect(firstTokens.standardIconSize, 20);
+    expect(secondTokens.buttonHeight, firstTokens.buttonHeight);
+    expect(secondTokens.touchTargetSize, firstTokens.touchTargetSize);
+    expect(secondTokens.navigationBarHeight, firstTokens.navigationBarHeight);
+    expect(secondTokens.sectionTabHeight, firstTokens.sectionTabHeight);
+    expect(secondTokens.metricTileMinHeight, firstTokens.metricTileMinHeight);
+    expect(secondTokens.recordIconBoxSize, firstTokens.recordIconBoxSize);
+    expect(secondTokens.standardIconSize, firstTokens.standardIconSize);
     expect(
       second.filledButtonTheme.style!.minimumSize!.resolve({})!.height,
-      48,
+      firstTokens.buttonHeight,
+    );
+    expect(
+      second.iconButtonTheme.style!.minimumSize!.resolve({})!.height,
+      firstTokens.touchTargetSize,
     );
   });
 
