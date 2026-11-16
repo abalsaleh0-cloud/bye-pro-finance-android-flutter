@@ -180,6 +180,7 @@ class _SummaryMetricTile extends StatelessWidget {
         metric.emphasized ? scheme.primary : scheme.onSurface;
 
     return ConstrainedBox(
+      key: key,
       constraints: BoxConstraints(minHeight: tokens.metricTileMinHeight),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
