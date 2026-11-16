@@ -76,10 +76,13 @@ class FinanceDesignSystemTest {
             else Math.pow((sRgb + 0.055) / 1.055, 2.4)
         }
 
+        fun component(color: Int, shift: Int): Double =
+            channel((color ushr shift) and 0xFF)
+
         fun luminance(color: Int): Double =
-            0.2126 * channel(android.graphics.Color.red(color)) +
-                0.7152 * channel(android.graphics.Color.green(color)) +
-                0.0722 * channel(android.graphics.Color.blue(color))
+            0.2126 * component(color, 16) +
+                0.7152 * component(color, 8) +
+                0.0722 * component(color, 0)
 
         val a = luminance(foreground)
         val b = luminance(background)
