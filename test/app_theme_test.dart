@@ -101,4 +101,29 @@ void main() {
     expect(themePresetById('unknown').id, 'purple-pro');
     expect(themePresetById('navy_gold').id, 'cobalt');
   });
+
+  test('imports the JSON structure exported by the supplied HTML studio', () {
+    final imported = AppThemePreset.fromJson({
+      'name': 'ثيم مستورد',
+      'seed': {
+        'h': 300,
+        'h2': 345,
+        'c': .20,
+        'ca': .21,
+        'dh': 100,
+      },
+      'bg': 'stars',
+      'fx': {'l': 1, 'g': true, 'v': 0, 'f': true},
+    });
+
+    expect(imported.nameAr, 'ثيم مستورد');
+    expect(imported.hue, 300);
+    expect(imported.accentHue, 345);
+    expect(imported.chroma, .20);
+    expect(imported.accentChroma, .21);
+    expect(imported.hueOffset, 100);
+    expect(imported.background, 'stars');
+    expect(imported.effects, 'lgf');
+    expect(imported.custom, isTrue);
+  });
 }
