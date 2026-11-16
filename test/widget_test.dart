@@ -82,6 +82,22 @@ void main() {
     expect(find.text('النتيجة: 7500'), findsOneWidget);
   });
 
+  testWidgets('global calendar opens the original date picker', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+
+    await tester.tap(find.byKey(const Key('open-calendar')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DatePickerDialog), findsOneWidget);
+
+    Navigator.of(tester.element(find.byType(DatePickerDialog))).pop();
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DatePickerDialog), findsNothing);
+  });
+
   testWidgets('settings can switch theme and language', (tester) async {
     await tester.pumpWidget(const ProviderScope(child: MyApp()));
 
