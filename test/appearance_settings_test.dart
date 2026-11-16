@@ -28,7 +28,7 @@ void main() {
       AppTheme.lightFor(selectedTheme).colorScheme.primary,
     );
 
-    final darkMode = find.text('ليلي');
+    final darkMode = find.text('الوضع الداكن');
     await tester.ensureVisible(darkMode);
     await tester.tap(darkMode);
     await tester.pumpAndSettle();
@@ -51,7 +51,7 @@ void main() {
     await tester.tap(createButton);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byType(InkWell).first);
+    await tester.tap(find.byKey(const Key('seed-color-0')));
     await tester.pumpAndSettle();
 
     final context = tester.element(find.byType(AppearanceSettingsSection));
