@@ -30,9 +30,11 @@ class MyApp extends ConsumerWidget {
       ],
       builder: (context, child) {
         final brightness = Theme.of(context).brightness;
-        unawaited(_LauncherIconSync.update(
-          brightness == Brightness.dark ? 'dark' : 'light',
-        ));
+        if (defaultTargetPlatform == TargetPlatform.android) {
+          unawaited(_LauncherIconSync.update(
+            brightness == Brightness.dark ? 'dark' : 'light',
+          ));
+        }
         return Directionality(
           textDirection: TextDirection.rtl,
           child: child ?? const SizedBox.shrink(),
@@ -52,11 +54,12 @@ class _LauncherIconSync {
 
   static Future<void> update(String mode) async {
     if (_lastApplied == mode) return;
+    _lastApplied = mode;
     try {
       await _channel.invokeMethod<void>('setAppIcon', {'mode': mode});
-      _lastApplied = mode;
     } catch (_) {
-      // Widget tests and non-Android targets do not expose this native channel.
+      _lastApplied = null;
+      // The Android bridge may be unavailable during early startup.
     }
   }
 }
