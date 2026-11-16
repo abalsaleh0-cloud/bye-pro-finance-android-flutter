@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.RippleDrawable
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -95,6 +96,12 @@ object FinanceDesignSystem {
             setColor(color)
             cornerRadius = dp(context, radius).toFloat()
         }
+
+    fun ripple(context: Context, isDark: Boolean): RippleDrawable {
+        val accent = colors(isDark).accent
+        val rippleColor = (0x22 shl 24) or (accent and 0x00FFFFFF)
+        return RippleDrawable(ColorStateList.valueOf(rippleColor), null, null)
+    }
 
     fun text(
         context: Context,
