@@ -4,6 +4,7 @@ import com.byepro.bye_pro_finance.ui.FinanceDesignSystem
 import com.byepro.bye_pro_finance.ui.FinanceDesignTokens
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class FinanceDesignSystemTest {
@@ -54,4 +55,37 @@ class FinanceDesignSystemTest {
             FinanceDesignSystem.light.accent
         )
     }
+
+    @Test
+    fun importantTextColorsMeetReadableContrastInBothModes() {
+        assertTrue(contrast(FinanceDesignSystem.light.text, FinanceDesignSystem.light.surface) >= 4.5)
+        assertTrue(contrast(FinanceDesignSystem.light.secondaryText, FinanceDesignSystem.light.surface) >= 4.5)
+        assertTrue(contrast(FinanceDesignSystem.light.accent, FinanceDesignSystem.light.surface) >= 4.5)
+        assertTrue(contrast(FinanceDesignSystem.light.onAccent, FinanceDesignSystem.light.accent) >= 4.5)
+
+        assertTrue(contrast(FinanceDesignSystem.dark.text, FinanceDesignSystem.dark.surface) >= 4.5)
+        assertTrue(contrast(FinanceDesignSystem.dark.secondaryText, FinanceDesignSystem.dark.surface) >= 4.5)
+        assertTrue(contrast(FinanceDesignSystem.dark.accent, FinanceDesignSystem.dark.surface) >= 4.5)
+        assertTrue(contrast(FinanceDesignSystem.dark.onAccent, FinanceDesignSystem.dark.accent) >= 4.5)
+    }
+
+    private fun contrast(foreground: Int, background: Int): Double {
+        fun channel(value: Int): Double {
+            val sRgb = value / 255.0
+            return if (sRgb <= 0.04045) sRgb / 12.92
+            else Math.pow((sRgb + 0.055) / 1.055, 2.4)
+        }
+
+        fun luminance(color: Int): Double =
+            0.2126 * channel(android.graphics.Color.red(color)) +
+                0.7152 * channel(android.graphics.Color.green(color)) +
+                0.0722 * channel(android.graphics.Color.blue(color))
+
+        val a = luminance(foreground)
+        val b = luminance(background)
+        val lighter = maxOf(a, b)
+        val darker = minOf(a, b)
+        return (lighter + 0.05) / (darker + 0.05)
+    }
+
 }
