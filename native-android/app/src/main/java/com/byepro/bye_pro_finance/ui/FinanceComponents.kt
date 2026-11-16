@@ -92,11 +92,9 @@ object FinanceComponents {
             }
 
             val iconHolder = FrameLayout(context).apply {
-                background = FinanceDesignSystem.rounded(
-                    context,
-                    if (item.selected) palette.accentSoft else palette.surface,
-                    FinanceDesignTokens.CONTROL_RADIUS
-                )
+                // Telegram-style navigation has no filled selected pill:
+                // selection is communicated by icon and label color only.
+                setBackgroundColor(0x00000000)
                 val icon = ImageView(context).apply {
                     setImageResource(item.iconResource)
                     setColorFilter(if (item.selected) palette.accent else palette.secondaryText)
@@ -129,7 +127,7 @@ object FinanceComponents {
             ))
             bar.addView(cell, LinearLayout.LayoutParams(
                 0,
-                FinanceDesignSystem.dp(context, FinanceDesignTokens.SECTION_TAB_HEIGHT),
+                FinanceDesignSystem.dp(context, FinanceDesignTokens.NAVIGATION_BAR_HEIGHT - 8),
                 1f
             ))
         }
@@ -149,7 +147,7 @@ object FinanceComponents {
             gravity = Gravity.CENTER_VERTICAL
             val heading = FinanceDesignSystem.sectionTitle(context, title, isDark)
             addView(heading, LinearLayout.LayoutParams(0,
-                FinanceDesignSystem.dp(context, FinanceDesignTokens.SECTION_TAB_HEIGHT), 1f))
+                FinanceDesignSystem.dp(context, FinanceDesignTokens.SECTION_HEADER_HEIGHT), 1f))
             if (!trailing.isNullOrBlank()) {
                 addView(FinanceDesignSystem.text(
                     context, trailing, 12f, palette.accent, bold = true
