@@ -67,7 +67,7 @@ class MonthSelector extends StatelessWidget {
                       shrinkWrap: true,
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       itemCount: availableMonths.length,
-                      separatorBuilder: (_, __) => const Divider(
+                      separatorBuilder: (context, index) => const Divider(
                         height: 1,
                         indent: 20,
                         endIndent: 20,
