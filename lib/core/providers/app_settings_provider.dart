@@ -51,10 +51,14 @@ class AppSettingsController extends Notifier<AppSettings> {
 
       // Remove obsolete palette-engine preferences while preserving the
       // selected Light/Dark/System mode and all financial records.
-      await database.customStatement(
-        "DELETE FROM app_settings "
-        "WHERE setting_key IN ('theme_id', 'custom_themes', 'appearance_preset')",
-      );
+      try {
+        await database.customStatement(
+          "DELETE FROM app_settings "
+          "WHERE setting_key IN ('theme_id', 'custom_themes', 'appearance_preset')",
+        );
+      } catch (_) {
+        // Theme cleanup must never prevent restoring language or app mode.
+      }
 
       state = AppSettings(
         themeMode: switch (values[0]) {
