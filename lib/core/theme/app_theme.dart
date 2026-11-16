@@ -25,10 +25,10 @@ class AppTheme {
     final isDark = brightness == Brightness.dark;
     final h = preset.hue % 360;
     final h2 = preset.accentHue % 360;
-    final surfaceSaturation = (preset.chroma * 1.15).clamp(.005, .16);
-    final accentSaturation = (preset.accentChroma * 4.1).clamp(.16, .86);
+    final surfaceSaturation = (preset.chroma * 1.15).clamp(.005, .16).toDouble();
+    final accentSaturation = (preset.accentChroma * 4.1).clamp(.16, .86).toDouble();
     final secondarySaturation =
-        (preset.accentChroma * 3.7).clamp(.14, .78);
+        (preset.accentChroma * 3.7).clamp(.14, .78).toDouble();
 
     Color tone(double hue, double saturation, double lightness) =>
         HSLColor.fromAHSL(
@@ -51,7 +51,7 @@ class AppTheme {
     );
     final tertiary = tone(
       h2 + preset.hueOffset + 110,
-      (accentSaturation * .72).clamp(.12, .65),
+      (accentSaturation * .72).clamp(.12, .65).toDouble(),
       isDark ? .72 : .42,
     );
     final generated = ColorScheme.fromSeed(
