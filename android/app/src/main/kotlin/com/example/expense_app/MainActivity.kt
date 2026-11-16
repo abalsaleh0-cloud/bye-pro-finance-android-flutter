@@ -1,6 +1,7 @@
 package com.example.expense_app
 
 import android.Manifest
+import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
@@ -20,6 +21,7 @@ import java.util.Locale
 class MainActivity : FlutterActivity() {
     private companion object {
         const val VOICE_CHANNEL = "com.byepro.finance/assistant_voice"
+        const val APP_ICON_CHANNEL = "com.byepro.finance/app_icon"
         const val MICROPHONE_PERMISSION_REQUEST = 9142
     }
 
@@ -81,6 +83,63 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, APP_ICON_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "setAppIcon" -> switchLauncherIcon(
+                        call.argument<String>("mode"),
+                        result
+                    )
+                    else -> result.notImplemented()
+                }
+            }
+    }
+
+    private fun switchLauncherIcon(mode: String?, result: MethodChannel.Result) {
+        val enabledAlias = when (mode) {
+            "dark" -> ComponentName(
+                packageName,
+                "$packageName.MainActivityDarkIcon"
+            )
+            "light" -> ComponentName(
+                packageName,
+                "$packageName.MainActivityLightIcon"
+            )
+            else -> {
+                result.error(
+                    "invalid_app_icon_mode",
+                    "App icon mode must be either dark or light.",
+                    null
+                )
+                return
+            }
+        }
+        val disabledAlias = if (mode == "dark") {
+            ComponentName(packageName, "$packageName.MainActivityLightIcon")
+        } else {
+            ComponentName(packageName, "$packageName.MainActivityDarkIcon")
+        }
+
+        try {
+            packageManager.setComponentEnabledSetting(
+                disabledAlias,
+                PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                PackageManager.DONT_KILL_APP
+            )
+            packageManager.setComponentEnabledSetting(
+                enabledAlias,
+                PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                PackageManager.DONT_KILL_APP
+            )
+            result.success(true)
+        } catch (error: Exception) {
+            result.error(
+                "app_icon_update_failed",
+                error.message ?: "Unable to update the launcher icon.",
+                null
+            )
+        }
     }
 
     private fun recognizeArabicSpeech(result: MethodChannel.Result) {
