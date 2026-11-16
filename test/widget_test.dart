@@ -89,7 +89,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('الوضع الداكن'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('dark-mode-switch')));
+    await tester.tap(find.text('الوضع الداكن'));
     await tester.pumpAndSettle();
 
     expect(
@@ -215,39 +215,38 @@ void main() {
 
     await tester.tap(find.byKey(const Key('work-selected-month-picker')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(previousMonth.toString()).last);
+    await tester.tap(find.byKey(Key('month-option-$previousMonth')));
     await tester.pumpAndSettle();
 
     await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('المنزل')));
     await tester.pumpAndSettle();
     final homeMonthPicker = find.byKey(const Key('home-selected-month-picker'));
+    final previousMonthLabel = MaterialLocalizations.of(
+      tester.element(homeMonthPicker),
+    ).formatMonthYear(DateTime(previousMonth.year, previousMonth.month, 1));
     expect(
       find.descendant(
         of: homeMonthPicker,
-        matching: find.text(previousMonth.toString()),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(
-        of: homeMonthPicker,
-        matching: find.text(previousMonth.toString()),
+        matching: find.text(previousMonthLabel),
       ),
       findsOneWidget,
     );
 
     await tester.tap(find.byKey(const Key('home-selected-month-picker')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text(currentMonth.toString()).last);
+    await tester.tap(find.byKey(Key('month-option-$currentMonth')));
     await tester.pumpAndSettle();
 
     await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('العمل')));
     await tester.pumpAndSettle();
     final workMonthPicker = find.byKey(const Key('work-selected-month-picker'));
+    final currentMonthLabel = MaterialLocalizations.of(
+      tester.element(workMonthPicker),
+    ).formatMonthYear(DateTime(currentMonth.year, currentMonth.month, 1));
     expect(
       find.descendant(
         of: workMonthPicker,
-        matching: find.text(currentMonth.toString()),
+        matching: find.text(currentMonthLabel),
       ),
       findsOneWidget,
     );
@@ -589,10 +588,15 @@ void main() {
 
     final dashboardMonthPicker =
         find.byKey(const Key('dashboard-month-picker'));
+    final dashboardMonthLabel = MaterialLocalizations.of(
+      tester.element(dashboardMonthPicker),
+    ).formatMonthYear(
+      DateTime(previousMonth.year, previousMonth.month, 1),
+    );
     expect(
       find.descendant(
         of: dashboardMonthPicker,
-        matching: find.text(previousMonth.toString()),
+        matching: find.text(dashboardMonthLabel),
       ),
       findsOneWidget,
     );
