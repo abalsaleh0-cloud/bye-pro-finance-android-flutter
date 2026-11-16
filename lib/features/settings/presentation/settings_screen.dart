@@ -1,8 +1,8 @@
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/providers/app_settings_provider.dart';
-import 'package:expense_app/core/theme/app_appearance.dart';
 import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:expense_app/core/widgets/app_bottom_navigation_bar.dart';
+import 'package:expense_app/features/settings/presentation/appearance_settings_section.dart';
 import 'package:expense_app/features/settings/presentation/gemma_model_settings_section.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -95,95 +95,30 @@ class SettingsScreen extends ConsumerWidget {
         padding: tokens.pageInsets(bottom: tokens.pageVerticalPadding * 2),
         children: [
           _sectionTitle(context, strings.settingsAppearance),
+          const AppearanceSettingsSection(),
+          SizedBox(height: tokens.sectionSpacing),
           Card(
-            child: Column(
-              children: [
-                SwitchListTile(
-                  key: const Key('dark-mode-switch'),
-                  title: Text(strings.darkTheme),
-                  secondary: const Icon(Icons.dark_mode_outlined),
-                  value: settings.themeMode == ThemeMode.dark,
-                  onChanged: controller.setDarkMode,
-                ),
-                const Divider(height: 1, indent: 16, endIndent: 16),
-                ListTile(
-                  leading: const Icon(Icons.palette_outlined),
-                  title: Text(strings.appearancePreset),
-                  subtitle: Text(strings.appearanceDescription),
-                  trailing: DropdownButton<AppThemePreset>(
-                    key: const Key('appearance-preset-selector'),
-                    value: settings.themePreset,
-                    underline: const SizedBox.shrink(),
-                    items: AppThemePreset.values
-                        .map(
-                          (preset) => DropdownMenuItem(
-                            value: preset,
-                            child: Text(
-                              switch (preset) {
-                                AppThemePreset.navyGold => strings.themeNavyGold,
-                                AppThemePreset.emerald => strings.themeEmerald,
-                                AppThemePreset.graphite => strings.themeGraphite,
-                              },
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      if (value != null) controller.setThemePreset(value);
-                    },
+            child: ListTile(
+              leading: const Icon(Icons.language_outlined),
+              title: Text(strings.language),
+              trailing: DropdownButton<Locale>(
+                key: const Key('language-selector'),
+                value: settings.locale,
+                underline: const SizedBox.shrink(),
+                items: [
+                  DropdownMenuItem(
+                    value: const Locale('ar'),
+                    child: Text(strings.arabic),
                   ),
-                ),
-                const Divider(height: 1, indent: 16, endIndent: 16),
-                ListTile(
-                  leading: const Icon(Icons.space_dashboard_outlined),
-                  title: Text(strings.displayDensity),
-                  trailing: DropdownButton<AppDensity>(
-                    key: const Key('appearance-density-selector'),
-                    value: settings.density,
-                    underline: const SizedBox.shrink(),
-                    items: AppDensity.values
-                        .map(
-                          (density) => DropdownMenuItem(
-                            value: density,
-                            child: Text(
-                              switch (density) {
-                                AppDensity.comfortable =>
-                                  strings.densityComfortable,
-                                AppDensity.compact => strings.densityCompact,
-                              },
-                            ),
-                          ),
-                        )
-                        .toList(),
-                    onChanged: (value) {
-                      if (value != null) controller.setDensity(value);
-                    },
+                  DropdownMenuItem(
+                    value: const Locale('en'),
+                    child: Text(strings.english),
                   ),
-                ),
-                const Divider(height: 1, indent: 16, endIndent: 16),
-                ListTile(
-                  leading: const Icon(Icons.language_outlined),
-                  title: Text(strings.language),
-                  trailing: DropdownButton<Locale>(
-                    key: const Key('language-selector'),
-                    value: settings.locale,
-                    underline: const SizedBox.shrink(),
-                    items: [
-                      DropdownMenuItem(
-                        value: const Locale('ar'),
-                        child: Text(strings.arabic),
-                      ),
-                      DropdownMenuItem(
-                        value: const Locale('en'),
-                        child: Text(strings.english),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      if (value != null) controller.setLocale(value);
-                    },
-                  ),
-                ),
-              ],
+                ],
+                onChanged: (value) {
+                  if (value != null) controller.setLocale(value);
+                },
+              ),
             ),
           ),
           SizedBox(height: tokens.sectionSpacing),
