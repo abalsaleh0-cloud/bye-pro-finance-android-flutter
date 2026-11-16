@@ -852,7 +852,7 @@ class _SeedColorPickerDialogState extends State<_SeedColorPickerDialog> {
                   runSpacing: 12,
                   children: widget.seedColors.asMap().entries.map((entry) {
                     return InkWell(
-                      key: ValueKey('seed-color-' + entry.key.toString()),
+                      key: ValueKey('seed-color-${entry.key}'),
                       borderRadius: BorderRadius.circular(30),
                       onTap: () => Navigator.of(context).pop(entry.value),
                       child: Container(
