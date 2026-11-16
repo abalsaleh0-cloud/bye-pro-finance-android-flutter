@@ -313,39 +313,50 @@ class MainActivity : Activity() {
     }
 
     private fun addMonthSelector(summary: DashboardSummary) {
-        val row = FinanceComponents.card(this, darkTheme).apply {
+        // The month caption is a title, not a card. Only the date is interactive.
+        val row = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
+            layoutDirection = View.LAYOUT_DIRECTION_RTL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(12), dp(8), dp(12), dp(8))
+            setPadding(0, dp(2), 0, dp(2))
         }
-        val icon = FinanceDesignSystem.iconBox(
-            this, darkTheme, R.drawable.ic_calendar, selected = true
-        )
-        row.addView(icon, LinearLayout.LayoutParams(
-            dp(FinanceDesignTokens.RECORD_ICON_BOX_SIZE),
-            dp(FinanceDesignTokens.RECORD_ICON_BOX_SIZE)
-        ))
+
         val label = FinanceDesignSystem.text(
-            this, s(R.string.month_shown), 14f,
-            FinancePalette.text(darkTheme), bold = true
-        ).apply { setPadding(dp(12), 0, dp(6), 0) }
-        row.addView(label, LinearLayout.LayoutParams(0, dp(48), 1f))
+            this,
+            s(R.string.month_shown),
+            13f,
+            FinancePalette.muted(darkTheme),
+            bold = true
+        )
+        row.addView(label, LinearLayout.LayoutParams(
+            0,
+            dp(FinanceDesignTokens.BUTTON_HEIGHT),
+            1f
+        ))
+
         val month = FinanceDesignSystem.text(
-            this, selectedMonth.toString() + "  ▾", 14f,
-            FinancePalette.accent(darkTheme), bold = true
+            this,
+            selectedMonth.toString() + "  ▾",
+            14f,
+            FinancePalette.accent(darkTheme),
+            bold = true
         ).apply {
             gravity = Gravity.CENTER
-            background = FinanceDesignSystem.rounded(
-                this@MainActivity, FinancePalette.raised(darkTheme),
-                FinanceDesignTokens.CONTROL_RADIUS
-            )
-            setPadding(dp(14), 0, dp(14), 0)
-            minHeight = dp(FinanceDesignTokens.BUTTON_HEIGHT)
+            setPadding(dp(8), 0, dp(8), 0)
+            minHeight = dp(FinanceDesignTokens.TOUCH_TARGET_SIZE)
             isClickable = true
             isFocusable = true
-            setOnClickListener { showMonthPicker(this, summary.availableMonths) }
+            contentDescription = s(R.string.month_shown) + ": " + selectedMonth
+            setOnClickListener {
+                showMonthPicker(this, summary.availableMonths)
+            }
         }
-        row.addView(month, LinearLayout.LayoutParams(dp(136), dp(48)))
+
+        row.addView(month, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            dp(FinanceDesignTokens.TOUCH_TARGET_SIZE)
+        ))
+
         pageContent.addView(row, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.WRAP_CONTENT
