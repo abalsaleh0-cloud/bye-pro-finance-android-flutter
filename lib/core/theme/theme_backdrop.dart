@@ -231,7 +231,7 @@ class _ThemeBackdropPainter extends CustomPainter {
     final low = reduced ? .55 : 1.0;
     final width = size.width;
     final height = size.height;
-    final radius = math.max(width, height) * .7;
+    final radius = math.max(width, height).toDouble() * .7;
 
     switch (backgroundId) {
       case 'aurora':
