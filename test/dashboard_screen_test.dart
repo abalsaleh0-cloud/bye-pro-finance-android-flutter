@@ -108,11 +108,9 @@ void main() {
     expect(find.text('الشهر المعروض'), findsOneWidget);
     expect(find.text(month.toString()), findsOneWidget);
     expect(find.byKey(const Key('dashboard-month-picker')), findsOneWidget);
-    expect(
-      tester.widget<Text>(find.byKey(const Key('dashboard-home-balance'))).data,
-      '20',
-    );
+    expect(find.text('20'), findsOneWidget);
     expect(find.text('الصورة المالية'), findsOneWidget);
+    expect(find.text('إجراءات سريعة'), findsNothing);
     await tester.drag(
       find.byKey(const Key('dashboard-content')),
       const Offset(0, -2400),

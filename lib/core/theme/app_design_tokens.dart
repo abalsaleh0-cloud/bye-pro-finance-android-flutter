@@ -1,10 +1,7 @@
-import 'package:expense_app/core/theme/app_appearance.dart';
 import 'package:material_ui/material_ui.dart';
 
-/// Shared, non-color design values used by the whole application.
-///
-/// Color values stay in [ColorScheme]. Keeping geometry and motion here makes
-/// the UI predictable when a user changes appearance settings.
+/// Geometry tokens are intentionally fixed so switching themes never changes
+/// component sizes, spacing, or touch targets across the five app sections.
 class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
   const AppDesignTokens({
     required this.pageHorizontalPadding,
@@ -20,23 +17,19 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
     required this.motionDuration,
   });
 
-  /// Density is retained for backwards-compatible saved preferences, while
-  /// geometry stays identical throughout every screen and component.
-  factory AppDesignTokens.forDensity(AppDensity _) {
-    return const AppDesignTokens(
-      pageHorizontalPadding: 16,
-      pageVerticalPadding: 10,
-      sectionSpacing: 14,
-      cardRadius: 24,
-      controlRadius: 24,
-      dialogRadius: 24,
-      cardElevation: 0,
-      cardPadding: 16,
-      listTileVerticalPadding: 2,
-      inputVerticalPadding: 14,
-      motionDuration: Duration(milliseconds: 180),
-    );
-  }
+  factory AppDesignTokens.standard() => const AppDesignTokens(
+        pageHorizontalPadding: 16,
+        pageVerticalPadding: 10,
+        sectionSpacing: 14,
+        cardRadius: 24,
+        controlRadius: 24,
+        dialogRadius: 24,
+        cardElevation: 0,
+        cardPadding: 16,
+        listTileVerticalPadding: 2,
+        inputVerticalPadding: 14,
+        motionDuration: Duration(milliseconds: 180),
+      );
 
   final double pageHorizontalPadding;
   final double pageVerticalPadding;
@@ -87,22 +80,21 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
     double t,
   ) {
     if (other is! AppDesignTokens) return this;
-
+    double d(double a, double b) => a + (b - a) * t;
     return AppDesignTokens(
       pageHorizontalPadding:
-          _lerp(pageHorizontalPadding, other.pageHorizontalPadding, t),
-      pageVerticalPadding:
-          _lerp(pageVerticalPadding, other.pageVerticalPadding, t),
-      sectionSpacing: _lerp(sectionSpacing, other.sectionSpacing, t),
-      cardRadius: _lerp(cardRadius, other.cardRadius, t),
-      controlRadius: _lerp(controlRadius, other.controlRadius, t),
-      dialogRadius: _lerp(dialogRadius, other.dialogRadius, t),
-      cardElevation: _lerp(cardElevation, other.cardElevation, t),
-      cardPadding: _lerp(cardPadding, other.cardPadding, t),
+          d(pageHorizontalPadding, other.pageHorizontalPadding),
+      pageVerticalPadding: d(pageVerticalPadding, other.pageVerticalPadding),
+      sectionSpacing: d(sectionSpacing, other.sectionSpacing),
+      cardRadius: d(cardRadius, other.cardRadius),
+      controlRadius: d(controlRadius, other.controlRadius),
+      dialogRadius: d(dialogRadius, other.dialogRadius),
+      cardElevation: d(cardElevation, other.cardElevation),
+      cardPadding: d(cardPadding, other.cardPadding),
       listTileVerticalPadding:
-          _lerp(listTileVerticalPadding, other.listTileVerticalPadding, t),
+          d(listTileVerticalPadding, other.listTileVerticalPadding),
       inputVerticalPadding:
-          _lerp(inputVerticalPadding, other.inputVerticalPadding, t),
+          d(inputVerticalPadding, other.inputVerticalPadding),
       motionDuration: Duration(
         milliseconds: (motionDuration.inMilliseconds +
                 (other.motionDuration.inMilliseconds -
@@ -115,7 +107,7 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
 
   static AppDesignTokens of(BuildContext context) {
     return Theme.of(context).extension<AppDesignTokens>() ??
-        AppDesignTokens.forDensity(AppDensity.comfortable);
+        AppDesignTokens.standard();
   }
 
   EdgeInsetsDirectional pageInsets({double? bottom}) {
@@ -126,6 +118,4 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
       bottom ?? pageVerticalPadding * 2,
     );
   }
-
-  static double _lerp(double a, double b, double t) => a + (b - a) * t;
 }

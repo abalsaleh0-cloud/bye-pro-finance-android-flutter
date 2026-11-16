@@ -655,6 +655,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final pageTitle = transferPage ? strings.receivedFromWork : expensePage ? strings.dailyExpenses : strings.monthlyBills;
     return Scaffold(
       appBar: overview || widget.swipePage ? null : AppBar(title: Text(pageTitle)),
+      floatingActionButton: switch (widget.mode) {
+        HomeScreenMode.overview => FloatingActionButton(
+            key: const Key('home-add-action'),
+            onPressed: () => _showHomeAddOptions(context, ref, strings),
+            tooltip: strings.addHomeItem,
+            child: const Icon(Icons.add_rounded),
+          ),
+        HomeScreenMode.dailyExpenses => FloatingActionButton(
+            key: const Key('home-expense-add-fab'),
+            onPressed: () => _editExpense(context, ref, strings),
+            tooltip: strings.addExpense,
+            child: const Icon(Icons.add_rounded),
+          ),
+        HomeScreenMode.monthlyBills => FloatingActionButton(
+            key: const Key('home-bills-add-fab'),
+            onPressed: () => HomeBillsSection(
+              selectedMonth: selectedMonth,
+            ).showAddBill(context, ref, strings, HomeBillKind.monthly),
+            tooltip: strings.addMonthlyBill,
+            child: const Icon(Icons.add_rounded),
+          ),
+        HomeScreenMode.transfers => null,
+      },
       body: ListView(padding: tokens.pageInsets(), children: [
         MonthSelector(
           pickerKey: const Key('home-selected-month-picker'),
@@ -662,15 +685,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           availableMonths: availableMonths,
           onChanged: (month) =>
               ref.read(selectedMonthProvider.notifier).select(month),
-          trailing: overview
-              ? IconButton.filledTonal(
-                  key: const Key('home-add-action'),
-                  tooltip: strings.addHomeItem,
-                  icon: const Icon(Icons.add_rounded),
-                  onPressed: () =>
-                      _showHomeAddOptions(context, ref, strings),
-                )
-              : null,
         ),
         SizedBox(height: tokens.sectionSpacing * 0.67),
         if (overview) ...[

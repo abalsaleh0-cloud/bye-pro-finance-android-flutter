@@ -31,6 +31,11 @@ void main() {
 
     expect(find.text('الشهر المعروض'), findsOneWidget);
     expect(find.text(selectedMonth.toString()), findsOneWidget);
+    expect(find.byKey(const Key('month-selector-official-calendar')), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const Key('month-selector-date-control'))).width,
+      148,
+    );
 
     await tester.tap(find.byKey(const Key('shared-month-picker')));
     await tester.pumpAndSettle();

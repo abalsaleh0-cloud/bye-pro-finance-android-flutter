@@ -25,9 +25,21 @@ class MonthSelector extends StatelessWidget {
     final theme = Theme.of(context);
     final tokens = AppDesignTokens.of(context);
 
+    Future<void> pickFromOfficialCalendar() async {
+      final picked = await showDatePicker(
+        context: context,
+        initialDate: DateTime(selectedMonth.year, selectedMonth.month, 1),
+        firstDate: DateTime(1900),
+        lastDate: DateTime(2100),
+      );
+      if (!context.mounted || picked == null) return;
+      onChanged(MonthKey(year: picked.year, month: picked.month));
+    }
+
+    const selectorWidth = 148.0;
     return Card(
       child: Padding(
-        padding: const EdgeInsetsDirectional.fromSTEB(14, 6, 10, 6),
+        padding: const EdgeInsetsDirectional.fromSTEB(14, 10, 10, 10),
         child: Row(
           children: [
             Icon(
@@ -46,42 +58,53 @@ class MonthSelector extends StatelessWidget {
                 ),
               ),
             ),
-            SizedBox(
-              width: 148,
-              child: DropdownButtonFormField<MonthKey>(
-                key: pickerKey,
-                initialValue: selectedMonth,
-                isExpanded: true,
-                decoration: const InputDecoration(
-                  isDense: true,
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 8,
-                  ),
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                ),
+            const SizedBox(width: 8),
+            Container(
+              key: const Key('month-selector-date-control'),
+              width: selectorWidth,
+              height: 48,
+              padding: const EdgeInsetsDirectional.only(start: 8, end: 4),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(tokens.controlRadius),
-                items: availableMonths
-                    .map(
-                      (month) => DropdownMenuItem(
-                        value: month,
-                        child: Text(
-                          month.toString(),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                border: Border.all(color: theme.colorScheme.outlineVariant),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<MonthKey>(
+                  key: pickerKey,
+                  value: selectedMonth,
+                  isExpanded: true,
+                  menuWidth: selectorWidth,
+                  menuMaxHeight: 320,
+                  borderRadius: BorderRadius.circular(tokens.controlRadius),
+                  icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                  items: availableMonths
+                      .map(
+                        (month) => DropdownMenuItem(
+                          value: month,
+                          child: Text(
+                            month.toString(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (value) {
-                  if (value != null) onChanged(value);
-                },
+                      )
+                      .toList(),
+                  onChanged: (value) {
+                    if (value != null) onChanged(value);
+                  },
+                ),
               ),
             ),
+            IconButton(
+              key: const Key('month-selector-official-calendar'),
+              tooltip: strings.calendar,
+              visualDensity: VisualDensity.compact,
+              onPressed: pickFromOfficialCalendar,
+              icon: const Icon(Icons.edit_calendar_outlined),
+            ),
             if (trailing != null) ...[
-              const SizedBox(width: 4),
+              const SizedBox(width: 2),
               trailing!,
             ],
           ],
