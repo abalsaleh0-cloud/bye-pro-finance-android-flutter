@@ -191,7 +191,7 @@ class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          minimumSize: const Size(48, 48),
+          minimumSize: Size(48, tokens.buttonHeight),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
           shape: RoundedRectangleBorder(borderRadius: controlRadius),
           textStyle: const TextStyle(fontWeight: FontWeight.w700),
@@ -199,7 +199,7 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size(48, 48),
+          minimumSize: Size(48, tokens.buttonHeight),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
           shape: RoundedRectangleBorder(borderRadius: controlRadius),
           side: border,
@@ -207,14 +207,14 @@ class AppTheme {
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          minimumSize: const Size(44, 44),
+          minimumSize: Size(tokens.touchTargetSize, tokens.touchTargetSize),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           shape: RoundedRectangleBorder(borderRadius: controlRadius),
         ),
       ),
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(
-          minimumSize: const Size(44, 44),
+          minimumSize: Size(tokens.touchTargetSize, tokens.touchTargetSize),
           tapTargetSize: MaterialTapTargetSize.padded,
           foregroundColor: scheme.onSurfaceVariant,
           shape: RoundedRectangleBorder(borderRadius: controlRadius),
@@ -227,7 +227,7 @@ class AppTheme {
         shape: const CircleBorder(),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        height: 68,
+        height: tokens.navigationBarHeight,
         backgroundColor: scheme.surface,
         indicatorColor: scheme.secondaryContainer,
         indicatorShape: RoundedRectangleBorder(borderRadius: controlRadius),
