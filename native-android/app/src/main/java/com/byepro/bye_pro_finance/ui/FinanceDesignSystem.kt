@@ -33,6 +33,7 @@ object FinanceDesignTokens {
     const val TOUCH_TARGET_SIZE = 44
     const val NAVIGATION_BAR_HEIGHT = 68
     const val SECTION_TAB_HEIGHT = 48
+    const val SECTION_HEADER_HEIGHT = 36
     const val METRIC_TILE_MIN_HEIGHT = 64
     const val RECORD_ICON_BOX_SIZE = 40
     const val STANDARD_ICON_SIZE = 20
@@ -133,7 +134,7 @@ object FinanceDesignSystem {
     fun sectionTitle(context: Context, value: String, isDark: Boolean): TextView =
         text(context, value, 16f, colors(isDark).text, bold = true).apply {
             setPadding(0, dp(context, 4), 0, dp(context, 8))
-            minHeight = dp(context, FinanceDesignTokens.SECTION_TAB_HEIGHT)
+            minHeight = dp(context, FinanceDesignTokens.SECTION_HEADER_HEIGHT)
         }
 
     fun divider(context: Context, isDark: Boolean, startInset: Int = 56): View =
