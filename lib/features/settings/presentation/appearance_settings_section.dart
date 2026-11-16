@@ -157,34 +157,20 @@ const darkOnSurface = Color(${hex(dark.onSurface)});
   }
 
   Future<void> _importThemeJson() async {
-    final input = TextEditingController();
     final raw = await showDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(_text(context, 'استيراد ثيم JSON', 'Import theme JSON')),
-        content: TextField(
-          controller: input,
-          minLines: 4,
-          maxLines: 8,
-          decoration: InputDecoration(
-            hintText: _text(context, 'الصق بيانات الثيم هنا', 'Paste theme JSON here'),
-            border: const OutlineInputBorder(),
-          ),
+      builder: (dialogContext) => _ThemeJsonImportDialog(
+        title: _text(dialogContext, 'استيراد ثيم JSON', 'Import theme JSON'),
+        hintText: _text(
+          dialogContext,
+          'الصق بيانات الثيم هنا',
+          'Paste theme JSON here',
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(_text(context, 'إلغاء', 'Cancel')),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, input.text),
-            child: Text(_text(context, 'استيراد', 'Import')),
-          ),
-        ],
+        cancelLabel: _text(dialogContext, 'إلغاء', 'Cancel'),
+        importLabel: _text(dialogContext, 'استيراد', 'Import'),
       ),
     );
-    input.dispose();
-    if (raw == null || raw.trim().isEmpty || !mounted) {
+    if (!mounted || raw == null || raw.trim().isEmpty) {
       return;
     }
     try {
@@ -761,6 +747,74 @@ const darkOnSurface = Color(${hex(dark.onSurface)});
       label: Text(label),
       selected: settings.cinemaEffects.contains(id),
       onSelected: (value) => controller.toggleCinemaEffect(id, value),
+    );
+  }
+}
+
+class _ThemeJsonImportDialog extends StatefulWidget {
+  const _ThemeJsonImportDialog({
+    required this.title,
+    required this.hintText,
+    required this.cancelLabel,
+    required this.importLabel,
+  });
+
+  final String title;
+  final String hintText;
+  final String cancelLabel;
+  final String importLabel;
+
+  @override
+  State<_ThemeJsonImportDialog> createState() => _ThemeJsonImportDialogState();
+}
+
+class _ThemeJsonImportDialogState extends State<_ThemeJsonImportDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final heightLimit = MediaQuery.sizeOf(context).height * .55;
+    return AlertDialog(
+      scrollable: true,
+      title: Text(widget.title),
+      content: SizedBox(
+        width: 420,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: heightLimit),
+          child: TextField(
+            key: const Key('theme-json-input'),
+            controller: _controller,
+            minLines: 4,
+            maxLines: 8,
+            decoration: InputDecoration(
+              hintText: widget.hintText,
+              border: const OutlineInputBorder(),
+            ),
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(widget.cancelLabel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_controller.text),
+          child: Text(widget.importLabel),
+        ),
+      ],
     );
   }
 }

@@ -175,7 +175,10 @@ class AppSettingsController extends Notifier<AppSettings> {
   }
 
   void addCustomTheme(AppThemePreset preset) {
-    if (state.customThemes.length >= 12) return;
+    final replacesExisting = state.customThemes.any(
+      (theme) => theme.id == preset.id,
+    );
+    if (state.customThemes.length >= 12 && !replacesExisting) return;
     _revision++;
     final themes = [
       ...state.customThemes.where((theme) => theme.id != preset.id),
@@ -204,6 +207,10 @@ class AppSettingsController extends Notifier<AppSettings> {
     if (wasSelected) {
       unawaited(_write('theme_id', fallback.id));
       unawaited(_write('theme_background', fallback.background));
+      unawaited(_write(
+        'theme_cinema_effects',
+        jsonEncode(fallback.effects.split('').toSet().toList()),
+      ));
     }
   }
 
