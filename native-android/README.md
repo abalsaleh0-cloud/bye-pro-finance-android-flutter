@@ -30,7 +30,9 @@ The native design system is centralized in `FinanceDesignSystem.kt`, `FinanceApp
 - Existing database: `context.getDir("flutter", MODE_PRIVATE)/bye_pro_finance.sqlite`.
 - Existing SQLite user_version: `2`.
 - Debug builds use the separate package suffix `.nativepreview` and therefore do not overwrite the installed Flutter app. The preview build has its own app sandbox and cannot display production records.
-- Release builds must use the same production signing key as the installed application before an in-place upgrade can be performed.
+- Native release signing reads the same environment variables (`KEYSTORE_PATH`, `KEYSTORE_PASSWORD`, `KEY_PASSWORD`, `KEY_ALIAS`) or `android/key.properties` used by the Flutter app. Relative `storeFile` paths resolve from `android/app`, matching the existing Gradle configuration.
+- Release signing is validated before `assembleRelease`/`bundleRelease`; the private keystore and credentials are never committed or uploaded by CI.
+- CI verifies that the Flutter and Native release `applicationId` values remain identical. The debug preview still uses `.nativepreview` and cannot update the installed app.
 
 ## Build and validation
 From the repository root, with JDK 17, Android SDK 36, and Gradle 9.5:
