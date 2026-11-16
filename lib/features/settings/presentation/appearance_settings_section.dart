@@ -34,27 +34,41 @@ class _AppearanceSettingsSectionState
       Localizations.localeOf(context).languageCode == 'en' ? en : ar;
 
   Future<void> _createFromColor() async {
+    final hexController = TextEditingController(text: '#C026D3');
     final color = await showDialog<Color>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(_text(context, 'اختر لون البداية', 'Choose a seed color')),
         content: SizedBox(
           width: 320,
-          child: Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 12,
-            runSpacing: 12,
-            children: _seedColors.asMap().entries
-                .map(
-                  (entry) => InkWell(
-                    key: ValueKey('seed-color-${entry.key}'),
-                    borderRadius: BorderRadius.circular(30),
-                    onTap: () => Navigator.pop(dialogContext, entry.value),
-                    child: Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: color,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                key: const Key('theme-seed-hex'),
+                controller: hexController,
+                textDirection: TextDirection.ltr,
+                decoration: InputDecoration(
+                  labelText: _text(context, 'رمز اللون HEX', 'HEX color'),
+                  hintText: '#C026D3',
+                ),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 12,
+                runSpacing: 12,
+                children: _seedColors.asMap().entries
+                    .map(
+                      (entry) => InkWell(
+                        key: ValueKey('seed-color-${entry.key}'),
+                        borderRadius: BorderRadius.circular(30),
+                        onTap: () => Navigator.pop(dialogContext, entry.value),
+                        child: Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: entry.value,
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: Theme.of(dialogContext).colorScheme.outline,
@@ -72,9 +86,29 @@ class _AppearanceSettingsSectionState
             onPressed: () => Navigator.pop(dialogContext),
             child: Text(_text(context, 'إلغاء', 'Cancel')),
           ),
+          FilledButton(
+            onPressed: () {
+              final value = hexController.text.trim().replaceFirst('#', '');
+              final normalized = value.length == 6 ? 'FF$value' : value;
+              try {
+                final color = Color(int.parse(normalized, radix: 16));
+                Navigator.pop(dialogContext, color);
+              } catch (_) {
+                ScaffoldMessenger.of(dialogContext).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      _text(context, 'أدخل رمز لون صحيحًا.', 'Enter a valid color code.'),
+                    ),
+                  ),
+                );
+              }
+            },
+            child: Text(_text(context, 'استخدام اللون', 'Use color')),
+          ),
         ],
       ),
     );
+    hexController.dispose();
     if (color == null || !mounted) return;
     _saveCustomTheme(color);
   }
@@ -161,6 +195,26 @@ class _AppearanceSettingsSectionState
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(_text(context, 'تم نسخ بيانات الثيم.', 'Theme JSON copied.'))),
+    );
+  }
+
+  Future<void> _exportFlutterTheme() async {
+    final theme = ref.read(appSettingsProvider).selectedTheme;
+    final light = AppTheme.colorSchemeFor(theme, brightness: Brightness.light);
+    final dark = AppTheme.colorSchemeFor(theme, brightness: Brightness.dark);
+    String hex(Color color) => '0x${color.toARGB32().toRadixString(16).padLeft(8, '0').toUpperCase()}';
+    final source = '''// ${theme.nameEn}
+const lightPrimary = Color(${hex(light.primary)});
+const lightSurface = Color(${hex(light.surface)});
+const lightOnSurface = Color(${hex(light.onSurface)});
+const darkPrimary = Color(${hex(dark.primary)});
+const darkSurface = Color(${hex(dark.surface)});
+const darkOnSurface = Color(${hex(dark.onSurface)});
+''';
+    await Clipboard.setData(ClipboardData(text: source));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(_text(context, 'تم نسخ ألوان Flutter.', 'Flutter colors copied.'))),
     );
   }
 
@@ -538,6 +592,12 @@ class _AppearanceSettingsSectionState
                       onPressed: _importThemeJson,
                       icon: const Icon(Icons.input_outlined),
                       label: Text(_text(context, 'استيراد JSON', 'Import JSON')),
+                    ),
+                    OutlinedButton.icon(
+                      key: const Key('export-theme-flutter'),
+                      onPressed: _exportFlutterTheme,
+                      icon: const Icon(Icons.code_outlined),
+                      label: Text(_text(context, 'تصدير Flutter', 'Export Flutter')),
                     ),
                   ],
                 ),
