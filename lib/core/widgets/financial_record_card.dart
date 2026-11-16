@@ -41,8 +41,8 @@ class FinancialRecordCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  width: 40,
-                  height: 40,
+                  width: tokens.recordIconBoxSize,
+                  height: tokens.recordIconBoxSize,
                   decoration: BoxDecoration(
                     color: scheme.secondaryContainer,
                     borderRadius: BorderRadius.circular(tokens.controlRadius),
@@ -51,7 +51,7 @@ class FinancialRecordCard extends StatelessWidget {
                   child: Icon(
                     icon,
                     color: scheme.onSecondaryContainer,
-                    size: 20,
+                    size: tokens.standardIconSize,
                   ),
                 ),
                 const SizedBox(width: 12),
