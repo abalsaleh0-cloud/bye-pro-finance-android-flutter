@@ -1,4 +1,3 @@
-import 'package:expense_app/core/theme/app_appearance.dart';
 import 'package:expense_app/core/theme/app_theme.dart';
 import 'package:expense_app/core/widgets/entry_form_dialog.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,7 +9,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       MaterialApp(
-        theme: AppTheme.lightFor(density: AppDensity.compact),
+        theme: AppTheme.light,
         home: Scaffold(
           body: Builder(
             builder: (context) => Center(
