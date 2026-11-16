@@ -438,6 +438,8 @@ const darkOnSurface = Color(${hex(dark.onSurface)});
     final scheme = Theme.of(context).colorScheme;
     final textRatio =
         AppTheme.contrastRatio(scheme.onSurface, scheme.surface);
+    final mutedRatio =
+        AppTheme.contrastRatio(scheme.onSurfaceVariant, scheme.surface);
     final buttonRatio =
         AppTheme.contrastRatio(scheme.onPrimary, scheme.primary);
     String grade(double ratio) => ratio >= 7
@@ -470,10 +472,17 @@ const darkOnSurface = Color(${hex(dark.onSurface)});
     return Row(
       children: [
         Expanded(child: result(_text(context, 'النص', 'Text'), textRatio)),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         Expanded(
           child: result(
-            _text(context, 'الزر الأساسي', 'Primary button'),
+            _text(context, 'النص الثانوي', 'Muted text'),
+            mutedRatio,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: result(
+            _text(context, 'الزر', 'Button'),
             buttonRatio,
           ),
         ),
