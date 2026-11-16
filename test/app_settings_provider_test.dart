@@ -5,7 +5,6 @@ import 'package:expense_app/core/providers/app_settings_provider.dart';
 import 'package:expense_app/core/theme/app_appearance.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:material_ui/material_ui.dart';
 
 AppThemePreset _customTheme({
   required String id,
