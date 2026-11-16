@@ -621,20 +621,6 @@ const darkOnSurface = Color(${hex(dark.onSurface)});
     );
   }
 
-  Widget _effectChip(
-    BuildContext context,
-    AppSettingsController controller,
-    AppSettings settings,
-    String id,
-    String label,
-  ) {
-    return FilterChip(
-      key: ValueKey('theme-effect-$id'),
-      label: Text(label),
-      selected: settings.cinemaEffects.contains(id),
-      onSelected: (value) => controller.toggleCinemaEffect(id, value),
-    );
-  }
 }
 
 class _ThemeJsonImportDialog extends StatefulWidget {
