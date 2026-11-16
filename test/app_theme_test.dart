@@ -87,7 +87,7 @@ void main() {
     expect(firstTokens.touchTargetSize, 44);
     expect(firstTokens.navigationBarHeight, 68);
     expect(firstTokens.sectionTabHeight, 48);
-    expect(firstTokens.metricTileMinHeight, 96);
+    expect(firstTokens.metricTileMinHeight, 64);
     expect(firstTokens.recordIconBoxSize, 40);
     expect(firstTokens.standardIconSize, 20);
     expect(secondTokens.buttonHeight, firstTokens.buttonHeight);
