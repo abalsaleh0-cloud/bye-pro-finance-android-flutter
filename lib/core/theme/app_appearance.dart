@@ -32,14 +32,14 @@ class AppThemePreset {
   Color get seedColor => HSLColor.fromAHSL(
         1,
         hue % 360,
-        (chroma * 4).clamp(.08, .88),
+        (chroma * 4).clamp(.08, .88).toDouble(),
         .54,
       ).toColor();
 
   Color get accentSeedColor => HSLColor.fromAHSL(
         1,
         accentHue % 360,
-        (accentChroma * 4).clamp(.08, .88),
+        (accentChroma * 4).clamp(.08, .88).toDouble(),
         .58,
       ).toColor();
 
@@ -51,7 +51,7 @@ class AppThemePreset {
     String background = 'fluid',
   }) {
     final hsl = HSLColor.fromColor(color);
-    final chroma = (hsl.saturation / 4).clamp(.07, .22);
+    final chroma = (hsl.saturation / 4).clamp(.07, .22).toDouble();
     return AppThemePreset(
       id: id,
       nameAr: nameAr,
@@ -112,8 +112,8 @@ class AppThemePreset {
           : 'My theme',
       hue: number('hue', 330),
       accentHue: number('accentHue', 350),
-      chroma: number('chroma', .16).clamp(.01, .3),
-      accentChroma: number('accentChroma', .16).clamp(.01, .3),
+      chroma: number('chroma', .16).clamp(.01, .3).toDouble(),
+      accentChroma: number('accentChroma', .16).clamp(.01, .3).toDouble(),
       hueOffset: number('hueOffset', 70),
       background: json['background'] is String
           ? json['background']! as String
