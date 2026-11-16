@@ -27,6 +27,14 @@ void main() {
     );
 
     expect(find.byType(NavigationDestination), findsNWidgets(5));
+    expect(find.byKey(const Key('floating-bottom-navigation')), findsOneWidget);
+    final floatingBar = tester.getRect(
+      find.byKey(const Key('floating-bottom-navigation')),
+    );
+    expect(floatingBar.left, greaterThan(0));
+    expect(floatingBar.right, lessThan(tester.view.physicalSize.width /
+        tester.view.devicePixelRatio));
+
     expect(find.text('الرئيسية'), findsOneWidget);
     expect(find.text('العمل'), findsOneWidget);
     expect(find.text('المنزل'), findsOneWidget);
