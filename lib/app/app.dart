@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:expense_app/core/providers/app_settings_provider.dart';
 import 'package:expense_app/core/router/app_router.dart';
 import 'package:expense_app/core/theme/app_theme.dart';
-import 'package:flutter/services.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
