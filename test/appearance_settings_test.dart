@@ -16,6 +16,7 @@ void main() {
 
     final emerald = find.byKey(const Key('theme-emerald'));
     await tester.ensureVisible(emerald);
+    await tester.pumpAndSettle();
     await tester.tap(emerald);
     await tester.pumpAndSettle();
 
@@ -29,7 +30,8 @@ void main() {
     );
 
     final darkMode = find.text('الوضع الداكن');
-    await tester.ensureVisible(darkMode);
+    await tester.ensureVisible(find.byKey(const Key('theme-mode-selector')));
+    await tester.pumpAndSettle();
     await tester.tap(darkMode);
     await tester.pumpAndSettle();
 
@@ -48,6 +50,7 @@ void main() {
 
     final createButton = find.byKey(const Key('create-theme-from-color'));
     await tester.ensureVisible(createButton);
+    await tester.pumpAndSettle();
     await tester.tap(createButton);
     await tester.pumpAndSettle();
 
