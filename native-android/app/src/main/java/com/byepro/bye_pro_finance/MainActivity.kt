@@ -2,6 +2,7 @@ package com.byepro.bye_pro_finance
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.app.DatePickerDialog
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Typeface
@@ -15,6 +16,7 @@ import android.widget.LinearLayout
 import android.widget.PopupMenu
 import android.widget.ScrollView
 import android.widget.TextView
+import android.widget.Toast
 import com.byepro.bye_pro_finance.data.DashboardRepository
 import com.byepro.bye_pro_finance.data.LegacyFinanceDatabase
 import com.byepro.bye_pro_finance.domain.ActivityItem
@@ -30,6 +32,7 @@ import java.time.YearMonth
 import java.time.ZoneId
 import java.util.Date
 import java.util.Locale
+import java.util.UUID
 
 class MainActivity : Activity() {
 
@@ -39,6 +42,7 @@ class MainActivity : Activity() {
 
     private lateinit var database: LegacyFinanceDatabase
     private lateinit var repository: DashboardRepository
+    private lateinit var writeRepository: FinanceWriteRepository
     private lateinit var root: LinearLayout
     private lateinit var scrollView: ScrollView
     private lateinit var pageContent: LinearLayout
@@ -55,6 +59,7 @@ class MainActivity : Activity() {
 
         database = LegacyFinanceDatabase(this)
         repository = DashboardRepository(database)
+        writeRepository = FinanceWriteRepository(database)
         localeCode = database.readSetting("locale")?.let {
             if (it == "en") "en" else "ar"
         } ?: "ar"
@@ -156,6 +161,14 @@ class MainActivity : Activity() {
             gravity = Gravity.CENTER_VERTICAL or Gravity.START
         }
         toolbar.addView(title, LinearLayout.LayoutParams(0, dp(52), 1f))
+        if (activeSection == Section.WORK ||
+            activeSection == Section.HOME ||
+            activeSection == Section.DEBTS
+        ) {
+            addToolbarAction(toolbar, "＋", s(com.byepro.bye_pro_finance.R.string.add_record)) {
+                showCreateMenu(it)
+            }
+        }
         addToolbarAction(toolbar, "▦", s(com.byepro.bye_pro_finance.R.string.calendar)) {
             showMonthPicker(it)
         }
@@ -532,7 +545,10 @@ class MainActivity : Activity() {
     private fun renderWork() {
         addSectionHeading(s(com.byepro.bye_pro_finance.R.string.work_records))
         addMonthQuickPicker()
-        val records = repository.loadWorkRecords(selectedMonth)
+        val records = (
+            repository.loadWorkRecords(selectedMonth) +
+                repository.loadTransfers(selectedMonth)
+            ).sortedByDescending { it.timestamp }
         if (records.isEmpty()) {
             addEmptyState(s(com.byepro.bye_pro_finance.R.string.no_records))
             return
@@ -543,7 +559,10 @@ class MainActivity : Activity() {
     private fun renderHome() {
         addSectionHeading(s(com.byepro.bye_pro_finance.R.string.home_records))
         addMonthQuickPicker()
-        val records = repository.loadHomeExpenses(selectedMonth)
+        val records = (
+            repository.loadHomeExpenses(selectedMonth) +
+                repository.loadBills(selectedMonth)
+            ).sortedByDescending { if (it.kind == "bill") Long.MAX_VALUE else it.timestamp }
         if (records.isEmpty()) {
             addEmptyState(s(com.byepro.bye_pro_finance.R.string.no_records))
             return
@@ -624,6 +643,15 @@ class MainActivity : Activity() {
             row.addView(details, LinearLayout.LayoutParams(0, dp(48), 1f))
             val amount = makeText(formatAmount(record.amountMinorUnits), 15f, true)
             row.addView(amount)
+            row.isLongClickable = true
+            row.setOnLongClickListener {
+                showRecordActions(it, record)
+                true
+            }
+            if (record.kind == "bill" || record.kind == "creditor" || record.kind == "debtor") {
+                row.isClickable = true
+                row.setOnClickListener { showRecordActions(it, record) }
+            }
             group.addView(row)
         }
         pageContent.addView(group)
