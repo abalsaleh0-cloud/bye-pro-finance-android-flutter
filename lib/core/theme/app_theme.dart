@@ -42,7 +42,7 @@ class AppTheme {
     final surface = tone(h, surfaceSaturation, isDark ? .145 : .925);
     final surfaceRaised = tone(h, surfaceSaturation, isDark ? .19 : .875);
     final text = tone(h, .035, isDark ? .955 : .20);
-    final mutedText = tone(h, .035, isDark ? .74 : .45);
+    final mutedText = tone(h, .035, isDark ? .74 : .40);
     final primary = tone(h2, accentSaturation, isDark ? .73 : .43);
     final secondary = tone(
       h2 + preset.hueOffset,
