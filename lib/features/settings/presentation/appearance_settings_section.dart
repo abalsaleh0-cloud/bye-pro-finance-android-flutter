@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'dart:ui' as ui;
 
 import 'package:expense_app/core/providers/app_settings_provider.dart';
 import 'package:expense_app/core/theme/app_appearance.dart';
 import 'package:expense_app/core/theme/app_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -25,6 +27,8 @@ class _AppearanceSettingsSectionState
     Color(0xFFEC407A), Color(0xFF795548), Color(0xFF607D8B),
     Color(0xFF455A64), Color(0xFFB0BEC5), Color(0xFFD7CCC8),
   ];
+
+  String _searchQuery = '';
 
   String _text(BuildContext context, String ar, String en) =>
       Localizations.localeOf(context).languageCode == 'en' ? en : ar;
@@ -146,6 +150,68 @@ class _AppearanceSettingsSectionState
             ),
           ),
         ),
+      );
+    }
+  }
+
+  Future<void> _exportThemeJson() async {
+    final theme = ref.read(appSettingsProvider).selectedTheme;
+    await Clipboard.setData(ClipboardData(text: const JsonEncoder.withIndent('  ').convert(theme.toJson())));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(_text(context, 'تم نسخ بيانات الثيم.', 'Theme JSON copied.'))),
+    );
+  }
+
+  Future<void> _importThemeJson() async {
+    final input = TextEditingController();
+    final raw = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(_text(context, 'استيراد ثيم JSON', 'Import theme JSON')),
+        content: TextField(
+          controller: input,
+          minLines: 4,
+          maxLines: 8,
+          decoration: InputDecoration(
+            hintText: _text(context, 'الصق بيانات الثيم هنا', 'Paste theme JSON here'),
+            border: const OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(_text(context, 'إلغاء', 'Cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, input.text),
+            child: Text(_text(context, 'استيراد', 'Import')),
+          ),
+        ],
+      ),
+    );
+    input.dispose();
+    if (raw == null || raw.trim().isEmpty || !mounted) return;
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) throw const FormatException('Theme JSON must be an object');
+      final map = Map<String, Object?>.from(decoded);
+      final imported = AppThemePreset.fromJson(map).copyWith(
+        nameAr: map['nameAr'] is String ? map['nameAr']! as String : 'ثيم مستورد',
+        nameEn: map['nameEn'] is String ? map['nameEn']! as String : 'Imported theme',
+      );
+      final settings = ref.read(appSettingsProvider);
+      if (settings.customThemes.length >= 12 &&
+          !settings.customThemes.any((theme) => theme.id == imported.id)) {
+        throw StateError('Custom theme limit reached');
+      }
+      ref.read(appSettingsProvider.notifier).addCustomTheme(imported);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_text(context, 'تم استيراد الثيم.', 'Theme imported.'))),
+      );
+    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_text(context, 'بيانات JSON غير صالحة.', 'Invalid theme JSON.'))),
       );
     }
   }
@@ -366,8 +432,15 @@ class _AppearanceSettingsSectionState
     final controller = ref.read(appSettingsProvider.notifier);
     final selectedId = settings.themeId;
     final isEnglish = Localizations.localeOf(context).languageCode == 'en';
-    final basicThemes = builtInThemePresets.take(48).toList();
-    final cinemaThemes = builtInThemePresets.skip(48).toList();
+    final query = _searchQuery.trim().toLowerCase();
+    bool matches(AppThemePreset theme) =>
+        query.isEmpty ||
+        theme.nameAr.toLowerCase().contains(query) ||
+        theme.nameEn.toLowerCase().contains(query);
+    final basicThemes =
+        builtInThemePresets.take(48).where(matches).toList();
+    final cinemaThemes =
+        builtInThemePresets.skip(48).where(matches).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -385,7 +458,9 @@ class _AppearanceSettingsSectionState
                       ),
                 ),
                 const SizedBox(height: 12),
-                SegmentedButton<ThemeMode>(
+                KeyedSubtree(
+                  key: const Key('dark-mode-switch'),
+                  child: SegmentedButton<ThemeMode>(
                   key: const Key('theme-mode-selector'),
                   showSelectedIcon: false,
                   segments: [
@@ -408,6 +483,16 @@ class _AppearanceSettingsSectionState
                   selected: {settings.themeMode},
                   onSelectionChanged: (values) =>
                       controller.setThemeMode(values.first),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  key: const Key('theme-search'),
+                  onChanged: (value) => setState(() => _searchQuery = value),
+                  decoration: InputDecoration(
+                    hintText: _text(context, 'ابحث عن ثيم بالاسم', 'Search themes by name'),
+                    prefixIcon: const Icon(Icons.search),
+                  ),
                 ),
                 _sectionTitle(context, 'الثيمات الأساسية', 'Base themes'),
                 _themeGrid(context, basicThemes, selectedId),
@@ -440,6 +525,18 @@ class _AppearanceSettingsSectionState
                           : _createFromImage,
                       icon: const Icon(Icons.image_outlined),
                       label: Text(_text(context, 'من صورة', 'From image')),
+                    ),
+                    OutlinedButton.icon(
+                      key: const Key('export-theme-json'),
+                      onPressed: _exportThemeJson,
+                      icon: const Icon(Icons.copy_outlined),
+                      label: Text(_text(context, 'نسخ JSON', 'Copy JSON')),
+                    ),
+                    OutlinedButton.icon(
+                      key: const Key('import-theme-json'),
+                      onPressed: _importThemeJson,
+                      icon: const Icon(Icons.input_outlined),
+                      label: Text(_text(context, 'استيراد JSON', 'Import JSON')),
                     ),
                   ],
                 ),
