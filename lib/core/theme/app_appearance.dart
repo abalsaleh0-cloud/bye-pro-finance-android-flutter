@@ -98,29 +98,58 @@ class AppThemePreset {
       };
 
   factory AppThemePreset.fromJson(Map<String, Object?> json) {
-    double number(String key, double fallback) {
-      final value = json[key];
+    final seedValue = json['seed'];
+    final seed = seedValue is Map
+        ? Map<String, Object?>.from(seedValue)
+        : const <String, Object?>{};
+
+    double number(String key, double fallback, {String? alias}) {
+      final value = json[key] ?? (alias == null ? null : seed[alias]);
       return value is num ? value.toDouble() : fallback;
     }
 
+    final hue = number('hue', 330, alias: 'h');
+    final accentHue = number('accentHue', 350, alias: 'h2');
+    final chroma = number('chroma', .16, alias: 'c').clamp(.01, .3).toDouble();
+    final accentChroma =
+        number('accentChroma', .16, alias: 'ca').clamp(.01, .3).toDouble();
+    final name = json['name'] is String ? json['name']! as String : null;
+    final effectsValue = json['effects'];
+    final fxValue = json['fx'];
+    var effects = '';
+    if (effectsValue is String) {
+      effects = effectsValue;
+    } else if (fxValue is Map) {
+      final fx = Map<String, Object?>.from(fxValue);
+      for (final key in ['l', 'g', 'v', 'f']) {
+        final value = fx[key];
+        if (value == true || value == 1) effects += key;
+      }
+    }
+    final backgroundValue = json['background'] ?? json['bg'];
+
     return AppThemePreset(
-      id: json['id'] is String ? json['id']! as String : 'custom-imported',
-      nameAr:
-          json['nameAr'] is String ? json['nameAr']! as String : 'ثيمي',
+      id: json['id'] is String
+          ? json['id']! as String
+          : 'imported-theme-' +
+              hue.round().toString() +
+              '-' +
+              accentHue.round().toString(),
+      nameAr: json['nameAr'] is String
+          ? json['nameAr']! as String
+          : name ?? 'ثيمي',
       nameEn: json['nameEn'] is String
           ? json['nameEn']! as String
-          : 'My theme',
-      hue: number('hue', 330),
-      accentHue: number('accentHue', 350),
-      chroma: number('chroma', .16).clamp(.01, .3).toDouble(),
-      accentChroma: number('accentChroma', .16).clamp(.01, .3).toDouble(),
-      hueOffset: number('hueOffset', 70),
-      background: json['background'] is String
-          ? json['background']! as String
-          : 'aurora',
-      effects:
-          json['effects'] is String ? json['effects']! as String : '',
-      custom: json['custom'] == true,
+          : name ?? 'My theme',
+      hue: hue,
+      accentHue: accentHue,
+      chroma: chroma,
+      accentChroma: accentChroma,
+      hueOffset: number('hueOffset', 70, alias: 'dh'),
+      background:
+          backgroundValue is String ? backgroundValue : 'aurora',
+      effects: effects,
+      custom: true,
     );
   }
 }
