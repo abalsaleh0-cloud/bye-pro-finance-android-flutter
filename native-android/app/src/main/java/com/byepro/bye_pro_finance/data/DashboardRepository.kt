@@ -26,7 +26,7 @@ class DashboardRepository(private val helper: LegacyFinanceDatabase) {
         val debtPayments = readDebtPayments()
 
         val workForMonth = work.filter {
-            it.dueYear == month.year && it.dueMonth == month.month
+            it.dueYear == month.year && it.dueMonth == month.monthValue
         }
         val salary = workForMonth
             .filter { it.kind == "salary" }
@@ -64,7 +64,7 @@ class DashboardRepository(private val helper: LegacyFinanceDatabase) {
             .groupBy { it.billId }
             .mapValues { (_, records) -> records.sumOf { it.amount } }
         val outstandingBills = bills
-            .filter { it.dueYear == month.year && it.dueMonth == month.month }
+            .filter { it.dueYear == month.year && it.dueMonth == month.monthValue }
             .sumOf { bill ->
                 (bill.amount - (paidBeforeMonthEnd[bill.id] ?: 0L))
                     .coerceAtLeast(0L)
@@ -106,7 +106,7 @@ class DashboardRepository(private val helper: LegacyFinanceDatabase) {
 
     fun loadWorkRecords(month: YearMonth): List<FinanceRecord> {
         return readWorkEntries()
-            .filter { it.dueYear == month.year && it.dueMonth == month.month }
+            .filter { it.dueYear == month.year && it.dueMonth == month.monthValue }
             .sortedByDescending { it.timestamp }
             .map { item ->
                 FinanceRecord(
