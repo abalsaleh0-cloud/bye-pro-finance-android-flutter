@@ -98,4 +98,15 @@
     <string name="payment_date">تاريخ الدفع</string>
     <string name="today">اليوم</string>
     <string name="remaining_amount">المبلغ المتبقي</string>
+    <string name="data_error">تعذر تحميل البيانات. حاول مرة أخرى</string>
+    <string name="bill_amount_below_payments">لا يمكن أن تكون قيمة الفاتورة أقل من مجموع الدفعات المسجلة</string>
+    <string name="category_groceries">مواد غذائية</string>
+    <string name="category_utilities">فواتير وخدمات</string>
+    <string name="category_housing">السكن</string>
+    <string name="category_cleaning">تنظيف</string>
+    <string name="category_maintenance">صيانة</string>
+    <string name="category_transport">مواصلات</string>
+    <string name="category_personal">شخصي</string>
+    <string name="category_health">صحة</string>
+    <string name="category_other">أخرى</string>
 </resources>
