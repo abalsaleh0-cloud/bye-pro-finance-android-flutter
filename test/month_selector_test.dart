@@ -36,6 +36,10 @@ void main() {
       tester.getSize(find.byKey(const Key('month-selector-date-control'))).width,
       148,
     );
+    expect(
+      tester.getSize(find.byKey(const Key('month-selector-date-control'))).height,
+      48,
+    );
 
     await tester.tap(find.byKey(const Key('shared-month-picker')));
     await tester.pumpAndSettle();
