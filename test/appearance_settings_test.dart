@@ -21,6 +21,7 @@ void main() {
     expect(find.byKey(const Key('theme-background-selector')), findsNothing);
     expect(find.byKey(const Key('theme-background-speed')), findsNothing);
     expect(find.byKey(const Key('theme-energy-saving')), findsNothing);
+    expect(find.byKey(const ValueKey('theme-effect-v')), findsNothing);
     expect(find.text('لوحات إضافية'), findsOneWidget);
 
     final emerald = find.byKey(const Key('theme-emerald'));
