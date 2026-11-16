@@ -5,36 +5,41 @@ import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.view.View
 
+/**
+ * Compatibility facade for screens still being moved onto FinanceComponents.
+ * All colors and shape values come from FinanceDesignSystem.
+ */
 object FinancePalette {
-    const val DARK_BACKGROUND = 0xFF21242B.toInt()
-    const val DARK_SURFACE = 0xFF292D36.toInt()
-    const val DARK_RAISED = 0xFF343A45.toInt()
-    const val DARK_TEXT = 0xFFF2F3F5.toInt()
-    const val DARK_MUTED = 0xFFADB4C0.toInt()
-    const val DARK_ACCENT = 0xFF6AB2F2.toInt()
-    const val DARK_DIVIDER = 0xFF3B424D.toInt()
+    val DARK_BACKGROUND: Int get() = FinanceDesignSystem.dark.background
+    val DARK_SURFACE: Int get() = FinanceDesignSystem.dark.surface
+    val DARK_RAISED: Int get() = FinanceDesignSystem.dark.raised
+    val DARK_TEXT: Int get() = FinanceDesignSystem.dark.text
+    val DARK_MUTED: Int get() = FinanceDesignSystem.dark.secondaryText
+    val DARK_ACCENT: Int get() = FinanceDesignSystem.dark.accent
+    val DARK_DIVIDER: Int get() = FinanceDesignSystem.dark.divider
 
-    const val LIGHT_BACKGROUND = 0xFFF4F5F7.toInt()
-    const val LIGHT_SURFACE = 0xFFFFFFFF.toInt()
-    const val LIGHT_RAISED = 0xFFE8EBF0.toInt()
-    const val LIGHT_TEXT = 0xFF20242B.toInt()
-    const val LIGHT_MUTED = 0xFF69717D.toInt()
-    const val LIGHT_ACCENT = 0xFF367FC0.toInt()
-    const val LIGHT_DIVIDER = 0xFFE1E4E9.toInt()
+    val LIGHT_BACKGROUND: Int get() = FinanceDesignSystem.light.background
+    val LIGHT_SURFACE: Int get() = FinanceDesignSystem.light.surface
+    val LIGHT_RAISED: Int get() = FinanceDesignSystem.light.raised
+    val LIGHT_TEXT: Int get() = FinanceDesignSystem.light.text
+    val LIGHT_MUTED: Int get() = FinanceDesignSystem.light.secondaryText
+    val LIGHT_ACCENT: Int get() = FinanceDesignSystem.light.accent
+    val LIGHT_DIVIDER: Int get() = FinanceDesignSystem.light.divider
 
-    fun background(dark: Boolean) = if (dark) DARK_BACKGROUND else LIGHT_BACKGROUND
-    fun surface(dark: Boolean) = if (dark) DARK_SURFACE else LIGHT_SURFACE
-    fun raised(dark: Boolean) = if (dark) DARK_RAISED else LIGHT_RAISED
-    fun text(dark: Boolean) = if (dark) DARK_TEXT else LIGHT_TEXT
-    fun muted(dark: Boolean) = if (dark) DARK_MUTED else LIGHT_MUTED
-    fun accent(dark: Boolean) = if (dark) DARK_ACCENT else LIGHT_ACCENT
-    fun divider(dark: Boolean) = if (dark) DARK_DIVIDER else LIGHT_DIVIDER
+    fun background(dark: Boolean) = FinanceDesignSystem.colors(dark).background
+    fun surface(dark: Boolean) = FinanceDesignSystem.colors(dark).surface
+    fun raised(dark: Boolean) = FinanceDesignSystem.colors(dark).raised
+    fun text(dark: Boolean) = FinanceDesignSystem.colors(dark).text
+    fun muted(dark: Boolean) = FinanceDesignSystem.colors(dark).secondaryText
+    fun accent(dark: Boolean) = FinanceDesignSystem.colors(dark).accent
+    fun divider(dark: Boolean) = FinanceDesignSystem.colors(dark).divider
 
     fun rounded(color: Int, radiusDp: Float, context: Context): GradientDrawable =
-        GradientDrawable().apply {
-            setColor(color)
-            cornerRadius = radiusDp * context.resources.displayMetrics.density
-        }
+        FinanceDesignSystem.rounded(
+            context,
+            color,
+            radiusDp.toInt().coerceAtLeast(0)
+        )
 
     fun circle(color: Int): GradientDrawable =
         GradientDrawable().apply {
@@ -47,5 +52,7 @@ object FinancePalette {
     }
 
     fun parseColor(hex: String): Int =
-        try { Color.parseColor(hex) } catch (_: IllegalArgumentException) { DARK_ACCENT }
+        try { Color.parseColor(hex) } catch (_: IllegalArgumentException) {
+            FinanceDesignSystem.dark.accent
+        }
 }
