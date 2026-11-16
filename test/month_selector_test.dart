@@ -40,7 +40,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(Key('month-option-$historicalMonth')), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('month-option-$historicalMonth')));
+    await tester.tap(find.byKey(Key('month-option-$historicalMonth')));
     await tester.pumpAndSettle();
     expect(changedMonth, historicalMonth);
   });
