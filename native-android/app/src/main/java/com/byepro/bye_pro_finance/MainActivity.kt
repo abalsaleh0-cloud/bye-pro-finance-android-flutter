@@ -19,6 +19,7 @@ import android.widget.TextView
 import android.widget.Toast
 import com.byepro.bye_pro_finance.data.DashboardRepository
 import com.byepro.bye_pro_finance.data.FinanceWriteRepository
+import com.byepro.bye_pro_finance.data.FinanceRuleException
 import com.byepro.bye_pro_finance.data.LegacyFinanceDatabase
 import com.byepro.bye_pro_finance.domain.ActivityItem
 import com.byepro.bye_pro_finance.domain.DashboardSummary
