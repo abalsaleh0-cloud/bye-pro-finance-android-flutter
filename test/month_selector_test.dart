@@ -38,7 +38,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('shared-month-picker')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('month-option-$historicalMonth')), findsOneWidget);
+    expect(find.byKey(Key('month-option-$historicalMonth')), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('month-option-$historicalMonth')));
     await tester.pumpAndSettle();
