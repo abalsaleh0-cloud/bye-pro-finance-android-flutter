@@ -13,6 +13,16 @@ void main() {
     await tester.tap(find.byKey(const Key('open-settings')));
     await tester.pumpAndSettle();
 
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(
+      tester.widget<NavigationBar>(find.byType(NavigationBar)).destinations,
+      hasLength(5),
+    );
+    expect(find.byKey(const Key('theme-background-selector')), findsNothing);
+    expect(find.byKey(const Key('theme-background-speed')), findsNothing);
+    expect(find.byKey(const Key('theme-energy-saving')), findsNothing);
+    expect(find.text('لوحات إضافية'), findsOneWidget);
+
     final emerald = find.byKey(const Key('theme-emerald'));
     await tester.ensureVisible(emerald);
     await tester.pumpAndSettle();
