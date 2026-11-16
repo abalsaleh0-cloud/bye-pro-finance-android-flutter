@@ -131,10 +131,7 @@ class AppThemePreset {
     return AppThemePreset(
       id: json['id'] is String
           ? json['id']! as String
-          : 'imported-theme-' +
-              hue.round().toString() +
-              '-' +
-              accentHue.round().toString(),
+          : 'imported-theme-${hue.round()}-${accentHue.round()}',
       nameAr: json['nameAr'] is String
           ? json['nameAr']! as String
           : name ?? 'ثيمي',
