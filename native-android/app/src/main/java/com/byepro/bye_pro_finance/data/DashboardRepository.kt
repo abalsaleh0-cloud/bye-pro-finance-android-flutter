@@ -122,7 +122,10 @@ class DashboardRepository(private val helper: LegacyFinanceDatabase) {
                         if (!item.note.isNullOrBlank()) add(item.note)
                     }.joinToString(" • "),
                     amountMinorUnits = item.amount,
-                    timestamp = item.timestamp
+                    timestamp = item.timestamp,
+                    dueYear = item.dueYear,
+                    dueMonth = item.dueMonth,
+                    note = item.note
                 )
             }
     }
@@ -138,10 +141,59 @@ class DashboardRepository(private val helper: LegacyFinanceDatabase) {
                     title = item.categoryId,
                     detail = item.note.orEmpty(),
                     amountMinorUnits = item.amount,
-                    timestamp = item.timestamp
+                    timestamp = item.timestamp,
+                    dueYear = item.dueYear,
+                    dueMonth = item.dueMonth,
+                    note = item.note,
+                    categoryId = item.categoryId
                 )
             }
     }
+
+    fun loadTransfers(month: YearMonth): List<FinanceRecord> {
+        return readTransfers()
+            .filter { isInMonth(it.timestamp, month) }
+            .sortedByDescending { it.timestamp }
+            .map { item ->
+                FinanceRecord(
+                    id = item.id,
+                    kind = "transfer",
+                    title = "transfer_to_home",
+                    detail = item.note.orEmpty(),
+                    amountMinorUnits = item.amount,
+                    timestamp = item.timestamp,
+                    note = item.note
+                )
+            }
+    }
+
+    fun loadBills(month: YearMonth): List<FinanceRecord> {
+        val paymentsByBill = readBillPayments()
+            .groupBy { it.billId }
+            .mapValues { (_, items) -> items.sumOf { it.amount } }
+        return readBills()
+            .filter { it.dueYear == month.year && it.dueMonth == month.monthValue }
+            .sortedBy { it.title.lowercase(Locale.ROOT) }
+            .map { bill ->
+                val paid = paymentsByBill[bill.id] ?: 0L
+                FinanceRecord(
+                    id = bill.id,
+                    kind = "bill",
+                    title = bill.title,
+                    detail = sBillKind(bill.kind) + " • " +
+                        bill.dueYear + "-" + bill.dueMonth.toString().padStart(2, '0'),
+                    amountMinorUnits = (bill.amount - paid).coerceAtLeast(0L),
+                    timestamp = 0L,
+                    dueYear = bill.dueYear,
+                    dueMonth = bill.dueMonth,
+                    originalAmountMinorUnits = bill.amount,
+                    note = bill.note
+                )
+            }
+    }
+
+    private fun sBillKind(kind: String): String =
+        if (kind == "rent") "rent" else "monthly"
 
     fun loadDebts(): List<FinanceRecord> {
         return readDebts()
@@ -154,7 +206,11 @@ class DashboardRepository(private val helper: LegacyFinanceDatabase) {
                     detail = debt.direction + " • " + debt.dueYear + "-" +
                         debt.dueMonth.toString().padStart(2, '0'),
                     amountMinorUnits = debt.outstanding,
-                    timestamp = debt.createdAt
+                    timestamp = debt.createdAt,
+                    dueYear = debt.dueYear,
+                    dueMonth = debt.dueMonth,
+                    originalAmountMinorUnits = debt.original,
+                    note = debt.note
                 )
             }
     }
@@ -271,7 +327,7 @@ class DashboardRepository(private val helper: LegacyFinanceDatabase) {
         helper.readableDatabase.rawQuery(
             """
             SELECT id, amount_minor_units, category_id,
-                   expense_date_epoch_millis, note
+                   expense_date_epoch_millis, due_year, due_month, note
             FROM home_expenses
             """.trimIndent(),
             null
@@ -282,7 +338,9 @@ class DashboardRepository(private val helper: LegacyFinanceDatabase) {
                     amount = c.getLong(1),
                     categoryId = c.getString(2),
                     timestamp = c.getLong(3),
-                    note = c.nullableString(4)
+                    dueYear = c.getInt(4),
+                    dueMonth = c.getInt(5),
+                    note = c.nullableString(6)
                 )
             }
         }
@@ -333,7 +391,7 @@ class DashboardRepository(private val helper: LegacyFinanceDatabase) {
     private fun readBills(): List<BillRow> =
         helper.readableDatabase.rawQuery(
             """
-            SELECT id, title, amount_minor_units, due_year, due_month
+            SELECT id, title, kind, amount_minor_units, due_year, due_month, note
             FROM home_bills
             """.trimIndent(),
             null
@@ -342,9 +400,11 @@ class DashboardRepository(private val helper: LegacyFinanceDatabase) {
                 BillRow(
                     id = c.getString(0),
                     title = c.getString(1),
-                    amount = c.getLong(2),
-                    dueYear = c.getInt(3),
-                    dueMonth = c.getInt(4)
+                    kind = c.getString(2),
+                    amount = c.getLong(3),
+                    dueYear = c.getInt(4),
+                    dueMonth = c.getInt(5),
+                    note = c.nullableString(6)
                 )
             }
         }
@@ -407,6 +467,8 @@ class DashboardRepository(private val helper: LegacyFinanceDatabase) {
         val amount: Long,
         val categoryId: String,
         val timestamp: Long,
+        val dueYear: Int,
+        val dueMonth: Int,
         val note: String?
     )
 
@@ -432,9 +494,11 @@ class DashboardRepository(private val helper: LegacyFinanceDatabase) {
     private data class BillRow(
         val id: String,
         val title: String,
+        val kind: String,
         val amount: Long,
         val dueYear: Int,
-        val dueMonth: Int
+        val dueMonth: Int,
+        val note: String?
     )
 
     private data class BillPaymentRow(
