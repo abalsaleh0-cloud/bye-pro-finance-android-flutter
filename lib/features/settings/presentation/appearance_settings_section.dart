@@ -63,7 +63,7 @@ class _AppearanceSettingsSectionState
                 runSpacing: 12,
                 children: _seedColors.asMap().entries.map((entry) {
                   return InkWell(
-                    key: ValueKey('seed-color-\${entry.key}'),
+                    key: ValueKey('seed-color-${entry.key}'),
                     borderRadius: BorderRadius.circular(30),
                     onTap: () => Navigator.pop(dialogContext, entry.value),
                     child: Container(
