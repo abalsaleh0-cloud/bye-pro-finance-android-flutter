@@ -33,7 +33,7 @@ object FinanceDesignTokens {
     const val TOUCH_TARGET_SIZE = 44
     const val NAVIGATION_BAR_HEIGHT = 68
     const val SECTION_TAB_HEIGHT = 48
-    const val METRIC_TILE_MIN_HEIGHT = 96
+    const val METRIC_TILE_MIN_HEIGHT = 64
     const val RECORD_ICON_BOX_SIZE = 40
     const val STANDARD_ICON_SIZE = 20
     const val DIVIDER_HEIGHT = 1
