@@ -28,17 +28,19 @@ class FinancialRecordCard extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final tokens = AppDesignTokens.of(context);
-    final visibleDetails = details.where((detail) => detail.trim().isNotEmpty);
+    final visibleDetails =
+        details.where((detail) => detail.trim().isNotEmpty);
 
     return Card(
+      color: scheme.surfaceContainerHigh.withValues(alpha: .28),
       clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: EdgeInsets.all(tokens.cardPadding),
+        padding: const EdgeInsetsDirectional.fromSTEB(12, 10, 12, 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Container(
                   width: tokens.recordIconBoxSize,
@@ -58,29 +60,56 @@ class FinancialRecordCard extends StatelessWidget {
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         title,
-                        maxLines: 2,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.titleMedium?.copyWith(
+                        style: theme.textTheme.bodyLarge?.copyWith(
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                       if (visibleDetails.isNotEmpty) ...[
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 3),
                         Text(
                           visibleDetails.join(' • '),
-                          maxLines: 3,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: scheme.onSurfaceVariant,
-                            height: 1.35,
+                            height: 1.25,
                           ),
                         ),
                       ],
                     ],
                   ),
+                ),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (amountLabel != null)
+                      Text(
+                        amountLabel!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    Text(
+                      amount,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ],
                 ),
                 if (badge != null) ...[
                   const SizedBox(width: 8),
@@ -88,33 +117,13 @@ class FinancialRecordCard extends StatelessWidget {
                 ],
               ],
             ),
-            const SizedBox(height: 12),
-            if (amountLabel != null) ...[
-              Text(
-                amountLabel!,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 2),
-            ],
-            Text(
-              amount,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w800,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
             if (actions.isNotEmpty) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               Align(
                 alignment: AlignmentDirectional.centerEnd,
                 child: Wrap(
                   spacing: 4,
-                  runSpacing: 4,
+                  runSpacing: 2,
                   alignment: WrapAlignment.end,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: actions,
@@ -122,7 +131,7 @@ class FinancialRecordCard extends StatelessWidget {
               ),
             ],
             if (footer != null) ...[
-              const Divider(height: 20),
+              const Divider(height: 16),
               footer!,
             ],
           ],
