@@ -82,6 +82,7 @@ object FinanceComponents {
                 gravity = Gravity.CENTER
                 isClickable = true
                 isFocusable = true
+                foreground = FinanceDesignSystem.ripple(context, isDark)
                 setOnClickListener { item.onClick() }
                 setPadding(
                     FinanceDesignSystem.dp(context, 2),
@@ -216,8 +217,8 @@ object FinanceComponents {
         title: String,
         subtitle: String,
         amount: String,
-        onClick: (() -> Unit)? = null,
-        onLongClick: (() -> Unit)? = null
+        onClick: ((View) -> Unit)? = null,
+        onLongClick: ((View) -> Unit)? = null
     ): LinearLayout {
         val palette = FinanceDesignSystem.colors(isDark)
         val row = LinearLayout(context).apply {
@@ -261,15 +262,18 @@ object FinanceComponents {
         row.addView(FinanceDesignSystem.text(
             context, amount, 15f, palette.text, bold = true
         ))
-        if (onClick != null) {
+        if (onClick != null || onLongClick != null) {
             row.isClickable = true
             row.isFocusable = true
-            row.setOnClickListener { onClick() }
+            row.foreground = FinanceDesignSystem.ripple(context, isDark)
+        }
+        if (onClick != null) {
+            row.setOnClickListener { onClick(row) }
         }
         if (onLongClick != null) {
             row.isLongClickable = true
             row.setOnLongClickListener {
-                onLongClick()
+                onLongClick(row)
                 true
             }
         }
