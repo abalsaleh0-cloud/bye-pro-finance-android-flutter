@@ -48,6 +48,10 @@ class FinanceAppearanceTest {
         assertTrue(FinanceAppearance.LEGACY_SETTING_KEYS.contains("theme_id"))
         assertTrue(FinanceAppearance.LEGACY_SETTING_KEYS.contains("custom_themes"))
         assertTrue(FinanceAppearance.LEGACY_SETTING_KEYS.contains("appearance_preset"))
+        assertEquals(
+            setOf("theme_id", "custom_themes", "appearance_preset"),
+            FinanceAppearance.LEGACY_SETTING_KEYS.toSet()
+        )
         assertFalse(FinanceAppearance.LEGACY_SETTING_KEYS.contains("theme_mode"))
         assertFalse(FinanceAppearance.LEGACY_SETTING_KEYS.contains("locale"))
         assertFalse(FinanceAppearance.LEGACY_SETTING_KEYS.contains("ai_engine"))
