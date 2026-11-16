@@ -738,7 +738,7 @@ class MainActivity : Activity() {
         val dueYear = existing?.dueYear ?: selectedMonth.year
         val dueMonth = existing?.dueMonth ?: selectedMonth.monthValue
 
-        AlertDialog.Builder(this)
+        AlertDialog.Builder(this, R.style.NativeFinanceDialogTheme)
             .setTitle(
                 when (kind) {
                     "salary" -> s(com.byepro.bye_pro_finance.R.string.new_salary)
@@ -792,7 +792,7 @@ class MainActivity : Activity() {
             existing?.timestamp ?: System.currentTimeMillis()
         )
 
-        AlertDialog.Builder(this)
+        AlertDialog.Builder(this, R.style.NativeFinanceDialogTheme)
             .setTitle(s(com.byepro.bye_pro_finance.R.string.new_transfer))
             .setView(form)
             .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.save)) { _, _ ->
@@ -848,7 +848,7 @@ class MainActivity : Activity() {
         val dueYear = existing?.dueYear ?: selectedMonth.year
         val dueMonth = existing?.dueMonth ?: selectedMonth.monthValue
 
-        AlertDialog.Builder(this)
+        AlertDialog.Builder(this, R.style.NativeFinanceDialogTheme)
             .setTitle(s(com.byepro.bye_pro_finance.R.string.new_expense))
             .setView(form)
             .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.save)) { _, _ ->
@@ -900,7 +900,7 @@ class MainActivity : Activity() {
         val dueYear = existing?.dueYear ?: selectedMonth.year
         val dueMonth = existing?.dueMonth ?: selectedMonth.monthValue
 
-        AlertDialog.Builder(this)
+        AlertDialog.Builder(this, R.style.NativeFinanceDialogTheme)
             .setTitle(
                 if (direction == "creditor")
                     s(com.byepro.bye_pro_finance.R.string.new_creditor)
@@ -959,7 +959,7 @@ class MainActivity : Activity() {
         val dueMonth = existing?.dueMonth ?: selectedMonth.monthValue
         val kind = if (existing?.detail?.startsWith("rent") == true) "rent" else "monthly"
 
-        AlertDialog.Builder(this)
+        AlertDialog.Builder(this, R.style.NativeFinanceDialogTheme)
             .setTitle(s(com.byepro.bye_pro_finance.R.string.new_bill))
             .setView(form)
             .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.save)) { _, _ ->
@@ -1006,7 +1006,7 @@ class MainActivity : Activity() {
             form,
             s(com.byepro.bye_pro_finance.R.string.note_optional)
         )
-        AlertDialog.Builder(this)
+        AlertDialog.Builder(this, R.style.NativeFinanceDialogTheme)
             .setTitle(s(com.byepro.bye_pro_finance.R.string.record_payment))
             .setView(form)
             .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.save)) { _, _ ->
@@ -1050,7 +1050,7 @@ class MainActivity : Activity() {
             form,
             s(com.byepro.bye_pro_finance.R.string.note_optional)
         )
-        AlertDialog.Builder(this)
+        AlertDialog.Builder(this, R.style.NativeFinanceDialogTheme)
             .setTitle(s(com.byepro.bye_pro_finance.R.string.pay_bill))
             .setView(form)
             .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.save)) { _, _ ->
@@ -1138,7 +1138,7 @@ class MainActivity : Activity() {
             repository.loadBillPayments(record.id)
         }
         if (payments.isEmpty()) {
-            AlertDialog.Builder(this)
+            AlertDialog.Builder(this, R.style.NativeFinanceDialogTheme)
                 .setTitle(s(com.byepro.bye_pro_finance.R.string.payment_history))
                 .setMessage(s(com.byepro.bye_pro_finance.R.string.no_payment_history))
                 .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.cancel), null)
@@ -1148,7 +1148,7 @@ class MainActivity : Activity() {
         val items = payments.map {
             formatDate(it.timestamp) + " • " + formatAmount(it.amountMinorUnits)
         }.toTypedArray()
-        AlertDialog.Builder(this)
+        AlertDialog.Builder(this, R.style.NativeFinanceDialogTheme)
             .setTitle(s(com.byepro.bye_pro_finance.R.string.payment_history))
             .setItems(items) { _, index ->
                 confirmUndoPayment(payments[index])
@@ -1158,7 +1158,7 @@ class MainActivity : Activity() {
     }
 
     private fun confirmUndoPayment(payment: FinanceRecord) {
-        AlertDialog.Builder(this)
+        AlertDialog.Builder(this, R.style.NativeFinanceDialogTheme)
             .setTitle(s(com.byepro.bye_pro_finance.R.string.undo_payment))
             .setMessage(formatDate(payment.timestamp) + " • " +
                 formatAmount(payment.amountMinorUnits))
@@ -1180,7 +1180,7 @@ class MainActivity : Activity() {
     }
 
     private fun confirmDeleteRecord(record: FinanceRecord) {
-        AlertDialog.Builder(this)
+        AlertDialog.Builder(this, R.style.NativeFinanceDialogTheme)
             .setTitle(s(com.byepro.bye_pro_finance.R.string.delete))
             .setMessage(s(com.byepro.bye_pro_finance.R.string.confirm_delete))
             .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.delete)) { _, _ ->
@@ -1230,7 +1230,7 @@ class MainActivity : Activity() {
                 com.byepro.bye_pro_finance.R.string.data_error
             null -> com.byepro.bye_pro_finance.R.string.data_error
         }
-        AlertDialog.Builder(this)
+        AlertDialog.Builder(this, R.style.NativeFinanceDialogTheme)
             .setMessage(s(resource))
             .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.cancel), null)
             .show()
@@ -1268,13 +1268,13 @@ class MainActivity : Activity() {
         }
         form.addView(first)
         form.addView(second)
-        AlertDialog.Builder(this)
+        AlertDialog.Builder(this, R.style.NativeFinanceDialogTheme)
             .setTitle(s(com.byepro.bye_pro_finance.R.string.calculator))
             .setView(form)
             .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.result)) { _, _ ->
                 val a = first.text.toString().toLongOrNull() ?: 0L
                 val b = second.text.toString().toLongOrNull() ?: 0L
-                AlertDialog.Builder(this)
+                AlertDialog.Builder(this, R.style.NativeFinanceDialogTheme)
                     .setMessage(formatAmount(a + b))
                     .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.cancel), null)
                     .show()
@@ -1291,7 +1291,7 @@ class MainActivity : Activity() {
             s(com.byepro.bye_pro_finance.R.string.arabic),
             s(com.byepro.bye_pro_finance.R.string.english)
         )
-        AlertDialog.Builder(this)
+        AlertDialog.Builder(this, R.style.NativeFinanceDialogTheme)
             .setTitle(s(com.byepro.bye_pro_finance.R.string.settings))
             .setItems(options) { _, which ->
                 when (which) {
