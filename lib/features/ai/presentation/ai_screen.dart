@@ -870,7 +870,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                             height: 42,
                             decoration: BoxDecoration(
                               color: scheme.secondaryContainer,
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(tokens.controlRadius),
                             ),
                             alignment: Alignment.center,
                             child: Icon(
@@ -914,7 +914,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                                     ? scheme.secondaryContainer
                                     : scheme.surfaceContainerHigh,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(22),
+                                  borderRadius: BorderRadius.circular(tokens.cardRadius),
                                 ),
                                 child: Padding(
                                   padding: EdgeInsets.symmetric(
@@ -1123,7 +1123,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                       decoration: BoxDecoration(
                         color: scheme.surfaceContainerLow,
                         border: Border.all(color: scheme.outlineVariant),
-                        borderRadius: BorderRadius.circular(28),
+                        borderRadius: BorderRadius.circular(tokens.controlRadius),
                       ),
                       padding: const EdgeInsetsDirectional.fromSTEB(12, 4, 4, 4),
                       child: Row(

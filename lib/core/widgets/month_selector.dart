@@ -39,13 +39,18 @@ class MonthSelector extends StatelessWidget {
     const selectorWidth = 148.0;
     return Card(
       child: Padding(
-        padding: const EdgeInsetsDirectional.fromSTEB(14, 10, 10, 10),
+        padding: EdgeInsetsDirectional.fromSTEB(
+          tokens.cardPadding - 2,
+          tokens.pageVerticalPadding - 2,
+          tokens.pageVerticalPadding - 2,
+          tokens.pageVerticalPadding - 2,
+        ),
         child: Row(
           children: [
             Icon(
               Icons.calendar_month_outlined,
               color: theme.colorScheme.primary,
-              size: 20,
+              size: tokens.standardIconSize,
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -62,7 +67,7 @@ class MonthSelector extends StatelessWidget {
             Container(
               key: const Key('month-selector-date-control'),
               width: selectorWidth,
-              height: 48,
+              height: tokens.buttonHeight,
               padding: const EdgeInsetsDirectional.only(start: 8, end: 4),
               decoration: BoxDecoration(
                 color: theme.colorScheme.surfaceContainerHigh,
@@ -138,10 +143,11 @@ class SummaryMetricGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = AppDesignTokens.of(context);
     return Column(
       children: [
         for (var index = 0; index < metrics.length; index++) ...[
-          if (index > 0) const SizedBox(height: 10),
+          if (index > 0) SizedBox(height: tokens.sectionSpacing),
           _SummaryMetricTile(metric: metrics[index]),
         ],
       ],
@@ -163,7 +169,7 @@ class _SummaryMetricTile extends StatelessWidget {
         metric.emphasized ? scheme.onPrimaryContainer : scheme.onSurface;
 
     return Container(
-      constraints: const BoxConstraints(minHeight: 96),
+      constraints: BoxConstraints(minHeight: tokens.metricTileMinHeight),
       padding: EdgeInsets.all(tokens.cardPadding),
       decoration: BoxDecoration(
         color: metric.emphasized
@@ -184,7 +190,7 @@ class _SummaryMetricTile extends StatelessWidget {
             children: [
               Icon(
                 metric.icon,
-                size: 19,
+                size: tokens.standardIconSize,
                 color: metric.emphasized
                     ? scheme.onPrimaryContainer
                     : scheme.primary,

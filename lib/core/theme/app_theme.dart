@@ -120,7 +120,7 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: scheme,
       extensions: [tokens],
-      scaffoldBackgroundColor: Colors.transparent,
+      scaffoldBackgroundColor: scheme.surface,
       canvasColor: scheme.surfaceContainerLow,
       textTheme: Typography.material2021(
         platform: TargetPlatform.android,
@@ -130,7 +130,7 @@ class AppTheme {
         displayColor: scheme.onSurface,
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: scheme.surface.withValues(alpha: .92),
+        backgroundColor: scheme.surface,
         foregroundColor: scheme.onSurface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
@@ -144,7 +144,7 @@ class AppTheme {
         iconTheme: IconThemeData(color: scheme.onSurfaceVariant),
       ),
       cardTheme: CardThemeData(
-        color: scheme.surfaceContainerLow.withValues(alpha: .91),
+        color: scheme.surfaceContainerLow,
         elevation: 0,
         margin: EdgeInsets.zero,
         surfaceTintColor: Colors.transparent,
@@ -191,7 +191,7 @@ class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          minimumSize: const Size(48, 48),
+          minimumSize: Size(48, tokens.buttonHeight),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
           shape: RoundedRectangleBorder(borderRadius: controlRadius),
           textStyle: const TextStyle(fontWeight: FontWeight.w700),
@@ -199,7 +199,7 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size(48, 48),
+          minimumSize: Size(48, tokens.buttonHeight),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
           shape: RoundedRectangleBorder(borderRadius: controlRadius),
           side: border,
@@ -207,14 +207,14 @@ class AppTheme {
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          minimumSize: const Size(44, 44),
+          minimumSize: Size(tokens.touchTargetSize, tokens.touchTargetSize),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           shape: RoundedRectangleBorder(borderRadius: controlRadius),
         ),
       ),
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(
-          minimumSize: const Size(44, 44),
+          minimumSize: Size(tokens.touchTargetSize, tokens.touchTargetSize),
           tapTargetSize: MaterialTapTargetSize.padded,
           foregroundColor: scheme.onSurfaceVariant,
           shape: RoundedRectangleBorder(borderRadius: controlRadius),
@@ -227,8 +227,8 @@ class AppTheme {
         shape: const CircleBorder(),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        height: 72,
-        backgroundColor: scheme.surface.withValues(alpha: .96),
+        height: tokens.navigationBarHeight,
+        backgroundColor: scheme.surface,
         indicatorColor: scheme.secondaryContainer,
         indicatorShape: RoundedRectangleBorder(borderRadius: controlRadius),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,

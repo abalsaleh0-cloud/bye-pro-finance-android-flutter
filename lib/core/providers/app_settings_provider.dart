@@ -7,6 +7,8 @@ import 'package:expense_app/core/theme/app_appearance.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
+/// Runtime appearance state is deliberately limited to useful app preferences.
+/// Legacy animated-background keys remain untouched in storage for compatibility.
 class AppSettings {
   const AppSettings({
     this.themeMode = ThemeMode.system,
@@ -14,11 +16,6 @@ class AppSettings {
     this.useGemma = false,
     this.themeId = 'purple-pro',
     this.customThemes = const [],
-    this.backgroundId = 'aurora',
-    this.backgroundSpeed = 1,
-    this.energySaving = false,
-    this.colorGrade = '',
-    this.cinemaEffects = const {},
   });
 
   final ThemeMode themeMode;
@@ -26,11 +23,6 @@ class AppSettings {
   final bool useGemma;
   final String themeId;
   final List<AppThemePreset> customThemes;
-  final String backgroundId;
-  final double backgroundSpeed;
-  final bool energySaving;
-  final String colorGrade;
-  final Set<String> cinemaEffects;
 
   AppThemePreset get selectedTheme =>
       themePresetById(themeId, customThemes: customThemes);
@@ -41,11 +33,6 @@ class AppSettings {
     bool? useGemma,
     String? themeId,
     List<AppThemePreset>? customThemes,
-    String? backgroundId,
-    double? backgroundSpeed,
-    bool? energySaving,
-    String? colorGrade,
-    Set<String>? cinemaEffects,
   }) {
     return AppSettings(
       themeMode: themeMode ?? this.themeMode,
@@ -53,11 +40,6 @@ class AppSettings {
       useGemma: useGemma ?? this.useGemma,
       themeId: themeId ?? this.themeId,
       customThemes: customThemes ?? this.customThemes,
-      backgroundId: backgroundId ?? this.backgroundId,
-      backgroundSpeed: backgroundSpeed ?? this.backgroundSpeed,
-      energySaving: energySaving ?? this.energySaving,
-      colorGrade: colorGrade ?? this.colorGrade,
-      cinemaEffects: cinemaEffects ?? this.cinemaEffects,
     );
   }
 }
@@ -80,12 +62,7 @@ class AppSettingsController extends Notifier<AppSettings> {
         database.readSetting('ai_engine'),
         database.readSetting('theme_id'),
         database.readSetting('custom_themes'),
-        database.readSetting('theme_background'),
-        database.readSetting('theme_background_speed'),
-        database.readSetting('theme_energy_saving'),
-        database.readSetting('theme_color_grade'),
-        database.readSetting('theme_cinema_effects'),
-        // Read the old preference once for a graceful upgrade.
+        // Read the old palette preference for a graceful upgrade.
         database.readSetting('appearance_preset'),
       ]);
       if (_revision != 0) return;
@@ -106,7 +83,7 @@ class AppSettingsController extends Notifier<AppSettings> {
         customThemes = [];
       }
 
-      final oldPreset = values[10];
+      final oldPreset = values[5];
       final savedTheme = values[3] ??
           switch (oldPreset) {
             'navy_gold' => 'cobalt',
@@ -116,18 +93,6 @@ class AppSettingsController extends Notifier<AppSettings> {
           };
       final selectedTheme =
           themePresetById(savedTheme, customThemes: customThemes);
-
-      Set<String> effects = selectedTheme.effects.split('').toSet();
-      try {
-        final decoded = jsonDecode(values[9] ?? 'null');
-        if (decoded is List) {
-          effects = decoded.whereType<String>().toSet();
-        }
-      } catch (_) {
-        // Use the selected preset's default cinematic effects.
-      }
-
-      final speed = double.tryParse(values[6] ?? '') ?? 1;
       final mode = switch (values[0]) {
         'dark' => ThemeMode.dark,
         'light' => ThemeMode.light,
@@ -140,11 +105,6 @@ class AppSettingsController extends Notifier<AppSettings> {
         useGemma: values[2] == 'gemma',
         themeId: selectedTheme.id,
         customThemes: customThemes,
-        backgroundId: values[5] ?? selectedTheme.background,
-        backgroundSpeed: speed.clamp(.3, 1.8).toDouble(),
-        energySaving: values[7] == 'true',
-        colorGrade: values[8] ?? '',
-        cinemaEffects: effects,
       );
     } catch (_) {
       // Keep safe defaults if the local settings table cannot be read.
@@ -163,15 +123,8 @@ class AppSettingsController extends Notifier<AppSettings> {
 
   void setTheme(AppThemePreset preset) {
     _revision++;
-    final effects = preset.effects.split('').toSet();
-    state = state.copyWith(
-      themeId: preset.id,
-      backgroundId: preset.background,
-      cinemaEffects: effects,
-    );
+    state = state.copyWith(themeId: preset.id);
     unawaited(_write('theme_id', preset.id));
-    unawaited(_write('theme_background', preset.background));
-    unawaited(_write('theme_cinema_effects', jsonEncode(effects.toList())));
   }
 
   void addCustomTheme(AppThemePreset preset) {
@@ -198,57 +151,11 @@ class AppSettingsController extends Notifier<AppSettings> {
     state = state.copyWith(
       customThemes: themes,
       themeId: wasSelected ? fallback.id : state.themeId,
-      backgroundId: wasSelected ? fallback.background : state.backgroundId,
-      cinemaEffects: wasSelected
-          ? fallback.effects.split('').toSet()
-          : state.cinemaEffects,
     );
     _persistCustomThemes(themes);
     if (wasSelected) {
       unawaited(_write('theme_id', fallback.id));
-      unawaited(_write('theme_background', fallback.background));
-      unawaited(_write(
-        'theme_cinema_effects',
-        jsonEncode(fallback.effects.split('').toSet().toList()),
-      ));
     }
-  }
-
-  void setBackground(String id) {
-    _revision++;
-    state = state.copyWith(backgroundId: id);
-    unawaited(_write('theme_background', id));
-  }
-
-  void setBackgroundSpeed(double value) {
-    _revision++;
-    final speed = value.clamp(.3, 1.8).toDouble();
-    state = state.copyWith(backgroundSpeed: speed);
-    unawaited(_write('theme_background_speed', speed.toStringAsFixed(1)));
-  }
-
-  void setEnergySaving(bool enabled) {
-    _revision++;
-    state = state.copyWith(energySaving: enabled);
-    unawaited(_write('theme_energy_saving', enabled.toString()));
-  }
-
-  void toggleCinemaEffect(String id, bool enabled) {
-    _revision++;
-    final effects = Set<String>.from(state.cinemaEffects);
-    if (enabled) {
-      effects.add(id);
-    } else {
-      effects.remove(id);
-    }
-    state = state.copyWith(cinemaEffects: effects);
-    unawaited(_write('theme_cinema_effects', jsonEncode(effects.toList())));
-  }
-
-  void setColorGrade(String value) {
-    _revision++;
-    state = state.copyWith(colorGrade: value);
-    unawaited(_write('theme_color_grade', value));
   }
 
   void setLocale(Locale locale) {

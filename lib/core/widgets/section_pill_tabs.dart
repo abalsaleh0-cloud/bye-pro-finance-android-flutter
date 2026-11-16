@@ -1,3 +1,4 @@
+import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// One shared pill-tab control for every nested section in the app.
@@ -18,8 +19,9 @@ class SectionPillTabs extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final tokens = AppDesignTokens.of(context);
     return SizedBox(
-      height: 48,
+      height: tokens.sectionTabHeight,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
@@ -32,7 +34,7 @@ class SectionPillTabs extends StatelessWidget {
                     ? scheme.primaryContainer
                     : scheme.surfaceContainerLow,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(tokens.controlRadius),
                   side: BorderSide(
                     color: index == selectedIndex
                         ? scheme.primary
@@ -44,9 +46,9 @@ class SectionPillTabs extends StatelessWidget {
                   key: Key('$keyPrefix-$index'),
                   onTap: () => onSelected(index),
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(
+                    constraints: BoxConstraints(
                       minWidth: 88,
-                      minHeight: 44,
+                      minHeight: tokens.touchTargetSize,
                     ),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),

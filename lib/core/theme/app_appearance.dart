@@ -275,31 +275,3 @@ AppThemePreset themePresetById(
   };
 }
 
-class ThemeBackgroundOption {
-  const ThemeBackgroundOption(this.id, this.nameAr, this.nameEn);
-  final String id;
-  final String nameAr;
-  final String nameEn;
-}
-
-const themeBackgrounds = <ThemeBackgroundOption>[
-  ThemeBackgroundOption('fluid', 'سائل WebGL', 'Fluid'),
-  ThemeBackgroundOption('plasma', 'بلازما WebGL', 'Plasma'),
-  ThemeBackgroundOption('smoke', 'دخان WebGL', 'Smoke'),
-  ThemeBackgroundOption('aurora', 'شفق', 'Aurora'),
-  ThemeBackgroundOption('leaks', 'تسريب ضوئي', 'Light Leaks'),
-  ThemeBackgroundOption('flow', 'أمواج', 'Waves'),
-  ThemeBackgroundOption('particles', 'جزيئات', 'Particles'),
-  ThemeBackgroundOption('stars', 'نجوم', 'Stars'),
-  ThemeBackgroundOption('grid', 'شبكة نيون', 'Neon Grid'),
-  ThemeBackgroundOption('code', 'شيفرة', 'Code'),
-  ThemeBackgroundOption('none', 'بدون', 'None'),
-];
-
-const themeGrades = <String, String>{
-  '': 'بدون',
-  'warm': 'دافئ',
-  'cool': 'بارد',
-  'bleach': 'مبيّض',
-  'mono': 'أبيض وأسود',
-};

@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 
 import 'package:expense_app/core/providers/app_settings_provider.dart';
 import 'package:expense_app/core/theme/app_appearance.dart';
+import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:expense_app/core/theme/app_theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
@@ -308,6 +309,7 @@ const darkOnSurface = Color(${hex(dark.onSurface)});
           itemBuilder: (context, index) {
             final theme = themes[index];
             final selected = selectedId == theme.id;
+            final tokens = AppDesignTokens.of(context);
             final name = Localizations.localeOf(context).languageCode == 'en'
                 ? theme.nameEn
                 : theme.nameAr;
@@ -315,13 +317,13 @@ const darkOnSurface = Color(${hex(dark.onSurface)});
             final second = theme.accentSeedColor;
             return InkWell(
               key: ValueKey('theme-${theme.id}'),
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(tokens.cardRadius),
               onTap: () => ref.read(appSettingsProvider.notifier).setTheme(theme),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 160),
                 padding: const EdgeInsets.all(5),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(tokens.cardRadius),
                   border: Border.all(
                     color: selected
                         ? Theme.of(context).colorScheme.primary
@@ -335,7 +337,7 @@ const darkOnSurface = Color(${hex(dark.onSurface)});
                       child: Container(
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(13),
+                          borderRadius: BorderRadius.circular(tokens.controlRadius),
                           gradient: LinearGradient(
                             begin: Alignment.topRight,
                             end: Alignment.bottomLeft,
@@ -462,7 +464,6 @@ const darkOnSurface = Color(${hex(dark.onSurface)});
     final settings = ref.watch(appSettingsProvider);
     final controller = ref.read(appSettingsProvider.notifier);
     final selectedId = settings.themeId;
-    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
     final query = _searchQuery.trim().toLowerCase();
     bool matches(AppThemePreset theme) =>
         query.isEmpty ||
@@ -472,7 +473,7 @@ const darkOnSurface = Color(${hex(dark.onSurface)});
       ...builtInThemePresets.take(9),
       ...builtInThemePresets.skip(15).take(33),
     ].where(matches).toList();
-    final cinemaThemes = [
+    final additionalThemes = [
       ...builtInThemePresets.skip(9).take(6),
       ...builtInThemePresets.skip(48),
     ].where(matches).toList();
@@ -531,8 +532,8 @@ const darkOnSurface = Color(${hex(dark.onSurface)});
                 ),
                 _sectionTitle(context, 'الثيمات الأساسية', 'Base themes'),
                 _themeGrid(context, basicThemes, selectedId),
-                _sectionTitle(context, 'استوديو سينمائي', 'Cinema studio'),
-                _themeGrid(context, cinemaThemes, selectedId),
+                _sectionTitle(context, 'لوحات إضافية', 'More palettes'),
+                _themeGrid(context, additionalThemes, selectedId),
                 _sectionTitle(context, 'ثيماتك الخاصة', 'Your custom themes'),
                 _themeGrid(
                   context,
@@ -610,120 +611,6 @@ const darkOnSurface = Color(${hex(dark.onSurface)});
             ),
           ),
         ),
-        _sectionTitle(context, 'الخلفيات المتحركة', 'Animated backgrounds'),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                DropdownButtonFormField<String>(
-                  key: const Key('theme-background-selector'),
-                  initialValue: settings.backgroundId,
-                  decoration: InputDecoration(
-                    labelText: _text(context, 'الخلفية', 'Background'),
-                  ),
-                  items: themeBackgrounds
-                      .map(
-                        (background) => DropdownMenuItem(
-                          value: background.id,
-                          child: Text(
-                            isEnglish ? background.nameEn : background.nameAr,
-                          ),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      controller.setBackground(value);
-                    }
-                  },
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        _text(context, 'سرعة الحركة', 'Animation speed'),
-                      ),
-                    ),
-                    Text('${settings.backgroundSpeed.toStringAsFixed(1)}×'),
-                  ],
-                ),
-                Slider(
-                  key: const Key('theme-background-speed'),
-                  value: settings.backgroundSpeed.clamp(.3, 1.8).toDouble(),
-                  min: .3,
-                  max: 1.8,
-                  divisions: 15,
-                  onChanged: controller.setBackgroundSpeed,
-                ),
-              ],
-            ),
-          ),
-        ),
-        _sectionTitle(context, 'تأثيرات السينما', 'Cinema effects'),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _effectChip(context, controller, settings, 'l',
-                    _text(context, 'شريط سينمائي', 'Letterbox')),
-                _effectChip(context, controller, settings, 'g',
-                    _text(context, 'حبيبات الفيلم', 'Film grain')),
-                _effectChip(context, controller, settings, 'v',
-                    _text(context, 'تعتيم الحواف', 'Vignette')),
-                _effectChip(context, controller, settings, 'f',
-                    _text(context, 'وهج عدسة', 'Lens flare')),
-              ],
-            ),
-          ),
-        ),
-        _sectionTitle(context, 'التدرج اللوني', 'Color grading'),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: themeGrades.entries.map((entry) {
-                final label = switch (entry.key) {
-                  '' => _text(context, 'بدون', 'None'),
-                  'warm' => _text(context, 'دافئ', 'Warm'),
-                  'cool' => _text(context, 'بارد', 'Cool'),
-                  'bleach' => _text(context, 'مبيّض', 'Bleach'),
-                  'mono' => _text(context, 'أبيض وأسود', 'Monochrome'),
-                  _ => entry.value,
-                };
-                return ChoiceChip(
-                  key: ValueKey('theme-grade-${entry.key}'),
-                  label: Text(label),
-                  selected: settings.colorGrade == entry.key,
-                  onSelected: (_) => controller.setColorGrade(entry.key),
-                );
-              }).toList(),
-            ),
-          ),
-        ),
-        Card(
-          child: SwitchListTile(
-            key: const Key('theme-energy-saving'),
-            secondary: const Icon(Icons.battery_saver_outlined),
-            title: Text(_text(context, 'توفير الطاقة', 'Power saving')),
-            subtitle: Text(
-              _text(
-                context,
-                'يوقف الحركة والتأثيرات الثقيلة لتقليل استهلاك البطارية.',
-                'Reduces animation and visual effects to save battery.',
-              ),
-            ),
-            value: settings.energySaving,
-            onChanged: controller.setEnergySaving,
-          ),
-        ),
         _sectionTitle(context, 'فحص التباين', 'Contrast check'),
         Card(
           child: Padding(
@@ -735,20 +622,6 @@ const darkOnSurface = Color(${hex(dark.onSurface)});
     );
   }
 
-  Widget _effectChip(
-    BuildContext context,
-    AppSettingsController controller,
-    AppSettings settings,
-    String id,
-    String label,
-  ) {
-    return FilterChip(
-      key: ValueKey('theme-effect-$id'),
-      label: Text(label),
-      selected: settings.cinemaEffects.contains(id),
-      onSelected: (value) => controller.toggleCinemaEffect(id, value),
-    );
-  }
 }
 
 class _ThemeJsonImportDialog extends StatefulWidget {

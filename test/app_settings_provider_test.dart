@@ -9,7 +9,6 @@ import 'package:flutter_test/flutter_test.dart';
 AppThemePreset _customTheme({
   required String id,
   required String name,
-  String effects = 'lgv',
 }) {
   return AppThemePreset(
     id: id,
@@ -21,7 +20,7 @@ AppThemePreset _customTheme({
     accentChroma: .14,
     hueOffset: 60,
     background: 'aurora',
-    effects: effects,
+    effects: 'lgv',
     custom: true,
   );
 }
@@ -44,54 +43,52 @@ void main() {
     await database.close();
   });
 
-  test('deleting selected custom theme persists fallback cinema effects', () async {
+  test('deleting a selected custom palette persists the default fallback', () async {
     final controller = container.read(appSettingsProvider.notifier);
     final customTheme = _customTheme(
-      id: 'custom-effects-to-remove',
-      name: 'Custom effects',
+      id: 'custom-palette-to-remove',
+      name: 'Custom palette',
     );
 
     controller.addCustomTheme(customTheme);
     await database.readSetting('custom_themes');
     expect(
-      await database.readSetting('theme_cinema_effects'),
-      '["l","g","v"]',
+      container.read(appSettingsProvider).selectedTheme.id,
+      customTheme.id,
     );
 
     controller.removeCustomTheme(customTheme.id);
     await database.readSetting('theme_id');
 
-    expect(await database.readSetting('theme_id'), 'purple-pro');
-    expect(await database.readSetting('theme_background'), 'aurora');
-    expect(await database.readSetting('theme_cinema_effects'), '[]');
-    expect(
-      container.read(appSettingsProvider).cinemaEffects,
-      isEmpty,
-    );
-  });
-
-  test('replaces an existing custom theme when the 12-theme limit is reached', () async {
-    final controller = container.read(appSettingsProvider.notifier);
-    for (var index = 0; index < 12; index++) {
-      controller.addCustomTheme(
-        _customTheme(id: 'custom-$index', name: 'Theme $index'),
-      );
-    }
-
-    controller.addCustomTheme(
-      _customTheme(
-        id: 'custom-0',
-        name: 'Updated theme',
-        effects: 'v',
-      ),
-    );
-
     final settings = container.read(appSettingsProvider);
-    expect(settings.customThemes, hasLength(12));
-    expect(
-      settings.customThemes.singleWhere((theme) => theme.id == 'custom-0').nameEn,
-      'Updated theme',
-    );
-    expect(settings.selectedTheme.id, 'custom-0');
+    expect(await database.readSetting('theme_id'), 'purple-pro');
+    expect(settings.customThemes, isEmpty);
+    expect(settings.selectedTheme.id, 'purple-pro');
   });
+
+  test(
+    'replaces an existing custom palette when the 12-theme limit is reached',
+    () async {
+      final controller = container.read(appSettingsProvider.notifier);
+      for (var index = 0; index < 12; index++) {
+        controller.addCustomTheme(
+          _customTheme(id: 'custom-$index', name: 'Theme $index'),
+        );
+      }
+
+      controller.addCustomTheme(
+        _customTheme(id: 'custom-0', name: 'Updated theme'),
+      );
+
+      final settings = container.read(appSettingsProvider);
+      expect(settings.customThemes, hasLength(12));
+      expect(
+        settings.customThemes
+            .singleWhere((theme) => theme.id == 'custom-0')
+            .nameEn,
+        'Updated theme',
+      );
+      expect(settings.selectedTheme.id, 'custom-0');
+    },
+  );
 }

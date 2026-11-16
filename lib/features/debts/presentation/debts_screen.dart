@@ -440,7 +440,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                       color: debt.direction == DebtDirection.creditor
                           ? Theme.of(context).colorScheme.tertiaryContainer
                           : Theme.of(context).colorScheme.secondaryContainer,
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(tokens.controlRadius),
                     ),
                     child: Text(
                       direction,
