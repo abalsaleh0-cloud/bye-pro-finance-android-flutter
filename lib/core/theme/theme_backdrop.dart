@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// A lightweight, native Canvas background inspired by the supplied HTML
@@ -56,6 +57,7 @@ class _ThemeBackdropState extends State<ThemeBackdrop>
 
   void _syncAnimation() {
     final shouldAnimate = _appActive &&
+        !kDebugMode &&
         !widget.energySaving &&
         widget.backgroundId != 'none';
     if (shouldAnimate) {
