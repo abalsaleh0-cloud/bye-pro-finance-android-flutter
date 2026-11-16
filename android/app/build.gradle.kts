@@ -65,6 +65,19 @@ android {
         versionName = flutter.versionName
     }
 
+    // A preview build installs alongside the production app and never overwrites it.
+    flavorDimensions += "distribution"
+    productFlavors {
+        create("production") {
+            dimension = "distribution"
+        }
+        create("preview") {
+            dimension = "distribution"
+            applicationIdSuffix = ".preview"
+            versionNameSuffix = "-preview"
+        }
+    }
+
     if (releaseSigningConfigured) {
         signingConfigs {
             create("release") {
