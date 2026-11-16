@@ -716,7 +716,7 @@ void main() {
     await tester.tap(find.byKey(const Key('home-tab-0')));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('home-overview-add-fab')));
+    await tester.tap(find.byKey(const Key('home-add-action')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('home-add-daily-expense')));
     await tester.pumpAndSettle();
@@ -724,7 +724,7 @@ void main() {
     await tester.tap(find.text('إلغاء'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('home-overview-add-fab')));
+    await tester.tap(find.byKey(const Key('home-add-action')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('home-add-monthly-bill')));
     await tester.pumpAndSettle();
