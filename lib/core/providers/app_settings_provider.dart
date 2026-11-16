@@ -214,6 +214,7 @@ class AppSettingsController extends Notifier<AppSettings> {
   }
 
   void setBackgroundSpeed(double value) {
+    _revision++;
     final speed = value.clamp(.3, 1.8);
     state = state.copyWith(backgroundSpeed: speed);
     unawaited(_write('theme_background_speed', speed.toStringAsFixed(1)));
