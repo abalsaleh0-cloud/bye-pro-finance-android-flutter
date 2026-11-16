@@ -18,10 +18,15 @@ import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import com.byepro.bye_pro_finance.data.DashboardRepository
+import com.byepro.bye_pro_finance.data.FinanceWriteRepository
 import com.byepro.bye_pro_finance.data.LegacyFinanceDatabase
 import com.byepro.bye_pro_finance.domain.ActivityItem
 import com.byepro.bye_pro_finance.domain.DashboardSummary
 import com.byepro.bye_pro_finance.domain.FinanceRecord
+import com.byepro.bye_pro_finance.ui.FinanceComponents
+import com.byepro.bye_pro_finance.ui.FinanceDesignSystem
+import com.byepro.bye_pro_finance.ui.FinanceDesignTokens
+import com.byepro.bye_pro_finance.ui.FinanceNavigationItem
 import com.byepro.bye_pro_finance.ui.FinancePalette
 import com.byepro.bye_pro_finance.ui.FinancePalette.setRoundedBackground
 import java.text.DecimalFormat
@@ -143,127 +148,97 @@ class MainActivity : Activity() {
 
         navigation = buildNavigation()
         root.addView(navigation, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, dp(72)
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            dp(FinanceDesignTokens.NAVIGATION_BAR_HEIGHT)
         ))
         setContentView(root)
     }
 
     private fun buildToolbar(): LinearLayout {
-        val toolbar = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(16), 0, dp(12), 0)
-            setBackgroundColor(FinancePalette.background(darkTheme))
-        }
-
-        val title = makeText(sectionTitle(activeSection), 21f, true).apply {
-            gravity = Gravity.CENTER_VERTICAL or Gravity.START
-        }
-        toolbar.addView(title, LinearLayout.LayoutParams(0, dp(52), 1f))
+        val actions = mutableListOf<Pair<Int, Pair<String, () -> Unit>>>()
         if (activeSection == Section.WORK ||
             activeSection == Section.HOME ||
             activeSection == Section.DEBTS
         ) {
-            addToolbarAction(toolbar, "＋", s(com.byepro.bye_pro_finance.R.string.add_record)) {
-                showCreateMenu(it)
+            actions += R.drawable.ic_add to (
+                s(R.string.add_record) to {
+                    showCreateMenu(root.getChildAt(0))
+                }
+            )
+        }
+        actions += R.drawable.ic_calendar to (
+            s(R.string.calendar) to {
+                showMonthPicker(root.getChildAt(0))
             }
-        }
-        addToolbarAction(toolbar, "▦", s(com.byepro.bye_pro_finance.R.string.calendar)) {
-            showMonthPicker(it)
-        }
-        addToolbarAction(toolbar, "⊞", s(com.byepro.bye_pro_finance.R.string.calculator)) {
-            showCalculator()
-        }
-        addToolbarAction(toolbar, "⚙", s(com.byepro.bye_pro_finance.R.string.settings)) {
-            showSettings()
-        }
-        return toolbar
+        )
+        actions += R.drawable.ic_calculator to (
+            s(R.string.calculator) to { showCalculator() }
+        )
+        actions += R.drawable.ic_settings to (
+            s(R.string.settings) to { showSettings() }
+        )
+        return FinanceComponents.topBar(
+            context = this,
+            isDark = darkTheme,
+            title = sectionTitle(activeSection),
+            actions = actions
+        )
     }
 
-    private fun addToolbarAction(
-        parent: LinearLayout,
-        glyph: String,
-        description: String,
-        action: (View) -> Unit
-    ) {
-        val button = makeText(glyph, 24f, false).apply {
-            gravity = Gravity.CENTER
-            contentDescription = description
-            isClickable = true
-            isFocusable = true
-            setOnClickListener { action(this) }
-        }
-        parent.addView(button, LinearLayout.LayoutParams(dp(44), dp(48)))
-    }
+    private fun buildBottomNavigationBar(): LinearLayout =
+        FinanceComponents.bottomNavigation(
+            this,
+            darkTheme,
+            listOf(
+                FinanceNavigationItem(
+                    s(R.string.dashboard), R.drawable.ic_dashboard,
+                    activeSection == Section.DASHBOARD
+                ) { activeSection = Section.DASHBOARD; renderCurrentSection() },
+                FinanceNavigationItem(
+                    s(R.string.work), R.drawable.ic_work,
+                    activeSection == Section.WORK
+                ) { activeSection = Section.WORK; renderCurrentSection() },
+                FinanceNavigationItem(
+                    s(R.string.home), R.drawable.ic_home,
+                    activeSection == Section.HOME
+                ) { activeSection = Section.HOME; renderCurrentSection() },
+                FinanceNavigationItem(
+                    s(R.string.debts), R.drawable.ic_debts,
+                    activeSection == Section.DEBTS
+                ) { activeSection = Section.DEBTS; renderCurrentSection() },
+                FinanceNavigationItem(
+                    s(R.string.ai), R.drawable.ic_ai,
+                    activeSection == Section.AI
+                ) { activeSection = Section.AI; renderCurrentSection() }
+            )
+        )
 
     private fun buildNavigation(): LinearLayout {
-        val bar = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(4), dp(5), dp(4), dp(4))
+        navigation = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
             setBackgroundColor(FinancePalette.surface(darkTheme))
         }
-        val topDivider = View(this).apply {
-            setBackgroundColor(FinancePalette.divider(darkTheme))
-        }
-        val wrapper = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            addView(topDivider, LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, dp(1)
-            ))
-            addView(bar, LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f
-            ))
-        }
-        updateNavigationItems(bar)
-        navigation = wrapper
-        return wrapper
+        updateNavigationItems()
+        return navigation
     }
 
-    private fun updateNavigationItems(bar: LinearLayout) {
-        bar.removeAllViews()
-        val tabs = listOf(
-            Triple(Section.DASHBOARD, "▦", s(com.byepro.bye_pro_finance.R.string.dashboard)),
-            Triple(Section.WORK, "▰", s(com.byepro.bye_pro_finance.R.string.work)),
-            Triple(Section.HOME, "⌂", s(com.byepro.bye_pro_finance.R.string.home)),
-            Triple(Section.DEBTS, "▤", s(com.byepro.bye_pro_finance.R.string.debts)),
-            Triple(Section.AI, "✧", s(com.byepro.bye_pro_finance.R.string.ai))
+    private fun updateNavigationItems() {
+        navigation.removeAllViews()
+        navigation.addView(
+            FinanceComponents.bottomDivider(this, darkTheme),
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(FinanceDesignTokens.DIVIDER_HEIGHT)
+            )
         )
-        tabs.forEach { (section, glyph, label) ->
-            val selected = section == activeSection
-            val item = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                layoutDirection = View.LAYOUT_DIRECTION_RTL
-                gravity = Gravity.CENTER
-                isClickable = true
-                isFocusable = true
-                setOnClickListener {
-                    activeSection = section
-                    renderCurrentSection()
-                }
-                setPadding(dp(2), dp(3), dp(2), dp(3))
-            }
-            val icon = makeText(glyph, 22f, selected).apply {
-                gravity = Gravity.CENTER
-                setTextColor(
-                    if (selected) FinancePalette.accent(darkTheme)
-                    else FinancePalette.muted(darkTheme)
-                )
-            }
-            val labelView = makeText(label, 11f, selected).apply {
-                gravity = Gravity.CENTER
-                setPadding(0, dp(2), 0, 0)
-                setTextColor(
-                    if (selected) FinancePalette.text(darkTheme)
-                    else FinancePalette.muted(darkTheme)
-                )
-            }
-            item.addView(icon)
-            item.addView(labelView)
-            bar.addView(item, LinearLayout.LayoutParams(0, dp(60), 1f))
-        }
+        navigation.addView(
+            buildBottomNavigationBar(),
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                0,
+                1f
+            )
+        )
     }
 
     private fun renderCurrentSection() {
@@ -276,15 +251,21 @@ class MainActivity : Activity() {
             Section.AI -> renderAssistant()
         }
         scrollView.scrollTo(0, 0)
-        refreshToolbarTitle()
-        val bar = navigation.getChildAt(1) as? LinearLayout
-        if (bar != null) updateNavigationItems(bar)
+        refreshToolbar()
+        updateNavigationItems()
     }
 
-    private fun refreshToolbarTitle() {
-        val toolbar = root.getChildAt(0) as? LinearLayout ?: return
-        val title = toolbar.getChildAt(0) as? TextView ?: return
-        title.text = sectionTitle(activeSection)
+    private fun refreshToolbar() {
+        if (root.childCount == 0) return
+        root.removeViewAt(0)
+        root.addView(
+            buildToolbar(),
+            0,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(FinanceDesignTokens.APP_BAR_HEIGHT)
+            )
+        )
     }
 
     private fun renderDashboard() {
