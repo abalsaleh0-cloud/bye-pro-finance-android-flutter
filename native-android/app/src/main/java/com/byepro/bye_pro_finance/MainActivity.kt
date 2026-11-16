@@ -9,6 +9,7 @@ import android.graphics.Typeface
 import android.os.Bundle
 import android.text.InputType
 import android.view.Gravity
+import android.view.ContextThemeWrapper
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
@@ -405,7 +406,7 @@ class MainActivity : Activity() {
             FinanceComponents.sectionHeader(this, darkTheme, title),
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(FinanceDesignTokens.SECTION_TAB_HEIGHT)
+                dp(FinanceDesignTokens.SECTION_HEADER_HEIGHT)
             )
         )
     }
@@ -597,7 +598,7 @@ class MainActivity : Activity() {
     }
 
     private fun showCreateMenu(anchor: View) {
-        val menu = PopupMenu(this, anchor)
+        val menu = PopupMenu(popupContext(), anchor)
         when (activeSection) {
             Section.WORK -> {
                 addMenuAction(menu, s(com.byepro.bye_pro_finance.R.string.new_salary)) {
@@ -709,7 +710,11 @@ class MainActivity : Activity() {
                 timeInMillis = selectedMillis
             }
             DatePickerDialog(
-                this,
+                ContextThemeWrapper(
+                    this,
+                    if (darkTheme) R.style.NativeFinanceDialogDarkTheme
+                    else R.style.NativeFinanceDialogLightTheme
+                ),
                 { _, year, month, day ->
                     val date = java.util.Calendar.getInstance().apply {
                         set(year, month, day, calendar.get(java.util.Calendar.HOUR_OF_DAY),
@@ -750,7 +755,7 @@ class MainActivity : Activity() {
         val dueYear = existing?.dueYear ?: selectedMonth.year
         val dueMonth = existing?.dueMonth ?: selectedMonth.monthValue
 
-        AlertDialog.Builder(this, R.style.NativeFinanceDialogTheme)
+        dialogBuilder()
             .setTitle(
                 when (kind) {
                     "salary" -> s(com.byepro.bye_pro_finance.R.string.new_salary)
@@ -804,7 +809,7 @@ class MainActivity : Activity() {
             existing?.timestamp ?: System.currentTimeMillis()
         )
 
-        AlertDialog.Builder(this, R.style.NativeFinanceDialogTheme)
+        dialogBuilder()
             .setTitle(s(com.byepro.bye_pro_finance.R.string.new_transfer))
             .setView(form)
             .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.save)) { _, _ ->
@@ -860,7 +865,7 @@ class MainActivity : Activity() {
         val dueYear = existing?.dueYear ?: selectedMonth.year
         val dueMonth = existing?.dueMonth ?: selectedMonth.monthValue
 
-        AlertDialog.Builder(this, R.style.NativeFinanceDialogTheme)
+        dialogBuilder()
             .setTitle(s(com.byepro.bye_pro_finance.R.string.new_expense))
             .setView(form)
             .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.save)) { _, _ ->
@@ -912,7 +917,7 @@ class MainActivity : Activity() {
         val dueYear = existing?.dueYear ?: selectedMonth.year
         val dueMonth = existing?.dueMonth ?: selectedMonth.monthValue
 
-        AlertDialog.Builder(this, R.style.NativeFinanceDialogTheme)
+        dialogBuilder()
             .setTitle(
                 if (direction == "creditor")
                     s(com.byepro.bye_pro_finance.R.string.new_creditor)
@@ -971,7 +976,7 @@ class MainActivity : Activity() {
         val dueMonth = existing?.dueMonth ?: selectedMonth.monthValue
         val kind = if (existing?.detail?.startsWith("rent") == true) "rent" else "monthly"
 
-        AlertDialog.Builder(this, R.style.NativeFinanceDialogTheme)
+        dialogBuilder()
             .setTitle(s(com.byepro.bye_pro_finance.R.string.new_bill))
             .setView(form)
             .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.save)) { _, _ ->
@@ -1018,7 +1023,7 @@ class MainActivity : Activity() {
             form,
             s(com.byepro.bye_pro_finance.R.string.note_optional)
         )
-        AlertDialog.Builder(this, R.style.NativeFinanceDialogTheme)
+        dialogBuilder()
             .setTitle(s(com.byepro.bye_pro_finance.R.string.record_payment))
             .setView(form)
             .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.save)) { _, _ ->
@@ -1062,7 +1067,7 @@ class MainActivity : Activity() {
             form,
             s(com.byepro.bye_pro_finance.R.string.note_optional)
         )
-        AlertDialog.Builder(this, R.style.NativeFinanceDialogTheme)
+        dialogBuilder()
             .setTitle(s(com.byepro.bye_pro_finance.R.string.pay_bill))
             .setView(form)
             .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.save)) { _, _ ->
@@ -1090,7 +1095,7 @@ class MainActivity : Activity() {
     }
 
     private fun showRecordActions(anchor: View, record: FinanceRecord) {
-        val menu = PopupMenu(this, anchor)
+        val menu = PopupMenu(popupContext(), anchor)
         when (record.kind) {
             "creditor", "debtor" -> {
                 addMenuAction(menu, s(com.byepro.bye_pro_finance.R.string.record_payment)) {
@@ -1150,7 +1155,7 @@ class MainActivity : Activity() {
             repository.loadBillPayments(record.id)
         }
         if (payments.isEmpty()) {
-            AlertDialog.Builder(this, R.style.NativeFinanceDialogTheme)
+            dialogBuilder()
                 .setTitle(s(com.byepro.bye_pro_finance.R.string.payment_history))
                 .setMessage(s(com.byepro.bye_pro_finance.R.string.no_payment_history))
                 .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.cancel), null)
@@ -1160,7 +1165,7 @@ class MainActivity : Activity() {
         val items = payments.map {
             formatDate(it.timestamp) + " • " + formatAmount(it.amountMinorUnits)
         }.toTypedArray()
-        AlertDialog.Builder(this, R.style.NativeFinanceDialogTheme)
+        dialogBuilder()
             .setTitle(s(com.byepro.bye_pro_finance.R.string.payment_history))
             .setItems(items) { _, index ->
                 confirmUndoPayment(payments[index])
@@ -1170,7 +1175,7 @@ class MainActivity : Activity() {
     }
 
     private fun confirmUndoPayment(payment: FinanceRecord) {
-        AlertDialog.Builder(this, R.style.NativeFinanceDialogTheme)
+        dialogBuilder()
             .setTitle(s(com.byepro.bye_pro_finance.R.string.undo_payment))
             .setMessage(formatDate(payment.timestamp) + " • " +
                 formatAmount(payment.amountMinorUnits))
@@ -1192,7 +1197,7 @@ class MainActivity : Activity() {
     }
 
     private fun confirmDeleteRecord(record: FinanceRecord) {
-        AlertDialog.Builder(this, R.style.NativeFinanceDialogTheme)
+        dialogBuilder()
             .setTitle(s(com.byepro.bye_pro_finance.R.string.delete))
             .setMessage(s(com.byepro.bye_pro_finance.R.string.confirm_delete))
             .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.delete)) { _, _ ->
@@ -1213,6 +1218,19 @@ class MainActivity : Activity() {
             .setNegativeButton(s(com.byepro.bye_pro_finance.R.string.cancel), null)
             .show()
     }
+
+    private fun dialogBuilder(): AlertDialog.Builder =
+        AlertDialog.Builder(
+            this,
+            if (darkTheme) R.style.NativeFinanceDialogDarkTheme
+            else R.style.NativeFinanceDialogLightTheme
+        )
+
+    private fun popupContext(): Context = ContextThemeWrapper(
+        this,
+        if (darkTheme) R.style.NativeFinancePopupDarkTheme
+        else R.style.NativeFinancePopupLightTheme
+    )
 
     private fun showRuleMessage(error: Throwable) {
         val resource = when ((error as? FinanceRuleException)?.rule) {
@@ -1242,7 +1260,7 @@ class MainActivity : Activity() {
                 com.byepro.bye_pro_finance.R.string.data_error
             null -> com.byepro.bye_pro_finance.R.string.data_error
         }
-        AlertDialog.Builder(this, R.style.NativeFinanceDialogTheme)
+        dialogBuilder()
             .setMessage(s(resource))
             .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.cancel), null)
             .show()
@@ -1254,7 +1272,7 @@ class MainActivity : Activity() {
 
     private fun showMonthPicker(anchor: View, months: List<YearMonth>? = null) {
         val available = months ?: repository.loadDashboard(selectedMonth).availableMonths
-        val popup = PopupMenu(this, anchor)
+        val popup = PopupMenu(popupContext(), anchor)
         available.forEach { month ->
             popup.menu.add(month.toString()).setOnMenuItemClickListener {
                 selectedMonth = month
@@ -1280,13 +1298,13 @@ class MainActivity : Activity() {
         }
         form.addView(first)
         form.addView(second)
-        AlertDialog.Builder(this, R.style.NativeFinanceDialogTheme)
+        dialogBuilder()
             .setTitle(s(com.byepro.bye_pro_finance.R.string.calculator))
             .setView(form)
             .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.result)) { _, _ ->
                 val a = first.text.toString().toLongOrNull() ?: 0L
                 val b = second.text.toString().toLongOrNull() ?: 0L
-                AlertDialog.Builder(this, R.style.NativeFinanceDialogTheme)
+                dialogBuilder()
                     .setMessage(formatAmount(a + b))
                     .setPositiveButton(s(com.byepro.bye_pro_finance.R.string.cancel), null)
                     .show()
@@ -1303,7 +1321,7 @@ class MainActivity : Activity() {
             s(com.byepro.bye_pro_finance.R.string.arabic),
             s(com.byepro.bye_pro_finance.R.string.english)
         )
-        AlertDialog.Builder(this, R.style.NativeFinanceDialogTheme)
+        dialogBuilder()
             .setTitle(s(com.byepro.bye_pro_finance.R.string.settings))
             .setItems(options) { _, which ->
                 when (which) {
