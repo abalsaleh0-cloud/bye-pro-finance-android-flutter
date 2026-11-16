@@ -49,6 +49,7 @@ data class FinanceDesignColors(
     val text: Int,
     val secondaryText: Int,
     val accent: Int,
+    val onAccent: Int,
     val accentSoft: Int,
     val divider: Int,
     val danger: Int,
@@ -63,6 +64,7 @@ object FinanceDesignSystem {
         text = 0xFFF2F5F8.toInt(),
         secondaryText = 0xFF91A0AE.toInt(),
         accent = 0xFF5AA7E8.toInt(),
+        onAccent = 0xFF17212B.toInt(),
         accentSoft = 0xFF28445D.toInt(),
         divider = 0xFF2D3A47.toInt(),
         danger = 0xFFE06C75.toInt(),
@@ -74,8 +76,9 @@ object FinanceDesignSystem {
         surface = 0xFFFFFFFF.toInt(),
         raised = 0xFFE9EEF3.toInt(),
         text = 0xFF17212B.toInt(),
-        secondaryText = 0xFF71808D.toInt(),
-        accent = 0xFF3390EC.toInt(),
+        secondaryText = 0xFF626F7A.toInt(),
+        accent = 0xFF236DAB.toInt(),
+        onAccent = 0xFFFFFFFF.toInt(),
         accentSoft = 0xFFDCEBFA.toInt(),
         divider = 0xFFE5E9ED.toInt(),
         danger = 0xFFD9535D.toInt(),
@@ -251,7 +254,7 @@ object FinanceDesignSystem {
             context,
             label,
             15f,
-            if (primary) 0xFFFFFFFF.toInt() else palette.accent,
+            if (primary) palette.onAccent else palette.accent,
             bold = true
         ).apply {
             gravity = Gravity.CENTER
