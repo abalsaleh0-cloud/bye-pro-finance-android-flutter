@@ -151,7 +151,7 @@ class _AppearanceSettingsSectionState
             hsl.saturation < .08) {
           continue;
         }
-        final index = (hsl.hue / 30).floor().clamp(0, 11);
+        final index = (hsl.hue / 30).floor().clamp(0, 11).toInt();
         final weight = hsl.saturation;
         final bin = bins[index];
         bin[0] += weight;
@@ -167,9 +167,9 @@ class _AppearanceSettingsSectionState
       }
       final color = Color.fromARGB(
         255,
-        (strongest[1] / strongest[0]).round().clamp(0, 255),
-        (strongest[2] / strongest[0]).round().clamp(0, 255),
-        (strongest[3] / strongest[0]).round().clamp(0, 255),
+        (strongest[1] / strongest[0]).round().clamp(0, 255).toInt(),
+        (strongest[2] / strongest[0]).round().clamp(0, 255).toInt(),
+        (strongest[3] / strongest[0]).round().clamp(0, 255).toInt(),
       );
       if (!mounted) return;
       _saveCustomTheme(color);
@@ -665,7 +665,7 @@ const darkOnSurface = Color(${hex(dark.onSurface)});
                 ),
                 Slider(
                   key: const Key('theme-background-speed'),
-                  value: settings.backgroundSpeed.clamp(.3, 1.8),
+                  value: settings.backgroundSpeed.clamp(.3, 1.8).toDouble(),
                   min: .3,
                   max: 1.8,
                   divisions: 15,
