@@ -1,98 +1,62 @@
-import 'package:expense_app/core/theme/app_appearance.dart';
 import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:material_ui/material_ui.dart';
 
+/// One fixed BYE PRO design system with two coordinated appearances.
+/// Colour changes never alter component geometry or interaction behaviour.
 class AppTheme {
   AppTheme._();
 
-  static ThemeData get light => lightFor(builtInThemePresets.first);
-  static ThemeData get dark => darkFor(builtInThemePresets.first);
+  static ThemeData get light => _buildTheme(isDark: false);
+  static ThemeData get dark => _buildTheme(isDark: true);
 
-  static ThemeData lightFor(AppThemePreset preset) => _buildTheme(
-        preset,
-        isDark: false,
-      );
-
-  static ThemeData darkFor(AppThemePreset preset) => _buildTheme(
-        preset,
-        isDark: true,
-      );
-
-  static ColorScheme colorSchemeFor(
-    AppThemePreset preset, {
-    required Brightness brightness,
-  }) {
+  static ColorScheme colorSchemeFor({required Brightness brightness}) {
     final isDark = brightness == Brightness.dark;
-    final h = preset.hue % 360;
-    final h2 = preset.accentHue % 360;
-    final surfaceSaturation = (preset.chroma * 1.15).clamp(.005, .16).toDouble();
-    final accentSaturation = (preset.accentChroma * 4.1).clamp(.16, .86).toDouble();
-    final secondarySaturation =
-        (preset.accentChroma * 3.7).clamp(.14, .78).toDouble();
-
-    Color tone(double hue, double saturation, double lightness) =>
-        HSLColor.fromAHSL(
-          1,
-          (hue % 360 + 360) % 360,
-          saturation,
-          lightness,
-        ).toColor();
-
-    final background = tone(h, surfaceSaturation, isDark ? .105 : .975);
-    final surface = tone(h, surfaceSaturation, isDark ? .145 : .925);
-    final surfaceRaised = tone(h, surfaceSaturation, isDark ? .19 : .875);
-    final text = tone(h, .035, isDark ? .955 : .20);
-    final mutedText = tone(h, .035, isDark ? .74 : .40);
-    final primary = tone(h2, accentSaturation, isDark ? .73 : .43);
-    final secondary = tone(
-      h2 + preset.hueOffset,
-      secondarySaturation,
-      isDark ? .78 : .48,
-    );
-    final tertiary = tone(
-      h2 + preset.hueOffset + 110,
-      (accentSaturation * .72).clamp(.12, .65).toDouble(),
-      isDark ? .72 : .42,
-    );
+    final seed = isDark
+        ? const Color(0xFF8BB8F4)
+        : const Color(0xFF245FAE);
     final generated = ColorScheme.fromSeed(
-      seedColor: primary,
-      brightness: isDark ? Brightness.dark : Brightness.light,
+      seedColor: seed,
+      brightness: brightness,
     );
 
     return generated.copyWith(
-      primary: primary,
-      onPrimary: _bestContentColor(primary),
+      primary: isDark ? const Color(0xFF8BB8F4) : const Color(0xFF245FAE),
+      onPrimary: isDark ? const Color(0xFF10233D) : Colors.white,
       primaryContainer:
-          tone(h2, accentSaturation * .42, isDark ? .30 : .88),
+          isDark ? const Color(0xFF203F66) : const Color(0xFFDCE9F8),
       onPrimaryContainer:
-          isDark ? Colors.white : tone(h2, .48, .20),
-      secondary: secondary,
-      onSecondary: _bestContentColor(secondary),
-      secondaryContainer: tone(
-        h2 + preset.hueOffset,
-        secondarySaturation * .38,
-        isDark ? .29 : .89,
-      ),
+          isDark ? const Color(0xFFE1EEFF) : const Color(0xFF17385F),
+      secondary: isDark ? const Color(0xFFE0BD69) : const Color(0xFF98701F),
+      onSecondary: isDark ? const Color(0xFF2B210C) : Colors.white,
+      secondaryContainer:
+          isDark ? const Color(0xFF493919) : const Color(0xFFF3E8CB),
       onSecondaryContainer:
-          isDark ? Colors.white : tone(h2 + preset.hueOffset, .42, .20),
-      tertiary: tertiary,
-      onTertiary: _bestContentColor(tertiary),
-      surface: surface,
-      onSurface: text,
-      onSurfaceVariant: mutedText,
-      surfaceDim: background,
-      surfaceBright: tone(h, surfaceSaturation, isDark ? .23 : .99),
-      surfaceContainerLowest: background,
-      surfaceContainerLow: surface,
-      surfaceContainer: surface,
-      surfaceContainerHigh: surfaceRaised,
+          isDark ? const Color(0xFFFFE8AE) : const Color(0xFF4D3910),
+      surface: isDark ? const Color(0xFF101720) : const Color(0xFFF6F8FB),
+      onSurface: isDark ? const Color(0xFFF1F4F8) : const Color(0xFF1B2735),
+      onSurfaceVariant:
+          isDark ? const Color(0xFFB6C1CF) : const Color(0xFF566476),
+      surfaceDim: isDark ? const Color(0xFF0B1118) : const Color(0xFFE9EEF4),
+      surfaceBright:
+          isDark ? const Color(0xFF26313E) : const Color(0xFFFFFFFF),
+      surfaceContainerLowest:
+          isDark ? const Color(0xFF0D131B) : const Color(0xFFFFFFFF),
+      surfaceContainerLow:
+          isDark ? const Color(0xFF151E29) : const Color(0xFFFFFFFF),
+      surfaceContainer:
+          isDark ? const Color(0xFF1A2430) : const Color(0xFFF0F3F7),
+      surfaceContainerHigh:
+          isDark ? const Color(0xFF222E3B) : const Color(0xFFE8EDF3),
       surfaceContainerHighest:
-          tone(h, surfaceSaturation, isDark ? .235 : .84),
-      outline: mutedText,
+          isDark ? const Color(0xFF2A3745) : const Color(0xFFDDE4EC),
+      outline: isDark ? const Color(0xFF627184) : const Color(0xFF7D8997),
       outlineVariant:
-          tone(h, surfaceSaturation * .85, isDark ? .32 : .79),
+          isDark ? const Color(0xFF354353) : const Color(0xFFD8DFE7),
       shadow: Colors.black,
       scrim: Colors.black,
+      surfaceTint: isDark
+          ? const Color(0xFF8BB8F4)
+          : const Color(0xFF245FAE),
     );
   }
 
@@ -102,12 +66,8 @@ class AppTheme {
     return whiteContrast >= blackContrast ? Colors.white : Colors.black;
   }
 
-  static ThemeData _buildTheme(
-    AppThemePreset preset, {
-    required bool isDark,
-  }) {
+  static ThemeData _buildTheme({required bool isDark}) {
     final scheme = colorSchemeFor(
-      preset,
       brightness: isDark ? Brightness.dark : Brightness.light,
     );
     final tokens = AppDesignTokens.standard();
