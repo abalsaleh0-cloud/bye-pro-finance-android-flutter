@@ -146,8 +146,17 @@ class SummaryMetricGrid extends StatelessWidget {
     return Column(
       children: [
         for (var index = 0; index < metrics.length; index++) ...[
-          if (index > 0) SizedBox(height: tokens.sectionSpacing),
-          _SummaryMetricTile(metric: metrics[index]),
+          if (index > 0)
+            Divider(
+              height: 1,
+              thickness: 1,
+              indent: tokens.recordIconBoxSize + 24,
+              endIndent: 12,
+            ),
+          _SummaryMetricTile(
+            key: Key('summary-metric-row-$index'),
+            metric: metrics[index],
+          ),
         ],
       ],
     );
@@ -155,7 +164,10 @@ class SummaryMetricGrid extends StatelessWidget {
 }
 
 class _SummaryMetricTile extends StatelessWidget {
-  const _SummaryMetricTile({required this.metric});
+  const _SummaryMetricTile({
+    super.key,
+    required this.metric,
+  });
 
   final SummaryMetricData metric;
 
@@ -165,61 +177,68 @@ class _SummaryMetricTile extends StatelessWidget {
     final scheme = theme.colorScheme;
     final tokens = AppDesignTokens.of(context);
     final foreground =
-        metric.emphasized ? scheme.onPrimaryContainer : scheme.onSurface;
+        metric.emphasized ? scheme.primary : scheme.onSurface;
 
-    return Container(
+    return ConstrainedBox(
       constraints: BoxConstraints(minHeight: tokens.metricTileMinHeight),
-      padding: EdgeInsets.all(tokens.cardPadding),
-      decoration: BoxDecoration(
-        color: metric.emphasized
-            ? scheme.primaryContainer
-            : scheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(tokens.cardRadius),
-        border: Border.all(
-          color: metric.emphasized
-              ? scheme.primaryContainer
-              : scheme.outlineVariant,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Icon(
-                metric.icon,
-                size: tokens.standardIconSize,
-                color: metric.emphasized
-                    ? scheme.onPrimaryContainer
-                    : scheme.primary,
-              ),
-              const SizedBox(width: 7),
-              Expanded(
-                child: Text(
-                  metric.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: foreground,
-                    fontWeight: FontWeight.w600,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: metric.emphasized
+                ? scheme.primaryContainer.withValues(alpha: .20)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(tokens.controlRadius),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            child: Row(
+              children: [
+                Container(
+                  width: tokens.recordIconBoxSize,
+                  height: tokens.recordIconBoxSize,
+                  decoration: BoxDecoration(
+                    color: metric.emphasized
+                        ? scheme.primaryContainer
+                        : scheme.surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(tokens.controlRadius),
+                  ),
+                  alignment: Alignment.center,
+                  child: Icon(
+                    metric.icon,
+                    size: tokens.standardIconSize,
+                    color: metric.emphasized
+                        ? scheme.onPrimaryContainer
+                        : scheme.primary,
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            metric.value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.titleLarge?.copyWith(
-              color: foreground,
-              fontWeight: FontWeight.w800,
-              fontFeatures: const [FontFeature.tabularFigures()],
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    metric.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurface,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  metric.value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: foreground,
+                    fontWeight: FontWeight.w700,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
