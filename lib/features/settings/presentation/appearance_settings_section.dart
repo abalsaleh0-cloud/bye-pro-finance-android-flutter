@@ -44,11 +44,12 @@ class _AppearanceSettingsSectionState
             alignment: WrapAlignment.center,
             spacing: 12,
             runSpacing: 12,
-            children: _seedColors
+            children: _seedColors.asMap().entries
                 .map(
-                  (color) => InkWell(
+                  (entry) => InkWell(
+                    key: ValueKey('seed-color-${entry.key}'),
                     borderRadius: BorderRadius.circular(30),
-                    onTap: () => Navigator.pop(dialogContext, color),
+                    onTap: () => Navigator.pop(dialogContext, entry.value),
                     child: Container(
                       width: 42,
                       height: 42,
@@ -235,7 +236,7 @@ class _AppearanceSettingsSectionState
     final index = settings.customThemes.length + 1;
     final theme = AppThemePreset.fromSeedColor(
       color,
-      id: 'custom-\${DateTime.now().microsecondsSinceEpoch}',
+      id: 'custom-${DateTime.now().microsecondsSinceEpoch}',
       nameAr: 'ثيمي $index',
       nameEn: 'My theme $index',
     );
@@ -292,7 +293,7 @@ class _AppearanceSettingsSectionState
             final first = theme.seedColor;
             final second = theme.accentSeedColor;
             return InkWell(
-              key: ValueKey('theme-\${theme.id}'),
+              key: ValueKey('theme-${theme.id}'),
               borderRadius: BorderRadius.circular(18),
               onTap: () => ref.read(appSettingsProvider.notifier).setTheme(theme),
               child: AnimatedContainer(
@@ -355,7 +356,7 @@ class _AppearanceSettingsSectionState
                       SizedBox(
                         height: 22,
                         child: IconButton(
-                          key: ValueKey('delete-\${theme.id}'),
+                          key: ValueKey('delete-${theme.id}'),
                           padding: EdgeInsets.zero,
                           visualDensity: VisualDensity.compact,
                           iconSize: 16,
@@ -404,7 +405,7 @@ class _AppearanceSettingsSectionState
               Text(label, style: Theme.of(context).textTheme.labelSmall),
               const SizedBox(height: 2),
               Text(
-                '\${ratio.toStringAsFixed(1)} · \${grade(ratio)}',
+                '${ratio.toStringAsFixed(1)} · ${grade(ratio)}',
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
@@ -590,7 +591,7 @@ class _AppearanceSettingsSectionState
                         _text(context, 'سرعة الحركة', 'Animation speed'),
                       ),
                     ),
-                    Text('\${settings.backgroundSpeed.toStringAsFixed(1)}×'),
+                    Text('${settings.backgroundSpeed.toStringAsFixed(1)}×'),
                   ],
                 ),
                 Slider(
@@ -642,7 +643,7 @@ class _AppearanceSettingsSectionState
                   _ => entry.value,
                 };
                 return ChoiceChip(
-                  key: ValueKey('theme-grade-\${entry.key}'),
+                  key: ValueKey('theme-grade-${entry.key}'),
                   label: Text(label),
                   selected: settings.colorGrade == entry.key,
                   onSelected: (_) => controller.setColorGrade(entry.key),
