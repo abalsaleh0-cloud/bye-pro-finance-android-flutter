@@ -187,16 +187,13 @@ class LegacyFinanceDatabase private constructor(
         private const val DATABASE_VERSION = 2
 
         private fun resolveDatabaseFile(context: Context): File {
-            val documentsDirectory = File(context.filesDir, "app_flutter")
-            val expected = File(documentsDirectory, "bye_pro_finance.sqlite")
-            val candidates = listOf(
-                expected,
-                context.getDatabasePath("bye_pro_finance.sqlite"),
-                File(context.filesDir, "bye_pro_finance.sqlite")
-            )
-            return candidates.firstOrNull { it.isFile } ?: expected.apply {
-                parentFile?.mkdirs()
-            }
+            // PathUtils.getDataDirectory(context) in the Flutter Android engine
+            // is implemented as context.getDir("flutter", MODE_PRIVATE).
+            // path_provider_android delegates getApplicationDocumentsDirectory()
+            // to that exact directory, so Drift's database is stored here.
+            val documentsDirectory = context.getDir("flutter", Context.MODE_PRIVATE)
+            documentsDirectory.mkdirs()
+            return File(documentsDirectory, "bye_pro_finance.sqlite")
         }
     }
 }
