@@ -23,7 +23,7 @@ void main() {
           light.colorScheme.surface,
         ),
         greaterThanOrEqualTo(4.5),
-        reason: 'Light text contrast for \${preset.id}',
+        reason: 'Light text contrast for ${preset.id}',
       );
       expect(
         AppTheme.contrastRatio(
@@ -31,7 +31,15 @@ void main() {
           dark.colorScheme.surface,
         ),
         greaterThanOrEqualTo(4.5),
-        reason: 'Dark text contrast for \${preset.id}',
+        reason: 'Dark text contrast for ${preset.id}',
+      );
+      expect(
+        AppTheme.contrastRatio(
+          light.colorScheme.onSurfaceVariant,
+          light.colorScheme.surface,
+        ),
+        greaterThanOrEqualTo(4.5),
+        reason: 'Light muted text contrast for ${preset.id}',
       );
       expect(
         AppTheme.contrastRatio(
@@ -39,7 +47,15 @@ void main() {
           light.colorScheme.primary,
         ),
         greaterThanOrEqualTo(4.5),
-        reason: 'Light button contrast for \${preset.id}',
+        reason: 'Light button contrast for ${preset.id}',
+      );
+      expect(
+        AppTheme.contrastRatio(
+          dark.colorScheme.onSurfaceVariant,
+          dark.colorScheme.surface,
+        ),
+        greaterThanOrEqualTo(4.5),
+        reason: 'Dark muted text contrast for ${preset.id}',
       );
       expect(
         AppTheme.contrastRatio(
@@ -47,7 +63,7 @@ void main() {
           dark.colorScheme.primary,
         ),
         greaterThanOrEqualTo(4.5),
-        reason: 'Dark button contrast for \${preset.id}',
+        reason: 'Dark button contrast for ${preset.id}',
       );
     }
   });
