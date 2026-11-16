@@ -9,8 +9,9 @@ import java.io.File
 /**
  * Opens the exact SQLite file used by the existing Flutter/Drift app.
  *
- * drift_flutter stores "bye_pro_finance.sqlite" in the app documents folder,
- * which path_provider_android exposes as files/app_flutter on Android.
+ * drift_flutter stores "bye_pro_finance.sqlite" in its application documents
+ * directory. path_provider_android exposes this as context.getDir("flutter")
+ * on Android.
  * This project deliberately keeps the same applicationId in release builds
  * so Android keeps the same private app directory during an in-place upgrade.
  */
