@@ -372,7 +372,7 @@ class MainActivity : Activity() {
     )
 
     private fun addMetricGroup(vararg metrics: MetricDisplay) {
-        val group = FinanceComponents.card(this, darkTheme)
+        val group = FinanceComponents.groupedList(this, darkTheme)
         metrics.forEachIndexed { index, metric ->
             if (index > 0) {
                 group.addView(FinanceComponents.bottomDivider(this, darkTheme))
@@ -474,7 +474,7 @@ class MainActivity : Activity() {
             addEmptyState(s(R.string.no_recent_activity))
             return
         }
-        val group = FinanceComponents.card(this, darkTheme)
+        val group = FinanceComponents.groupedList(this, darkTheme)
         items.forEachIndexed { index, item ->
             if (index > 0) {
                 group.addView(FinanceComponents.bottomDivider(this, darkTheme))
@@ -560,7 +560,7 @@ class MainActivity : Activity() {
     }
 
     private fun addRecordGroup(records: List<FinanceRecord>) {
-        val group = FinanceComponents.card(this, darkTheme)
+        val group = FinanceComponents.groupedList(this, darkTheme)
         records.forEachIndexed { index, record ->
             if (index > 0) {
                 group.addView(FinanceComponents.bottomDivider(this, darkTheme))
