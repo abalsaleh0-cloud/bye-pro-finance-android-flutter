@@ -131,7 +131,9 @@ class _AppearanceSettingsSectionState
       ),
     );
     hexController.dispose();
-    if (color == null || !mounted) return;
+    if (color == null || !mounted) {
+      return;
+    }
     _saveCustomTheme(color);
   }
 
@@ -143,7 +145,9 @@ class _AppearanceSettingsSectionState
         maxWidth: 320,
         maxHeight: 320,
       );
-      if (file == null) return;
+      if (file == null) {
+        return;
+      }
       final bytes = await file.readAsBytes();
       final codec = await ui.instantiateImageCodec(
         bytes,
@@ -156,7 +160,9 @@ class _AppearanceSettingsSectionState
       );
       frame.image.dispose();
       codec.dispose();
-      if (data == null) throw StateError('Image pixels unavailable');
+      if (data == null) {
+        throw StateError('Image pixels unavailable');
+      }
 
       final pixels = data.buffer.asUint8List();
       final bins = List.generate(12, (_) => List<double>.filled(4, 0));
@@ -193,7 +199,9 @@ class _AppearanceSettingsSectionState
         (strongest[2] / strongest[0]).round().clamp(0, 255).toInt(),
         (strongest[3] / strongest[0]).round().clamp(0, 255).toInt(),
       );
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       _saveCustomTheme(color);
     } catch (_) {
       if (!mounted) return;
@@ -268,10 +276,14 @@ const darkOnSurface = Color(${hex(dark.onSurface)});
       ),
     );
     input.dispose();
-    if (raw == null || raw.trim().isEmpty || !mounted) return;
+    if (raw == null || raw.trim().isEmpty || !mounted) {
+      return;
+    }
     try {
       final decoded = jsonDecode(raw);
-      if (decoded is! Map) throw const FormatException('Theme JSON must be an object');
+      if (decoded is! Map) {
+        throw const FormatException('Theme JSON must be an object');
+      }
       final map = Map<String, Object?>.from(decoded);
       final imported = AppThemePreset.fromJson(map).copyWith(
         nameAr: map['nameAr'] is String ? map['nameAr']! as String : 'ثيم مستورد',
@@ -713,7 +725,7 @@ const darkOnSurface = Color(${hex(dark.onSurface)});
               children: [
                 DropdownButtonFormField<String>(
                   key: const Key('theme-background-selector'),
-                  value: settings.backgroundId,
+                  initialValue: settings.backgroundId,
                   decoration: InputDecoration(
                     labelText: _text(context, 'الخلفية', 'Background'),
                   ),
@@ -728,7 +740,9 @@ const darkOnSurface = Color(${hex(dark.onSurface)});
                       )
                       .toList(),
                   onChanged: (value) {
-                    if (value != null) controller.setBackground(value);
+                    if (value != null) {
+                      controller.setBackground(value);
+                    }
                   },
                 ),
                 const SizedBox(height: 14),
