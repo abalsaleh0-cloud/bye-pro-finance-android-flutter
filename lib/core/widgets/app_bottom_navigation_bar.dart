@@ -51,7 +51,7 @@ class AppBottomNavigationBar extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: NavigationBar(
-          height: 68,
+          height: tokens.navigationBarHeight,
           backgroundColor: Colors.transparent,
           elevation: 0,
           selectedIndex: selectedIndex,
