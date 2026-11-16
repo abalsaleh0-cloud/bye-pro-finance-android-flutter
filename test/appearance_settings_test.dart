@@ -1,7 +1,6 @@
 import 'package:expense_app/app/app.dart';
 import 'package:expense_app/core/providers/app_settings_provider.dart';
 import 'package:expense_app/core/theme/app_theme.dart';
-import 'package:expense_app/features/settings/presentation/appearance_settings_section.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
@@ -20,7 +19,7 @@ void main() {
     await tester.tap(emerald);
     await tester.pumpAndSettle();
 
-    final context = tester.element(find.byType(AppearanceSettingsSection));
+    final context = tester.element(find.byType(MyApp));
     final container = ProviderScope.containerOf(context, listen: false);
     final selectedTheme = container.read(appSettingsProvider).selectedTheme;
     final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
@@ -57,7 +56,7 @@ void main() {
     await tester.tap(find.byKey(const Key('seed-color-0')));
     await tester.pumpAndSettle();
 
-    final context = tester.element(find.byType(AppearanceSettingsSection));
+    final context = tester.element(find.byType(MyApp));
     final settings = ProviderScope.containerOf(context, listen: false)
         .read(appSettingsProvider);
     expect(settings.customThemes, hasLength(1));
