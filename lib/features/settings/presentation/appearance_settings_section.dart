@@ -472,7 +472,7 @@ class _AppearanceSettingsSectionState
                     ),
                     ButtonSegment(
                       value: ThemeMode.dark,
-                      label: Text(_text(context, 'ليلي', 'Dark')),
+                      label: Text(_text(context, 'الوضع الداكن', 'Dark')),
                       icon: const Icon(Icons.dark_mode_outlined),
                     ),
                     ButtonSegment(
