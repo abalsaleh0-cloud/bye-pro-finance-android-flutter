@@ -11,8 +11,8 @@ android {
         applicationId = "com.byepro.bye_pro_finance"
         minSdk = 30
         targetSdk = 36
-        versionCode = 150
-        versionName = "1.1.49"
+        versionCode = 151
+        versionName = "1.1.50"
         testInstrumentationRunner = "android.test.InstrumentationTestRunner"
     }
 
@@ -37,4 +37,9 @@ kotlin {
     compilerOptions {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
     }
+}
+
+
+dependencies {
+    testImplementation("junit:junit:4.13.2")
 }
