@@ -141,7 +141,7 @@ class AppSettingsController extends Notifier<AppSettings> {
         themeId: selectedTheme.id,
         customThemes: customThemes,
         backgroundId: values[5] ?? selectedTheme.background,
-        backgroundSpeed: speed.clamp(.3, 1.8),
+        backgroundSpeed: speed.clamp(.3, 1.8).toDouble(),
         energySaving: values[7] == 'true',
         colorGrade: values[8] ?? '',
         cinemaEffects: effects,
@@ -215,7 +215,7 @@ class AppSettingsController extends Notifier<AppSettings> {
 
   void setBackgroundSpeed(double value) {
     _revision++;
-    final speed = value.clamp(.3, 1.8);
+    final speed = value.clamp(.3, 1.8).toDouble();
     state = state.copyWith(backgroundSpeed: speed);
     unawaited(_write('theme_background_speed', speed.toStringAsFixed(1)));
   }
