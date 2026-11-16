@@ -29,7 +29,11 @@ class MyApp extends ConsumerWidget {
         ...GlobalMaterialLocalizations.delegates,
       ],
       builder: (context, child) {
-        final brightness = Theme.of(context).brightness;
+        final brightness = switch (settings.themeMode) {
+          ThemeMode.dark => Brightness.dark,
+          ThemeMode.light => Brightness.light,
+          ThemeMode.system => MediaQuery.platformBrightnessOf(context),
+        };
         if (defaultTargetPlatform == TargetPlatform.android) {
           unawaited(_LauncherIconSync.update(
             brightness == Brightness.dark ? 'dark' : 'light',
