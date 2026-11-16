@@ -400,27 +400,26 @@ class MainActivity : Activity() {
 
     private fun addCashFlowComparison(transfers: Long, expenses: Long) {
         val total = maxOf(transfers, expenses, 1L).toFloat()
-        val container = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(14), dp(13), dp(14), dp(13))
-            setRoundedBackground(FinancePalette.surface(darkTheme), 14f)
-        }
+        val container = FinanceComponents.card(this, darkTheme)
         addComparisonBar(
             container,
-            s(com.byepro.bye_pro_finance.R.string.transfers_total),
+            s(R.string.transfers_total),
             transfers,
             transfers / total
         )
-        addGapTo(container, 12)
+        addGapTo(container, FinanceDesignTokens.SECTION_SPACING)
         addComparisonBar(
             container,
-            s(com.byepro.bye_pro_finance.R.string.home_expenses_total),
+            s(R.string.home_expenses_total),
             expenses,
             expenses / total
         )
         pageContent.addView(container, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply { bottomMargin = dp(14) })
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        ).apply {
+            bottomMargin = dp(FinanceDesignTokens.SECTION_SPACING)
+        })
     }
 
     private fun addComparisonBar(
@@ -633,7 +632,12 @@ class MainActivity : Activity() {
     private fun createForm(): LinearLayout = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
         layoutDirection = View.LAYOUT_DIRECTION_RTL
-        setPadding(dp(20), dp(10), dp(20), dp(4))
+        setPadding(
+            dp(FinanceDesignTokens.CARD_PADDING),
+            dp(FinanceDesignTokens.SECTION_SPACING),
+            dp(FinanceDesignTokens.CARD_PADDING),
+            dp(FinanceDesignTokens.SECTION_SPACING / 2)
+        )
     }
 
     private fun formInput(
@@ -642,22 +646,21 @@ class MainActivity : Activity() {
         initial: String = "",
         numeric: Boolean = false
     ): EditText {
-        val field = EditText(this).apply {
-            this.hint = hint
-            setText(initial)
-            textSize = 15f
-            setTextColor(FinancePalette.text(darkTheme))
-            setHintTextColor(FinancePalette.muted(darkTheme))
-            inputType = if (numeric) {
-                InputType.TYPE_CLASS_NUMBER
-            } else {
-                InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
-            }
-            isSingleLine = !hint.contains(s(com.byepro.bye_pro_finance.R.string.note_optional))
-        }
+        val multiline = hint == s(R.string.note_optional)
+        val field = FinanceDesignSystem.input(
+            context = this,
+            isDark = darkTheme,
+            hint = hint,
+            initialValue = initial,
+            numeric = numeric,
+            multiline = multiline
+        )
         form.addView(field, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, dp(54)
-        ))
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            if (multiline) dp(80) else dp(FinanceDesignTokens.BUTTON_HEIGHT)
+        ).apply {
+            bottomMargin = dp(FinanceDesignTokens.SECTION_SPACING / 2)
+        })
         return field
     }
 
@@ -672,10 +675,16 @@ class MainActivity : Activity() {
         initialEpochMillis: Long
     ): DateField {
         var selectedMillis = initialEpochMillis
-        val view = makeText("", 14f, false).apply {
-            setTextColor(FinancePalette.accent(darkTheme))
-            setPadding(dp(12), 0, dp(12), 0)
-            setRoundedBackground(FinancePalette.raised(darkTheme), 10f)
+        val view = FinanceDesignSystem.text(
+            this, "", 14f, FinancePalette.accent(darkTheme), bold = true
+        ).apply {
+            setPadding(dp(14), 0, dp(14), 0)
+            background = FinanceDesignSystem.rounded(
+                this@MainActivity,
+                FinancePalette.raised(darkTheme),
+                FinanceDesignTokens.CONTROL_RADIUS
+            )
+            minHeight = dp(FinanceDesignTokens.BUTTON_HEIGHT)
             isClickable = true
             isFocusable = true
         }
@@ -704,8 +713,12 @@ class MainActivity : Activity() {
             ).show()
         }
         form.addView(view, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, dp(46)
-        ).apply { topMargin = dp(6) })
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            dp(FinanceDesignTokens.BUTTON_HEIGHT)
+        ).apply {
+            topMargin = dp(FinanceDesignTokens.SECTION_SPACING / 2)
+            bottomMargin = dp(FinanceDesignTokens.SECTION_SPACING / 2)
+        })
         return DateField(view) { selectedMillis }
     }
 
@@ -1305,12 +1318,14 @@ class MainActivity : Activity() {
     }
 
     private fun recordTitle(record: FinanceRecord): String = when (record.kind) {
-        "salary" -> s(com.byepro.bye_pro_finance.R.string.salary)
-        "advance" -> s(com.byepro.bye_pro_finance.R.string.advance)
-        "payment", "salaryPayment" -> s(com.byepro.bye_pro_finance.R.string.payment)
+        "salary" -> s(R.string.salary)
+        "advance" -> s(R.string.advance)
+        "payment", "salaryPayment" -> s(R.string.payment)
+        "transfer" -> s(R.string.transfer_to_home)
         "expense" -> categoryTitle(record.title)
-        "creditor" -> s(com.byepro.bye_pro_finance.R.string.creditor_balance)
-        "debtor" -> s(com.byepro.bye_pro_finance.R.string.debtor_balance)
+        "creditor" -> record.title
+        "debtor" -> record.title
+        "bill" -> record.title
         else -> record.title
     }
 
