@@ -129,7 +129,8 @@ class MainActivity : Activity() {
         }
 
         root.addView(buildToolbar(), LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, dp(60)
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            dp(FinanceDesignTokens.APP_BAR_HEIGHT)
         ))
 
         scrollView = ScrollView(this).apply {
@@ -141,7 +142,12 @@ class MainActivity : Activity() {
         pageContent = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setPadding(dp(16), dp(10), dp(16), dp(20))
+            setPadding(
+                dp(FinanceDesignTokens.PAGE_HORIZONTAL_PADDING),
+                dp(FinanceDesignTokens.PAGE_VERTICAL_PADDING),
+                dp(FinanceDesignTokens.PAGE_HORIZONTAL_PADDING),
+                dp(FinanceDesignTokens.PAGE_VERTICAL_PADDING)
+            )
         }
         scrollView.addView(pageContent)
         root.addView(scrollView, LinearLayout.LayoutParams(
@@ -1288,14 +1294,18 @@ class MainActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(20), dp(12), dp(20), 0)
         }
-        val first = EditText(this).apply {
-            hint = s(com.byepro.bye_pro_finance.R.string.enter_amount)
-            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED
-        }
-        val second = EditText(this).apply {
-            hint = s(com.byepro.bye_pro_finance.R.string.enter_amount)
-            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_SIGNED
-        }
+        val first = FinanceDesignSystem.input(
+            context = this,
+            isDark = darkTheme,
+            hint = s(R.string.enter_amount),
+            numeric = true
+        )
+        val second = FinanceDesignSystem.input(
+            context = this,
+            isDark = darkTheme,
+            hint = s(R.string.enter_amount),
+            numeric = true
+        )
         form.addView(first)
         form.addView(second)
         dialogBuilder()
@@ -1435,15 +1445,13 @@ class MainActivity : Activity() {
     }
 
     private fun makeText(value: String, sizeSp: Float, bold: Boolean): TextView =
-        TextView(this).apply {
-            text = value
-            textSize = sizeSp
-            setTextColor(FinancePalette.text(darkTheme))
-            typeface = if (bold) Typeface.create("sans-serif-medium", Typeface.NORMAL)
-                else Typeface.create("sans-serif", Typeface.NORMAL)
-            gravity = Gravity.CENTER_VERTICAL
-            textDirection = View.TEXT_DIRECTION_FIRST_STRONG
-        }
+        FinanceDesignSystem.text(
+            context = this,
+            value = value,
+            sizeSp = sizeSp,
+            color = FinancePalette.text(darkTheme),
+            bold = bold
+        )
 
     private fun addGap(heightDp: Int) {
         pageContent.addView(View(this), LinearLayout.LayoutParams(
