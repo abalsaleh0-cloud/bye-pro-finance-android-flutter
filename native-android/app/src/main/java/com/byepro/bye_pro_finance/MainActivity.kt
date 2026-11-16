@@ -590,12 +590,14 @@ class MainActivity : Activity() {
                     title = recordTitle(record),
                     subtitle = recordDetail(record),
                     amount = formatAmount(record.amountMinorUnits),
-                    onClick = {
+                    onClick = { clickedRow ->
                         if (record.kind in setOf(
                             "bill", "creditor", "debtor", "debtPayment", "billPayment"
-                        )) showRecordActions(group, record)
+                        )) showRecordActions(clickedRow, record)
                     },
-                    onLongClick = { showRecordActions(group, record) }
+                    onLongClick = { clickedRow ->
+                        showRecordActions(clickedRow, record)
+                    }
                 )
             )
         }
