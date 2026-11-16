@@ -24,6 +24,8 @@ object FinanceDesignTokens {
     const val PAGE_VERTICAL_PADDING = 12
     const val SECTION_SPACING = 12
     const val CARD_PADDING = 16
+    const val INPUT_VERTICAL_PADDING = 12
+    const val APP_BAR_HEIGHT = 56
     const val CARD_RADIUS = 16
     const val CONTROL_RADIUS = 12
     const val DIALOG_RADIUS = 20
