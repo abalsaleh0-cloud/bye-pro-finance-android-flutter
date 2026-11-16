@@ -77,5 +77,13 @@ void main() {
     expect(find.text('125000'), findsOneWidget);
     expect(find.text('Remaining'), findsOneWidget);
     expect(find.text('45000'), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const Key('summary-metric-row-0'))).height,
+      64,
+    );
+    expect(
+      tester.getSize(find.byKey(const Key('summary-metric-row-1'))).height,
+      64,
+    );
   });
 }
