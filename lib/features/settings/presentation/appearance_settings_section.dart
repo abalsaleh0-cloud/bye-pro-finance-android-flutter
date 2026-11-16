@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:expense_app/core/providers/app_settings_provider.dart';
@@ -269,6 +270,45 @@ const darkOnSurface = Color(${hex(dark.onSurface)});
         SnackBar(content: Text(_text(context, 'بيانات JSON غير صالحة.', 'Invalid theme JSON.'))),
       );
     }
+  }
+
+  void _saveCurrentTheme() {
+    final settings = ref.read(appSettingsProvider);
+    if (settings.customThemes.length >= 12) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _text(
+              context,
+              'وصلت إلى الحد الأقصى للثيمات الخاصة.',
+              'You reached the custom theme limit.',
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+    final source = settings.selectedTheme;
+    final index = settings.customThemes.length + 1;
+    final copy = AppThemePreset(
+      id: 'custom-copy-${DateTime.now().microsecondsSinceEpoch}',
+      nameAr: 'نسخة $index',
+      nameEn: 'Theme copy $index',
+      hue: source.hue,
+      accentHue: source.accentHue,
+      chroma: source.chroma,
+      accentChroma: source.accentChroma,
+      hueOffset: source.hueOffset,
+      background: source.background,
+      effects: source.effects,
+      custom: true,
+    );
+    ref.read(appSettingsProvider.notifier).addCustomTheme(copy);
+  }
+
+  void _selectRandomTheme() {
+    final index = math.Random().nextInt(builtInThemePresets.length);
+    ref.read(appSettingsProvider.notifier).setTheme(builtInThemePresets[index]);
   }
 
   void _saveCustomTheme(Color color) {
@@ -581,6 +621,20 @@ const darkOnSurface = Color(${hex(dark.onSurface)});
                           : _createFromColor,
                       icon: const Icon(Icons.palette_outlined),
                       label: Text(_text(context, 'من لون', 'From color')),
+                    ),
+                    OutlinedButton.icon(
+                      key: const Key('save-current-custom-theme'),
+                      onPressed: settings.customThemes.length >= 12
+                          ? null
+                          : _saveCurrentTheme,
+                      icon: const Icon(Icons.bookmark_add_outlined),
+                      label: Text(_text(context, 'حفظ الثيم الحالي', 'Save current')),
+                    ),
+                    OutlinedButton.icon(
+                      key: const Key('random-theme'),
+                      onPressed: _selectRandomTheme,
+                      icon: const Icon(Icons.shuffle),
+                      label: Text(_text(context, 'عشوائي', 'Random')),
                     ),
                     OutlinedButton.icon(
                       key: const Key('create-theme-from-image'),
