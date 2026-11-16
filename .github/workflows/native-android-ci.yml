@@ -35,7 +35,17 @@ jobs:
           java-version: "17"
 
       - name: Install Android SDK 36
-        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+        shell: bash
+        run: |
+          set -euo pipefail
+          ANDROID_SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          SDKMANAGER="$(find "$ANDROID_SDK/cmdline-tools" -type f -name sdkmanager | sort | tail -n 1)"
+          if [[ -z "$SDKMANAGER" ]]; then
+            echo "::error::Android SDK command-line tools were not found."
+            exit 1
+          fi
+          yes | "$SDKMANAGER" --licenses >/dev/null
+          "$SDKMANAGER" --install "platforms;android-36" "build-tools;36.0.0"
 
       - name: Set up Gradle 9.5
         uses: gradle/actions/setup-gradle@v6
