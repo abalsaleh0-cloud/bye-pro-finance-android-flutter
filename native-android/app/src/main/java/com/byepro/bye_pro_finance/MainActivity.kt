@@ -313,31 +313,42 @@ class MainActivity : Activity() {
     }
 
     private fun addMonthSelector(summary: DashboardSummary) {
-        val row = LinearLayout(this).apply {
+        val row = FinanceComponents.card(this, darkTheme).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setPadding(dp(12), dp(7), dp(7), dp(7))
-            setRoundedBackground(FinancePalette.surface(darkTheme), 14f)
+            setPadding(dp(12), dp(8), dp(12), dp(8))
         }
-        val calendar = makeText("▦", 20f, true).apply {
-            setTextColor(FinancePalette.accent(darkTheme))
+        val icon = FinanceDesignSystem.iconBox(
+            this, darkTheme, R.drawable.ic_calendar, selected = true
+        )
+        row.addView(icon, LinearLayout.LayoutParams(
+            dp(FinanceDesignTokens.RECORD_ICON_BOX_SIZE),
+            dp(FinanceDesignTokens.RECORD_ICON_BOX_SIZE)
+        ))
+        val label = FinanceDesignSystem.text(
+            this, s(R.string.month_shown), 14f,
+            FinancePalette.text(darkTheme), bold = true
+        ).apply { setPadding(dp(12), 0, dp(6), 0) }
+        row.addView(label, LinearLayout.LayoutParams(0, dp(48), 1f))
+        val month = FinanceDesignSystem.text(
+            this, selectedMonth.toString() + "  ▾", 14f,
+            FinancePalette.accent(darkTheme), bold = true
+        ).apply {
             gravity = Gravity.CENTER
-        }
-        row.addView(calendar, LinearLayout.LayoutParams(dp(34), dp(42)))
-        val label = makeText(s(com.byepro.bye_pro_finance.R.string.month_shown), 14f, true)
-        row.addView(label, LinearLayout.LayoutParams(0, dp(44), 1f))
-        val month = makeText(selectedMonth.toString() + "  ⌄", 16f, true).apply {
-            gravity = Gravity.CENTER
+            background = FinanceDesignSystem.rounded(
+                this@MainActivity, FinancePalette.raised(darkTheme),
+                FinanceDesignTokens.CONTROL_RADIUS
+            )
             setPadding(dp(14), 0, dp(14), 0)
-            setRoundedBackground(FinancePalette.raised(darkTheme), 12f)
+            minHeight = dp(FinanceDesignTokens.BUTTON_HEIGHT)
             isClickable = true
             isFocusable = true
             setOnClickListener { showMonthPicker(this, summary.availableMonths) }
         }
-        row.addView(month, LinearLayout.LayoutParams(dp(150), dp(44)))
+        row.addView(month, LinearLayout.LayoutParams(dp(136), dp(48)))
         pageContent.addView(row, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
         ))
     }
 
@@ -378,12 +389,13 @@ class MainActivity : Activity() {
     }
 
     private fun addSectionHeading(title: String) {
-        val heading = makeText(title, 18f, true).apply {
-            setPadding(dp(2), dp(10), dp(2), dp(8))
-        }
-        pageContent.addView(heading, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
-        ))
+        pageContent.addView(
+            FinanceComponents.sectionHeader(this, darkTheme, title),
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(FinanceDesignTokens.SECTION_TAB_HEIGHT)
+            )
+        )
     }
 
     private fun addCashFlowComparison(transfers: Long, expenses: Long) {
@@ -448,42 +460,24 @@ class MainActivity : Activity() {
 
     private fun addActivityGroup(items: List<ActivityItem>) {
         if (items.isEmpty()) {
-            addEmptyState(s(com.byepro.bye_pro_finance.R.string.no_recent_activity))
+            addEmptyState(s(R.string.no_recent_activity))
             return
         }
-        val group = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setRoundedBackground(FinancePalette.surface(darkTheme), 15f)
-            clipToOutline = true
-        }
+        val group = FinanceComponents.card(this, darkTheme)
         items.forEachIndexed { index, item ->
-            if (index > 0) addDivider(group, 64)
-            val row = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                layoutDirection = View.LAYOUT_DIRECTION_RTL
-                gravity = Gravity.CENTER_VERTICAL
-                setPadding(dp(12), dp(7), dp(12), dp(7))
+            if (index > 0) {
+                group.addView(FinanceComponents.bottomDivider(this, darkTheme))
             }
-            val icon = makeText(activityGlyph(item.icon), 18f, true).apply {
-                gravity = Gravity.CENTER
-                setTextColor(FinancePalette.accent(darkTheme))
-                setRoundedBackground(FinancePalette.raised(darkTheme), 30f)
-            }
-            row.addView(icon, LinearLayout.LayoutParams(dp(40), dp(40)))
-            val detail = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                setPadding(dp(12), 0, dp(8), 0)
-            }
-            detail.addView(makeText(activityTitle(item.title), 13f, true))
-            if (item.subtitle.isNotBlank()) {
-                detail.addView(makeText(item.subtitle, 11f, false).apply {
-                    setTextColor(FinancePalette.muted(darkTheme))
-                    maxLines = 1
-                })
-            }
-            row.addView(detail, LinearLayout.LayoutParams(0, dp(48), 1f))
-            row.addView(makeText(formatAmount(item.amountMinorUnits), 15f, true))
-            group.addView(row)
+            group.addView(
+                FinanceComponents.recordRow(
+                    context = this,
+                    isDark = darkTheme,
+                    iconResource = activityIcon(item.icon),
+                    title = activityTitle(item.title),
+                    subtitle = item.subtitle.ifBlank { formatDate(item.timestamp) },
+                    amount = formatAmount(item.amountMinorUnits)
+                )
+            )
         }
         pageContent.addView(group)
     }
@@ -555,50 +549,27 @@ class MainActivity : Activity() {
     }
 
     private fun addRecordGroup(records: List<FinanceRecord>) {
-        val group = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutDirection = View.LAYOUT_DIRECTION_RTL
-            setRoundedBackground(FinancePalette.surface(darkTheme), 15f)
-            clipToOutline = true
-        }
+        val group = FinanceComponents.card(this, darkTheme)
         records.forEachIndexed { index, record ->
-            if (index > 0) addDivider(group, 64)
-            val row = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                layoutDirection = View.LAYOUT_DIRECTION_RTL
-                gravity = Gravity.CENTER_VERTICAL
-                setPadding(dp(12), dp(8), dp(12), dp(8))
+            if (index > 0) {
+                group.addView(FinanceComponents.bottomDivider(this, darkTheme))
             }
-            val icon = makeText(recordGlyph(record.kind), 18f, true).apply {
-                gravity = Gravity.CENTER
-                setTextColor(FinancePalette.accent(darkTheme))
-                setRoundedBackground(FinancePalette.raised(darkTheme), 30f)
-            }
-            row.addView(icon, LinearLayout.LayoutParams(dp(40), dp(40)))
-            val details = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                setPadding(dp(12), 0, dp(8), 0)
-            }
-            details.addView(makeText(recordTitle(record), 14f, true))
-            if (record.detail.isNotBlank()) {
-                details.addView(makeText(record.detail, 11f, false).apply {
-                    setTextColor(FinancePalette.muted(darkTheme))
-                    maxLines = 1
-                })
-            }
-            row.addView(details, LinearLayout.LayoutParams(0, dp(48), 1f))
-            val amount = makeText(formatAmount(record.amountMinorUnits), 15f, true)
-            row.addView(amount)
-            row.isLongClickable = true
-            row.setOnLongClickListener {
-                showRecordActions(it, record)
-                true
-            }
-            if (record.kind == "bill" || record.kind == "creditor" || record.kind == "debtor") {
-                row.isClickable = true
-                row.setOnClickListener { showRecordActions(it, record) }
-            }
-            group.addView(row)
+            group.addView(
+                FinanceComponents.recordRow(
+                    context = this,
+                    isDark = darkTheme,
+                    iconResource = recordIcon(record.kind),
+                    title = recordTitle(record),
+                    subtitle = recordDetail(record),
+                    amount = formatAmount(record.amountMinorUnits),
+                    onClick = {
+                        if (record.kind in setOf(
+                            "bill", "creditor", "debtor", "debtPayment", "billPayment"
+                        )) showRecordActions(group, record)
+                    },
+                    onLongClick = { showRecordActions(group, record) }
+                )
+            )
         }
         pageContent.addView(group)
     }
@@ -1371,21 +1342,51 @@ class MainActivity : Activity() {
         else -> title
     }
 
-    private fun activityGlyph(icon: String): String = when (icon) {
-        "work" -> "▰"
-        "home" -> R.drawable.ic_work
+    private fun activityIcon(icon: String): Int = when (icon) {
+        "work" -> R.drawable.ic_work
+        "home" -> R.drawable.ic_expense
         "transfer" -> R.drawable.ic_transfer
-        "bill" -> R.drawable.ic_payments
-        else -> R.drawable.ic_advance
+        "bill" -> R.drawable.ic_bill
+        else -> R.drawable.ic_debts
     }
 
-    private fun recordGlyph(kind: String): String = when (kind) {
+    private fun recordIcon(kind: String): Int = when (kind) {
         "salary" -> R.drawable.ic_payments
         "advance" -> R.drawable.ic_advance
-        "payment" -> R.drawable.ic_payments
-        "creditor" -> R.drawable.ic_payments
-        "debtor" -> R.drawable.ic_advance
+        "payment", "salaryPayment" -> R.drawable.ic_payments
+        "transfer" -> R.drawable.ic_transfer
+        "expense" -> R.drawable.ic_expense
+        "bill", "billPayment" -> R.drawable.ic_bill
+        "creditor", "debtor", "debtPayment" -> R.drawable.ic_debts
         else -> R.drawable.ic_work
+    }
+
+    private fun recordDetail(record: FinanceRecord): String {
+        val parts = mutableListOf<String>()
+        when (record.kind) {
+            "salary", "advance", "payment", "salaryPayment", "bill" -> {
+                if (record.dueYear != null && record.dueMonth != null) {
+                    parts.add("%04d-%02d".format(record.dueYear, record.dueMonth))
+                }
+            }
+            else -> if (record.timestamp > 0L) parts.add(formatDate(record.timestamp))
+        }
+        record.note?.takeIf { it.isNotBlank() }?.let(parts::add)
+        if (record.note.isNullOrBlank() && record.detail.isNotBlank()) {
+            if (record.kind == "bill") {
+                val type = if (record.detail.startsWith("rent")) {
+                    s(R.string.rent_bill)
+                } else {
+                    s(R.string.monthly_bill)
+                }
+                parts.add(type)
+            } else if (record.kind == "creditor") {
+                parts.add(s(R.string.creditor_balance))
+            } else if (record.kind == "debtor") {
+                parts.add(s(R.string.debtor_balance))
+            }
+        }
+        return parts.joinToString(" • ")
     }
 
     private fun makeText(value: String, sizeSp: Float, bold: Boolean): TextView =
