@@ -37,20 +37,20 @@ class MonthSelector extends StatelessWidget {
     }
 
     const selectorWidth = 148.0;
-    return Card(
-      child: Padding(
-        padding: EdgeInsetsDirectional.fromSTEB(
-          tokens.cardPadding - 2,
-          tokens.pageVerticalPadding - 2,
-          tokens.pageVerticalPadding - 2,
-          tokens.pageVerticalPadding - 2,
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(tokens.controlRadius),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: SizedBox(
+        height: tokens.buttonHeight,
         child: Row(
           children: [
             Icon(
               Icons.calendar_month_outlined,
               color: theme.colorScheme.primary,
-              size: tokens.standardIconSize,
+              size: 19,
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -59,7 +59,7 @@ class MonthSelector extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
@@ -72,7 +72,6 @@ class MonthSelector extends StatelessWidget {
               decoration: BoxDecoration(
                 color: theme.colorScheme.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(tokens.controlRadius),
-                border: Border.all(color: theme.colorScheme.outlineVariant),
               ),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<MonthKey>(
