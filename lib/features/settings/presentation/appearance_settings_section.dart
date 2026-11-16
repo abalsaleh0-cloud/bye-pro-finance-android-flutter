@@ -462,7 +462,6 @@ const darkOnSurface = Color(${hex(dark.onSurface)});
     final settings = ref.watch(appSettingsProvider);
     final controller = ref.read(appSettingsProvider.notifier);
     final selectedId = settings.themeId;
-    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
     final query = _searchQuery.trim().toLowerCase();
     bool matches(AppThemePreset theme) =>
         query.isEmpty ||
