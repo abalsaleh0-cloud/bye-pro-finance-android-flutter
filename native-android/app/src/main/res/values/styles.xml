@@ -13,7 +13,7 @@
 
     <style name="NativeFinanceDialogLightTheme" parent="@android:style/Theme.Material.Light.Dialog.Alert">
         <item name="android:fontFamily">sans</item>
-        <item name="android:windowBackground">@drawable/finance_dialog_background</item>
+        <item name="android:windowBackground">@drawable/finance_dialog_background_light</item>
         <item name="android:colorAccent">#236DAB</item>
         <item name="android:textColorPrimary">#17212B</item>
         <item name="android:textColorSecondary">#71808D</item>
