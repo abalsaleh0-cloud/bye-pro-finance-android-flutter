@@ -539,24 +539,25 @@ class MainActivity : Activity() {
     }
 
     private fun renderAssistant() {
-        addSectionHeading(s(com.byepro.bye_pro_finance.R.string.ai))
-        val panel = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(16), dp(16), dp(16), dp(16))
-            setRoundedBackground(FinancePalette.surface(darkTheme), 16f)
-        }
-        panel.addView(makeText("✧", 28f, true).apply {
-            setTextColor(FinancePalette.accent(darkTheme))
-        })
+        addSectionHeading(s(R.string.ai))
+        val panel = FinanceComponents.card(this, darkTheme)
+        val icon = FinanceDesignSystem.iconBox(
+            this,
+            darkTheme,
+            R.drawable.ic_ai,
+            selected = true
+        )
+        panel.addView(icon, LinearLayout.LayoutParams(dp(40), dp(40)))
         panel.addView(makeText(
-            s(com.byepro.bye_pro_finance.R.string.ai_migration_notice),
+            s(R.string.ai_migration_notice),
             14f,
             false
         ).apply {
-            setPadding(0, dp(8), 0, 0)
+            setPadding(0, dp(FinanceDesignTokens.SECTION_SPACING), 0, 0)
         })
         pageContent.addView(panel, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
         ))
     }
 
@@ -593,13 +594,15 @@ class MainActivity : Activity() {
     }
 
     private fun addEmptyState(message: String) {
-        val text = makeText(message, 14f, false).apply {
+        val text = FinanceDesignSystem.text(
+            this, message, 14f, FinancePalette.muted(darkTheme)
+        ).apply {
             gravity = Gravity.CENTER
-            setTextColor(FinancePalette.muted(darkTheme))
             setPadding(dp(12), dp(24), dp(12), dp(24))
         }
         pageContent.addView(text, LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT
         ))
     }
 
@@ -1290,24 +1293,9 @@ class MainActivity : Activity() {
     }
 
     private fun showCalculator() {
-        val form = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(20), dp(12), dp(20), 0)
-        }
-        val first = FinanceDesignSystem.input(
-            context = this,
-            isDark = darkTheme,
-            hint = s(R.string.enter_amount),
-            numeric = true
-        )
-        val second = FinanceDesignSystem.input(
-            context = this,
-            isDark = darkTheme,
-            hint = s(R.string.enter_amount),
-            numeric = true
-        )
-        form.addView(first)
-        form.addView(second)
+        val form = createForm()
+        val first = formInput(form, s(R.string.enter_amount), numeric = true)
+        val second = formInput(form, s(R.string.enter_amount), numeric = true)
         dialogBuilder()
             .setTitle(s(com.byepro.bye_pro_finance.R.string.calculator))
             .setView(form)
