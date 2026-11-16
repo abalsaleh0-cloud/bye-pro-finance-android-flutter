@@ -7,7 +7,7 @@ This is the new Android-native implementation. The active native UI uses one cen
 - One shared light palette and one shared dark palette.
 - Switching modes changes colors only. Component sizes, page structure, spacing, icons, typography, and RTL layout stay the same.
 - Appearance and language are separate settings.
-- Old appearance keys (`theme_id`, `custom_themes`, `appearance_preset`, and legacy background/effect keys) are removed from `app_settings` on native app startup. The new `theme_mode`, language preference, and AI engine preference are retained.
+- Old appearance keys (`theme_id`, `custom_themes`, and `appearance_preset`) are removed from `app_settings` on native app startup. The new `theme_mode`, language preference, and AI engine preference are retained.
 - No financial tables or transaction records are touched by this cleanup.
 
 ## Design system
