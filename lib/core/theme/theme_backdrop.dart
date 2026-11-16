@@ -298,7 +298,7 @@ class _ThemeBackdropPainter extends CustomPainter {
           final seed = i * 12.9898;
           final x = ((math.sin(seed) + 1) / 2) * width;
           final y = ((math.sin(seed * 1.7 + 4.3) + 1) / 2) * height;
-          final drift = reduced ? 0 : math.sin(phase + i) * 10;
+          final drift = reduced ? 0.0 : math.sin(phase + i) * 10;
           canvas.drawCircle(
             Offset(x + drift, y),
             i % 5 == 0 ? 2 : 1.2,
@@ -356,7 +356,7 @@ class _ThemeBackdropPainter extends CustomPainter {
               ),
             );
             paint.layout();
-            final drift = reduced ? 0 : phase * 8;
+            final drift = reduced ? 0.0 : phase * 8;
             paint.paint(
               canvas,
               Offset(i * 24, (j * 48 + drift) % height),
