@@ -120,7 +120,7 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: scheme,
       extensions: [tokens],
-      scaffoldBackgroundColor: Colors.transparent,
+      scaffoldBackgroundColor: scheme.surface,
       canvasColor: scheme.surfaceContainerLow,
       textTheme: Typography.material2021(
         platform: TargetPlatform.android,
@@ -130,7 +130,7 @@ class AppTheme {
         displayColor: scheme.onSurface,
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: scheme.surface.withValues(alpha: .92),
+        backgroundColor: scheme.surface,
         foregroundColor: scheme.onSurface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
@@ -144,7 +144,7 @@ class AppTheme {
         iconTheme: IconThemeData(color: scheme.onSurfaceVariant),
       ),
       cardTheme: CardThemeData(
-        color: scheme.surfaceContainerLow.withValues(alpha: .91),
+        color: scheme.surfaceContainerLow,
         elevation: 0,
         margin: EdgeInsets.zero,
         surfaceTintColor: Colors.transparent,
@@ -227,8 +227,8 @@ class AppTheme {
         shape: const CircleBorder(),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        height: 72,
-        backgroundColor: scheme.surface.withValues(alpha: .96),
+        height: 68,
+        backgroundColor: scheme.surface,
         indicatorColor: scheme.secondaryContainer,
         indicatorShape: RoundedRectangleBorder(borderRadius: controlRadius),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
