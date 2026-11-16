@@ -41,7 +41,6 @@ class AppShell extends ConsumerWidget {
     return Scaffold(
       extendBody: false,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         title: Text(labels[_selectedIndex]),
         actions: [
