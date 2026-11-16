@@ -16,21 +16,12 @@ object FinanceAppearance {
     const val SETTINGS_KEY = "theme_mode"
 
     /** Legacy palette/background keys are obsolete in the new design system. */
+    // These are the only obsolete appearance keys confirmed in the
+    // Flutter AppSettingsController. Do not delete unknown app preferences.
     val LEGACY_SETTING_KEYS = listOf(
         "theme_id",
         "custom_themes",
-        "appearance_preset",
-        "theme_background",
-        "theme_background_image",
-        "background_mode",
-        "background_style",
-        "background_effects",
-        "background_animation",
-        "animated_background",
-        "cinematic_effects",
-        "theme_effects",
-        "theme_fx",
-        "custom_theme"
+        "appearance_preset"
     )
 
     fun isDark(mode: FinanceAppearanceMode, systemIsDark: Boolean): Boolean =
