@@ -2,7 +2,7 @@ import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:material_ui/material_ui.dart';
 
-/// One shared five-destination navigation bar for every top-level screen.
+/// Shared, fixed-height five-destination navigation for every main section.
 class AppBottomNavigationBar extends StatelessWidget {
   const AppBottomNavigationBar({
     required this.selectedIndex,
@@ -41,42 +41,31 @@ class AppBottomNavigationBar extends StatelessWidget {
     ];
     final scheme = Theme.of(context).colorScheme;
 
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsetsDirectional.fromSTEB(14, 4, 14, 10),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: scheme.surface.withValues(alpha: 0.96),
-            borderRadius: BorderRadius.circular(tokens.cardRadius),
-            border: Border.all(color: scheme.outlineVariant),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.16),
-                blurRadius: 18,
-                offset: const Offset(0, 6),
-              ),
-            ],
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        border: Border(
+          top: BorderSide(color: scheme.outlineVariant, width: 0.8),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        child: NavigationBar(
+          height: 68,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          selectedIndex: selectedIndex,
+          onDestinationSelected: onDestinationSelected,
+          indicatorColor: scheme.secondaryContainer.withValues(alpha: .62),
+          indicatorShape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(tokens.controlRadius),
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(tokens.cardRadius),
-            child: NavigationBar(
-              height: 72,
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              selectedIndex: selectedIndex,
-              onDestinationSelected: onDestinationSelected,
-              indicatorShape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(tokens.controlRadius),
-              ),
-              destinations: List.generate(
-                labels.length,
-                (index) => NavigationDestination(
-                  icon: Icon(_icons[index]),
-                  selectedIcon: Icon(_selectedIcons[index]),
-                  label: labels[index],
-                ),
-              ),
+          destinations: List.generate(
+            labels.length,
+            (index) => NavigationDestination(
+              icon: Icon(_icons[index]),
+              selectedIcon: Icon(_selectedIcons[index]),
+              label: labels[index],
             ),
           ),
         ),
