@@ -15,6 +15,14 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
+      # Android Gradle Plugin 9.3.1's release lint path uses Java 21 APIs.
+      # Pin the JDK rather than relying on the runner's preinstalled default.
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         env:
