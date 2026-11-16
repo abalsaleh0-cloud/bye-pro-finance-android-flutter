@@ -19,16 +19,16 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
 
   factory AppDesignTokens.standard() => const AppDesignTokens(
         pageHorizontalPadding: 16,
-        pageVerticalPadding: 10,
-        sectionSpacing: 14,
-        cardRadius: 24,
-        controlRadius: 24,
-        dialogRadius: 24,
+        pageVerticalPadding: 12,
+        sectionSpacing: 12,
+        cardRadius: 16,
+        controlRadius: 12,
+        dialogRadius: 20,
         cardElevation: 0,
         cardPadding: 16,
         listTileVerticalPadding: 2,
-        inputVerticalPadding: 14,
-        motionDuration: Duration(milliseconds: 180),
+        inputVerticalPadding: 12,
+        motionDuration: Duration(milliseconds: 160),
       );
 
   final double pageHorizontalPadding;
