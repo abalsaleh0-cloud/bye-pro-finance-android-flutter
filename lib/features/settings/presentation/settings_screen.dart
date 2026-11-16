@@ -95,8 +95,6 @@ class SettingsScreen extends ConsumerWidget {
         padding: tokens.pageInsets(bottom: tokens.pageVerticalPadding * 2),
         children: [
           _sectionTitle(context, strings.settingsAppearance),
-          const AppearanceSettingsSection(),
-          SizedBox(height: tokens.sectionSpacing),
           Card(
             child: ListTile(
               leading: const Icon(Icons.language_outlined),
@@ -121,6 +119,7 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
           ),
+          const AppearanceSettingsSection(),
           SizedBox(height: tokens.sectionSpacing),
           _sectionTitle(context, strings.settingsAssistant),
           Card(
