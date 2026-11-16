@@ -170,7 +170,7 @@ object FinanceComponents {
             layoutDirection = View.LAYOUT_DIRECTION_RTL
             gravity = Gravity.CENTER_VERTICAL
             minimumHeight = FinanceDesignSystem.dp(
-                context, FinanceDesignTokens.METRIC_TILE_MIN_HEIGHT / 2
+                context, FinanceDesignTokens.METRIC_TILE_MIN_HEIGHT
             )
             setPadding(
                 FinanceDesignSystem.dp(context, 12),
@@ -256,7 +256,7 @@ object FinanceComponents {
             ).apply { maxLines = 1 })
         }
         row.addView(detail, LinearLayout.LayoutParams(0,
-            FinanceDesignSystem.dp(context, FinanceDesignTokens.RECORD_ROW_HEIGHT), 1f))
+            FinanceDesignSystem.dp(context, FinanceDesignTokens.BUTTON_HEIGHT), 1f))
 
         row.addView(FinanceDesignSystem.text(
             context, amount, 15f, palette.text, bold = true
