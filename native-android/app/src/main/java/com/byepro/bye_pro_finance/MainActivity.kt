@@ -6,6 +6,7 @@ import android.app.DatePickerDialog
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Typeface
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.text.InputType
 import android.view.Gravity
@@ -25,6 +26,8 @@ import com.byepro.bye_pro_finance.data.LegacyFinanceDatabase
 import com.byepro.bye_pro_finance.domain.ActivityItem
 import com.byepro.bye_pro_finance.domain.DashboardSummary
 import com.byepro.bye_pro_finance.domain.FinanceRecord
+import com.byepro.bye_pro_finance.ui.FinanceAppearance
+import com.byepro.bye_pro_finance.ui.FinanceAppearanceMode
 import com.byepro.bye_pro_finance.ui.FinanceComponents
 import com.byepro.bye_pro_finance.ui.FinanceDesignSystem
 import com.byepro.bye_pro_finance.ui.FinanceDesignTokens
@@ -65,6 +68,9 @@ class MainActivity : Activity() {
         super.onCreate(savedInstanceState)
 
         database = LegacyFinanceDatabase(this)
+        // Delete only obsolete theme catalogue/background preferences. Financial
+        // tables and every work, home, bill, debt and payment row are untouched.
+        database.deleteSettings(FinanceAppearance.LEGACY_SETTING_KEYS)
         repository = DashboardRepository(database)
         writeRepository = FinanceWriteRepository(database)
         localeCode = database.readSetting("locale")?.let {
@@ -103,18 +109,21 @@ class MainActivity : Activity() {
 
     private fun s(resourceId: Int): String = localizedContext().getString(resourceId)
 
-    private fun resolveDarkTheme(): Boolean = when (themeMode) {
-        "dark" -> true
-        "light" -> false
-        else -> {
-            val mode = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
-            mode != Configuration.UI_MODE_NIGHT_NO
-        }
+    private fun resolveDarkTheme(): Boolean {
+        val systemIsDark =
+            (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) !=
+                Configuration.UI_MODE_NIGHT_NO
+        return FinanceAppearance.isDark(
+            FinanceAppearanceMode.fromStorage(themeMode),
+            systemIsDark
+        )
     }
 
     private fun applySystemBars() {
-        window.statusBarColor = FinancePalette.background(darkTheme)
-        window.navigationBarColor = FinancePalette.background(darkTheme)
+        val background = FinancePalette.background(darkTheme)
+        window.setBackgroundDrawable(ColorDrawable(background))
+        window.statusBarColor = background
+        window.navigationBarColor = background
         @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility = if (darkTheme) 0 else
             View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
@@ -1313,27 +1322,62 @@ class MainActivity : Activity() {
 
     private fun showSettings() {
         val options = arrayOf(
-            s(com.byepro.bye_pro_finance.R.string.dark),
-            s(com.byepro.bye_pro_finance.R.string.light),
-            s(com.byepro.bye_pro_finance.R.string.system),
-            s(com.byepro.bye_pro_finance.R.string.arabic),
-            s(com.byepro.bye_pro_finance.R.string.english)
+            s(R.string.appearance),
+            s(R.string.language)
         )
         dialogBuilder()
-            .setTitle(s(com.byepro.bye_pro_finance.R.string.settings))
+            .setTitle(s(R.string.settings))
             .setItems(options) { _, which ->
                 when (which) {
-                    0 -> themeMode = "dark"
-                    1 -> themeMode = "light"
-                    2 -> themeMode = "system"
-                    3 -> localeCode = "ar"
-                    4 -> localeCode = "en"
+                    0 -> showAppearanceModePicker()
+                    1 -> showLanguagePicker()
                 }
-                database.writeSetting("theme_mode", themeMode)
-                database.writeSetting("locale", localeCode)
+            }
+            .setNegativeButton(s(R.string.cancel), null)
+            .show()
+    }
+
+    private fun showAppearanceModePicker() {
+        val modes = arrayOf(
+            FinanceAppearanceMode.SYSTEM,
+            FinanceAppearanceMode.LIGHT,
+            FinanceAppearanceMode.DARK
+        )
+        val labels = arrayOf(
+            s(R.string.system),
+            s(R.string.light),
+            s(R.string.dark)
+        )
+        val selected = modes.indexOf(FinanceAppearanceMode.fromStorage(themeMode))
+            .coerceAtLeast(0)
+
+        dialogBuilder()
+            .setTitle(s(R.string.appearance))
+            .setSingleChoiceItems(labels, selected) { dialog, which ->
+                themeMode = modes[which].storageValue
+                database.writeSetting(FinanceAppearance.SETTINGS_KEY, themeMode)
+                dialog.dismiss()
                 recreate()
             }
-            .setNegativeButton(s(com.byepro.bye_pro_finance.R.string.cancel), null)
+            .setNegativeButton(s(R.string.cancel), null)
+            .show()
+    }
+
+    private fun showLanguagePicker() {
+        val languages = arrayOf(
+            s(R.string.arabic),
+            s(R.string.english)
+        )
+        val selected = if (localeCode == "en") 1 else 0
+        dialogBuilder()
+            .setTitle(s(R.string.language))
+            .setSingleChoiceItems(languages, selected) { dialog, which ->
+                localeCode = if (which == 1) "en" else "ar"
+                database.writeSetting("locale", localeCode)
+                dialog.dismiss()
+                recreate()
+            }
+            .setNegativeButton(s(R.string.cancel), null)
             .show()
     }
 
