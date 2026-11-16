@@ -58,6 +58,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   final ImagePicker _imagePicker = ImagePicker();
   final AndroidAssistantVoiceService _voiceService = const AndroidAssistantVoiceService();
   bool _recognizing = false;
+  bool _speakReplies = false;
   Uint8List? _attachmentBytes;
   bool _attachmentIsImage = false;
   String? _attachmentName;
@@ -75,6 +76,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     if (_recognizing) {
       unawaited(_voiceService.cancelArabicSpeechRecognition());
     }
+    if (_speakReplies) unawaited(_voiceService.stopSpeaking());
     if (_recording) unawaited(_recorder.stop());
     unawaited(_recorder.dispose());
     unawaited(_gemmaModelManager.releaseModel());
@@ -241,6 +243,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     ref.read(aiChatMessagesProvider.notifier).add(
       AiChatMessage(text, includeInModelContext: includeInModelContext),
     );
+    if (_speakReplies) unawaited(_speakAssistantReply(text));
   }
 
   Future<void> _copyMessage(String text) async {
@@ -268,6 +271,35 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         SnackBar(
           content: Text(AppLocalizations.of(context)!.aiArabicTtsUnavailable),
         ),
+      );
+    }
+  }
+
+  Future<void> _toggleSpokenReplies() async {
+    if (_busy || _recognizing || _recording) return;
+    if (_speakReplies) {
+      setState(() => _speakReplies = false);
+      try {
+        await _voiceService.stopSpeaking();
+      } catch (_) {}
+      return;
+    }
+
+    final strings = AppLocalizations.of(context)!;
+    try {
+      final available = await _voiceService.hasOfflineArabicTts();
+      if (!mounted) return;
+      if (!available) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(strings.aiArabicTtsUnavailable)),
+        );
+        return;
+      }
+      setState(() => _speakReplies = true);
+    } on PlatformException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(strings.aiArabicTtsUnavailable)),
       );
     }
   }
@@ -1157,6 +1189,21 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                         ],
                       ),
                     ),
+                  ),
+                  const SizedBox(width: 2),
+                  IconButton.filledTonal(
+                    key: const Key('ai-spoken-replies-toggle'),
+                    onPressed: _busy || _recording || _recognizing
+                        ? null
+                        : _toggleSpokenReplies,
+                    icon: Icon(
+                      _speakReplies
+                          ? Icons.volume_up_rounded
+                          : Icons.volume_off_outlined,
+                    ),
+                    tooltip: _speakReplies
+                        ? strings.aiVoiceRepliesOn
+                        : strings.aiVoiceRepliesOff,
                   ),
                 ],
               ),
