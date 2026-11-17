@@ -49,7 +49,9 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
     if (widget.openManualEntry && !_manualEntryOpened) {
       _manualEntryOpened = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _showAddActionPicker(context, ref, AppLocalizations.of(context)!);
+        if (mounted) {
+          _showAddActionPicker(context, ref, AppLocalizations.of(context)!);
+        }
       });
     }
   }
@@ -120,7 +122,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
         ),
       ),
     );
-    if (!mounted || action == null) return;
+    if (!context.mounted || action == null) return;
     switch (action) {
       case WorkQuickAction.salary:
         await _editEntry(context, ref, strings, kind: WorkEntryKind.salary);
