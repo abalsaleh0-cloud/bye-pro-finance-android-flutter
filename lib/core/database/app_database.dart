@@ -54,7 +54,17 @@ class AppDatabase extends _$AppDatabase {
     },
     beforeOpen: (OpeningDetails details) async {
       await customStatement('PRAGMA foreign_keys = ON');
-      await customStatement("CREATE TABLE IF NOT EXISTS home_bills (id TEXT PRIMARY KEY NOT NULL, title TEXT NOT NULL, kind TEXT NOT NULL CHECK (kind IN ('monthly', 'rent')), amount_minor_units INTEGER NOT NULL CHECK (amount_minor_units > 0), due_year INTEGER NOT NULL, due_month INTEGER NOT NULL CHECK (due_month BETWEEN 1 AND 12), note TEXT)");
+      await customStatement("CREATE TABLE IF NOT EXISTS home_bills (id TEXT PRIMARY KEY NOT NULL, title TEXT NOT NULL, kind TEXT NOT NULL CHECK (kind IN ('monthly', 'rent')), amount_minor_units INTEGER NOT NULL CHECK (amount_minor_units > 0), due_year INTEGER NOT NULL, due_month INTEGER NOT NULL CHECK (due_month BETWEEN 1 AND 12), due_date_epoch_millis INTEGER, note TEXT)");
+      final homeBillColumns = await customSelect(
+        'PRAGMA table_info(home_bills)',
+      ).get();
+      if (!homeBillColumns.any(
+        (row) => row.read<String>('name') == 'due_date_epoch_millis',
+      )) {
+        await customStatement(
+          'ALTER TABLE home_bills ADD COLUMN due_date_epoch_millis INTEGER',
+        );
+      }
       await customStatement('CREATE TABLE IF NOT EXISTS home_bill_payments (id TEXT PRIMARY KEY NOT NULL, bill_id TEXT NOT NULL REFERENCES home_bills(id) ON DELETE CASCADE, amount_minor_units INTEGER NOT NULL CHECK (amount_minor_units > 0), paid_at_epoch_millis INTEGER NOT NULL, note TEXT)');
       await customStatement('''
         CREATE TABLE IF NOT EXISTS app_settings (
