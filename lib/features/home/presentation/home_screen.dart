@@ -118,6 +118,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       };
 
   static const _categoryIconOptions = <String>[
+    'category',
     'groceries',
     'utilities',
     'housing',
