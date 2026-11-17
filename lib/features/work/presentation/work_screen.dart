@@ -135,9 +135,12 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
     AppLocalizations strings,
     _WorkTimelineType type,
   ) => switch (type) {
-    _WorkTimelineType.salary => strings.salary,
-    _WorkTimelineType.payment => strings.payment,
-    _WorkTimelineType.advance => strings.advance,
+    _WorkTimelineType.salary => _kindLabel(strings, WorkEntryKind.salary),
+    _WorkTimelineType.payment => _kindLabel(
+      strings,
+      WorkEntryKind.salaryPayment,
+    ),
+    _WorkTimelineType.advance => _kindLabel(strings, WorkEntryKind.advance),
     _WorkTimelineType.transfer => strings.transferredToHome,
   };
 
@@ -291,7 +294,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
         context: context,
         builder: (dialogContext) => StatefulBuilder(
           builder: (context, setDialogState) => EntryFormDialog(
-            title: Text(strings.addTransfer),
+            title: Text(existing == null ? strings.addTransfer : strings.editRecord),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
