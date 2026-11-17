@@ -1,4 +1,6 @@
+import 'package:drift/native.dart';
 import 'package:expense_app/app/app.dart';
+import 'package:expense_app/core/database/app_database.dart';
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
@@ -14,11 +16,51 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
+
+/// Dispose each ProviderScope while still inside the widget test's fakeAsync
+/// zone, then elapse Drift's zero-duration stream-close timer before the
+/// test binding checks for pending timers.
+void _testWidgetsWithDriftCleanup(
+  String description,
+  Future<void> Function(WidgetTester tester) body,
+) {
+  testWidgets(description, (tester) async {
+    try {
+      await body(tester);
+    } finally {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 1));
+    }
+  });
+}
+
 void main() {
-  testWidgets('starts in Arabic with five primary navigation destinations', (
+  late AppDatabase testDatabase;
+
+  setUpAll(() async {
+    // One in-memory test database per suite; no platform path plugin is needed.
+    testDatabase = AppDatabase.forTesting(NativeDatabase.memory());
+    await testDatabase.readSetting('test-suite-ready');
+  });
+
+  setUp(() async {
+    await testDatabase.clearFinancialData();
+    await testDatabase.customStatement('DELETE FROM app_settings');
+  });
+
+  tearDownAll(() async {
+    await testDatabase.close();
+  });
+
+  _testWidgetsWithDriftCleanup('starts in Arabic with five primary navigation destinations', (
     tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [appDatabaseProvider.overrideWithValue(testDatabase)],
+        child: const MyApp(),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('الرئيسية'), findsWidgets);
@@ -29,8 +71,13 @@ void main() {
     expect(find.text('الذكاء الاصطناعي'), findsWidgets);
   });
 
-  testWidgets('global calculator evaluates expressions and returns a safe result', (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+  _testWidgetsWithDriftCleanup('global calculator evaluates expressions and returns a safe result', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [appDatabaseProvider.overrideWithValue(testDatabase)],
+        child: const MyApp(),
+      ),
+    );
     await tester.tap(find.byKey(const Key('open-calculator')));
     await tester.pumpAndSettle();
 
@@ -53,8 +100,13 @@ void main() {
     expect(find.text('النتيجة: 84'), findsOneWidget);
   });
 
-  testWidgets('financial calculator calculates percentages in minor units', (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+  _testWidgetsWithDriftCleanup('financial calculator calculates percentages in minor units', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [appDatabaseProvider.overrideWithValue(testDatabase)],
+        child: const MyApp(),
+      ),
+    );
     await tester.tap(find.byKey(const Key('open-calculator')));
     await tester.pumpAndSettle();
 
@@ -82,10 +134,15 @@ void main() {
     expect(find.text('النتيجة: 7500'), findsOneWidget);
   });
 
-  testWidgets('global calendar opens the original date picker', (
+  _testWidgetsWithDriftCleanup('global calendar opens the original date picker', (
     tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [appDatabaseProvider.overrideWithValue(testDatabase)],
+        child: const MyApp(),
+      ),
+    );
 
     await tester.tap(find.byKey(const Key('open-calendar')));
     await tester.pumpAndSettle();
@@ -98,8 +155,13 @@ void main() {
     expect(find.byType(DatePickerDialog), findsNothing);
   });
 
-  testWidgets('settings can switch theme and language', (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+  _testWidgetsWithDriftCleanup('settings can switch theme and language', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [appDatabaseProvider.overrideWithValue(testDatabase)],
+        child: const MyApp(),
+      ),
+    );
 
     await tester.tap(find.byKey(const Key('open-settings')));
     await tester.pumpAndSettle();
@@ -125,8 +187,13 @@ void main() {
     );
   });
 
-  testWidgets('bottom navigation changes the active section', (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+  _testWidgetsWithDriftCleanup('bottom navigation changes the active section', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [appDatabaseProvider.overrideWithValue(testDatabase)],
+        child: const MyApp(),
+      ),
+    );
 
     await tester.tap(find.text('العمل').last);
     await tester.pumpAndSettle();
@@ -168,7 +235,7 @@ void main() {
     );
   });
 
-  testWidgets('selected month stays synchronized between work and home sections', (tester) async {
+  _testWidgetsWithDriftCleanup('selected month stays synchronized between work and home sections', (tester) async {
     final now = DateTime.now();
     final currentMonth = MonthKey(year: now.year, month: now.month);
     final previousDate = DateTime(now.year, now.month - 1, 10);
@@ -192,6 +259,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appDatabaseProvider.overrideWithValue(testDatabase),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -268,12 +336,13 @@ void main() {
     );
   });
 
-  testWidgets('work form offers salary advance and payment entry types', (tester) async {
+  _testWidgetsWithDriftCleanup('work form offers salary advance and payment entry types', (tester) async {
     final now = DateTime.now();
     final currentMonth = MonthKey(year: now.year, month: now.month);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appDatabaseProvider.overrideWithValue(testDatabase),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -323,12 +392,13 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('debt form allows selecting creditor direction', (tester) async {
+  _testWidgetsWithDriftCleanup('debt form allows selecting creditor direction', (tester) async {
     final now = DateTime.now();
     final currentMonth = MonthKey(year: now.year, month: now.month);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appDatabaseProvider.overrideWithValue(testDatabase),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -374,7 +444,7 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('new debt form defaults to the globally selected month', (tester) async {
+  _testWidgetsWithDriftCleanup('new debt form defaults to the globally selected month', (tester) async {
     final now = DateTime.now();
     final previousDate = DateTime(now.year, now.month - 1, 1);
     final previousMonth = MonthKey(
@@ -385,6 +455,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appDatabaseProvider.overrideWithValue(testDatabase),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -424,7 +495,7 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('work records show their note in the records page', (tester) async {
+  _testWidgetsWithDriftCleanup('work records show their note in the records page', (tester) async {
     final now = DateTime.now();
     final entry = WorkEntry(
       id: 'widget-work-note',
@@ -438,6 +509,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appDatabaseProvider.overrideWithValue(testDatabase),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -464,7 +536,7 @@ void main() {
     // The note is rendered inside the same multiline subtitle Text as its date.
     expect(find.textContaining('ملاحظة الراتب'), findsOneWidget);
   });
-  testWidgets('saved home bill note is visible on the monthly bills card', (tester) async {
+  _testWidgetsWithDriftCleanup('saved home bill note is visible on the monthly bills card', (tester) async {
     final now = DateTime.now();
     final month = MonthKey(year: now.year, month: now.month);
     final bill = HomeBill(
@@ -479,6 +551,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appDatabaseProvider.overrideWithValue(testDatabase),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -505,7 +578,7 @@ void main() {
   });
 
 
-  testWidgets('home summary displays the exact remaining balance after rent and daily expenses', (tester) async {
+  _testWidgetsWithDriftCleanup('home summary displays the exact remaining balance after rent and daily expenses', (tester) async {
     final now = DateTime.now();
     final month = MonthKey(year: now.year, month: now.month);
     final expense = HomeExpense(
@@ -531,6 +604,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appDatabaseProvider.overrideWithValue(testDatabase),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 580,
           ),
@@ -558,7 +632,7 @@ void main() {
   });
 
 
-  testWidgets('dashboard follows the globally selected historical month', (tester) async {
+  _testWidgetsWithDriftCleanup('dashboard follows the globally selected historical month', (tester) async {
     final now = DateTime.now();
     final currentMonth = MonthKey(year: now.year, month: now.month);
     final previousDate = DateTime(now.year, now.month - 1, 10);
@@ -581,6 +655,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appDatabaseProvider.overrideWithValue(testDatabase),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -621,7 +696,7 @@ void main() {
   });
 
 
-  testWidgets('home bill menu exposes edit and delete and edit form is prefilled', (tester) async {
+  _testWidgetsWithDriftCleanup('home bill menu exposes edit and delete and edit form is prefilled', (tester) async {
     final now = DateTime.now();
     final month = MonthKey(year: now.year, month: now.month);
     final bill = HomeBill(
@@ -636,6 +711,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appDatabaseProvider.overrideWithValue(testDatabase),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -670,7 +746,7 @@ void main() {
     expect(find.text('ملاحظة موجودة'), findsOneWidget);
   });
 
-  testWidgets('new work and home forms default to the globally selected month', (tester) async {
+  _testWidgetsWithDriftCleanup('new work and home forms default to the globally selected month', (tester) async {
     final now = DateTime.now();
     final previousDate = DateTime(now.year, now.month - 1, 1);
     final previousMonth = MonthKey(
@@ -681,6 +757,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appDatabaseProvider.overrideWithValue(testDatabase),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -753,7 +830,7 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('debt payment form exposes time selection and history shows time', (tester) async {
+  _testWidgetsWithDriftCleanup('debt payment form exposes time selection and history shows time', (tester) async {
     final now = DateTime.now();
     final month = MonthKey(year: now.year, month: now.month);
     final debt = DebtEntry(
@@ -775,6 +852,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appDatabaseProvider.overrideWithValue(testDatabase),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),

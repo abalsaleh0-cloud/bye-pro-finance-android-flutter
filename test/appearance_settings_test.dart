@@ -1,14 +1,58 @@
+import 'package:drift/native.dart';
 import 'package:expense_app/app/app.dart';
+import 'package:expense_app/core/database/app_database.dart';
+import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/providers/app_settings_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
+
+/// Dispose each ProviderScope while still inside the widget test's fakeAsync
+/// zone, then elapse Drift's zero-duration stream-close timer before the
+/// test binding checks for pending timers.
+void _testWidgetsWithDriftCleanup(
+  String description,
+  Future<void> Function(WidgetTester tester) body,
+) {
+  testWidgets(description, (tester) async {
+    try {
+      await body(tester);
+    } finally {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 1));
+    }
+  });
+}
+
 void main() {
-  testWidgets('only the three app appearance modes are available', (
+  late AppDatabase testDatabase;
+
+  setUpAll(() async {
+    // One in-memory test database per suite; no platform path plugin is needed.
+    testDatabase = AppDatabase.forTesting(NativeDatabase.memory());
+    await testDatabase.readSetting('test-suite-ready');
+  });
+
+  setUp(() async {
+    await testDatabase.clearFinancialData();
+    await testDatabase.customStatement('DELETE FROM app_settings');
+  });
+
+  tearDownAll(() async {
+    await testDatabase.close();
+  });
+
+
+  _testWidgetsWithDriftCleanup('only the three app appearance modes are available', (
     tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [appDatabaseProvider.overrideWithValue(testDatabase)],
+        child: const MyApp(),
+      ),
+    );
     await tester.tap(find.byKey(const Key('open-settings')));
     await tester.pumpAndSettle();
 
