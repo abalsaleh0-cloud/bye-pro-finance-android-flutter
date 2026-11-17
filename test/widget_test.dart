@@ -418,6 +418,20 @@ void main() {
     expect(find.byType(DropdownButtonFormField<WorkEntryKind>), findsNothing);
     await tester.tap(find.text('إلغاء'));
     await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('open-work-add')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('work-add-action-salary')), findsOneWidget);
+    expect(find.byKey(const Key('work-add-action-payment')), findsOneWidget);
+    expect(find.byKey(const Key('work-add-action-advance')), findsOneWidget);
+    expect(find.byKey(const Key('work-add-action-transfer')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('work-add-action-transfer')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('work-transfer-amount')), findsOneWidget);
+    expect(find.byKey(const Key('work-transfer-date')), findsOneWidget);
+    expect(find.byKey(const Key('work-transfer-note')), findsOneWidget);
+    await tester.tap(find.text('إلغاء'));
+    await tester.pumpAndSettle();
   });
 
   _testWidgetsWithDriftCleanup('debt form allows selecting creditor direction', (tester) async {
