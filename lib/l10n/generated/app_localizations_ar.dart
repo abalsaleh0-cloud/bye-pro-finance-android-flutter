@@ -76,7 +76,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get dueMonth => 'الشهر المستحق';
 
   @override
-  String get recordedAt => 'تاريخ التسجيل';
+  String get recordedAt => 'التاريخ';
 
   @override
   String get salary => 'راتب';
@@ -109,13 +109,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get transferAmount => 'مبلغ التحويل';
 
   @override
-  String get transfers => 'التحويلات إلى المنزل';
+  String get transfers => 'تحويلات المنزل';
 
   @override
   String get expenses => 'المصروفات';
 
   @override
-  String get entries => 'السجلات';
+  String get entries => 'السجل';
 
   @override
   String get loading => 'جارٍ التحميل';
@@ -208,8 +208,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get debtDirection => 'نوع الدين';
 
   @override
-  String get invalidRecord =>
-      'تحقق من البيانات المدخلة والمبالغ والشهر المستحق';
+  String get invalidRecord => 'تحقق من صحة المبلغ والتاريخ';
 
   @override
   String get monthlyOverview => 'ملخص الشهر الحالي';
@@ -316,5 +315,18 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get cashFlowComparison => 'مقارنة التحويلات والمصروفات';
+
+
+  @override
+  String get addWorkOperation => 'إضافة عملية';
+
+  @override
+  String get addSalary => 'إضافة راتب';
+
+  @override
+  String get addPayment => 'إضافة دفعة';
+
+  @override
+  String get addAdvance => 'إضافة سلفة';
 
 }
