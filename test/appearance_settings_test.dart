@@ -14,16 +14,16 @@ void main() {
     testDatabase = AppDatabase.forTesting(NativeDatabase.memory());
   });
 
-  tearDown(() async {
-    await testDatabase.close();
-  });
 
   testWidgets('only the three app appearance modes are available', (
     tester,
   ) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [appDatabaseProvider.overrideWithValue(testDatabase)],
+        overrides: [appDatabaseProvider.overrideWith((ref) {
+          ref.onDispose(() => testDatabase.close());
+          return testDatabase;
+        })],
         child: const MyApp(),
       ),
     );
