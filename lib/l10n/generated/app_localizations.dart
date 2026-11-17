@@ -290,6 +290,18 @@ abstract class AppLocalizations {
   /// **'إضافة تحويل إلى المنزل'**
   String get addTransfer;
 
+  String get addSalaryAction;
+
+  String get addPaymentAction;
+
+  String get addAdvanceAction;
+
+  String get transferToHomeAction;
+
+  String get workTransfers;
+
+  String get workHistory;
+
   /// No description provided for @transferAmount.
   ///
   /// In ar, this message translates to:

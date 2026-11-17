@@ -236,5 +236,11 @@
   "aiCopied": "Message copied",
   "aiUnsupportedAttachment": "Only images and WAV audio files can be attached.",
   "aiAttachmentFallback": "Attachment",
-  "assistantClarificationFallback": "Please clarify."
+  "assistantClarificationFallback": "Please clarify.",
+  "addSalaryAction": "Add salary",
+  "addPaymentAction": "Add payment",
+  "addAdvanceAction": "Add advance",
+  "transferToHomeAction": "Transfer to household",
+  "workTransfers": "Home transfers",
+  "workHistory": "History"
 }

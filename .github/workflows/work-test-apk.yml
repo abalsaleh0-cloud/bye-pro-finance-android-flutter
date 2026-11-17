@@ -1,0 +1,81 @@
+name: Work Section Test APK
+
+on:
+  push:
+    branches:
+      - feature/work-four-actions-and-ledger
+    paths:
+      - '.github/workflows/work-test-apk.yml'
+      - 'android/**'
+      - 'lib/**'
+      - 'assets/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: work-test-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build installable debug APK
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout work-section branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/work-four-actions-and-ledger
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '9.5.0'
+          cache-provider: basic
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        env:
+          FLUTTER_STORAGE_BASE_URL: https://storage.flutter-io.cn
+        with:
+          channel: stable
+          flutter-version: 3.50.0
+          cache: true
+
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Configure Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          ANDROID_SDK="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          test -n "$ANDROID_SDK"
+          printf 'flutter.sdk=%s\nsdk.dir=%s\n' "$FLUTTER_ROOT" "$ANDROID_SDK" > android/local.properties
+
+      - name: Generate localization sources
+        run: flutter gen-l10n
+
+      - name: Generate Drift database code
+        run: dart run build_runner build
+
+      - name: Build debug APK
+        run: flutter build apk --debug
+
+      - name: Upload installable APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: bye-pro-finance-work-test-${{ github.run_number }}
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14

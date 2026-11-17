@@ -105,6 +105,24 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get addTransfer => 'إضافة تحويل إلى المنزل';
 
+
+  @override
+  String get addSalaryAction => 'إضافة راتب';
+
+  @override
+  String get addPaymentAction => 'إضافة دفعة';
+
+  @override
+  String get addAdvanceAction => 'إضافة سلفة';
+
+  @override
+  String get transferToHomeAction => 'تحويل إلى المنزل';
+
+  @override
+  String get workTransfers => 'تحويلات المنزل';
+
+  @override
+  String get workHistory => 'السجل';
   @override
   String get transferAmount => 'مبلغ التحويل';
 

@@ -290,20 +290,15 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(FloatingActionButton));
+    await tester.tap(find.byKey(const Key('work-quick-add')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('work-quick-add-payment')));
     await tester.pumpAndSettle();
 
-    final kindField = find.byType(DropdownButtonFormField<WorkEntryKind>);
-    expect(kindField, findsOneWidget);
-    await tester.tap(kindField);
-    await tester.pumpAndSettle();
-    expect(find.text('راتب'), findsWidgets);
-    expect(find.text('سلفة'), findsOneWidget);
-    expect(find.text('دفعة'), findsOneWidget);
-    await tester.tap(find.text('دفعة').last);
-    await tester.pumpAndSettle();
-
-    expect(find.text('دفعة'), findsOneWidget);
+    expect(find.byType(DropdownButtonFormField<WorkEntryKind>), findsNothing);
+    expect(find.byKey(const Key('work-entry-amount')), findsOneWidget);
+    expect(find.byKey(const Key('work-entry-note')), findsOneWidget);
+    expect(find.text('إضافة دفعة'), findsWidgets);
     await tester.tap(find.text('إلغاء'));
     await tester.pumpAndSettle();
   });
@@ -430,6 +425,7 @@ void main() {
           allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
 
           workEntriesProvider.overrideWith((ref) => Stream.value([entry])),
+          workTransfersProvider.overrideWith((ref) => Stream.value([])),
           selectedMonthProvider.overrideWith(
             () => _FixedSelectedMonthNotifier(
               MonthKey(year: now.year, month: now.month),
@@ -694,15 +690,20 @@ void main() {
 
     await tester.tap(find.text('العمل').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(FloatingActionButton));
+    await tester.tap(find.byKey(const Key('work-add-salary')));
     await tester.pumpAndSettle();
-    expect(fieldValues(), contains(previousMonth.toString()));
+    expect(
+      fieldValues().any((value) => value.startsWith('$previousMonth-')),
+      isTrue,
+    );
     await tester.tap(find.text('إلغاء'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('work-tab-1')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(FloatingActionButton));
+    await tester.tap(find.byKey(const Key('work-quick-add')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('work-quick-add-transfer')));
     await tester.pumpAndSettle();
     expect(
       fieldValues().any((value) => value.startsWith('$previousMonth-')),
