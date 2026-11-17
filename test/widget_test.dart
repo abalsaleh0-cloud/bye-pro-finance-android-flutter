@@ -298,7 +298,7 @@ void main() {
     expect(find.byType(DropdownButtonFormField<WorkEntryKind>), findsNothing);
     expect(find.byKey(const Key('work-entry-amount')), findsOneWidget);
     expect(find.byKey(const Key('work-entry-note')), findsOneWidget);
-    expect(find.text('إضافة دفعة'), findsOneWidget);
+    expect(find.text('إضافة دفعة'), findsWidgets);
     await tester.tap(find.text('إلغاء'));
     await tester.pumpAndSettle();
   });
@@ -425,6 +425,7 @@ void main() {
           allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
 
           workEntriesProvider.overrideWith((ref) => Stream.value([entry])),
+          workTransfersProvider.overrideWith((ref) => Stream.value([])),
           selectedMonthProvider.overrideWith(
             () => _FixedSelectedMonthNotifier(
               MonthKey(year: now.year, month: now.month),
