@@ -159,7 +159,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               : existing.name,
     );
     final id = existing?.id ??
-        'custom-\${DateTime.now().microsecondsSinceEpoch}';
+        'custom-${DateTime.now().microsecondsSinceEpoch}';
     var selectedIcon = existing?.iconKey ?? 'category';
     try {
       return await showDialog<HomeExpenseCategory>(
