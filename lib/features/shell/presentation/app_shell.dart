@@ -4,6 +4,7 @@ import 'package:expense_app/core/widgets/entry_tools.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:expense_app/features/work/presentation/work_screen.dart';
+import 'package:expense_app/features/home/presentation/home_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
@@ -51,6 +52,13 @@ class AppShell extends ConsumerWidget {
               tooltip: strings.quickActions,
               icon: const Icon(Icons.add_circle_outline_rounded),
               onPressed: () => _showWorkQuickAdd(context, ref, strings),
+            ),
+          if (_selectedIndex == 2)
+            IconButton(
+              key: const Key('home-quick-add'),
+              tooltip: strings.quickActions,
+              icon: const Icon(Icons.add_circle_outline_rounded),
+              onPressed: () => _showHomeQuickAdd(context, ref, strings),
             ),
           IconButton(
             key: const Key('open-settings'),
@@ -153,6 +161,58 @@ class AppShell extends ConsumerWidget {
     );
     if (action == null || !context.mounted) return;
     ref.read(workQuickActionProvider.notifier).request(action);
+  }
+
+  Future<void> _showHomeQuickAdd(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations strings,
+  ) async {
+    final action = await showModalBottomSheet<HomeQuickAction>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsetsDirectional.fromSTEB(20, 4, 20, 12),
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: Text(
+                  strings.quickActions,
+                  style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ),
+            ),
+            ListTile(
+              key: const Key('home-quick-add-invoice'),
+              leading: const Icon(Icons.receipt_long_outlined),
+              title: Text(strings.addInvoice),
+              onTap: () =>
+                  Navigator.pop(sheetContext, HomeQuickAction.invoice),
+            ),
+            ListTile(
+              key: const Key('home-quick-add-rent'),
+              leading: const Icon(Icons.home_work_outlined),
+              title: Text(strings.addMonthlyRent),
+              onTap: () => Navigator.pop(sheetContext, HomeQuickAction.rent),
+            ),
+            ListTile(
+              key: const Key('home-quick-add-expense'),
+              leading: const Icon(Icons.shopping_bag_outlined),
+              title: Text(strings.addExpense),
+              onTap: () =>
+                  Navigator.pop(sheetContext, HomeQuickAction.expense),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (action == null || !context.mounted) return;
+    ref.read(homeQuickActionProvider.notifier).request(action);
   }
 
 }
