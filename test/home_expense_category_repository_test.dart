@@ -15,7 +15,7 @@ void main() {
 
   tearDown(() async => database.close());
 
-  test('provides the nine built-in household categories', () async {
+  test('provides the fourteen built-in household categories', () async {
     final categories = await repository.getAll();
     expect(categories.map((item) => item.id), [
       'groceries',
@@ -26,6 +26,11 @@ void main() {
       'transport',
       'personal',
       'health',
+      'education',
+      'communications',
+      'entertainment',
+      'clothing',
+      'gifts',
       'other',
     ]);
   });
@@ -48,6 +53,20 @@ void main() {
       categories.singleWhere((item) => item.id == 'custom-1').name,
       'School supplies',
     );
+  });
+
+  test('persists a custom category icon selection', () async {
+    await repository.save(
+      const HomeExpenseCategory(
+        id: 'custom-travel',
+        name: 'Travel',
+        iconKey: 'transport',
+      ),
+    );
+
+    final saved = (await repository.getAll())
+        .singleWhere((item) => item.id == 'custom-travel');
+    expect(saved.iconKey, 'transport');
   });
 
   test('rejects duplicate category names', () async {
