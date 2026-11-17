@@ -76,7 +76,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dueMonth => 'Due month';
 
   @override
-  String get recordedAt => 'Recorded';
+  String get recordedAt => 'Date';
 
   @override
   String get salary => 'Salary';
@@ -109,13 +109,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transferAmount => 'Transfer amount';
 
   @override
-  String get transfers => 'Transfers to household';
+  String get transfers => 'Home transfers';
 
   @override
   String get expenses => 'Expenses';
 
   @override
-  String get entries => 'Entries';
+  String get entries => 'History';
 
   @override
   String get loading => 'Loading';
@@ -208,8 +208,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get debtDirection => 'Debt direction';
 
   @override
-  String get invalidRecord =>
-      'Check the entered values, amounts, and due month';
+  String get invalidRecord => 'Check the amount and date';
 
   @override
   String get monthlyOverview => 'Current month overview';
@@ -316,5 +315,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cashFlowComparison => 'Transfers and expenses comparison';
+
+
+  @override
+  String get addWorkOperation => 'Add a work transaction';
+
+  @override
+  String get addSalary => 'Add salary';
+
+  @override
+  String get addPayment => 'Add payment';
+
+  @override
+  String get addAdvance => 'Add advance';
 
 }
