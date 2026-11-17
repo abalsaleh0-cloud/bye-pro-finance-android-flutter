@@ -79,7 +79,7 @@ class HomeBillsSection extends ConsumerWidget {
                   controller: amount,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    labelText: strings.billAmount,
+                    labelText: strings.calculatorAmount,
                     suffixIcon: calculatorSuffix(context, amount, strings),
                   ),
                 ),
