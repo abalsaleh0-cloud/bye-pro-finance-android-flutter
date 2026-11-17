@@ -143,7 +143,10 @@ void main() {
     }
     expect(find.byType(NavigationBar), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('home-tab-5')));
+    final homeHistoryTab = find.byKey(const Key('home-tab-5'));
+    await tester.ensureVisible(homeHistoryTab);
+    await tester.pumpAndSettle();
+    await tester.tap(homeHistoryTab);
     await tester.pumpAndSettle();
     expect(
       tester.widget<PageView>(find.byKey(const Key('home-section-pages'))).controller!.page,
@@ -566,7 +569,10 @@ void main() {
 
       await tester.tap(find.text('المنزل').last);
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('home-tab-5')));
+      final historyTab = find.byKey(const Key('home-tab-5'));
+      await tester.ensureVisible(historyTab);
+      await tester.pumpAndSettle();
+      await tester.tap(historyTab);
       await tester.pumpAndSettle();
 
       expect(find.text('فاتورة الإنترنت'), findsOneWidget);
