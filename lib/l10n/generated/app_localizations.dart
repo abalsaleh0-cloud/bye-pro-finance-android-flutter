@@ -418,6 +418,7 @@ abstract class AppLocalizations {
   String get homeBillOrRentName;
   String get homeBillDate;
   String get homeLedger;
+  String get homeIncomingFromWork;
   String get manageCategories;
   String get addCategory;
   String get editCategory;
