@@ -173,7 +173,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                   controller: amount,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    labelText: strings.amountMinorUnits,
+                    labelText: strings.calculatorAmount,
                     suffixIcon: calculatorSuffix(context, amount, strings),
                   ),
                 ),
@@ -278,7 +278,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                   controller: amount,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    labelText: strings.transferAmount,
+                    labelText: strings.calculatorAmount,
                     suffixIcon: calculatorSuffix(context, amount, strings),
                   ),
                 ),
