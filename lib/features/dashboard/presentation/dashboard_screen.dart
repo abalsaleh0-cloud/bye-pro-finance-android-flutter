@@ -292,7 +292,7 @@ class DashboardScreen extends ConsumerWidget {
   static Widget _sectionHeading(BuildContext context, String title) {
     return Text(
       title,
-      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+      style: Theme.of(context).textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w700,
           ),
     );

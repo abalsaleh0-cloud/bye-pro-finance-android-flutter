@@ -23,12 +23,87 @@ class MonthSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
-    final tokens = AppDesignTokens.of(context);
+    final scheme = theme.colorScheme;
+    final selectedDate = DateTime(selectedMonth.year, selectedMonth.month, 1);
+    final monthTitle =
+        MaterialLocalizations.of(context).formatMonthYear(selectedDate);
+
+    Future<void> chooseMonth() async {
+      final picked = await showModalBottomSheet<MonthKey>(
+        context: context,
+        isScrollControlled: true,
+        builder: (sheetContext) {
+          final sheetTheme = Theme.of(sheetContext);
+          final maxHeight = MediaQuery.sizeOf(sheetContext).height * .62;
+          return SafeArea(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: maxHeight),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsetsDirectional.fromSTEB(20, 18, 20, 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            strings.selectedMonth,
+                            style: sheetTheme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: strings.calendar,
+                          onPressed: () => Navigator.pop(sheetContext),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  Flexible(
+                    child: ListView.separated(
+                      shrinkWrap: true,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: availableMonths.length,
+                      separatorBuilder: (context, index) => const Divider(
+                        height: 1,
+                        indent: 20,
+                        endIndent: 20,
+                      ),
+                      itemBuilder: (context, index) {
+                        final month = availableMonths[index];
+                        final date = DateTime(month.year, month.month, 1);
+                        final label =
+                            MaterialLocalizations.of(context).formatMonthYear(date);
+                        final isSelected = month == selectedMonth;
+                        return ListTile(
+                          key: Key('month-option-$month'),
+                          dense: true,
+                          title: Text(label),
+                          trailing: isSelected
+                              ? Icon(Icons.check, color: scheme.primary)
+                              : null,
+                          onTap: () => Navigator.pop(sheetContext, month),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+      if (!context.mounted || picked == null) return;
+      onChanged(picked);
+    }
 
     Future<void> pickFromOfficialCalendar() async {
       final picked = await showDatePicker(
         context: context,
-        initialDate: DateTime(selectedMonth.year, selectedMonth.month, 1),
+        initialDate: selectedDate,
         firstDate: DateTime(1900),
         lastDate: DateTime(2100),
       );
@@ -36,84 +111,56 @@ class MonthSelector extends StatelessWidget {
       onChanged(MonthKey(year: picked.year, month: picked.month));
     }
 
-    const selectorWidth = 148.0;
-    return Card(
-      child: Padding(
-        padding: EdgeInsetsDirectional.fromSTEB(
-          tokens.cardPadding - 2,
-          tokens.pageVerticalPadding - 2,
-          tokens.pageVerticalPadding - 2,
-          tokens.pageVerticalPadding - 2,
-        ),
-        child: Row(
-          children: [
-            Icon(
-              Icons.calendar_month_outlined,
-              color: theme.colorScheme.primary,
-              size: tokens.standardIconSize,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                strings.selectedMonth,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+    return Padding(
+      padding: const EdgeInsetsDirectional.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextButton(
+              key: pickerKey,
+              onPressed: chooseMonth,
+              style: TextButton.styleFrom(
+                alignment: AlignmentDirectional.centerStart,
+                padding: const EdgeInsetsDirectional.symmetric(horizontal: 2, vertical: 6),
+                minimumSize: const Size(0, 40),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      monthTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: scheme.onSurface,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 3),
+                  Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    size: 20,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: 8),
-            Container(
-              key: const Key('month-selector-date-control'),
-              width: selectorWidth,
-              height: tokens.buttonHeight,
-              padding: const EdgeInsetsDirectional.only(start: 8, end: 4),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(tokens.controlRadius),
-                border: Border.all(color: theme.colorScheme.outlineVariant),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<MonthKey>(
-                  key: pickerKey,
-                  value: selectedMonth,
-                  isExpanded: true,
-                  menuWidth: selectorWidth,
-                  menuMaxHeight: 320,
-                  borderRadius: BorderRadius.circular(tokens.controlRadius),
-                  icon: const Icon(Icons.keyboard_arrow_down_rounded),
-                  items: availableMonths
-                      .map(
-                        (month) => DropdownMenuItem(
-                          value: month,
-                          child: Text(
-                            month.toString(),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    if (value != null) onChanged(value);
-                  },
-                ),
-              ),
-            ),
-            IconButton(
-              key: const Key('month-selector-official-calendar'),
-              tooltip: strings.calendar,
-              visualDensity: VisualDensity.compact,
-              onPressed: pickFromOfficialCalendar,
-              icon: const Icon(Icons.edit_calendar_outlined),
-            ),
-            if (trailing != null) ...[
-              const SizedBox(width: 2),
-              trailing!,
-            ],
+          ),
+          IconButton(
+            key: const Key('month-selector-official-calendar'),
+            tooltip: strings.calendar,
+            visualDensity: VisualDensity.compact,
+            onPressed: pickFromOfficialCalendar,
+            icon: const Icon(Icons.edit_calendar_outlined),
+          ),
+          if (trailing != null) ...[
+            const SizedBox(width: 2),
+            trailing!,
           ],
-        ),
+        ],
       ),
     );
   }
@@ -144,19 +191,38 @@ class SummaryMetricGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = AppDesignTokens.of(context);
-    return Column(
-      children: [
-        for (var index = 0; index < metrics.length; index++) ...[
-          if (index > 0) SizedBox(height: tokens.sectionSpacing),
-          _SummaryMetricTile(metric: metrics[index]),
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(tokens.cardRadius),
+        border: Border.all(color: scheme.outlineVariant.withValues(alpha: .30)),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (var index = 0; index < metrics.length; index++) ...[
+            if (index > 0)
+              Divider(
+                height: 1,
+                thickness: 1,
+                indent: 68,
+                endIndent: 16,
+                color: scheme.outlineVariant.withValues(alpha: .45),
+              ),
+            _SummaryMetricTile(
+              key: Key('summary-metric-row-$index'),
+              metric: metrics[index],
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
 
 class _SummaryMetricTile extends StatelessWidget {
-  const _SummaryMetricTile({required this.metric});
+  const _SummaryMetricTile({super.key, required this.metric});
 
   final SummaryMetricData metric;
 
@@ -165,62 +231,66 @@ class _SummaryMetricTile extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final tokens = AppDesignTokens.of(context);
-    final foreground =
-        metric.emphasized ? scheme.onPrimaryContainer : scheme.onSurface;
+    final foreground = scheme.onSurface;
+    final iconBackground = metric.emphasized
+        ? scheme.primaryContainer
+        : scheme.surfaceContainerHighest;
 
-    return Container(
+    return ConstrainedBox(
       constraints: BoxConstraints(minHeight: tokens.metricTileMinHeight),
-      padding: EdgeInsets.all(tokens.cardPadding),
-      decoration: BoxDecoration(
-        color: metric.emphasized
-            ? scheme.primaryContainer
-            : scheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(tokens.cardRadius),
-        border: Border.all(
-          color: metric.emphasized
-              ? scheme.primaryContainer
-              : scheme.outlineVariant,
+      child: Padding(
+        padding: EdgeInsetsDirectional.fromSTEB(
+          tokens.cardPadding,
+          6,
+          tokens.cardPadding,
+          6,
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Icon(
+        child: Row(
+          children: [
+            Container(
+              width: tokens.recordIconBoxSize,
+              height: tokens.recordIconBoxSize,
+              decoration: BoxDecoration(
+                color: iconBackground,
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Icon(
                 metric.icon,
                 size: tokens.standardIconSize,
                 color: metric.emphasized
                     ? scheme.onPrimaryContainer
                     : scheme.primary,
               ),
-              const SizedBox(width: 7),
-              Expanded(
-                child: Text(
-                  metric.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: foreground,
-                    fontWeight: FontWeight.w600,
-                  ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                metric.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: foreground,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            metric.value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.titleLarge?.copyWith(
-              color: foreground,
-              fontWeight: FontWeight.w800,
-              fontFeatures: const [FontFeature.tabularFigures()],
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Flexible(
+              child: Text(
+                metric.value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.end,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: metric.emphasized ? scheme.primary : foreground,
+                  fontWeight: FontWeight.w800,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -40,7 +40,7 @@ class AppDesignTokens extends ThemeExtension<AppDesignTokens> {
         touchTargetSize: 44,
         navigationBarHeight: 68,
         sectionTabHeight: 48,
-        metricTileMinHeight: 96,
+        metricTileMinHeight: 64,
         recordIconBoxSize: 40,
         standardIconSize: 20,
       );

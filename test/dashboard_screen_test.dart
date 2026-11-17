@@ -105,9 +105,17 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('dashboard-content')), findsOneWidget);
-    expect(find.text('الشهر المعروض'), findsOneWidget);
-    expect(find.text(month.toString()), findsOneWidget);
-    expect(find.byKey(const Key('dashboard-month-picker')), findsOneWidget);
+    final monthPicker = find.byKey(const Key('dashboard-month-picker'));
+    expect(monthPicker, findsOneWidget);
+    final monthLabel = MaterialLocalizations.of(
+      tester.element(monthPicker),
+    ).formatMonthYear(DateTime(month.year, month.month, 1));
+    expect(
+      find.descendant(of: monthPicker, matching: find.text(monthLabel)),
+      findsOneWidget,
+    );
+    expect(find.text('الشهر المعروض'), findsNothing);
+    expect(find.text(month.toString()), findsNothing);
     expect(find.text('20'), findsOneWidget);
     expect(find.text('الصورة المالية'), findsOneWidget);
     expect(find.text('إجراءات سريعة'), findsNothing);

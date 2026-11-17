@@ -1,7 +1,7 @@
 import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:material_ui/material_ui.dart';
 
-/// One shared pill-tab control for every nested section in the app.
+/// Flat, horizontally scrollable section tabs with a subtle active underline.
 class SectionPillTabs extends StatelessWidget {
   const SectionPillTabs({
     super.key,
@@ -18,54 +18,63 @@ class SectionPillTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final tokens = AppDesignTokens.of(context);
+
     return SizedBox(
       height: tokens.sectionTabHeight,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+        padding: const EdgeInsetsDirectional.symmetric(horizontal: 8),
         child: Row(
           children: [
             for (var index = 0; index < labels.length; index++) ...[
-              if (index > 0) const SizedBox(width: 8),
+              if (index > 0) const SizedBox(width: 20),
               Material(
-                color: index == selectedIndex
-                    ? scheme.primaryContainer
-                    : scheme.surfaceContainerLow,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(tokens.controlRadius),
-                  side: BorderSide(
-                    color: index == selectedIndex
-                        ? scheme.primary
-                        : scheme.outlineVariant,
-                  ),
-                ),
-                clipBehavior: Clip.antiAlias,
+                color: Colors.transparent,
                 child: InkWell(
                   key: Key('$keyPrefix-$index'),
+                  borderRadius: BorderRadius.circular(tokens.controlRadius),
                   onTap: () => onSelected(index),
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
-                      minWidth: 88,
+                      minWidth: 72,
                       minHeight: tokens.touchTargetSize,
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Center(
-                        child: Text(
-                          labels[index],
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                                color: index == selectedIndex
-                                    ? scheme.onPrimaryContainer
-                                    : scheme.onSurfaceVariant,
-                                fontWeight: index == selectedIndex
-                                    ? FontWeight.w700
-                                    : FontWeight.w500,
-                              ),
-                        ),
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            labels[index],
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              color: index == selectedIndex
+                                  ? scheme.primary
+                                  : scheme.onSurfaceVariant,
+                              fontWeight: index == selectedIndex
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          AnimatedContainer(
+                            duration: tokens.motionDuration,
+                            curve: Curves.easeOut,
+                            width: index == selectedIndex ? 28 : 0,
+                            height: 2,
+                            decoration: BoxDecoration(
+                              color: index == selectedIndex
+                                  ? scheme.primary
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),

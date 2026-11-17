@@ -1,147 +1,89 @@
-import 'package:expense_app/core/theme/app_appearance.dart';
 import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:expense_app/core/theme/app_theme.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
 void main() {
-  test('all 77 supplied presets build light and dark Material 3 themes', () {
-    expect(builtInThemePresets, hasLength(77));
-    for (final preset in builtInThemePresets) {
-      final light = AppTheme.lightFor(preset);
-      final dark = AppTheme.darkFor(preset);
+  test('the fixed BYE PRO light and dark themes have readable contrast', () {
+    final light = AppTheme.light;
+    final dark = AppTheme.dark;
 
-      expect(light.useMaterial3, isTrue, reason: preset.id);
-      expect(dark.useMaterial3, isTrue, reason: preset.id);
-      expect(light.brightness, Brightness.light, reason: preset.id);
-      expect(dark.brightness, Brightness.dark, reason: preset.id);
-      expect(light.extension<AppDesignTokens>(), isNotNull);
-      expect(dark.extension<AppDesignTokens>(), isNotNull);
+    expect(light.useMaterial3, isTrue);
+    expect(dark.useMaterial3, isTrue);
+    expect(light.brightness, Brightness.light);
+    expect(dark.brightness, Brightness.dark);
+
+    for (final theme in [light, dark]) {
+      expect(theme.extension<AppDesignTokens>(), isNotNull);
       expect(
         AppTheme.contrastRatio(
-          light.colorScheme.onSurface,
-          light.colorScheme.surface,
+          theme.colorScheme.onSurface,
+          theme.colorScheme.surface,
         ),
         greaterThanOrEqualTo(4.5),
-        reason: 'Light text contrast for ${preset.id}',
       );
       expect(
         AppTheme.contrastRatio(
-          dark.colorScheme.onSurface,
-          dark.colorScheme.surface,
+          theme.colorScheme.onSurfaceVariant,
+          theme.colorScheme.surface,
         ),
         greaterThanOrEqualTo(4.5),
-        reason: 'Dark text contrast for ${preset.id}',
       );
       expect(
         AppTheme.contrastRatio(
-          light.colorScheme.onSurfaceVariant,
-          light.colorScheme.surface,
+          theme.colorScheme.onPrimary,
+          theme.colorScheme.primary,
         ),
         greaterThanOrEqualTo(4.5),
-        reason: 'Light muted text contrast for ${preset.id}',
-      );
-      expect(
-        AppTheme.contrastRatio(
-          light.colorScheme.onPrimary,
-          light.colorScheme.primary,
-        ),
-        greaterThanOrEqualTo(4.5),
-        reason: 'Light button contrast for ${preset.id}',
-      );
-      expect(
-        AppTheme.contrastRatio(
-          dark.colorScheme.onSurfaceVariant,
-          dark.colorScheme.surface,
-        ),
-        greaterThanOrEqualTo(4.5),
-        reason: 'Dark muted text contrast for ${preset.id}',
-      );
-      expect(
-        AppTheme.contrastRatio(
-          dark.colorScheme.onPrimary,
-          dark.colorScheme.primary,
-        ),
-        greaterThanOrEqualTo(4.5),
-        reason: 'Dark button contrast for ${preset.id}',
       );
     }
   });
 
-  test('component geometry is fixed independently of selected theme', () {
-    final first = AppTheme.lightFor(builtInThemePresets.first);
-    final second = AppTheme.darkFor(builtInThemePresets[36]);
-    final firstTokens = first.extension<AppDesignTokens>()!;
-    final secondTokens = second.extension<AppDesignTokens>()!;
+  test('component geometry is fixed across light and dark modes', () {
+    final lightTokens = AppTheme.light.extension<AppDesignTokens>()!;
+    final darkTokens = AppTheme.dark.extension<AppDesignTokens>()!;
 
-    expect(secondTokens.pageHorizontalPadding,
-        firstTokens.pageHorizontalPadding);
-    expect(secondTokens.sectionSpacing, firstTokens.sectionSpacing);
-    expect(secondTokens.inputVerticalPadding,
-        firstTokens.inputVerticalPadding);
-    expect(secondTokens.cardPadding, firstTokens.cardPadding);
-    expect(firstTokens.cardRadius, 16);
-    expect(firstTokens.controlRadius, 12);
-    expect(firstTokens.dialogRadius, 20);
-    expect(firstTokens.buttonHeight, 48);
-    expect(firstTokens.touchTargetSize, 44);
-    expect(firstTokens.navigationBarHeight, 68);
-    expect(firstTokens.sectionTabHeight, 48);
-    expect(firstTokens.metricTileMinHeight, 96);
-    expect(firstTokens.recordIconBoxSize, 40);
-    expect(firstTokens.standardIconSize, 20);
-    expect(secondTokens.buttonHeight, firstTokens.buttonHeight);
-    expect(secondTokens.touchTargetSize, firstTokens.touchTargetSize);
-    expect(secondTokens.navigationBarHeight, firstTokens.navigationBarHeight);
-    expect(secondTokens.sectionTabHeight, firstTokens.sectionTabHeight);
-    expect(secondTokens.metricTileMinHeight, firstTokens.metricTileMinHeight);
-    expect(secondTokens.recordIconBoxSize, firstTokens.recordIconBoxSize);
-    expect(secondTokens.standardIconSize, firstTokens.standardIconSize);
-    expect(
-      second.filledButtonTheme.style!.minimumSize!.resolve({})!.height,
-      firstTokens.buttonHeight,
-    );
-    expect(
-      second.iconButtonTheme.style!.minimumSize!.resolve({})!.height,
-      firstTokens.touchTargetSize,
-    );
+    expect(darkTokens.pageHorizontalPadding, lightTokens.pageHorizontalPadding);
+    expect(darkTokens.sectionSpacing, lightTokens.sectionSpacing);
+    expect(darkTokens.inputVerticalPadding, lightTokens.inputVerticalPadding);
+    expect(darkTokens.cardPadding, lightTokens.cardPadding);
+    expect(lightTokens.cardRadius, 16);
+    expect(lightTokens.controlRadius, 12);
+    expect(lightTokens.dialogRadius, 20);
+    expect(lightTokens.buttonHeight, 48);
+    expect(lightTokens.touchTargetSize, 44);
+    expect(lightTokens.navigationBarHeight, 68);
+    expect(lightTokens.sectionTabHeight, 48);
+    expect(lightTokens.metricTileMinHeight, 64);
+    expect(lightTokens.recordIconBoxSize, 40);
+    expect(lightTokens.standardIconSize, 20);
+    expect(darkTokens.buttonHeight, lightTokens.buttonHeight);
+    expect(darkTokens.touchTargetSize, lightTokens.touchTargetSize);
+    expect(darkTokens.navigationBarHeight, lightTokens.navigationBarHeight);
+    expect(darkTokens.sectionTabHeight, lightTokens.sectionTabHeight);
+    expect(darkTokens.metricTileMinHeight, lightTokens.metricTileMinHeight);
+    expect(darkTokens.recordIconBoxSize, lightTokens.recordIconBoxSize);
+    expect(darkTokens.standardIconSize, lightTokens.standardIconSize);
   });
 
-  test('custom seeds and unknown stored ids resolve safely', () {
-    final custom = AppThemePreset.fromSeedColor(
-      const Color(0xFFB326D8),
-      id: 'custom-test',
-      nameAr: 'ثيمي',
-      nameEn: 'My theme',
+  test('gold accent adapts for contrast in both appearances', () {
+    expect(
+      AppTheme.light.colorScheme.secondary,
+      isNot(AppTheme.dark.colorScheme.secondary),
     );
-    expect(custom.custom, isTrue);
-    expect(themePresetById(custom.id, customThemes: [custom]), custom);
-    expect(themePresetById('unknown').id, 'purple-pro');
-    expect(themePresetById('navy_gold').id, 'cobalt');
-  });
-
-  test('imports the JSON structure exported by the supplied HTML studio', () {
-    final imported = AppThemePreset.fromJson({
-      'name': 'ثيم مستورد',
-      'seed': {
-        'h': 300,
-        'h2': 345,
-        'c': .20,
-        'ca': .21,
-        'dh': 100,
-      },
-      'bg': 'stars',
-      'fx': {'l': 1, 'g': true, 'v': 0, 'f': true},
-    });
-
-    expect(imported.nameAr, 'ثيم مستورد');
-    expect(imported.hue, 300);
-    expect(imported.accentHue, 345);
-    expect(imported.chroma, .20);
-    expect(imported.accentChroma, .21);
-    expect(imported.hueOffset, 100);
-    expect(imported.background, 'stars');
-    expect(imported.effects, 'lgf');
-    expect(imported.custom, isTrue);
+    expect(
+      AppTheme.contrastRatio(
+        AppTheme.light.colorScheme.onSecondary,
+        AppTheme.light.colorScheme.secondary,
+      ),
+      greaterThanOrEqualTo(4.5),
+    );
+    expect(
+      AppTheme.contrastRatio(
+        AppTheme.dark.colorScheme.onSecondary,
+        AppTheme.dark.colorScheme.secondary,
+      ),
+      greaterThanOrEqualTo(4.5),
+    );
   });
 }

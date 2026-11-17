@@ -1,0 +1,69 @@
+name: Android Preview APK
+
+on:
+  push:
+    branches:
+      - feature/telegram-native-ui-redesign
+    paths:
+      - 'android/**'
+      - 'lib/**'
+      - 'test/**'
+      - 'pubspec.yaml'
+      - '.github/workflows/android-preview.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-preview:
+    name: Build installable preview APK
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        env:
+          FLUTTER_STORAGE_BASE_URL: https://storage.flutter-io.cn
+        with:
+          channel: stable
+          flutter-version: 3.50.0
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate localization sources
+        run: flutter gen-l10n
+
+      - name: Generate Drift database code
+        run: dart run build_runner build
+
+      - name: Format Dart sources
+        run: dart format .
+
+      - name: Analyze Dart sources
+        run: flutter analyze
+
+      - name: Run Flutter tests
+        run: flutter test
+
+      - name: Build preview APK
+        run: flutter build apk --debug --flavor preview
+
+      - name: Upload preview APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: bye-pro-finance-preview-${{ github.run_number }}
+          path: build/app/outputs/flutter-apk/app-preview-debug.apk
+          if-no-files-found: error
+          retention-days: 14
