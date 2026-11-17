@@ -91,9 +91,10 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
       context: context,
       showDragHandle: true,
       builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
             ListTile(
               key: const Key('work-add-action-salary'),
               leading: const Icon(Icons.payments_outlined),
@@ -112,13 +113,14 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
               title: Text(strings.addAdvance),
               onTap: () => Navigator.pop(sheetContext, WorkQuickAction.advance),
             ),
-            ListTile(
-              key: const Key('work-add-action-transfer'),
-              leading: const Icon(Icons.swap_horiz),
-              title: Text(strings.transferredToHome),
-              onTap: () => Navigator.pop(sheetContext, WorkQuickAction.transfer),
-            ),
-          ],
+              ListTile(
+                key: const Key('work-add-action-transfer'),
+                leading: const Icon(Icons.swap_horiz),
+                title: Text(strings.transferredToHome),
+                onTap: () => Navigator.pop(sheetContext, WorkQuickAction.transfer),
+              ),
+            ],
+          ),
         ),
       ),
     );
