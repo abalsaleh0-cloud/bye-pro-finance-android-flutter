@@ -198,6 +198,39 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get homeCategoryOther => 'متفرقات';
 
+
+  @override
+  String get homeCategoryEducation => 'التعليم والدراسة';
+
+  @override
+  String get homeCategoryCommunications => 'الاتصالات والإنترنت';
+
+  @override
+  String get homeCategoryEntertainment => 'الترفيه';
+
+  @override
+  String get homeCategoryClothing => 'الملابس';
+
+  @override
+  String get homeCategoryGifts => 'الهدايا والمناسبات';
+
+  @override
+  String get monthlyRents => 'الإيجارات الشهرية';
+
+  @override
+  String get addInvoice => 'إضافة فاتورة';
+
+  @override
+  String get addMonthlyRent => 'إضافة إيجار شهري';
+
+  @override
+  String get homeBillOrRentName => 'اسم الفاتورة أو الإيجار';
+
+  @override
+  String get homeBillDate => 'تاريخ الفاتورة أو الإيجار';
+
+  @override
+  String get homeLedger => 'السجل';
   @override
   String get manageCategories => 'إدارة التصنيفات';
 
