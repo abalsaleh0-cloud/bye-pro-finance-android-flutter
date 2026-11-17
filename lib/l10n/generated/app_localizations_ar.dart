@@ -76,7 +76,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get dueMonth => 'الشهر المستحق';
 
   @override
-  String get recordedAt => 'تاريخ التسجيل';
+  String get recordedAt => 'التاريخ';
 
   @override
   String get salary => 'راتب';
@@ -217,8 +217,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get debtDirection => 'نوع الدين';
 
   @override
-  String get invalidRecord =>
-      'تحقق من البيانات المدخلة والمبالغ والشهر المستحق';
+  String get invalidRecord => 'تحقق من صحة المبلغ والتاريخ';
 
   @override
   String get monthlyOverview => 'ملخص الشهر الحالي';
