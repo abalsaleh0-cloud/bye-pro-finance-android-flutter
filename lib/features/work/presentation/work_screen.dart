@@ -270,6 +270,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 TextField(
+                  key: const Key('work-transfer-amount'),
                   controller: amount,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
@@ -278,6 +279,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                   ),
                 ),
                 TextField(
+                  key: const Key('work-transfer-date'),
                   controller: transferredAt,
                   readOnly: true,
                   decoration: InputDecoration(
@@ -286,6 +288,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                   ),
                 ),
                 TextField(
+                  key: const Key('work-transfer-note'),
                   controller: note,
                   decoration: InputDecoration(labelText: strings.note),
                 ),
