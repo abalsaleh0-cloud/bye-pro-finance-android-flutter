@@ -421,6 +421,9 @@ void main() {
     expect(find.byKey(const Key('work-entry-amount')), findsOneWidget);
     expect(find.byKey(const Key('work-entry-date')), findsOneWidget);
     expect(find.byKey(const Key('work-entry-note')), findsOneWidget);
+    expect(find.text('المبلغ'), findsOneWidget);
+    expect(find.text('التاريخ'), findsOneWidget);
+    expect(find.text('ملاحظة'), findsOneWidget);
     expect(find.byType(DropdownButtonFormField<WorkEntryKind>), findsNothing);
     await tester.tap(find.text('إلغاء'));
     await tester.pumpAndSettle();
@@ -436,6 +439,9 @@ void main() {
     expect(find.byKey(const Key('work-transfer-amount')), findsOneWidget);
     expect(find.byKey(const Key('work-transfer-date')), findsOneWidget);
     expect(find.byKey(const Key('work-transfer-note')), findsOneWidget);
+    expect(find.text('المبلغ'), findsOneWidget);
+    expect(find.text('التاريخ'), findsOneWidget);
+    expect(find.text('ملاحظة'), findsOneWidget);
     await tester.tap(find.text('إلغاء'));
     await tester.pumpAndSettle();
   });
