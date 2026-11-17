@@ -625,9 +625,11 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
     MonthKey selectedMonth,
   ) {
     final history = <_WorkHistoryRecord>[
-      for (final entry in entries.where(
-        (entry) => entry.dueMonth == selectedMonth,
-      ))
+      for (final entry in entries.where((entry) {
+        final date = entry.recordedAt.toLocal();
+        return date.year == selectedMonth.year &&
+            date.month == selectedMonth.month;
+      }))
         _WorkHistoryRecord(
           date: entry.recordedAt,
           title: _kindLabel(strings, entry.kind),
