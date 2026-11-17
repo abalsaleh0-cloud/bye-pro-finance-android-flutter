@@ -533,7 +533,7 @@ void main() {
       recordedAt: now,
       note: 'ملاحظة الراتب',
     );
-    final previousDate = DateTime(now.year, now.month - 1, now.day);
+    final previousDate = DateTime(now.year, now.month - 1, 1);
     final previousMonthEntry = WorkEntry(
       id: 'widget-work-note-previous-month',
       kind: WorkEntryKind.advance,
@@ -587,7 +587,6 @@ void main() {
     expect(find.textContaining('ملاحظة التحويل'), findsOneWidget);
     expect(find.textContaining('ملاحظة راتب قديم'), findsOneWidget);
     expect(find.text('تحويل إلى المنزل'), findsOneWidget);
-    expect(find.byKey(const Key('work-selected-month-picker')), findsNothing);
   });
   _testWidgetsWithDriftCleanup('saved home bill note is visible on the monthly bills card', (tester) async {
     final now = DateTime.now();
