@@ -799,7 +799,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ];
     final labels = [
       strings.homeSection,
-      strings.receivedFromWork,
+      strings.homeIncomingFromWork,
       strings.monthlyBills,
       strings.monthlyRents,
       strings.expenses,
