@@ -13,11 +13,61 @@ import 'package:expense_app/features/work/domain/work_entry.dart';
 import 'package:expense_app/features/work/data/work_repository.dart';
 import 'package:expense_app/features/work/domain/work_balance_allocation.dart';
 import 'package:expense_app/features/work/domain/work_home_transfer.dart';
+import 'package:expense_app/features/work/presentation/work_quick_action.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 enum WorkScreenMode { overview, records, transfers }
+
+enum _WorkTimelineType { salary, payment, advance, transfer }
+
+class _WorkTimelineItem {
+  const _WorkTimelineItem._({
+    required this.id,
+    required this.type,
+    required this.amount,
+    required this.date,
+    required this.note,
+    this.entry,
+    this.transfer,
+  });
+
+  factory _WorkTimelineItem.fromEntry(WorkEntry entry) {
+    final type = switch (entry.kind) {
+      WorkEntryKind.salary => _WorkTimelineType.salary,
+      WorkEntryKind.salaryPayment => _WorkTimelineType.payment,
+      WorkEntryKind.advance => _WorkTimelineType.advance,
+    };
+    return _WorkTimelineItem._(
+      id: entry.id,
+      type: type,
+      amount: entry.amount,
+      date: entry.recordedAt,
+      note: entry.note,
+      entry: entry,
+    );
+  }
+
+  factory _WorkTimelineItem.fromTransfer(WorkHomeTransfer transfer) {
+    return _WorkTimelineItem._(
+      id: transfer.id,
+      type: _WorkTimelineType.transfer,
+      amount: transfer.amount,
+      date: transfer.transferredAt,
+      note: transfer.note,
+      transfer: transfer,
+    );
+  }
+
+  final String id;
+  final _WorkTimelineType type;
+  final Money amount;
+  final DateTime date;
+  final String? note;
+  final WorkEntry? entry;
+  final WorkHomeTransfer? transfer;
+}
 
 class WorkScreen extends ConsumerStatefulWidget {
   const WorkScreen({super.key, this.openManualEntry = false, this.mode = WorkScreenMode.overview, this.initialMonth, this.swipePage = false});
@@ -60,27 +110,55 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
         WorkEntryKind.salaryPayment => strings.payment,
       };
 
+  String _entryActionLabel(AppLocalizations strings, WorkEntryKind kind) =>
+      switch (kind) {
+        WorkEntryKind.salary => strings.addSalary,
+        WorkEntryKind.advance => strings.addAdvance,
+        WorkEntryKind.salaryPayment => strings.addPayment,
+      };
+
+  IconData _timelineIcon(_WorkTimelineType type) => switch (type) {
+    _WorkTimelineType.salary => Icons.payments_outlined,
+    _WorkTimelineType.payment => Icons.receipt_long_outlined,
+    _WorkTimelineType.advance => Icons.request_quote_outlined,
+    _WorkTimelineType.transfer => Icons.swap_horiz_rounded,
+  };
+
+  String _timelineLabel(
+    AppLocalizations strings,
+    _WorkTimelineType type,
+  ) => switch (type) {
+    _WorkTimelineType.salary => strings.salary,
+    _WorkTimelineType.payment => strings.payment,
+    _WorkTimelineType.advance => strings.advance,
+    _WorkTimelineType.transfer => strings.transferredToHome,
+  };
+
+  DateTime _defaultDateForSelectedMonth(MonthKey month) {
+    final today = DateTime.now();
+    final lastDay = DateTime(month.year, month.month + 1, 0).day;
+    final day = today.day > lastDay ? lastDay : today.day;
+    return DateTime(month.year, month.month, day);
+  }
+
   Future<void> _editEntry(
     BuildContext context,
     WidgetRef ref,
     AppLocalizations strings, {
+    required WorkEntryKind kind,
     WorkEntry? existing,
   }) async {
+    final selectedKind = existing?.kind ?? kind;
     final amount = TextEditingController(
       text: existing?.amount.minorUnits.toString() ?? '',
     );
-    final due = TextEditingController(
-      text:
-          existing?.dueMonth.toString() ?? ref.read(selectedMonthProvider).toString(),
+    final recordedAt = TextEditingController(
+      text: formatCalendarDate(
+        existing?.recordedAt ??
+            _defaultDateForSelectedMonth(ref.read(selectedMonthProvider)),
+      ),
     );
-    final recordedAt = TextEditingController(text: formatCalendarDate(existing?.recordedAt ?? DateTime.now()));
     final note = TextEditingController(text: existing?.note ?? '');
-    var kind = existing?.kind ?? WorkEntryKind.salary;
-    final selectableKinds = <WorkEntryKind>[
-      WorkEntryKind.salary,
-      WorkEntryKind.advance,
-      WorkEntryKind.salaryPayment,
-    ];
     String? error;
     try {
       await showDialog<void>(
@@ -88,54 +166,34 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
         builder: (dialogContext) => StatefulBuilder(
           builder: (context, setDialogState) => EntryFormDialog(
             title: Text(
-              existing == null ? strings.addEntry : strings.editRecord,
+              existing == null
+                  ? _entryActionLabel(strings, selectedKind)
+                  : strings.editRecord,
             ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                DropdownButtonFormField<WorkEntryKind>(
-                  initialValue: kind,
-                  decoration: InputDecoration(labelText: strings.entryType),
-                  items: selectableKinds
-                      .map(
-                        (value) => DropdownMenuItem(
-                          value: value,
-                          child: Text(_kindLabel(strings, value)),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setDialogState(() => kind = value);
-                    }
-                  },
-                ),
                 TextField(
                   key: const Key('work-entry-amount'),
                   controller: amount,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    labelText: strings.amountMinorUnits,
+                    labelText: strings.calculatorAmount,
                     suffixIcon: calculatorSuffix(context, amount, strings),
                   ),
                 ),
                 TextField(
-                  controller: due,
-                  readOnly: true,
-                  decoration: InputDecoration(
-                    labelText: kind == WorkEntryKind.salaryPayment
-                        ? strings.paymentReceivedMonth
-                        : strings.dueMonth,
-                    hintText: 'YYYY-MM',
-                    suffixIcon: calendarSuffix(context, due, strings, monthOnly: true),
-                  ),
-                ),
-                TextField(
+                  key: const Key('work-entry-date'),
                   controller: recordedAt,
                   readOnly: true,
                   decoration: InputDecoration(
                     labelText: strings.recordedAt,
-                    suffixIcon: calendarSuffix(context, recordedAt, strings, monthOnly: false),
+                    suffixIcon: calendarSuffix(
+                      context,
+                      recordedAt,
+                      strings,
+                      monthOnly: false,
+                    ),
                   ),
                 ),
                 TextField(
@@ -161,43 +219,32 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                 onPressed: () async {
                   final parsedAmount = int.tryParse(amount.text.trim());
                   final recordedDate = DateTime.tryParse(recordedAt.text.trim());
-                  final parts = due.text.trim().split('-');
-                  final year = parts.length == 2
-                      ? int.tryParse(parts[0])
-                      : null;
-                  final month = parts.length == 2
-                      ? int.tryParse(parts[1])
-                      : null;
                   if (parsedAmount == null ||
                       parsedAmount <= 0 ||
-                      year == null ||
-                      year < 1 ||
-                      month == null ||
-                      month < 1 ||
-                      month > 12 ||
                       recordedDate == null) {
                     setDialogState(() => error = strings.invalidRecord);
                     return;
                   }
                   try {
-                    await ref
-                        .read(workRepositoryProvider)
-                        .saveEntry(
-                          WorkEntry(
-                            id:
-                                existing?.id ??
-                                DateTime.now().microsecondsSinceEpoch
-                                    .toString(),
-                            kind: kind,
-                            amount: Money.fromMinorUnits(parsedAmount),
-                            dueMonth: MonthKey(year: year, month: month),
-                            recordedAt: recordedDate,
-                            note: note.text.trim().isEmpty
-                                ? null
-                                : note.text.trim(),
-                          ),
-                        );
+                    await ref.read(workRepositoryProvider).saveEntry(
+                      WorkEntry(
+                        id: existing?.id ??
+                            DateTime.now().microsecondsSinceEpoch.toString(),
+                        kind: selectedKind,
+                        amount: Money.fromMinorUnits(parsedAmount),
+                        dueMonth: MonthKey(
+                          year: recordedDate.year,
+                          month: recordedDate.month,
+                        ),
+                        recordedAt: recordedDate,
+                        note: note.text.trim().isEmpty
+                            ? null
+                            : note.text.trim(),
+                      ),
+                    );
                     if (dialogContext.mounted) Navigator.pop(dialogContext);
+                  } on InsufficientWorkBalanceException {
+                    setDialogState(() => error = strings.invalidRecord);
                   } catch (_) {
                     setDialogState(() => error = strings.invalidRecord);
                   }
@@ -209,15 +256,13 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
         ),
       );
     } finally {
-      // Let the dialog route unmount its TextFields before disposing controllers.
+      // Wait for the dialog route to unmount its TextFields before disposal.
       await WidgetsBinding.instance.endOfFrame;
       amount.dispose();
-      due.dispose();
       recordedAt.dispose();
       note.dispose();
     }
   }
-
   Future<void> _editTransfer(
     BuildContext context,
     WidgetRef ref,
@@ -228,13 +273,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
       text: existing?.amount.minorUnits.toString() ?? '',
     );
     final selectedMonth = ref.read(selectedMonthProvider);
-    final now = DateTime.now();
-    final lastDay = DateTime(selectedMonth.year, selectedMonth.month + 1, 0).day;
-    final defaultTransferDate = DateTime(
-      selectedMonth.year,
-      selectedMonth.month,
-      now.day > lastDay ? lastDay : now.day,
-    );
+    final defaultTransferDate = _defaultDateForSelectedMonth(selectedMonth);
     final transferredAt = TextEditingController(
       text: formatCalendarDate(existing?.transferredAt ?? defaultTransferDate),
     );
@@ -253,7 +292,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                   controller: amount,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    labelText: strings.transferAmount,
+                    labelText: strings.calculatorAmount,
                     suffixIcon: calculatorSuffix(context, amount, strings),
                   ),
                 ),
@@ -308,6 +347,10 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                           ),
                         );
                     if (dialogContext.mounted) Navigator.pop(dialogContext);
+                  } on InsufficientWorkBalanceException {
+                    setDialogState(() => error = strings.invalidRecord);
+                  } on TransferWouldOverdrawHomeException {
+                    setDialogState(() => error = strings.invalidRecord);
                   } catch (_) {
                     setDialogState(() => error = strings.invalidRecord);
                   }
@@ -319,10 +362,111 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
         ),
       );
     } finally {
+      await WidgetsBinding.instance.endOfFrame;
       amount.dispose();
       transferredAt.dispose();
       note.dispose();
     }
+  }
+
+  Widget _buildRecordsList(
+    BuildContext context,
+    AppLocalizations strings,
+    AsyncValue<List<WorkEntry>> entries,
+    AsyncValue<List<WorkHomeTransfer>> transfers,
+    MonthKey selectedMonth,
+  ) {
+    return entries.when(
+      loading: () => Text(strings.loading),
+      error: (error, stackTrace) => Text(strings.dataError),
+      data: (entryItems) => transfers.when(
+        loading: () => Text(strings.loading),
+        error: (error, stackTrace) => Text(strings.dataError),
+        data: (transferItems) {
+          final allItems = <_WorkTimelineItem>[
+            ...entryItems.map(_WorkTimelineItem.fromEntry),
+            ...transferItems.map(_WorkTimelineItem.fromTransfer),
+          ]..sort((a, b) => b.date.compareTo(a.date));
+          final monthItems = allItems.where((item) {
+            final date = item.date.toLocal();
+            return date.year == selectedMonth.year &&
+                date.month == selectedMonth.month;
+          }).toList(growable: false);
+
+          if (monthItems.isEmpty) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Center(child: Text(strings.noRecords)),
+            );
+          }
+
+          return Column(
+            children: [
+              for (final item in monthItems)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: FinancialRecordCard(
+                    icon: _timelineIcon(item.type),
+                    title: _timelineLabel(strings, item.type),
+                    amount: item.amount.minorUnits.toString(),
+                    details: [
+                      '${strings.recordedAt}: ${MaterialLocalizations.of(context).formatFullDate(item.date.toLocal())}',
+                      if (item.note != null && item.note!.isNotEmpty)
+                        item.note!,
+                    ],
+                    actions: item.entry != null
+                        ? [
+                            IconButton(
+                              tooltip: strings.editRecord,
+                              icon: const Icon(Icons.edit_outlined),
+                              onPressed: () => _editEntry(
+                                context,
+                                ref,
+                                strings,
+                                kind: item.entry!.kind,
+                                existing: item.entry,
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: strings.deleteRecord,
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: () => _deleteEntry(
+                                context,
+                                ref,
+                                strings,
+                                item.id,
+                              ),
+                            ),
+                          ]
+                        : [
+                            IconButton(
+                              tooltip: strings.editRecord,
+                              icon: const Icon(Icons.edit_outlined),
+                              onPressed: () => _editTransfer(
+                                context,
+                                ref,
+                                strings,
+                                existing: item.transfer,
+                              ),
+                            ),
+                            IconButton(
+                              tooltip: strings.deleteRecord,
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: () => _deleteTransfer(
+                                context,
+                                ref,
+                                strings,
+                                item.id,
+                              ),
+                            ),
+                          ],
+                  ),
+                ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   Future<void> _deleteTransfer(
@@ -530,6 +674,40 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
+    if (!widget.swipePage) {
+      ref.listen<WorkQuickAction?>(workQuickActionProvider, (previous, next) {
+        if (next == null) return;
+        ref.read(workQuickActionProvider.notifier).clear();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          switch (next) {
+            case WorkQuickAction.salary:
+              _editEntry(
+                context,
+                ref,
+                strings,
+                kind: WorkEntryKind.salary,
+              );
+            case WorkQuickAction.payment:
+              _editEntry(
+                context,
+                ref,
+                strings,
+                kind: WorkEntryKind.salaryPayment,
+              );
+            case WorkQuickAction.advance:
+              _editEntry(
+                context,
+                ref,
+                strings,
+                kind: WorkEntryKind.advance,
+              );
+            case WorkQuickAction.transfer:
+              _editTransfer(context, ref, strings);
+          }
+        });
+      });
+    }
     final tokens = AppDesignTokens.of(context);
     if (!widget.swipePage && widget.mode == WorkScreenMode.overview) {
       return _buildSwipeShell(strings);
@@ -553,19 +731,6 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
     final transferPage = widget.mode == WorkScreenMode.transfers;
     return Scaffold(
       appBar: overview || widget.swipePage ? null : AppBar(title: Text(records ? strings.entries : strings.transfers)),
-      floatingActionButton: overview || records
-          ? FloatingActionButton(
-              onPressed: () => _editEntry(context, ref, strings),
-              tooltip: strings.addEntry,
-              child: const Icon(Icons.add_rounded),
-            )
-          : transferPage
-              ? FloatingActionButton(
-                  onPressed: () => _editTransfer(context, ref, strings),
-                  tooltip: strings.addTransfer,
-                  child: const Icon(Icons.add_rounded),
-                )
-              : null,
       body: ListView(padding: tokens.pageInsets(), children: [
         MonthSelector(
           pickerKey: const Key('work-selected-month-picker'),
@@ -579,65 +744,14 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
           _workSummaryCard(context, strings, entries.value ?? const [], transfers.value ?? const [], selectedMonth),
           const SizedBox(height: 16),
         ],
-        if (records) ...[
-          entries.when(
-            loading: () => Text(strings.loading),
-            error: (error, stackTrace) => Text(strings.dataError),
-            data: (items) {
-              final monthItems = items
-                  .where((entry) => entry.dueMonth == selectedMonth)
-                  .toList();
-              if (monthItems.isEmpty) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  child: Center(child: Text(strings.noRecords)),
-                );
-              }
-              return Column(
-                children: [
-                  for (final entry in monthItems)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: FinancialRecordCard(
-                        icon: switch (entry.kind) {
-                          WorkEntryKind.salary => Icons.payments_outlined,
-                          WorkEntryKind.advance => Icons.request_quote_outlined,
-                          WorkEntryKind.salaryPayment =>
-                            Icons.receipt_long_outlined,
-                        },
-                        title: _kindLabel(strings, entry.kind),
-                        amount: entry.amount.minorUnits.toString(),
-                        details: [
-                          '${entry.kind == WorkEntryKind.salaryPayment ? strings.paymentReceivedMonth : strings.dueMonth}: ${entry.dueMonth}',
-                          '${strings.recordedAt}: ${formatCalendarDate(entry.recordedAt)}',
-                          if (entry.note != null && entry.note!.isNotEmpty)
-                            entry.note!,
-                        ],
-                        actions: [
-                          IconButton(
-                            tooltip: strings.editRecord,
-                            icon: const Icon(Icons.edit_outlined),
-                            onPressed: () => _editEntry(
-                              context,
-                              ref,
-                              strings,
-                              existing: entry,
-                            ),
-                          ),
-                          IconButton(
-                            tooltip: strings.deleteRecord,
-                            icon: const Icon(Icons.delete_outline),
-                            onPressed: () =>
-                                _deleteEntry(context, ref, strings, entry.id),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
-              );
-            },
+        if (records)
+          _buildRecordsList(
+            context,
+            strings,
+            entries,
+            transfers,
+            selectedMonth,
           ),
-        ],
         if (transferPage) ...[
           transfers.when(
             loading: () => Text(strings.loading),
