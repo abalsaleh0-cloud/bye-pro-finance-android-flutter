@@ -242,5 +242,16 @@
   "addAdvanceAction": "إضافة سلفة",
   "transferToHomeAction": "تحويل إلى المنزل",
   "workTransfers": "تحويلات المنزل",
-  "workHistory": "السجل"
+  "workHistory": "السجل",
+  "homeCategoryEducation": "التعليم والدراسة",
+  "homeCategoryCommunications": "الاتصالات والإنترنت",
+  "homeCategoryEntertainment": "الترفيه",
+  "homeCategoryClothing": "الملابس",
+  "homeCategoryGifts": "الهدايا والمناسبات",
+  "monthlyRents": "الإيجارات الشهرية",
+  "addInvoice": "إضافة فاتورة",
+  "addMonthlyRent": "إضافة إيجار شهري",
+  "homeBillOrRentName": "اسم الفاتورة أو الإيجار",
+  "homeBillDate": "تاريخ الفاتورة أو الإيجار",
+  "homeLedger": "السجل"
 }
