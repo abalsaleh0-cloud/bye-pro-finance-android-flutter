@@ -1,14 +1,32 @@
+import 'package:drift/native.dart';
 import 'package:expense_app/app/app.dart';
+import 'package:expense_app/core/database/app_database.dart';
+import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/providers/app_settings_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
 void main() {
+  late AppDatabase testDatabase;
+
+  setUp(() {
+    testDatabase = AppDatabase.forTesting(NativeDatabase.memory());
+  });
+
+  tearDown(() async {
+    await testDatabase.close();
+  });
+
   testWidgets('only the three app appearance modes are available', (
     tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [appDatabaseProvider.overrideWithValue(testDatabase)],
+        child: const MyApp(),
+      ),
+    );
     await tester.tap(find.byKey(const Key('open-settings')));
     await tester.pumpAndSettle();
 
