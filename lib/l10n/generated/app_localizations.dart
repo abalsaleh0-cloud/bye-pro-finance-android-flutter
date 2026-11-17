@@ -233,7 +233,7 @@ abstract class AppLocalizations {
   /// No description provided for @recordedAt.
   ///
   /// In ar, this message translates to:
-  /// **'تاريخ التسجيل'**
+  /// **'التاريخ'**
   String get recordedAt;
 
   /// No description provided for @salary.
@@ -437,7 +437,7 @@ abstract class AppLocalizations {
   /// No description provided for @invalidRecord.
   ///
   /// In ar, this message translates to:
-  /// **'تحقق من البيانات المدخلة والمبالغ والشهر المستحق'**
+  /// **'تحقق من صحة المبلغ والتاريخ'**
   String get invalidRecord;
 
   /// No description provided for @monthlyOverview.
