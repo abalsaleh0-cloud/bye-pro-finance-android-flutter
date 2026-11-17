@@ -1,3 +1,4 @@
+import 'package:drift/native.dart';
 import 'package:expense_app/app/app.dart';
 import 'package:expense_app/core/database/app_database.dart';
 import 'package:expense_app/core/database/database_providers.dart';
@@ -19,9 +20,8 @@ void main() {
   late AppDatabase testDatabase;
 
   setUpAll(() async {
-    // One file-backed test database per test suite avoids sharing a cached
-    // QueryExecutor across multiple AppDatabase instances.
-    testDatabase = AppDatabase();
+    // One in-memory test database per suite; no platform path plugin is needed.
+    testDatabase = AppDatabase.forTesting(NativeDatabase.memory());
     await testDatabase.readSetting('test-suite-ready');
   });
 
