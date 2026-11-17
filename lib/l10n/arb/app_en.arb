@@ -253,5 +253,6 @@
   "addMonthlyRent": "Add monthly rent",
   "homeBillOrRentName": "Bill or rent name",
   "homeBillDate": "Bill or rent date",
-  "homeLedger": "History"
+  "homeLedger": "History",
+  "homeIncomingFromWork": "Incoming from work"
 }
