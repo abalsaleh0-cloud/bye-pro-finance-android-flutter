@@ -680,18 +680,131 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
 
+  Widget _buildHistory(
+    BuildContext context,
+    AppLocalizations strings,
+    List<HomeExpense> expenses,
+    List<WorkHomeTransfer> transfers,
+    List<HomeBill> bills,
+    List<HomeBillPayment> payments,
+    List<HomeExpenseCategory> categories,
+    MonthKey selectedMonth,
+  ) {
+    final billsById = <String, HomeBill>{
+      for (final bill in bills) bill.id: bill,
+    };
+    final history = <_HomeHistoryRecord>[
+      for (final transfer in transfers.where((item) {
+        final date = item.transferredAt.toLocal();
+        return date.year == selectedMonth.year &&
+            date.month == selectedMonth.month;
+      }))
+        _HomeHistoryRecord(
+          date: transfer.transferredAt,
+          title: strings.receivedFromWork,
+          amount: transfer.amount.minorUnits,
+          icon: Icons.swap_horiz_rounded,
+          note: transfer.note,
+        ),
+      for (final expense in expenses.where((item) {
+        final date = item.expenseDate.toLocal();
+        return date.year == selectedMonth.year &&
+            date.month == selectedMonth.month;
+      }))
+        _HomeHistoryRecord(
+          date: expense.expenseDate,
+          title: _categoryLabel(
+            strings,
+            _categoryForExpense(categories, expense.categoryId),
+          ),
+          amount: expense.amount.minorUnits,
+          icon: _categoryIcon(
+            _categoryForExpense(categories, expense.categoryId).iconKey,
+          ),
+          note: expense.note,
+        ),
+      for (final bill in bills.where((item) {
+        final date = (item.dueDate ??
+                DateTime(item.dueMonth.year, item.dueMonth.month, 1))
+            .toLocal();
+        return date.year == selectedMonth.year &&
+            date.month == selectedMonth.month;
+      }))
+        _HomeHistoryRecord(
+          date: bill.dueDate ??
+              DateTime(bill.dueMonth.year, bill.dueMonth.month, 1),
+          title: bill.title,
+          amount: bill.amount.minorUnits,
+          icon: bill.kind == HomeBillKind.rent
+              ? Icons.home_work_outlined
+              : Icons.receipt_long_outlined,
+          note: bill.note,
+          subtitle: bill.kind == HomeBillKind.rent
+              ? strings.monthlyRents
+              : strings.monthlyBills,
+        ),
+      for (final payment in payments.where((item) {
+        final date = item.paidAt.toLocal();
+        return date.year == selectedMonth.year &&
+            date.month == selectedMonth.month;
+      }))
+        _HomeHistoryRecord(
+          date: payment.paidAt,
+          title: strings.addBillPayment,
+          amount: payment.amount.minorUnits,
+          icon: Icons.payments_outlined,
+          note: payment.note,
+          subtitle: billsById[payment.billId]?.title,
+        ),
+    ]..sort((a, b) => b.date.compareTo(a.date));
+
+    if (history.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Center(child: Text(strings.noRecords)),
+      );
+    }
+
+    return Column(
+      children: [
+        for (final record in history)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: FinancialRecordCard(
+              icon: record.icon,
+              title: record.title,
+              amount: record.amount.toString(),
+              details: [
+                if (record.subtitle != null && record.subtitle!.isNotEmpty)
+                  record.subtitle!,
+                MaterialLocalizations.of(context).formatFullDate(
+                  record.date.toLocal(),
+                ),
+                if (record.note != null && record.note!.trim().isNotEmpty)
+                  record.note!.trim(),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _buildSwipeShell(AppLocalizations strings) {
     final pages = <HomeScreenMode>[
       HomeScreenMode.overview,
       HomeScreenMode.transfers,
-      HomeScreenMode.dailyExpenses,
       HomeScreenMode.monthlyBills,
+      HomeScreenMode.monthlyRents,
+      HomeScreenMode.dailyExpenses,
+      HomeScreenMode.history,
     ];
     final labels = [
       strings.homeSection,
       strings.receivedFromWork,
-      strings.dailyExpenses,
       strings.monthlyBills,
+      strings.monthlyRents,
+      strings.expenses,
+      strings.homeLedger,
     ];
 
     return Column(
@@ -731,12 +844,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final strings = AppLocalizations.of(context)!;
     final tokens = AppDesignTokens.of(context);
     if (!widget.swipePage && widget.mode == HomeScreenMode.overview) {
+      ref.listen<HomeQuickAction?>(homeQuickActionProvider, (previous, action) {
+        if (action == null) return;
+        ref.read(homeQuickActionProvider.notifier).clear();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          switch (action) {
+            case HomeQuickAction.expense:
+              _editExpense(context, ref, strings);
+              break;
+            case HomeQuickAction.invoice:
+              HomeBillsSection(
+                selectedMonth: ref.read(selectedMonthProvider),
+              ).showAddBill(context, ref, strings, HomeBillKind.monthly);
+              break;
+            case HomeQuickAction.rent:
+              HomeBillsSection(
+                selectedMonth: ref.read(selectedMonthProvider),
+              ).showAddBill(context, ref, strings, HomeBillKind.rent);
+              break;
+          }
+        });
+      });
       return _buildSwipeShell(strings);
     }
     final expenses = ref.watch(homeExpensesProvider);
     final expenseCategories = ref.watch(homeExpenseCategoriesProvider);
     final transfers = ref.watch(workTransfersProvider);
     final bills = ref.watch(homeBillsProvider);
+    final allBillPayments = ref.watch(allHomeBillPaymentsProvider);
     final now = DateTime.now();
     final currentMonth = MonthKey(year: now.year, month: now.month);
     final selectedMonth = ref.watch(selectedMonthProvider);
@@ -752,6 +888,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         return MonthKey(year: date.year, month: date.month);
       }),
       ...(bills.value ?? const <HomeBill>[]).map((item) => item.dueMonth),
+      ...(allBillPayments.value ?? const <HomeBillPayment>[]).map((item) {
+        final date = item.paidAt.toLocal();
+        return MonthKey(year: date.year, month: date.month);
+      }),
       ...(transfers.value ?? const <WorkHomeTransfer>[]).map((item) {
         final date = item.transferredAt.toLocal();
         return MonthKey(year: date.year, month: date.month);
@@ -761,32 +901,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final transferPage = widget.mode == HomeScreenMode.transfers;
     final expensePage = widget.mode == HomeScreenMode.dailyExpenses;
     final billsPage = widget.mode == HomeScreenMode.monthlyBills;
-    final pageTitle = transferPage ? strings.receivedFromWork : expensePage ? strings.dailyExpenses : strings.monthlyBills;
+    final rentsPage = widget.mode == HomeScreenMode.monthlyRents;
+    final historyPage = widget.mode == HomeScreenMode.history;
+    final pageTitle = switch (widget.mode) {
+      HomeScreenMode.overview => strings.homeSection,
+      HomeScreenMode.transfers => strings.receivedFromWork,
+      HomeScreenMode.monthlyBills => strings.monthlyBills,
+      HomeScreenMode.monthlyRents => strings.monthlyRents,
+      HomeScreenMode.dailyExpenses => strings.expenses,
+      HomeScreenMode.history => strings.homeLedger,
+    };
     return Scaffold(
       appBar: overview || widget.swipePage ? null : AppBar(title: Text(pageTitle)),
-      floatingActionButton: switch (widget.mode) {
-        HomeScreenMode.overview => FloatingActionButton(
-            key: const Key('home-add-action'),
-            onPressed: () => _showHomeAddOptions(context, ref, strings),
-            tooltip: strings.addHomeItem,
-            child: const Icon(Icons.add_rounded),
-          ),
-        HomeScreenMode.dailyExpenses => FloatingActionButton(
-            key: const Key('home-expense-add-fab'),
-            onPressed: () => _editExpense(context, ref, strings),
-            tooltip: strings.addExpense,
-            child: const Icon(Icons.add_rounded),
-          ),
-        HomeScreenMode.monthlyBills => FloatingActionButton(
-            key: const Key('home-bills-add-fab'),
-            onPressed: () => HomeBillsSection(
-              selectedMonth: selectedMonth,
-            ).showAddBill(context, ref, strings, HomeBillKind.monthly),
-            tooltip: strings.addMonthlyBill,
-            child: const Icon(Icons.add_rounded),
-          ),
-        HomeScreenMode.transfers => null,
-      },
       body: ListView(padding: tokens.pageInsets(), children: [
         MonthSelector(
           pickerKey: const Key('home-selected-month-picker'),
@@ -839,7 +965,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         title: strings.receivedFromWork,
                         amount: transfer.amount.minorUnits.toString(),
                         details: [
-                          formatCalendarDate(transfer.transferredAt),
+                          MaterialLocalizations.of(context).formatFullDate(
+                            transfer.transferredAt.toLocal(),
+                          ),
                           if (transfer.note != null && transfer.note!.isNotEmpty)
                             transfer.note!,
                         ],
@@ -872,7 +1000,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     Padding(
                       padding: const EdgeInsets.only(bottom: 10),
                       child: FinancialRecordCard(
-                        icon: Icons.receipt_long_outlined,
+                        icon: _categoryIcon(
+                          _categoryForExpense(
+                            expenseCategories.value ??
+                                const <HomeExpenseCategory>[],
+                            expense.categoryId,
+                          ).iconKey,
+                        ),
                         title: _categoryLabel(
                           strings,
                           _categoryForExpense(
@@ -883,7 +1017,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                         amount: expense.amount.minorUnits.toString(),
                         details: [
-                          '${strings.expenseDate}: ${formatCalendarDate(expense.expenseDate)}',
+                          MaterialLocalizations.of(context).formatFullDate(
+                            expense.expenseDate.toLocal(),
+                          ),
                           if (expense.note != null && expense.note!.isNotEmpty)
                             expense.note!,
                         ],
@@ -916,8 +1052,64 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             },
           ),
         ],
-        if (billsPage) HomeBillsSection(selectedMonth: selectedMonth),
+        if (billsPage)
+          HomeBillsSection(
+            selectedMonth: selectedMonth,
+            kindFilter: HomeBillKind.monthly,
+          ),
+        if (rentsPage)
+          HomeBillsSection(
+            selectedMonth: selectedMonth,
+            kindFilter: HomeBillKind.rent,
+          ),
+        if (historyPage) ...[
+          expenses.when(
+            loading: () => Text(strings.loading),
+            error: (error, stackTrace) => Text(strings.dataError),
+            data: (expenseItems) => transfers.when(
+              loading: () => Text(strings.loading),
+              error: (error, stackTrace) => Text(strings.dataError),
+              data: (transferItems) => bills.when(
+                loading: () => Text(strings.loading),
+                error: (error, stackTrace) => Text(strings.dataError),
+                data: (billItems) => allBillPayments.when(
+                  loading: () => Text(strings.loading),
+                  error: (error, stackTrace) => Text(strings.dataError),
+                  data: (paymentItems) => _buildHistory(
+                    context,
+                    strings,
+                    expenseItems,
+                    transferItems,
+                    billItems,
+                    paymentItems,
+                    expenseCategories.value ?? const [],
+                    selectedMonth,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ]),
     );
   }
+}
+
+
+final class _HomeHistoryRecord {
+  const _HomeHistoryRecord({
+    required this.date,
+    required this.title,
+    required this.amount,
+    required this.icon,
+    this.note,
+    this.subtitle,
+  });
+
+  final DateTime date;
+  final String title;
+  final int amount;
+  final IconData icon;
+  final String? note;
+  final String? subtitle;
 }
