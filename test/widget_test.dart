@@ -379,6 +379,34 @@ void main() {
     expect(find.byKey(const Key('work-add-payment')), findsOneWidget);
     expect(find.byKey(const Key('work-add-advance')), findsOneWidget);
     expect(find.byKey(const Key('work-add-transfer')), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('work-add-salary')),
+        matching: find.byIcon(Icons.payments_outlined),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('work-add-payment')),
+        matching: find.byIcon(Icons.receipt_long_outlined),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('work-add-advance')),
+        matching: find.byIcon(Icons.request_quote_outlined),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('work-add-transfer')),
+        matching: find.byIcon(Icons.swap_horiz),
+      ),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byKey(const Key('work-add-payment')));
     await tester.pumpAndSettle();
@@ -505,6 +533,15 @@ void main() {
       recordedAt: now,
       note: 'ملاحظة الراتب',
     );
+    final previousDate = DateTime(now.year, now.month - 1, now.day);
+    final previousMonthEntry = WorkEntry(
+      id: 'widget-work-note-previous-month',
+      kind: WorkEntryKind.advance,
+      amount: Money.fromMinorUnits(90),
+      dueMonth: MonthKey(year: previousDate.year, month: previousDate.month),
+      recordedAt: previousDate,
+      note: 'ملاحظة راتب قديم',
+    );
 
     await tester.pumpWidget(
       ProviderScope(
@@ -516,7 +553,9 @@ void main() {
           allHomeBillPaymentsProvider.overrideWith((ref) async => []),
           allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
 
-          workEntriesProvider.overrideWith((ref) => Stream.value([entry])),
+          workEntriesProvider.overrideWith(
+            (ref) => Stream.value([entry, previousMonthEntry]),
+          ),
           workTransfersProvider.overrideWith(
             (ref) => Stream.value([
               WorkHomeTransfer(
@@ -546,7 +585,9 @@ void main() {
     // The note is rendered inside the same multiline subtitle Text as its date.
     expect(find.textContaining('ملاحظة الراتب'), findsOneWidget);
     expect(find.textContaining('ملاحظة التحويل'), findsOneWidget);
+    expect(find.textContaining('ملاحظة راتب قديم'), findsOneWidget);
     expect(find.text('تحويل إلى المنزل'), findsOneWidget);
+    expect(find.byKey(const Key('work-selected-month-picker')), findsNothing);
   });
   _testWidgetsWithDriftCleanup('saved home bill note is visible on the monthly bills card', (tester) async {
     final now = DateTime.now();

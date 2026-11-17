@@ -109,7 +109,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transferAmount => 'Transfer amount';
 
   @override
-  String get transfers => 'Transfers to household';
+  String get transfers => 'Household transfers';
 
   @override
   String get expenses => 'Expenses';

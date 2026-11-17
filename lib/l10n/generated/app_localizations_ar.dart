@@ -109,7 +109,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get transferAmount => 'مبلغ التحويل';
 
   @override
-  String get transfers => 'التحويلات إلى المنزل';
+  String get transfers => 'تحويلات المنزل';
 
   @override
   String get expenses => 'المصروفات';

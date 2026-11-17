@@ -658,13 +658,14 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
     return Scaffold(
       appBar: overview || widget.swipePage ? null : AppBar(title: Text(records ? strings.entries : strings.transfers)),
       body: ListView(padding: tokens.pageInsets(), children: [
-        MonthSelector(
-          pickerKey: const Key('work-selected-month-picker'),
-          selectedMonth: selectedMonth,
-          availableMonths: allMonths,
-          onChanged: (month) =>
-              ref.read(selectedMonthProvider.notifier).select(month),
-        ),
+        if (!records)
+          MonthSelector(
+            pickerKey: const Key('work-selected-month-picker'),
+            selectedMonth: selectedMonth,
+            availableMonths: allMonths,
+            onChanged: (month) =>
+                ref.read(selectedMonthProvider.notifier).select(month),
+          ),
         SizedBox(height: tokens.sectionSpacing * 0.67),
         if (overview) ...[
           _workActionGrid(context, ref, strings),
@@ -688,8 +689,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
               builder: (context) {
                 final logItems = <_WorkLogItem>[
                   for (final entry in entries.value ?? const <WorkEntry>[])
-                    if (entry.dueMonth == selectedMonth)
-                      _WorkLogItem(
+                    _WorkLogItem(
                         date: entry.recordedAt,
                         title: _kindLabel(strings, entry.kind),
                         amount: entry.amount.minorUnits,
@@ -702,9 +702,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                         entry: entry,
                       ),
                   for (final transfer in transfers.value ?? const <WorkHomeTransfer>[])
-                    if (transfer.transferredAt.toLocal().year == selectedMonth.year &&
-                        transfer.transferredAt.toLocal().month == selectedMonth.month)
-                      _WorkLogItem(
+                    _WorkLogItem(
                         date: transfer.transferredAt,
                         title: strings.transferredToHome,
                         amount: transfer.amount.minorUnits,

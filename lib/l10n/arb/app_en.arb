@@ -36,7 +36,7 @@
   "counterparty": "Counterparty",
   "addTransfer": "Add transfer to household",
   "transferAmount": "Transfer amount",
-  "transfers": "Transfers to household",
+  "transfers": "Household transfers",
   "expenses": "Expenses",
   "entries": "Log",
   "loading": "Loading",
