@@ -44,7 +44,7 @@ void main() {
     );
 
     final categories = await repository.getAll();
-    expect(categories, hasLength(10));
+    expect(categories, hasLength(15));
     expect(
       categories.singleWhere((item) => item.id == 'groceries').name,
       'Food and groceries',
