@@ -411,7 +411,13 @@ void main() {
     await tester.tap(find.byKey(const Key('work-add-payment')));
     await tester.pumpAndSettle();
 
-    expect(find.text('إضافة دفعة'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.text('إضافة دفعة'),
+      ),
+      findsOneWidget,
+    );
     expect(find.byKey(const Key('work-entry-amount')), findsOneWidget);
     expect(find.byKey(const Key('work-entry-date')), findsOneWidget);
     expect(find.byKey(const Key('work-entry-note')), findsOneWidget);
