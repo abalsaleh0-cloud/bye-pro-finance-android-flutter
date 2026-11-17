@@ -231,7 +231,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeLedger => 'History';
+
+
   @override
+  String get homeIncomingFromWork => 'Incoming from work';  @override
   String get manageCategories => 'Manage categories';
 
   @override
