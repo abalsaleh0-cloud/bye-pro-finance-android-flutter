@@ -231,7 +231,10 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get homeLedger => 'السجل';
+
+
   @override
+  String get homeIncomingFromWork => 'الوارد من العمل';  @override
   String get manageCategories => 'إدارة التصنيفات';
 
   @override
