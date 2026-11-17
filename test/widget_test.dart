@@ -336,61 +336,149 @@ void main() {
     );
   });
 
-  _testWidgetsWithDriftCleanup('work form offers salary advance and payment entry types', (tester) async {
-    final now = DateTime.now();
-    final currentMonth = MonthKey(year: now.year, month: now.month);
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          appDatabaseProvider.overrideWithValue(testDatabase),
-          homeBillOutstandingAsOfMonthProvider.overrideWith(
-            (ref, selected) async => 0,
-          ),
-          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
-          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
+  _testWidgetsWithDriftCleanup(
+    'work quick-add menu has four dedicated categories and a shared three-field form',
+    (tester) async {
+      final now = DateTime.now();
+      final currentMonth = MonthKey(year: now.year, month: now.month);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(testDatabase),
+            homeBillOutstandingAsOfMonthProvider.overrideWith(
+              (ref, selected) async => 0,
+            ),
+            allHomeBillPaymentsProvider.overrideWith((ref) async => []),
+            allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
+            workEntriesProvider.overrideWith((ref) => Stream.value([])),
+            workTransfersProvider.overrideWith((ref) => Stream.value([])),
+            homeExpensesProvider.overrideWith((ref) => Stream.value([])),
+            homeExpenseCategoriesProvider.overrideWith((ref) async => []),
+            homeBillsProvider.overrideWith((ref) async => []),
+            homeBillPaymentsForMonthProvider.overrideWith(
+              (ref, selected) async => 0,
+            ),
+            debtsProvider.overrideWith((ref) => Stream.value([])),
+            selectedMonthProvider.overrideWith(
+              () => _FixedSelectedMonthNotifier(currentMonth),
+            ),
+          ],
+          child: const MyApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-          workEntriesProvider.overrideWith((ref) => Stream.value([])),
-          workTransfersProvider.overrideWith((ref) => Stream.value([])),
-          homeExpensesProvider.overrideWith((ref) => Stream.value([])),
-          homeExpenseCategoriesProvider.overrideWith((ref) async => []),
-          homeBillsProvider.overrideWith((ref) async => []),
-          homeBillPaymentsForMonthProvider.overrideWith(
-            (ref, selected) async => 0,
-          ),
-          debtsProvider.overrideWith((ref) => Stream.value([])),
-          selectedMonthProvider.overrideWith(
-            () => _FixedSelectedMonthNotifier(currentMonth),
-          ),
-        ],
-        child: const MyApp(),
-      ),
-    );
-    await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('العمل'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('open-work-quick-add')));
+      await tester.pumpAndSettle();
 
-    await tester.tap(
-      find.descendant(
-        of: find.byType(NavigationBar),
-        matching: find.text('العمل'),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byType(FloatingActionButton));
-    await tester.pumpAndSettle();
+      expect(find.text('إضافة راتب'), findsOneWidget);
+      expect(find.text('إضافة دفعة'), findsOneWidget);
+      expect(find.text('إضافة سلفة'), findsOneWidget);
+      expect(find.text('إضافة تحويل إلى المنزل'), findsOneWidget);
+      expect(find.byIcon(Icons.payments_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.receipt_long_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.request_quote_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.swap_horiz_rounded), findsOneWidget);
 
-    final kindField = find.byType(DropdownButtonFormField<WorkEntryKind>);
-    expect(kindField, findsOneWidget);
-    await tester.tap(kindField);
-    await tester.pumpAndSettle();
-    expect(find.text('راتب'), findsWidgets);
-    expect(find.text('سلفة'), findsOneWidget);
-    expect(find.text('دفعة'), findsOneWidget);
-    await tester.tap(find.text('دفعة').last);
-    await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('work-quick-add-payment')));
+      await tester.pumpAndSettle();
 
-    expect(find.text('دفعة'), findsOneWidget);
-    await tester.tap(find.text('إلغاء'));
-    await tester.pumpAndSettle();
-  });
+      expect(find.text('إضافة دفعة'), findsOneWidget);
+      expect(find.byKey(const Key('work-entry-amount')), findsOneWidget);
+      expect(find.byKey(const Key('work-entry-date')), findsOneWidget);
+      expect(find.byKey(const Key('work-entry-note')), findsOneWidget);
+      expect(find.byType(DropdownButtonFormField<WorkEntryKind>), findsNothing);
+
+      await tester.tap(find.text('إلغاء'));
+      await tester.pumpAndSettle();
+    },
+  );
+
+  _testWidgetsWithDriftCleanup(
+    'work history combines entries and home transfers with their notes and weekdays',
+    (tester) async {
+      final now = DateTime.now();
+      final currentMonth = MonthKey(year: now.year, month: now.month);
+      final salaryDate = DateTime(now.year, now.month, 1);
+      final transferDate = DateTime(now.year, now.month, 2);
+      final salary = WorkEntry(
+        id: 'history-salary',
+        kind: WorkEntryKind.salary,
+        amount: Money.fromMinorUnits(1200),
+        dueMonth: currentMonth,
+        recordedAt: salaryDate,
+        note: 'ملاحظة الراتب',
+      );
+      final transfer = WorkHomeTransfer(
+        id: 'history-transfer',
+        amount: Money.fromMinorUnits(300),
+        transferredAt: transferDate,
+        note: 'ملاحظة التحويل',
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appDatabaseProvider.overrideWithValue(testDatabase),
+            homeBillOutstandingAsOfMonthProvider.overrideWith(
+              (ref, selected) async => 0,
+            ),
+            allHomeBillPaymentsProvider.overrideWith((ref) async => []),
+            allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
+            workEntriesProvider.overrideWith((ref) => Stream.value([salary])),
+            workTransfersProvider.overrideWith((ref) => Stream.value([transfer])),
+            homeExpensesProvider.overrideWith((ref) => Stream.value([])),
+            homeExpenseCategoriesProvider.overrideWith((ref) async => []),
+            homeBillsProvider.overrideWith((ref) async => []),
+            homeBillPaymentsForMonthProvider.overrideWith(
+              (ref, selected) async => 0,
+            ),
+            debtsProvider.overrideWith((ref) => Stream.value([])),
+            selectedMonthProvider.overrideWith(
+              () => _FixedSelectedMonthNotifier(currentMonth),
+            ),
+          ],
+          child: const MyApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('العمل'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('work-tab-2')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('راتب'), findsOneWidget);
+      expect(find.text('تحويل إلى المنزل'), findsOneWidget);
+      expect(find.text('ملاحظة الراتب'), findsOneWidget);
+      expect(find.text('ملاحظة التحويل'), findsOneWidget);
+      final historyContext = tester.element(find.text('راتب'));
+      expect(
+        find.textContaining(
+          MaterialLocalizations.of(historyContext).formatFullDate(salaryDate),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining(
+          MaterialLocalizations.of(historyContext).formatFullDate(transferDate),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
 
   _testWidgetsWithDriftCleanup('debt form allows selecting creditor direction', (tester) async {
     final now = DateTime.now();
