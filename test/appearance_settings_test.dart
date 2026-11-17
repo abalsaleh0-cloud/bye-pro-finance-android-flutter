@@ -1,4 +1,3 @@
-import 'package:drift/native.dart';
 import 'package:expense_app/app/app.dart';
 import 'package:expense_app/core/database/app_database.dart';
 import 'package:expense_app/core/database/database_providers.dart';
@@ -10,8 +9,20 @@ import 'package:material_ui/material_ui.dart';
 void main() {
   late AppDatabase testDatabase;
 
-  setUp(() {
-    testDatabase = AppDatabase.forTesting(NativeDatabase.memory());
+  setUpAll(() async {
+    // One file-backed test database per test suite avoids sharing a cached
+    // QueryExecutor across multiple AppDatabase instances.
+    testDatabase = AppDatabase();
+    await testDatabase.readSetting('test-suite-ready');
+  });
+
+  setUp(() async {
+    await testDatabase.clearFinancialData();
+    await testDatabase.customStatement('DELETE FROM app_settings');
+  });
+
+  tearDownAll(() async {
+    await testDatabase.close();
   });
 
 
@@ -20,10 +31,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [appDatabaseProvider.overrideWith((ref) {
-          ref.onDispose(() => testDatabase.close());
-          return testDatabase;
-        })],
+        overrides: [appDatabaseProvider.overrideWithValue(testDatabase)],
         child: const MyApp(),
       ),
     );
