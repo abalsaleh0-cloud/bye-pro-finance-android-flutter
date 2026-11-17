@@ -7,6 +7,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
+
+/// Dispose each ProviderScope while still inside the widget test's fakeAsync
+/// zone, then elapse Drift's zero-duration stream-close timer before the
+/// test binding checks for pending timers.
+void _testWidgetsWithDriftCleanup(
+  String description,
+  Future<void> Function(WidgetTester tester) body,
+) {
+  testWidgets(description, (tester) async {
+    try {
+      await body(tester);
+    } finally {
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 1));
+    }
+  });
+}
+
 void main() {
   late AppDatabase testDatabase;
 
@@ -26,7 +44,7 @@ void main() {
   });
 
 
-  testWidgets('only the three app appearance modes are available', (
+  _testWidgetsWithDriftCleanup('only the three app appearance modes are available', (
     tester,
   ) async {
     await tester.pumpWidget(
