@@ -138,17 +138,16 @@ void main() {
 
     await tester.tap(find.text('المنزل').last);
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('home-tab-0')), findsOneWidget);
-    expect(find.byKey(const Key('home-tab-1')), findsOneWidget);
-    expect(find.byKey(const Key('home-tab-2')), findsOneWidget);
-    expect(find.byKey(const Key('home-tab-3')), findsOneWidget);
+    for (var index = 0; index < 6; index++) {
+      expect(find.byKey(Key('home-tab-$index')), findsOneWidget);
+    }
     expect(find.byType(NavigationBar), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('home-tab-3')));
+    await tester.tap(find.byKey(const Key('home-tab-5')));
     await tester.pumpAndSettle();
     expect(
       tester.widget<PageView>(find.byKey(const Key('home-section-pages'))).controller!.page,
-      3,
+      5,
     );
   });
 
@@ -478,7 +477,7 @@ void main() {
 
     await tester.tap(find.text('المنزل').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('home-tab-3')));
+    await tester.tap(find.byKey(const Key('home-tab-2')));
     await tester.pumpAndSettle();
 
     expect(find.text('فاتورة اختبار'), findsOneWidget);
@@ -630,7 +629,7 @@ void main() {
 
     await tester.tap(find.text('المنزل').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('home-tab-3')));
+    await tester.tap(find.byKey(const Key('home-tab-2')));
     await tester.pumpAndSettle();
 
     expect(find.text('فاتورة قابلة للتعديل'), findsOneWidget);
@@ -717,19 +716,36 @@ void main() {
     await tester.tap(find.byKey(const Key('home-tab-0')));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('home-add-action')));
+    await tester.tap(find.byKey(const Key('home-quick-add')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('home-add-daily-expense')));
+    await tester.tap(find.byKey(const Key('home-quick-add-expense')));
     await tester.pumpAndSettle();
-    expect(fieldValues(), contains(previousMonth.toString()));
+    expect(
+      fieldValues().any((value) => value.startsWith('$previousMonth-')),
+      isTrue,
+    );
     await tester.tap(find.text('إلغاء'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('home-add-action')));
+    await tester.tap(find.byKey(const Key('home-quick-add')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('home-add-monthly-bill')));
+    await tester.tap(find.byKey(const Key('home-quick-add-invoice')));
     await tester.pumpAndSettle();
-    expect(fieldValues(), contains(previousMonth.toString()));
+    expect(
+      fieldValues().any((value) => value.startsWith('$previousMonth-')),
+      isTrue,
+    );
+    await tester.tap(find.text('إلغاء'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('home-quick-add')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('home-quick-add-rent')));
+    await tester.pumpAndSettle();
+    expect(
+      fieldValues().any((value) => value.startsWith('$previousMonth-')),
+      isTrue,
+    );
     await tester.tap(find.text('إلغاء'));
     await tester.pumpAndSettle();
   });
