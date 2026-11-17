@@ -1,4 +1,6 @@
+import 'package:drift/native.dart';
 import 'package:expense_app/app/app.dart';
+import 'package:expense_app/core/database/app_database.dart';
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
@@ -15,10 +17,24 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
 void main() {
+  late AppDatabase testDatabase;
+
+  setUp(() {
+    testDatabase = AppDatabase.forTesting(NativeDatabase.memory());
+  });
+
+  tearDown(() async {
+    await testDatabase.close();
+  });
   testWidgets('starts in Arabic with five primary navigation destinations', (
     tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [appDatabaseProvider.overrideWithValue(testDatabase)],
+        child: const MyApp(),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('الرئيسية'), findsWidgets);
@@ -30,7 +46,12 @@ void main() {
   });
 
   testWidgets('global calculator evaluates expressions and returns a safe result', (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [appDatabaseProvider.overrideWithValue(testDatabase)],
+        child: const MyApp(),
+      ),
+    );
     await tester.tap(find.byKey(const Key('open-calculator')));
     await tester.pumpAndSettle();
 
@@ -54,7 +75,12 @@ void main() {
   });
 
   testWidgets('financial calculator calculates percentages in minor units', (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [appDatabaseProvider.overrideWithValue(testDatabase)],
+        child: const MyApp(),
+      ),
+    );
     await tester.tap(find.byKey(const Key('open-calculator')));
     await tester.pumpAndSettle();
 
@@ -85,7 +111,12 @@ void main() {
   testWidgets('global calendar opens the original date picker', (
     tester,
   ) async {
-    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [appDatabaseProvider.overrideWithValue(testDatabase)],
+        child: const MyApp(),
+      ),
+    );
 
     await tester.tap(find.byKey(const Key('open-calendar')));
     await tester.pumpAndSettle();
@@ -99,7 +130,12 @@ void main() {
   });
 
   testWidgets('settings can switch theme and language', (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [appDatabaseProvider.overrideWithValue(testDatabase)],
+        child: const MyApp(),
+      ),
+    );
 
     await tester.tap(find.byKey(const Key('open-settings')));
     await tester.pumpAndSettle();
@@ -126,7 +162,12 @@ void main() {
   });
 
   testWidgets('bottom navigation changes the active section', (tester) async {
-    await tester.pumpWidget(const ProviderScope(child: MyApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [appDatabaseProvider.overrideWithValue(testDatabase)],
+        child: const MyApp(),
+      ),
+    );
 
     await tester.tap(find.text('العمل').last);
     await tester.pumpAndSettle();
@@ -192,6 +233,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appDatabaseProvider.overrideWithValue(testDatabase),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -274,6 +316,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appDatabaseProvider.overrideWithValue(testDatabase),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -329,6 +372,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appDatabaseProvider.overrideWithValue(testDatabase),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -385,6 +429,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appDatabaseProvider.overrideWithValue(testDatabase),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -438,6 +483,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appDatabaseProvider.overrideWithValue(testDatabase),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -479,6 +525,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appDatabaseProvider.overrideWithValue(testDatabase),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -531,6 +578,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appDatabaseProvider.overrideWithValue(testDatabase),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 580,
           ),
@@ -581,6 +629,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appDatabaseProvider.overrideWithValue(testDatabase),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -636,6 +685,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appDatabaseProvider.overrideWithValue(testDatabase),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -681,6 +731,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appDatabaseProvider.overrideWithValue(testDatabase),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -775,6 +826,7 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appDatabaseProvider.overrideWithValue(testDatabase),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
