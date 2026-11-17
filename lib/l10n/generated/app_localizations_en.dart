@@ -76,7 +76,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dueMonth => 'Due month';
 
   @override
-  String get recordedAt => 'Recorded';
+  String get recordedAt => 'Date';
 
   @override
   String get salary => 'Salary';
@@ -217,8 +217,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get debtDirection => 'Debt direction';
 
   @override
-  String get invalidRecord =>
-      'Check the entered values, amounts, and due month';
+  String get invalidRecord => 'Check the amount and date';
 
   @override
   String get monthlyOverview => 'Current month overview';
