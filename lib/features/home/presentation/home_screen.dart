@@ -3,7 +3,6 @@ import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/calendar_date.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
-import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:expense_app/core/widgets/month_selector.dart';
 import 'package:expense_app/core/widgets/section_pill_tabs.dart';
 import 'package:expense_app/core/widgets/financial_record_card.dart';
