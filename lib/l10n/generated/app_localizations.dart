@@ -338,6 +338,15 @@ abstract class AppLocalizations {
   /// **'إضافة سجل عمل'**
   String get addEntry;
 
+  /// No description provided for @addSalary.
+  String get addSalary;
+
+  /// No description provided for @addPayment.
+  String get addPayment;
+
+  /// No description provided for @addAdvance.
+  String get addAdvance;
+
   /// No description provided for @addDebt.
   ///
   /// In ar, this message translates to:
