@@ -233,7 +233,7 @@ abstract class AppLocalizations {
   /// No description provided for @recordedAt.
   ///
   /// In ar, this message translates to:
-  /// **'تاريخ التسجيل'**
+  /// **'التاريخ'**
   String get recordedAt;
 
   /// No description provided for @salary.
@@ -299,7 +299,7 @@ abstract class AppLocalizations {
   /// No description provided for @transfers.
   ///
   /// In ar, this message translates to:
-  /// **'التحويلات إلى المنزل'**
+  /// **'تحويلات المنزل'**
   String get transfers;
 
   /// No description provided for @expenses.
@@ -311,7 +311,7 @@ abstract class AppLocalizations {
   /// No description provided for @entries.
   ///
   /// In ar, this message translates to:
-  /// **'السجلات'**
+  /// **'السجل'**
   String get entries;
 
   /// No description provided for @loading.
@@ -428,7 +428,7 @@ abstract class AppLocalizations {
   /// No description provided for @invalidRecord.
   ///
   /// In ar, this message translates to:
-  /// **'تحقق من البيانات المدخلة والمبالغ والشهر المستحق'**
+  /// **'تحقق من صحة المبلغ والتاريخ'**
   String get invalidRecord;
 
   /// No description provided for @monthlyOverview.
@@ -521,6 +521,11 @@ abstract class AppLocalizations {
   String get noRecentActivity;
   String get debtBalancesCurrentNote;
   String get cashFlowComparison;
+
+  String get addWorkOperation;
+  String get addSalary;
+  String get addPayment;
+  String get addAdvance;
 
   String get gemmaEngine;
   String get gemmaEngineDescription;
