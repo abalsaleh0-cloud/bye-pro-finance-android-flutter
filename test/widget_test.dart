@@ -48,7 +48,10 @@ void main() {
   testWidgets('global calculator evaluates expressions and returns a safe result', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [appDatabaseProvider.overrideWithValue(testDatabase)],
+        overrides: [appDatabaseProvider.overrideWith((ref) {
+            ref.onDispose(() => testDatabase.close());
+            return testDatabase;
+          })],
         child: const MyApp(),
       ),
     );
@@ -77,7 +80,10 @@ void main() {
   testWidgets('financial calculator calculates percentages in minor units', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [appDatabaseProvider.overrideWithValue(testDatabase)],
+        overrides: [appDatabaseProvider.overrideWith((ref) {
+            ref.onDispose(() => testDatabase.close());
+            return testDatabase;
+          })],
         child: const MyApp(),
       ),
     );
@@ -113,7 +119,10 @@ void main() {
   ) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [appDatabaseProvider.overrideWithValue(testDatabase)],
+        overrides: [appDatabaseProvider.overrideWith((ref) {
+            ref.onDispose(() => testDatabase.close());
+            return testDatabase;
+          })],
         child: const MyApp(),
       ),
     );
@@ -132,7 +141,10 @@ void main() {
   testWidgets('settings can switch theme and language', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [appDatabaseProvider.overrideWithValue(testDatabase)],
+        overrides: [appDatabaseProvider.overrideWith((ref) {
+            ref.onDispose(() => testDatabase.close());
+            return testDatabase;
+          })],
         child: const MyApp(),
       ),
     );
@@ -164,7 +176,10 @@ void main() {
   testWidgets('bottom navigation changes the active section', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [appDatabaseProvider.overrideWithValue(testDatabase)],
+        overrides: [appDatabaseProvider.overrideWith((ref) {
+            ref.onDispose(() => testDatabase.close());
+            return testDatabase;
+          })],
         child: const MyApp(),
       ),
     );
@@ -233,7 +248,10 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          appDatabaseProvider.overrideWithValue(testDatabase),
+          appDatabaseProvider.overrideWith((ref) {
+            ref.onDispose(() => testDatabase.close());
+            return testDatabase;
+          }),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -316,7 +334,10 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          appDatabaseProvider.overrideWithValue(testDatabase),
+          appDatabaseProvider.overrideWith((ref) {
+            ref.onDispose(() => testDatabase.close());
+            return testDatabase;
+          }),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -372,7 +393,10 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          appDatabaseProvider.overrideWithValue(testDatabase),
+          appDatabaseProvider.overrideWith((ref) {
+            ref.onDispose(() => testDatabase.close());
+            return testDatabase;
+          }),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -429,7 +453,10 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          appDatabaseProvider.overrideWithValue(testDatabase),
+          appDatabaseProvider.overrideWith((ref) {
+            ref.onDispose(() => testDatabase.close());
+            return testDatabase;
+          }),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -483,7 +510,10 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          appDatabaseProvider.overrideWithValue(testDatabase),
+          appDatabaseProvider.overrideWith((ref) {
+            ref.onDispose(() => testDatabase.close());
+            return testDatabase;
+          }),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -525,7 +555,10 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          appDatabaseProvider.overrideWithValue(testDatabase),
+          appDatabaseProvider.overrideWith((ref) {
+            ref.onDispose(() => testDatabase.close());
+            return testDatabase;
+          }),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -578,7 +611,10 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          appDatabaseProvider.overrideWithValue(testDatabase),
+          appDatabaseProvider.overrideWith((ref) {
+            ref.onDispose(() => testDatabase.close());
+            return testDatabase;
+          }),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 580,
           ),
@@ -629,7 +665,10 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          appDatabaseProvider.overrideWithValue(testDatabase),
+          appDatabaseProvider.overrideWith((ref) {
+            ref.onDispose(() => testDatabase.close());
+            return testDatabase;
+          }),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -685,7 +724,10 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          appDatabaseProvider.overrideWithValue(testDatabase),
+          appDatabaseProvider.overrideWith((ref) {
+            ref.onDispose(() => testDatabase.close());
+            return testDatabase;
+          }),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -731,7 +773,10 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          appDatabaseProvider.overrideWithValue(testDatabase),
+          appDatabaseProvider.overrideWith((ref) {
+            ref.onDispose(() => testDatabase.close());
+            return testDatabase;
+          }),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
@@ -826,7 +871,10 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          appDatabaseProvider.overrideWithValue(testDatabase),
+          appDatabaseProvider.overrideWith((ref) {
+            ref.onDispose(() => testDatabase.close());
+            return testDatabase;
+          }),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
