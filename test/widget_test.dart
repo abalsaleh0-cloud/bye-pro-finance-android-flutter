@@ -485,6 +485,101 @@ void main() {
   });
 
 
+  testWidgets(
+    'home history combines work transfers, expenses, bills, rent and payments',
+    (tester) async {
+      final now = DateTime.now();
+      final month = MonthKey(year: now.year, month: now.month);
+      final invoice = HomeBill(
+        id: 'home-ledger-invoice',
+        title: 'فاتورة الإنترنت',
+        kind: HomeBillKind.monthly,
+        amount: Money.fromMinorUnits(500),
+        dueMonth: month,
+        dueDate: DateTime(now.year, now.month, 3),
+      );
+      final rent = HomeBill(
+        id: 'home-ledger-rent',
+        title: 'إيجار المنزل',
+        kind: HomeBillKind.rent,
+        amount: Money.fromMinorUnits(1200),
+        dueMonth: month,
+        dueDate: DateTime(now.year, now.month, 5),
+      );
+      final expense = HomeExpense(
+        id: 'home-ledger-expense',
+        amount: Money.fromMinorUnits(80),
+        categoryId: 'groceries',
+        expenseDate: DateTime(now.year, now.month, 8),
+        dueMonth: month,
+        note: 'ملاحظة المصروف',
+      );
+      final transfer = WorkHomeTransfer(
+        id: 'home-ledger-transfer',
+        amount: Money.fromMinorUnits(2000),
+        transferredAt: DateTime(now.year, now.month, 2),
+        note: 'ملاحظة التحويل',
+      );
+      final payment = HomeBillPayment(
+        id: 'home-ledger-payment',
+        billId: invoice.id,
+        amount: Money.fromMinorUnits(100),
+        paidAt: DateTime(now.year, now.month, 10),
+        note: 'ملاحظة الدفعة',
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            homeBillOutstandingAsOfMonthProvider.overrideWith(
+              (ref, selected) async => 0,
+            ),
+            homeBillPaymentsForMonthProvider.overrideWith(
+              (ref, selected) async => 100,
+            ),
+            allHomeBillPaymentsProvider.overrideWith(
+              (ref) async => [payment],
+            ),
+            allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
+            workEntriesProvider.overrideWith((ref) => Stream.value([])),
+            workTransfersProvider.overrideWith(
+              (ref) => Stream.value([transfer]),
+            ),
+            homeExpensesProvider.overrideWith(
+              (ref) => Stream.value([expense]),
+            ),
+            homeExpenseCategoriesProvider.overrideWith(
+              (ref) async => HomeExpenseCategory.defaults,
+            ),
+            homeBillsProvider.overrideWith(
+              (ref) async => [invoice, rent],
+            ),
+            debtsProvider.overrideWith((ref) => Stream.value([])),
+            selectedMonthProvider.overrideWith(
+              () => _FixedSelectedMonthNotifier(month),
+            ),
+          ],
+          child: const MyApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('المنزل').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('home-tab-5')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('فاتورة الإنترنت'), findsOneWidget);
+      expect(find.text('إيجار المنزل'), findsOneWidget);
+      expect(find.text('مستلم من العمل'), findsOneWidget);
+      expect(find.text('المواد الغذائية'), findsOneWidget);
+      expect(find.textContaining('ملاحظة التحويل'), findsOneWidget);
+      expect(find.textContaining('ملاحظة المصروف'), findsOneWidget);
+      expect(find.textContaining('ملاحظة الدفعة'), findsOneWidget);
+      expect(find.text('تسجيل دفعة'), findsOneWidget);
+    },
+  );
+
   testWidgets('home summary displays the exact remaining balance after rent and daily expenses', (tester) async {
     final now = DateTime.now();
     final month = MonthKey(year: now.year, month: now.month);
