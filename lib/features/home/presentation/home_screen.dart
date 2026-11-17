@@ -436,11 +436,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         (item) => DropdownMenuItem(
                           value: item.id,
                           child: Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(_categoryIcon(item.iconKey)),
                               const SizedBox(width: 10),
-                              Flexible(
-                                child: Text(_categoryLabel(strings, item)),
+                              ConstrainedBox(
+                                constraints: const BoxConstraints(maxWidth: 220),
+                                child: Text(
+                                  _categoryLabel(strings, item),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                             ],
                           ),
