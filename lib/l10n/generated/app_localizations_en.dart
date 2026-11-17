@@ -105,6 +105,24 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get addTransfer => 'Add transfer to household';
 
+
+  @override
+  String get addSalaryAction => 'Add salary';
+
+  @override
+  String get addPaymentAction => 'Add payment';
+
+  @override
+  String get addAdvanceAction => 'Add advance';
+
+  @override
+  String get transferToHomeAction => 'Transfer to household';
+
+  @override
+  String get workTransfers => 'Home transfers';
+
+  @override
+  String get workHistory => 'History';
   @override
   String get transferAmount => 'Transfer amount';
 

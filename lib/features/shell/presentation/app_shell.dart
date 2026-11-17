@@ -3,6 +3,7 @@ import 'package:expense_app/core/widgets/app_bottom_navigation_bar.dart';
 import 'package:expense_app/core/widgets/entry_tools.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
+import 'package:expense_app/features/work/presentation/work_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
@@ -44,6 +45,13 @@ class AppShell extends ConsumerWidget {
         surfaceTintColor: Colors.transparent,
         title: Text(labels[_selectedIndex]),
         actions: [
+          if (_selectedIndex == 1)
+            IconButton(
+              key: const Key('work-quick-add'),
+              tooltip: strings.quickActions,
+              icon: const Icon(Icons.add_circle_outline_rounded),
+              onPressed: () => _showWorkQuickAdd(context, ref, strings),
+            ),
           IconButton(
             key: const Key('open-settings'),
             tooltip: strings.settings,
@@ -90,4 +98,61 @@ class AppShell extends ConsumerWidget {
       ),
     );
   }
+
+  Future<void> _showWorkQuickAdd(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations strings,
+  ) async {
+    final action = await showModalBottomSheet<WorkQuickAction>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsetsDirectional.fromSTEB(20, 4, 20, 12),
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: Text(
+                  strings.quickActions,
+                  style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ),
+            ),
+            ListTile(
+              key: const Key('work-quick-add-salary'),
+              leading: const Icon(Icons.payments_outlined),
+              title: Text(strings.addSalaryAction),
+              onTap: () => Navigator.pop(sheetContext, WorkQuickAction.salary),
+            ),
+            ListTile(
+              key: const Key('work-quick-add-payment'),
+              leading: const Icon(Icons.receipt_long_outlined),
+              title: Text(strings.addPaymentAction),
+              onTap: () => Navigator.pop(sheetContext, WorkQuickAction.payment),
+            ),
+            ListTile(
+              key: const Key('work-quick-add-advance'),
+              leading: const Icon(Icons.request_quote_outlined),
+              title: Text(strings.addAdvanceAction),
+              onTap: () => Navigator.pop(sheetContext, WorkQuickAction.advance),
+            ),
+            ListTile(
+              key: const Key('work-quick-add-transfer'),
+              leading: const Icon(Icons.swap_horiz_rounded),
+              title: Text(strings.transferToHomeAction),
+              onTap: () => Navigator.pop(sheetContext, WorkQuickAction.transfer),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (action == null || !context.mounted) return;
+    ref.read(workQuickActionProvider.notifier).request(action);
+  }
+
 }

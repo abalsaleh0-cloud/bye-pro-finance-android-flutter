@@ -236,5 +236,11 @@
   "aiCopied": "تم نسخ الرسالة",
   "aiUnsupportedAttachment": "يمكن إرفاق الصور وملفات WAV فقط.",
   "aiAttachmentFallback": "مرفق",
-  "assistantClarificationFallback": "يرجى التوضيح."
+  "assistantClarificationFallback": "يرجى التوضيح.",
+  "addSalaryAction": "إضافة راتب",
+  "addPaymentAction": "إضافة دفعة",
+  "addAdvanceAction": "إضافة سلفة",
+  "transferToHomeAction": "تحويل إلى المنزل",
+  "workTransfers": "تحويلات المنزل",
+  "workHistory": "السجل"
 }
