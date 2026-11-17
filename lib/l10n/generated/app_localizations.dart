@@ -407,6 +407,18 @@ abstract class AppLocalizations {
   String get homeCategoryPersonal;
   String get homeCategoryHealth;
   String get homeCategoryOther;
+  String get homeCategoryEducation;
+  String get homeCategoryCommunications;
+  String get homeCategoryEntertainment;
+  String get homeCategoryClothing;
+  String get homeCategoryGifts;
+  String get monthlyRents;
+  String get addInvoice;
+  String get addMonthlyRent;
+  String get homeBillOrRentName;
+  String get homeBillDate;
+  String get homeLedger;
+  String get homeIncomingFromWork;
   String get manageCategories;
   String get addCategory;
   String get editCategory;

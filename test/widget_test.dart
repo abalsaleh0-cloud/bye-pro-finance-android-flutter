@@ -138,17 +138,19 @@ void main() {
 
     await tester.tap(find.text('المنزل').last);
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('home-tab-0')), findsOneWidget);
-    expect(find.byKey(const Key('home-tab-1')), findsOneWidget);
-    expect(find.byKey(const Key('home-tab-2')), findsOneWidget);
-    expect(find.byKey(const Key('home-tab-3')), findsOneWidget);
+    for (var index = 0; index < 6; index++) {
+      expect(find.byKey(Key('home-tab-$index')), findsOneWidget);
+    }
     expect(find.byType(NavigationBar), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('home-tab-3')));
+    final homeHistoryTab = find.byKey(const Key('home-tab-5'));
+    await tester.ensureVisible(homeHistoryTab);
+    await tester.pumpAndSettle();
+    await tester.tap(homeHistoryTab);
     await tester.pumpAndSettle();
     expect(
       tester.widget<PageView>(find.byKey(const Key('home-section-pages'))).controller!.page,
-      3,
+      5,
     );
   });
 
@@ -478,13 +480,111 @@ void main() {
 
     await tester.tap(find.text('المنزل').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('home-tab-3')));
+    await tester.tap(find.byKey(const Key('home-tab-2')));
     await tester.pumpAndSettle();
 
     expect(find.text('فاتورة اختبار'), findsOneWidget);
     expect(find.textContaining('ملاحظة فاتورة مباشرة'), findsOneWidget);
   });
 
+
+  testWidgets(
+    'home history combines work transfers, expenses, bills, rent and payments',
+    (tester) async {
+      final now = DateTime.now();
+      final month = MonthKey(year: now.year, month: now.month);
+      final invoice = HomeBill(
+        id: 'home-ledger-invoice',
+        title: 'فاتورة الإنترنت',
+        kind: HomeBillKind.monthly,
+        amount: Money.fromMinorUnits(500),
+        dueMonth: month,
+        dueDate: DateTime(now.year, now.month, 3),
+      );
+      final rent = HomeBill(
+        id: 'home-ledger-rent',
+        title: 'إيجار المنزل',
+        kind: HomeBillKind.rent,
+        amount: Money.fromMinorUnits(1200),
+        dueMonth: month,
+        dueDate: DateTime(now.year, now.month, 5),
+      );
+      final expense = HomeExpense(
+        id: 'home-ledger-expense',
+        amount: Money.fromMinorUnits(80),
+        categoryId: 'groceries',
+        expenseDate: DateTime(now.year, now.month, 8),
+        dueMonth: month,
+        note: 'ملاحظة المصروف',
+      );
+      final transfer = WorkHomeTransfer(
+        id: 'home-ledger-transfer',
+        amount: Money.fromMinorUnits(2000),
+        transferredAt: DateTime(now.year, now.month, 2),
+        note: 'ملاحظة التحويل',
+      );
+      final payment = HomeBillPayment(
+        id: 'home-ledger-payment',
+        billId: invoice.id,
+        amount: Money.fromMinorUnits(100),
+        paidAt: DateTime(now.year, now.month, 10),
+        note: 'ملاحظة الدفعة',
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            homeBillOutstandingAsOfMonthProvider.overrideWith(
+              (ref, selected) async => 0,
+            ),
+            homeBillPaymentsForMonthProvider.overrideWith(
+              (ref, selected) async => 100,
+            ),
+            allHomeBillPaymentsProvider.overrideWith(
+              (ref) async => [payment],
+            ),
+            allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
+            workEntriesProvider.overrideWith((ref) => Stream.value([])),
+            workTransfersProvider.overrideWith(
+              (ref) => Stream.value([transfer]),
+            ),
+            homeExpensesProvider.overrideWith(
+              (ref) => Stream.value([expense]),
+            ),
+            homeExpenseCategoriesProvider.overrideWith(
+              (ref) async => HomeExpenseCategory.defaults,
+            ),
+            homeBillsProvider.overrideWith(
+              (ref) async => [invoice, rent],
+            ),
+            debtsProvider.overrideWith((ref) => Stream.value([])),
+            selectedMonthProvider.overrideWith(
+              () => _FixedSelectedMonthNotifier(month),
+            ),
+          ],
+          child: const MyApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('المنزل').last);
+      await tester.pumpAndSettle();
+      final historyTab = find.byKey(const Key('home-tab-5'));
+      await tester.ensureVisible(historyTab);
+      await tester.pumpAndSettle();
+      await tester.tap(historyTab);
+      await tester.pumpAndSettle();
+
+      expect(find.text('فاتورة الإنترنت'), findsOneWidget);
+      expect(find.text('إيجار المنزل'), findsOneWidget);
+      expect(find.text('مستلم من العمل'), findsOneWidget);
+      expect(find.text('المواد الغذائية'), findsOneWidget);
+      expect(find.textContaining('ملاحظة التحويل'), findsOneWidget);
+      expect(find.textContaining('ملاحظة المصروف'), findsOneWidget);
+      expect(find.textContaining('ملاحظة الدفعة'), findsOneWidget);
+      expect(find.text('تسجيل دفعة'), findsOneWidget);
+    },
+  );
 
   testWidgets('home summary displays the exact remaining balance after rent and daily expenses', (tester) async {
     final now = DateTime.now();
@@ -630,7 +730,7 @@ void main() {
 
     await tester.tap(find.text('المنزل').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('home-tab-3')));
+    await tester.tap(find.byKey(const Key('home-tab-2')));
     await tester.pumpAndSettle();
 
     expect(find.text('فاتورة قابلة للتعديل'), findsOneWidget);
@@ -717,19 +817,36 @@ void main() {
     await tester.tap(find.byKey(const Key('home-tab-0')));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('home-add-action')));
+    await tester.tap(find.byKey(const Key('home-quick-add')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('home-add-daily-expense')));
+    await tester.tap(find.byKey(const Key('home-quick-add-expense')));
     await tester.pumpAndSettle();
-    expect(fieldValues(), contains(previousMonth.toString()));
+    expect(
+      fieldValues().any((value) => value.startsWith('$previousMonth-')),
+      isTrue,
+    );
     await tester.tap(find.text('إلغاء'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('home-add-action')));
+    await tester.tap(find.byKey(const Key('home-quick-add')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('home-add-monthly-bill')));
+    await tester.tap(find.byKey(const Key('home-quick-add-invoice')));
     await tester.pumpAndSettle();
-    expect(fieldValues(), contains(previousMonth.toString()));
+    expect(
+      fieldValues().any((value) => value.startsWith('$previousMonth-')),
+      isTrue,
+    );
+    await tester.tap(find.text('إلغاء'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('home-quick-add')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('home-quick-add-rent')));
+    await tester.pumpAndSettle();
+    expect(
+      fieldValues().any((value) => value.startsWith('$previousMonth-')),
+      isTrue,
+    );
     await tester.tap(find.text('إلغاء'));
     await tester.pumpAndSettle();
   });

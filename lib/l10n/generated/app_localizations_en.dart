@@ -198,7 +198,43 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get homeCategoryOther => 'Other';
 
+
   @override
+  String get homeCategoryEducation => 'Education';
+
+  @override
+  String get homeCategoryCommunications => 'Communications and internet';
+
+  @override
+  String get homeCategoryEntertainment => 'Entertainment';
+
+  @override
+  String get homeCategoryClothing => 'Clothing';
+
+  @override
+  String get homeCategoryGifts => 'Gifts and occasions';
+
+  @override
+  String get monthlyRents => 'Monthly rents';
+
+  @override
+  String get addInvoice => 'Add invoice';
+
+  @override
+  String get addMonthlyRent => 'Add monthly rent';
+
+  @override
+  String get homeBillOrRentName => 'Bill or rent name';
+
+  @override
+  String get homeBillDate => 'Bill or rent date';
+
+  @override
+  String get homeLedger => 'History';
+
+
+  @override
+  String get homeIncomingFromWork => 'Incoming from work';  @override
   String get manageCategories => 'Manage categories';
 
   @override

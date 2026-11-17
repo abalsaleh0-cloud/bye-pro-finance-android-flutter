@@ -10,6 +10,7 @@ on:
       - feature/task-8-work-home-transfers
       - feature/task-9-monthly-dashboard
       - feature/task-10-debt-payment-history
+      - feature/home-six-sections-and-ledger
   pull_request:
 
 permissions:

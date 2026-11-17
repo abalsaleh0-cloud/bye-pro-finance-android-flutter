@@ -242,5 +242,17 @@
   "addAdvanceAction": "Add advance",
   "transferToHomeAction": "Transfer to household",
   "workTransfers": "Home transfers",
-  "workHistory": "History"
+  "workHistory": "History",
+  "homeCategoryEducation": "Education",
+  "homeCategoryCommunications": "Communications and internet",
+  "homeCategoryEntertainment": "Entertainment",
+  "homeCategoryClothing": "Clothing",
+  "homeCategoryGifts": "Gifts and occasions",
+  "monthlyRents": "Monthly rents",
+  "addInvoice": "Add invoice",
+  "addMonthlyRent": "Add monthly rent",
+  "homeBillOrRentName": "Bill or rent name",
+  "homeBillDate": "Bill or rent date",
+  "homeLedger": "History",
+  "homeIncomingFromWork": "Incoming from work"
 }

@@ -18,14 +18,25 @@ final class HomeBillRepository {
   final AppDatabase _database;
 
   Future<void> ensureTables() async {
-    await _database.customStatement('CREATE TABLE IF NOT EXISTS home_bills (id TEXT PRIMARY KEY NOT NULL, title TEXT NOT NULL, kind TEXT NOT NULL CHECK (kind IN (\'monthly\', \'rent\')), amount_minor_units INTEGER NOT NULL CHECK (amount_minor_units > 0), due_year INTEGER NOT NULL, due_month INTEGER NOT NULL CHECK (due_month BETWEEN 1 AND 12), note TEXT)');
+    await _database.customStatement('CREATE TABLE IF NOT EXISTS home_bills (id TEXT PRIMARY KEY NOT NULL, title TEXT NOT NULL, kind TEXT NOT NULL CHECK (kind IN (\'monthly\', \'rent\')), amount_minor_units INTEGER NOT NULL CHECK (amount_minor_units > 0), due_year INTEGER NOT NULL, due_month INTEGER NOT NULL CHECK (due_month BETWEEN 1 AND 12), due_date_epoch_millis INTEGER, note TEXT)');
+    final columns = await _database.customSelect(
+      'PRAGMA table_info(home_bills)',
+    ).get();
+    if (!columns.any(
+      (row) => row.read<String>('name') == 'due_date_epoch_millis',
+    )) {
+      // Additive migration for already-installed databases.
+      await _database.customStatement(
+        'ALTER TABLE home_bills ADD COLUMN due_date_epoch_millis INTEGER',
+      );
+    }
     await _database.customStatement('CREATE TABLE IF NOT EXISTS home_bill_payments (id TEXT PRIMARY KEY NOT NULL, bill_id TEXT NOT NULL REFERENCES home_bills(id) ON DELETE CASCADE, amount_minor_units INTEGER NOT NULL CHECK (amount_minor_units > 0), paid_at_epoch_millis INTEGER NOT NULL, note TEXT)');
   }
 
   Future<List<HomeBill>> getBills() async {
     await ensureTables();
     final rows = await _database.customSelect(
-      'SELECT b.id, b.title, b.kind, b.amount_minor_units, b.due_year, b.due_month, b.note, COALESCE(SUM(p.amount_minor_units), 0) AS paid_minor_units FROM home_bills b LEFT JOIN home_bill_payments p ON p.bill_id = b.id GROUP BY b.id ORDER BY b.due_year DESC, b.due_month DESC, b.title COLLATE NOCASE',
+      'SELECT b.id, b.title, b.kind, b.amount_minor_units, b.due_year, b.due_month, b.due_date_epoch_millis, b.note, COALESCE(SUM(p.amount_minor_units), 0) AS paid_minor_units FROM home_bills b LEFT JOIN home_bill_payments p ON p.bill_id = b.id GROUP BY b.id ORDER BY b.due_year DESC, b.due_month DESC, b.title COLLATE NOCASE',
     ).get();
     return rows.map((row) => HomeBill(
       id: row.read<String>('id'),
@@ -33,6 +44,11 @@ final class HomeBillRepository {
       kind: row.read<String>('kind') == 'rent' ? HomeBillKind.rent : HomeBillKind.monthly,
       amount: Money.fromMinorUnits(row.read<int>('amount_minor_units')),
       dueMonth: MonthKey(year: row.read<int>('due_year'), month: row.read<int>('due_month')),
+      dueDate: row.read<int?>('due_date_epoch_millis') == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(
+              row.read<int>('due_date_epoch_millis'),
+            ),
       note: row.read<String?>('note'),
       paidMinorUnits: row.read<int>('paid_minor_units'),
     )).toList(growable: false);
@@ -49,9 +65,20 @@ final class HomeBillRepository {
         variables: [Variable.withString(bill.id)],
       ).get();
       if (existing.isEmpty) {
+        final dueDate = bill.dueDate ??
+            DateTime(bill.dueMonth.year, bill.dueMonth.month, 1);
         await _database.customStatement(
-          'INSERT INTO home_bills (id, title, kind, amount_minor_units, due_year, due_month, note) VALUES (?, ?, ?, ?, ?, ?, ?)',
-          [bill.id, bill.title.trim(), bill.kind.name, bill.amount.minorUnits, bill.dueMonth.year, bill.dueMonth.month, bill.note],
+          'INSERT INTO home_bills (id, title, kind, amount_minor_units, due_year, due_month, due_date_epoch_millis, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          [
+            bill.id,
+            bill.title.trim(),
+            bill.kind.name,
+            bill.amount.minorUnits,
+            bill.dueMonth.year,
+            bill.dueMonth.month,
+            dueDate.millisecondsSinceEpoch,
+            bill.note,
+          ],
         );
         return;
       }
@@ -86,9 +113,20 @@ final class HomeBillRepository {
         );
       }
 
+      final dueDate = bill.dueDate ??
+          DateTime(bill.dueMonth.year, bill.dueMonth.month, 1);
       await _database.customStatement(
-        'UPDATE home_bills SET title = ?, kind = ?, amount_minor_units = ?, due_year = ?, due_month = ?, note = ? WHERE id = ?',
-        [bill.title.trim(), bill.kind.name, bill.amount.minorUnits, bill.dueMonth.year, bill.dueMonth.month, bill.note, bill.id],
+        'UPDATE home_bills SET title = ?, kind = ?, amount_minor_units = ?, due_year = ?, due_month = ?, due_date_epoch_millis = ?, note = ? WHERE id = ?',
+        [
+          bill.title.trim(),
+          bill.kind.name,
+          bill.amount.minorUnits,
+          bill.dueMonth.year,
+          bill.dueMonth.month,
+          dueDate.millisecondsSinceEpoch,
+          bill.note,
+          bill.id,
+        ],
       );
     });
   }

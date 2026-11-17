@@ -54,7 +54,7 @@ final class HomeExpenseCategoryRepository {
     }
     final updated = <String, HomeExpenseCategory>{
       for (final item in categories) item.id: item,
-      id: HomeExpenseCategory(id: id, name: name),
+      id: HomeExpenseCategory(id: id, name: name, iconKey: category.iconKey),
     };
     await _database.writeSetting(
       _settingKey,
