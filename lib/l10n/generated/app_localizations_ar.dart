@@ -109,13 +109,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get transferAmount => 'مبلغ التحويل';
 
   @override
-  String get transfers => 'تحويلات المنزل';
+  String get transfers => 'التحويلات إلى المنزل';
 
   @override
   String get expenses => 'المصروفات';
 
   @override
-  String get entries => 'السجل';
+  String get entries => 'السجلات';
 
   @override
   String get loading => 'جارٍ التحميل';
@@ -128,15 +128,6 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get addEntry => 'إضافة سجل عمل';
-
-  @override
-  String get addSalary => 'إضافة راتب';
-
-  @override
-  String get addPayment => 'إضافة دفعة';
-
-  @override
-  String get addAdvance => 'إضافة سلفة';
 
   @override
   String get addDebt => 'إضافة دين';

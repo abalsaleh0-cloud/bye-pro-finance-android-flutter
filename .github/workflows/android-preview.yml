@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/telegram-native-ui-redesign
+      - feature/work-actions-and-unified-log
     paths:
       - 'android/**'
       - 'lib/**'

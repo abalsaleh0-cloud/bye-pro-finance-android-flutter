@@ -2,7 +2,6 @@ import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/core/widgets/app_bottom_navigation_bar.dart';
 import 'package:expense_app/core/widgets/entry_tools.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
-import 'package:expense_app/features/work/presentation/work_add_request_provider.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -45,14 +44,6 @@ class AppShell extends ConsumerWidget {
         surfaceTintColor: Colors.transparent,
         title: Text(labels[_selectedIndex]),
         actions: [
-          if (_selectedIndex == 1)
-            IconButton(
-              key: const Key('open-work-add'),
-              tooltip: strings.addEntry,
-              icon: const Icon(Icons.add_rounded),
-              onPressed: () =>
-                  ref.read(workAddRequestProvider.notifier).request(),
-            ),
           IconButton(
             key: const Key('open-settings'),
             tooltip: strings.settings,

@@ -109,13 +109,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transferAmount => 'Transfer amount';
 
   @override
-  String get transfers => 'Household transfers';
+  String get transfers => 'Transfers to household';
 
   @override
   String get expenses => 'Expenses';
 
   @override
-  String get entries => 'Log';
+  String get entries => 'Entries';
 
   @override
   String get loading => 'Loading';
@@ -128,15 +128,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get addEntry => 'Add work entry';
-
-  @override
-  String get addSalary => 'Add salary';
-
-  @override
-  String get addPayment => 'Add payment';
-
-  @override
-  String get addAdvance => 'Add advance';
 
   @override
   String get addDebt => 'Add debt';
