@@ -98,7 +98,14 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
     if (widget.openManualEntry && !_manualEntryOpened) {
       _manualEntryOpened = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _editEntry(context, ref, AppLocalizations.of(context)!);
+        if (mounted) {
+          _editEntry(
+            context,
+            ref,
+            AppLocalizations.of(context)!,
+            kind: WorkEntryKind.salary,
+          );
+        }
       });
     }
   }
@@ -688,6 +695,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                 strings,
                 kind: WorkEntryKind.salary,
               );
+              break;
             case WorkQuickAction.payment:
               _editEntry(
                 context,
@@ -695,6 +703,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                 strings,
                 kind: WorkEntryKind.salaryPayment,
               );
+              break;
             case WorkQuickAction.advance:
               _editEntry(
                 context,
@@ -702,8 +711,10 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                 strings,
                 kind: WorkEntryKind.advance,
               );
+              break;
             case WorkQuickAction.transfer:
               _editTransfer(context, ref, strings);
+              break;
           }
         });
       });
