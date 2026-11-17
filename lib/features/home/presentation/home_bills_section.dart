@@ -238,7 +238,7 @@ class HomeBillsSection extends ConsumerWidget {
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('\${strings.billRemaining}: \${bill.remainingMinorUnits}'),
+                Text('${strings.billRemaining}: ${bill.remainingMinorUnits}'),
                 TextField(
                   controller: amount,
                   keyboardType: TextInputType.number,
@@ -429,7 +429,7 @@ class HomeBillsSection extends ConsumerWidget {
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text('\${strings.billHistory}: \${bill.title}'),
+        title: Text('${strings.billHistory}: ${bill.title}'),
         content: SizedBox(
           width: double.maxFinite,
           child: payments.isEmpty
@@ -508,8 +508,8 @@ class HomeBillsSection extends ConsumerWidget {
                     title: Text(bill.title),
                     subtitle: Text(
                       [
-                        '\${MaterialLocalizations.of(context).formatFullDate(dueDate)} • $status',
-                        '\${strings.billPaid}: \${bill.paidMinorUnits} / \${bill.amount.minorUnits} • \${strings.billRemaining}: \${bill.remainingMinorUnits}',
+                        '${MaterialLocalizations.of(context).formatFullDate(dueDate)} • $status',
+                        '${strings.billPaid}: ${bill.paidMinorUnits} / ${bill.amount.minorUnits} • ${strings.billRemaining}: ${bill.remainingMinorUnits}',
                         if (bill.note != null && bill.note!.trim().isNotEmpty)
                           bill.note!.trim(),
                       ].join('\n'),
