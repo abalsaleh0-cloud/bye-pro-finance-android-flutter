@@ -253,5 +253,6 @@
   "addMonthlyRent": "إضافة إيجار شهري",
   "homeBillOrRentName": "اسم الفاتورة أو الإيجار",
   "homeBillDate": "تاريخ الفاتورة أو الإيجار",
-  "homeLedger": "السجل"
+  "homeLedger": "السجل",
+  "homeIncomingFromWork": "الوارد من العمل"
 }
