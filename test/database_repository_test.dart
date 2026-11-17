@@ -55,6 +55,49 @@ void main() {
     expect(rows.single.dueMonth, 11);
   });
 
+  test('persists the exact day for monthly bills and rent', () async {
+    final repository = HomeBillRepository(database);
+    final invoiceDate = DateTime(2026, 11, 19);
+    final rentDate = DateTime(2026, 11, 4);
+
+    await repository.saveBill(
+      HomeBill(
+        id: 'dated-monthly-invoice',
+        title: 'Internet',
+        kind: HomeBillKind.monthly,
+        amount: Money.fromMinorUnits(450),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        dueDate: invoiceDate,
+        note: 'Invoice note',
+      ),
+    );
+    await repository.saveBill(
+      HomeBill(
+        id: 'dated-home-rent',
+        title: 'Home rent',
+        kind: HomeBillKind.rent,
+        amount: Money.fromMinorUnits(1200),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        dueDate: rentDate,
+      ),
+    );
+
+    final bills = await repository.getBills();
+    expect(bills, hasLength(2));
+    expect(
+      bills.singleWhere((bill) => bill.id == 'dated-monthly-invoice').dueDate,
+      invoiceDate,
+    );
+    expect(
+      bills.singleWhere((bill) => bill.id == 'dated-home-rent').dueDate,
+      rentDate,
+    );
+    expect(
+      bills.singleWhere((bill) => bill.id == 'dated-monthly-invoice').note,
+      'Invoice note',
+    );
+  });
+
   test('persists work entries and one transfer record', () async {
     final repository = WorkRepository(database);
     await repository.saveEntry(
