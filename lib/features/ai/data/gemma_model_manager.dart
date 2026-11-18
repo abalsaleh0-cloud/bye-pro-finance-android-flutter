@@ -473,7 +473,7 @@ class GemmaModelManager extends Notifier<GemmaModelState>
     } catch (error) {
       await _saveInferenceResult(
         GemmaInferenceStatus.failed,
-        'فشل اختبار تشغيل Gemma (${error.runtimeType}). تم الاحتفاظ بملف النموذج كما هو.',
+        'فشل اختبار تشغيل Gemma: ${_describeError(error)}. تم الاحتفاظ بملف النموذج كما هو.',
       );
       return false;
     }
@@ -644,7 +644,7 @@ class GemmaModelManager extends Notifier<GemmaModelState>
         state = state.copyWith(status: GemmaModelStatus.ready);
         await _saveInferenceResult(
           GemmaInferenceStatus.failed,
-          'تعذر تشغيل Gemma (${error.runtimeType}). تم الاحتفاظ بملف النموذج ويمكن إعادة الاختبار.',
+          'تعذر تشغيل Gemma: ${_describeError(error)}. تم الاحتفاظ بملف النموذج ويمكن إعادة الاختبار.',
         );
         try {
           unawaited(releaseModel());
