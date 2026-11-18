@@ -326,6 +326,22 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         _ => section,
       };
 
+  String _assistantActionErrorMessage(String code, AppLocalizations strings) =>
+      switch (code) {
+        'debt_has_payments' => strings.assistantDebtDeleteHasPayments,
+        'bill_has_payments' => strings.assistantBillDeleteHasPayments,
+        'record_not_found' || 'bill_not_found' || 'debt_not_found' =>
+          strings.assistantRecordNotFound,
+        'bill_ambiguous' => strings.assistantBillAmbiguous,
+        'debt_ambiguous' => strings.assistantDebtAmbiguous,
+        'bill_payment_not_available' =>
+          strings.assistantBillPaymentNotAvailable,
+        'debt_payment_exceeds_balance' =>
+          strings.assistantDebtPaymentExceedsBalance,
+        'debt_amount_below_paid' => strings.assistantDebtAmountBelowPaid,
+        _ => strings.assistantNotUnderstood,
+      };
+
   String? _sectionRoute(String section) => switch (section) {
         'dashboard' => '/dashboard',
         'work' => '/work',
@@ -409,7 +425,15 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         _addAssistantMessage(strings.assistantNotUnderstood);
         await _openManual();
       } else {
-        final command = result.command!;
+        final originalCommand = result.command!;
+        final preparedParameters = await registry.prepareUpdateParameters(
+          originalCommand.name,
+          originalCommand.parameters,
+        );
+        final command = AssistantCommand(
+          name: originalCommand.name,
+          parameters: preparedParameters,
+        );
         final error = registry.validate(command.name, command.parameters);
         if (error != null) {
           _addAssistantMessage(strings.assistantNotUnderstood);
@@ -445,6 +469,12 @@ class _AiScreenState extends ConsumerState<AiScreen> {
           _addAssistantMessage(strings.assistantReview);
         }
       }
+    } on AssistantActionException catch (error) {
+      if (mounted) {
+        _addAssistantMessage(
+          _assistantActionErrorMessage(error.code, strings),
+        );
+      }
     } catch (_) {
       if (mounted) {
         _addAssistantMessage(strings.assistantNotUnderstood);
@@ -474,10 +504,9 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     } on AssistantActionException catch (error) {
       if (mounted) {
         setState(_confirmation.cancel);
-        if (error.code == 'debt_has_payments') {
-          _addAssistantMessage(strings.assistantDebtDeleteHasPayments);
-        } else {
-          _addAssistantMessage(strings.assistantNotUnderstood);
+        final message = _assistantActionErrorMessage(error.code, strings);
+        _addAssistantMessage(message);
+        if (message == strings.assistantNotUnderstood) {
           await _openManual();
         }
       }
@@ -657,23 +686,18 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     };
 
     if (command.name == 'save_home_bill') {
-      final billSubtitle = <String>[
-        if (formattedDate != null)
-          '$formattedDate • ${strings.billStatusUnpaid}',
-        '${strings.billPaid}: 0 / $amount • ${strings.billRemaining}: $amount',
-        if (note.isNotEmpty) note,
-      ].join('\n');
-      return Card(
-        child: ListTile(
-          leading: Icon(
-            kind == 'rent'
-                ? Icons.home_outlined
-                : Icons.receipt_long_outlined,
-          ),
-          title: Text(title),
-          subtitle: Text(billSubtitle),
-          isThreeLine: true,
-        ),
+      return FinancialRecordCard(
+        icon: kind == 'rent'
+            ? Icons.home_outlined
+            : Icons.receipt_long_outlined,
+        title: title,
+        amount: amount,
+        details: [
+          if (formattedDate != null) formattedDate,
+          '${strings.billPaid}: 0 / $amount',
+          '${strings.billRemaining}: $amount',
+          if (note.isNotEmpty) note,
+        ],
       );
     }
 
