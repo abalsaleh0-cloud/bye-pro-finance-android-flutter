@@ -524,22 +524,6 @@ void main() {
       expect(result.command!.parameters['month'], 11);
     });
 
-    test('edits a debt while preserving the selected creditor/debtor direction', () async {
-      final result = await engine.interpret(
-        'عدل الدين عند سامر رقم الدين debt_1 بمبلغ 225 دائن لشهر 2026-11',
-        actions,
-      );
-
-      expect(result.kind, AssistantResultKind.command);
-      expect(result.command!.name, 'save_debt');
-      expect(result.command!.parameters['id'], 'debt_1');
-      expect(result.command!.parameters['counterparty'], 'سامر');
-      expect(result.command!.parameters['direction'], 'creditor');
-      expect(result.command!.parameters['amountMinorUnits'], 225);
-      expect(result.command!.parameters['year'], 2026);
-      expect(result.command!.parameters['month'], 11);
-    });
-
     test('edits a work record using its stable identifier', () async {
       final result = await engine.interpret(
         'عدل راتب رقم السجل work_1 بمبلغ 1750 لشهر 2026-11',
@@ -585,6 +569,21 @@ void main() {
       expect(result.command!.parameters['date'], isA<String>());
     });
 
+    test('edits a debt while preserving the selected creditor/debtor direction', () async {
+      final result = await engine.interpret(
+        'عدل الدين عند سامر رقم الدين debt_1 بمبلغ 225 دائن لشهر 2026-11',
+        actions,
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'save_debt');
+      expect(result.command!.parameters['id'], 'debt_1');
+      expect(result.command!.parameters['counterparty'], 'سامر');
+      expect(result.command!.parameters['direction'], 'creditor');
+      expect(result.command!.parameters['amountMinorUnits'], 225);
+      expect(result.command!.parameters['year'], 2026);
+      expect(result.command!.parameters['month'], 11);
+    });
   });
 
   });

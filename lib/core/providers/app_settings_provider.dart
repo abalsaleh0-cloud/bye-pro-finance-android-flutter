@@ -99,10 +99,10 @@ class AppSettingsController extends Notifier<AppSettings> {
     ));
   }
 
-  void setGemmaEnabled(bool enabled) {
+  Future<void> setGemmaEnabled(bool enabled) async {
     _revision++;
     state = state.copyWith(useGemma: enabled);
-    unawaited(_write('ai_engine', enabled ? 'gemma' : 'fake'));
+    await _write('ai_engine', enabled ? 'gemma' : 'fake');
   }
 
   Future<void> _write(String key, String value) async {

@@ -9,6 +9,7 @@ import 'package:expense_app/features/ai/data/android_assistant_voice_service.dar
 import 'package:expense_app/features/ai/domain/wav_audio_validator.dart';
 
 import 'package:expense_app/core/database/database_providers.dart';
+import 'package:expense_app/core/providers/app_settings_provider.dart';
 import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:expense_app/core/widgets/chat_message_bubble.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
@@ -17,6 +18,9 @@ import 'package:expense_app/core/widgets/financial_record_card.dart';
 import 'package:expense_app/features/ai/domain/action_registry.dart';
 import 'package:expense_app/features/ai/domain/assistant_confirmation.dart';
 import 'package:expense_app/features/ai/domain/assistant_engine.dart';
+import 'package:expense_app/features/ai/domain/assistant_engine_selector.dart';
+import 'package:expense_app/features/ai/domain/gemma_assistant_engine.dart';
+import 'package:expense_app/features/ai/data/gemma_model_manager.dart';
 import 'package:expense_app/features/ai/presentation/ai_chat_state.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,11 +29,22 @@ import 'package:material_ui/material_ui.dart';
 
 enum _AssistantAttachmentChoice { camera, gallery, files }
 
-// Phase 1: the offline deterministic engine is the only active engine.
-// Gemma is intentionally kept out of this path until the dedicated Phase 2.
-final assistantEngineProvider = Provider<AssistantEngine>(
-  (ref) => const FakeAssistantEngine(),
-);
+final assistantEngineProvider = Provider<AssistantEngine>((ref) {
+  final settings = ref.watch(appSettingsProvider);
+  const localEngine = FakeAssistantEngine();
+
+  // Do not initialize LiteRT or load Gemma unless the user explicitly opts in.
+  if (!settings.useGemma) return localEngine;
+
+  final modelState = ref.watch(gemmaModelManagerProvider);
+  final manager = ref.read(gemmaModelManagerProvider.notifier);
+  return selectAssistantEngine(
+    gemmaEnabled: true,
+    gemmaReady: modelState.status == GemmaModelStatus.ready,
+    gemmaEngine: GemmaAssistantEngine(manager),
+    localEngine: localEngine,
+  );
+});
 
 class AiScreen extends ConsumerStatefulWidget {
   const AiScreen({super.key});
@@ -351,10 +366,17 @@ class _AiScreenState extends ConsumerState<AiScreen> {
             audioBytes: image ? null : mediaBytes,
           );
     if (media != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.aiGemmaRequired)),
-      );
-      return;
+      final settings = ref.read(appSettingsProvider);
+      final modelState = settings.useGemma
+          ? ref.read(gemmaModelManagerProvider)
+          : null;
+      if (!settings.useGemma ||
+          modelState?.status != GemmaModelStatus.ready) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(strings.aiGemmaRequired)),
+        );
+        return;
+      }
     }
 
     final attachmentLabel = image
@@ -362,7 +384,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         : strings.aiAudioAttachmentLabel;
     final displayedText = media == null
         ? text
-        : '$text\\n[$attachmentLabel: ${_attachmentName ?? strings.aiAttachmentFallback}]';
+        : '$text\n[$attachmentLabel: ${_attachmentName ?? strings.aiAttachmentFallback}]';
     final conversationContext = buildAiConversationContext(
       ref.read(aiChatMessagesProvider),
     );
@@ -389,13 +411,41 @@ class _AiScreenState extends ConsumerState<AiScreen> {
               ? category.id
               : (_categoryName(category.id, strings) ?? category.name.trim()),
       };
-      final result = await ref.read(assistantEngineProvider).interpret(
+      final engine = ref.read(assistantEngineProvider);
+      var result = await engine.interpret(
         text,
         registry.actionNames,
         media: media,
         conversationContext: conversationContext,
         expenseCategories: availableCategories,
       );
+
+      // If Gemma suggests a function call that fails the repository-backed
+      // action contract, retry the same text through the deterministic parser.
+      // The preview and confirmation gate still applies to the resulting write.
+      if (media == null &&
+          ref.read(appSettingsProvider).useGemma &&
+          result.command != null &&
+          registry.validate(
+                result.command!.name,
+                result.command!.parameters,
+              ) !=
+              null) {
+        final localResult = await const FakeAssistantEngine().interpret(
+          text,
+          registry.actionNames,
+          conversationContext: conversationContext,
+          expenseCategories: availableCategories,
+        );
+        result = localResult.command != null &&
+                registry.validate(
+                      localResult.command!.name,
+                      localResult.command!.parameters,
+                    ) ==
+                    null
+            ? localResult
+            : const AssistantResult.notUnderstood();
+      }
       if (!mounted) return;
 
       if (result.kind == AssistantResultKind.clarification ||
@@ -407,7 +457,9 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       } else if (result.kind == AssistantResultKind.notUnderstood ||
           result.command == null) {
         _addAssistantMessage(strings.assistantNotUnderstood);
-        await _openManual();
+        // A failed multimodal turn should stay in the chat; opening the
+        // manual-entry section picker is only useful for text commands.
+        if (media == null) await _openManual();
       } else {
         final command = result.command!;
         final error = registry.validate(command.name, command.parameters);
