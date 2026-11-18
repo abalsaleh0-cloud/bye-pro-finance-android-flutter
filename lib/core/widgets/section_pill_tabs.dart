@@ -1,7 +1,7 @@
 import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:material_ui/material_ui.dart';
 
-/// Flat, horizontally scrollable section tabs with a subtle active underline.
+/// Horizontally scrollable section tabs with a consistent rounded-pill surface.
 class SectionPillTabs extends StatelessWidget {
   const SectionPillTabs({
     super.key,
@@ -30,51 +30,46 @@ class SectionPillTabs extends StatelessWidget {
         child: Row(
           children: [
             for (var index = 0; index < labels.length; index++) ...[
-              if (index > 0) const SizedBox(width: 20),
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  key: Key('$keyPrefix-$index'),
+              if (index > 0) const SizedBox(width: 8),
+              AnimatedContainer(
+                key: Key('$keyPrefix-pill-$index'),
+                duration: tokens.motionDuration,
+                curve: Curves.easeOut,
+                decoration: BoxDecoration(
+                  color: index == selectedIndex
+                      ? scheme.primaryContainer
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(tokens.controlRadius),
-                  onTap: () => onSelected(index),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minWidth: 72,
-                      minHeight: tokens.touchTargetSize,
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    key: Key('$keyPrefix-$index'),
+                    borderRadius:
+                        BorderRadius.circular(tokens.controlRadius),
+                    onTap: () => onSelected(index),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minWidth: 72,
+                        minHeight: tokens.touchTargetSize,
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Center(
+                          child: Text(
                             labels[index],
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.labelLarge?.copyWith(
                               color: index == selectedIndex
-                                  ? scheme.primary
+                                  ? scheme.onPrimaryContainer
                                   : scheme.onSurfaceVariant,
                               fontWeight: index == selectedIndex
                                   ? FontWeight.w700
                                   : FontWeight.w500,
                             ),
                           ),
-                          const SizedBox(height: 5),
-                          AnimatedContainer(
-                            duration: tokens.motionDuration,
-                            curve: Curves.easeOut,
-                            width: index == selectedIndex ? 28 : 0,
-                            height: 2,
-                            decoration: BoxDecoration(
-                              color: index == selectedIndex
-                                  ? scheme.primary
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
