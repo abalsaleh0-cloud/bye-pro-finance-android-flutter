@@ -103,7 +103,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                 TextField(
                   key: const Key('debt-person'),
                   controller: counterparty,
-                  decoration: InputDecoration(labelText: strings.counterparty),
+                  decoration: InputDecoration(labelText: strings.personName),
                 ),
                 TextField(
                   key: const Key('debt-amount'),
