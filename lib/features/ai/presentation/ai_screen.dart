@@ -58,6 +58,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   final _scrollController = ScrollController();
   final AssistantConfirmation _confirmation = AssistantConfirmation();
   UndoOperation? _undo;
+  String? _lastUndoAction;
   bool _busy = false;
   final ImagePicker _imagePicker = ImagePicker();
   final AndroidAssistantVoiceService _voiceService = const AndroidAssistantVoiceService();
@@ -89,6 +90,25 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     categories: ref.read(homeExpenseCategoryRepositoryProvider),
     selectedMonth: ref.read(selectedMonthProvider),
   );
+
+  void _refreshAfterAssistantAction(String? actionName) {
+    if (actionName == null) return;
+    if (actionName == 'save_home_category' ||
+        actionName == 'delete_home_category') {
+      ref.invalidate(homeExpenseCategoriesProvider);
+    }
+    if (actionName == 'save_home_bill' ||
+        actionName == 'delete_home_bill' ||
+        actionName == 'record_home_bill_payment') {
+      // These are FutureProviders, not database streams. Refresh every
+      // bill-related projection after an assistant write so users see it
+      // immediately without leaving or restarting the app.
+      ref.invalidate(homeBillsProvider);
+      ref.invalidate(homeBillPaymentsForMonthProvider);
+      ref.invalidate(homeBillOutstandingAsOfMonthProvider);
+      ref.invalidate(allHomeBillPaymentsProvider);
+    }
+  }
 
   Future<void> _chooseAttachment() async {
     if (_busy || _recognizing) return;
@@ -797,10 +817,8 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         (command) => _registry().execute(command.name, command.parameters),
       );
       if (execution == null || !mounted) return;
-      if (pendingCommand?.name == 'save_home_category' ||
-          pendingCommand?.name == 'delete_home_category') {
-        ref.invalidate(homeExpenseCategoriesProvider);
-      }
+      _refreshAfterAssistantAction(pendingCommand?.name);
+      _lastUndoAction = execution.undo == null ? null : pendingCommand?.name;
       setState(() => _undo = execution.undo);
       _addAssistantMessage(execution.message);
     } on AssistantActionException catch (error) {
@@ -830,7 +848,8 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     try {
       await undo();
       if (mounted) {
-        ref.invalidate(homeExpenseCategoriesProvider);
+        _refreshAfterAssistantAction(_lastUndoAction);
+        _lastUndoAction = null;
         setState(() => _undo = null);
         _addAssistantMessage(
           AppLocalizations.of(context)!.assistantUndone,
