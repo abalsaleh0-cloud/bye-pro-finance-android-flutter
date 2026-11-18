@@ -765,7 +765,12 @@ final class FakeAssistantEngine implements AssistantEngine {
       'paycheck',
     ]);
 
-    if (isWriteIntent && (isSalary || isAdvance || isPayment)) {
+    // A "payment/installment" mentioning a debt belongs to the debt
+    // ledger, never the salary-payment record in the work section.
+    if (isWriteIntent &&
+        (isSalary ||
+            isAdvance ||
+            (isPayment && !has(const ['دين', 'ديون', 'debt'])))) {
       if (amount == null) {
         return const AssistantResult.clarification('ما المبلغ المطلوب تسجيله؟');
       }
