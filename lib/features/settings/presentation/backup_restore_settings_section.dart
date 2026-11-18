@@ -160,8 +160,8 @@ class _BackupRestoreSettingsSectionState
             const SizedBox(height: 8),
             Text(
               _text(
-                'احفظ بيانات العمل والمنزل والتحويلات والفواتير والديون في ملف، أو استعدها لاحقاً. لا يتضمن الملف رمز PIN أو إعداد البصمة.',
-                'Save work, home, transfers, bills and debts to a file, or restore them later. PIN and biometric credentials are not included.',
+                'احفظ بيانات العمل والمنزل والتحويلات والفواتير والديون في ملف JSON، أو استعدها لاحقاً. الملف غير مشفّر؛ احفظه في مكان خاص. لا يتضمن رمز PIN أو إعداد البصمة.',
+                'Save work, home, transfers, bills and debts to a JSON file, or restore them later. The file is not encrypted; keep it private. PIN and biometric credentials are not included.',
               ),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: scheme.onSurfaceVariant,
