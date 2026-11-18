@@ -384,7 +384,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         : strings.aiAudioAttachmentLabel;
     final displayedText = media == null
         ? text
-        : '$text\\n[$attachmentLabel: ${_attachmentName ?? strings.aiAttachmentFallback}]';
+        : '$text\n[$attachmentLabel: ${_attachmentName ?? strings.aiAttachmentFallback}]';
     final conversationContext = buildAiConversationContext(
       ref.read(aiChatMessagesProvider),
     );
