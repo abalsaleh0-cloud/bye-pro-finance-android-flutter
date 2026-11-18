@@ -1,4 +1,5 @@
 import 'package:expense_app/core/time/month_key.dart';
+import 'package:expense_app/core/time/calendar_date.dart';
 import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:material_ui/material_ui.dart';
@@ -26,7 +27,7 @@ class MonthSelector extends StatelessWidget {
     final scheme = theme.colorScheme;
     final selectedDate = DateTime(selectedMonth.year, selectedMonth.month, 1);
     final monthTitle =
-        MaterialLocalizations.of(context).formatMonthYear(selectedDate);
+        toAsciiDigits(MaterialLocalizations.of(context).formatMonthYear(selectedDate));
 
     Future<void> chooseMonth() async {
       final picked = await showModalBottomSheet<MonthKey>(
@@ -76,7 +77,7 @@ class MonthSelector extends StatelessWidget {
                         final month = availableMonths[index];
                         final date = DateTime(month.year, month.month, 1);
                         final label =
-                            MaterialLocalizations.of(context).formatMonthYear(date);
+                            toAsciiDigits(MaterialLocalizations.of(context).formatMonthYear(date));
                         final isSelected = month == selectedMonth;
                         return ListTile(
                           key: Key('month-option-$month'),
