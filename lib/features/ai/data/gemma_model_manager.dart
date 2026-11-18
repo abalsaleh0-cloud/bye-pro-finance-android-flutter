@@ -192,8 +192,10 @@ class GemmaModelManager extends Notifier<GemmaModelState>
     if (state.status == GemmaModelStatus.downloading) return;
     var installed = false;
     try {
-      // Installation state and file metadata can be checked without loading
-      // the multi-platform inference runtime into memory.
+      // Register the LiteRT-LM engine before checking its model registry.
+      // This is a lightweight SDK initialization; the 2.59 GB model is not
+      // loaded into RAM here.
+      await _ensureNativeInitialized();
       installed = await FlutterEdgeAi.isModelInstalled(modelFileName);
       if (state.status == GemmaModelStatus.downloading) return;
       if (!installed) {
