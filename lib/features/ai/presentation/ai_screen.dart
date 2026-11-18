@@ -601,7 +601,8 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     final title = switch (command.name) {
       'save_work_entry' => _kindName(kind, strings) ?? strings.work,
       'save_work_home_transfer' => strings.transferredToHome,
-      'save_home_expense' => categoryName ?? strings.homeSection,
+      'save_home_expense' || 'delete_home_expense' =>
+        categoryName ?? strings.homeSection,
       'save_home_bill' =>
         (parameters['title'] as String?) ?? strings.monthlyBills,
       'record_home_bill_payment' => strings.addBillPayment,
@@ -623,7 +624,8 @@ class _AiScreenState extends ConsumerState<AiScreen> {
               ? Icons.receipt_long_outlined
               : Icons.payments_outlined,
       'save_work_home_transfer' => Icons.swap_horiz,
-      'save_home_expense' => _categoryIconForAssistant(categoryId),
+      'save_home_expense' || 'delete_home_expense' =>
+        _categoryIconForAssistant(categoryId),
       'save_home_bill' || 'delete_home_bill' =>
         kind == 'rent' ? Icons.home_outlined : Icons.receipt_long_outlined,
       'record_home_bill_payment' => Icons.payments_outlined,
