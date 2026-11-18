@@ -253,6 +253,7 @@
   "assistantBillAmbiguous": "More than one bill has this name. Specify the month or bill ID.",
   "assistantDebtAmbiguous": "More than one debt has this name. Specify whether it is creditor or debtor, or provide the record ID.",
   "assistantRecordNotFound": "The selected record was not found. Check the record ID.",
+  "assistantRecordAmbiguous": "More than one record matches. Specify the transaction date, month, or record ID.",
   "assistantBillPaymentNotAvailable": "The payment could not be recorded because it exceeds the bill balance or the available household balance.",
   "assistantDebtPaymentExceedsBalance": "The payment amount exceeds the outstanding debt balance.",
   "assistantDebtAmountBelowPaid": "The debt principal cannot be reduced below the total of its recorded payments.",
