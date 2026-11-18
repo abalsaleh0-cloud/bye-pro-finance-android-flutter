@@ -31,6 +31,27 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+      - name: Restore stable preview signing key
+        uses: actions/cache@v5
+        with:
+          path: ~/.android/debug.keystore
+          key: bye-pro-finance-preview-debug-keystore-v1
+      - name: Ensure stable preview signing key
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.android"
+          if [[ ! -f "$HOME/.android/debug.keystore" ]]; then
+            keytool -genkeypair -v \
+              -keystore "$HOME/.android/debug.keystore" \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
       - uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: '9.5.0'
@@ -80,6 +101,25 @@ jobs:
       - run: flutter test
       - name: Build ARM64 profile preview APK
         run: flutter build apk --profile --flavor preview --target-platform android-arm64
+      - name: Verify ARM64 preview signature and package
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="build/app/outputs/flutter-apk/app-preview-profile.apk"
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          BUILD_TOOLS_DIR="$(find "$SDK_ROOT/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n1)"
+          APKSIGNER="$BUILD_TOOLS_DIR/apksigner"
+          AAPT="$BUILD_TOOLS_DIR/aapt"
+          SIGNER_OUTPUT="$("$APKSIGNER" verify --verbose --print-certs "$APK")"
+          printf '%s\n' "$SIGNER_OUTPUT"
+          APK_FINGERPRINT="$(printf '%s\n' "$SIGNER_OUTPUT" | awk -F': ' '/Signer #1 certificate SHA-256 digest:/ {print $2}' | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+          KEY_FINGERPRINT="$(keytool -exportcert -alias androiddebugkey -keystore "$HOME/.android/debug.keystore" -storepass android | openssl dgst -sha256 | awk '{print $2}' | tr '[:upper:]' '[:lower:]')"
+          if [[ -z "$APK_FINGERPRINT" || "$APK_FINGERPRINT" != "$KEY_FINGERPRINT" ]]; then
+            echo "::error::Preview APK was not signed with the stable preview key."
+            exit 1
+          fi
+          "$AAPT" dump badging "$APK" | sed -n '1p'
+          du -h "$APK"
       - name: Upload preview APK
         uses: actions/upload-artifact@v4
         with:
