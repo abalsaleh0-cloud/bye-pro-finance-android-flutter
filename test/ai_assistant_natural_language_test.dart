@@ -302,7 +302,11 @@ void main() {
         'سددت 100 من دين سامر',
         actions,
       );
-      expect(result.kind, AssistantResultKind.command);
+      expect(
+        result.kind,
+        AssistantResultKind.command,
+        reason: result.message ?? 'The local parser returned no command or clarification message.',
+      );
       expect(result.command!.name, 'record_debt_payment');
       expect(result.command!.parameters['counterparty'], 'سامر');
       expect(result.command!.parameters['amountMinorUnits'], 100);
