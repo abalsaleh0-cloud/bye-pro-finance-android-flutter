@@ -163,7 +163,7 @@
   "aiAttachImage": "إرفاق صورة",
   "aiAttachWav": "إرفاق ملف صوتي WAV",
   "aiSectionOpened": "تم فتح القسم",
-  "aiVoiceInput": "إملاء صوتي بالعربية",
+  "aiVoiceInput": "تحدث الآن",
   "aiVoiceListening": "جارٍ الاستماع إلى كلامك…",
   "aiVoiceOfflineUnavailable": "التعرّف الصوتي المحلي غير متاح على هذا الجهاز.",
   "aiArabicLanguageUnavailable": "حزمة التعرّف الصوتي العربية المحلية غير مثبّتة على الجهاز.",
