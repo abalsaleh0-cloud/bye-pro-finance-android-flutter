@@ -831,7 +831,20 @@ final class ActionRegistry {
               : previous!.amount,
           transferredAt: p['date'] is String
               ? DateTime.parse(p['date']! as String)
-              : previous?.transferredAt ?? DateTime.now(),
+              : p['year'] is int && p['month'] is int
+                  ? DateTime(
+                      p['year']! as int,
+                      p['month']! as int,
+                      DateTime(
+                        p['year']! as int,
+                        p['month']! as int + 1,
+                        0,
+                      ).day.clamp(
+                        1,
+                        previous?.transferredAt.day ?? DateTime.now().day,
+                      ),
+                    )
+                  : previous?.transferredAt ?? DateTime.now(),
           note: p.containsKey('note') ? p['note'] as String? : previous?.note,
         );
         try {
