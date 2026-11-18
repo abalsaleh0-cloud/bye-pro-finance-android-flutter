@@ -599,39 +599,47 @@ final class FakeAssistantEngine implements AssistantEngine {
       if (amount == null) {
         return const AssistantResult.clarification('ما المبلغ الجديد؟');
       }
-      if (has(const ['راتب', 'معاش', 'سلفة', 'دفعة', 'مرتب'])) {
+      if (has(const ['راتب', 'معاش', 'سلفة', 'سلفه', 'دفعة', 'دفعه', 'قسط', 'مرتب'])) {
         final kind = has(const ['سلفة', 'سلفه', 'تسبيق'])
             ? 'advance'
             : has(const ['دفعة', 'دفعه', 'قسط'])
                 ? 'payment'
-                : 'salary';
-        if (requestedMonth == null) {
+                : has(const ['راتب', 'معاش', 'مرتب'])
+                    ? 'salary'
+                    : null;
+        if (requestedMonth == null && explicitId == null) {
           return const AssistantResult.clarification('ما الشهر والسنة المسجل فيهما هذا السجل؟');
         }
         if (!can('save_work_entry')) return const AssistantResult.notUnderstood();
         return AssistantResult.command(AssistantCommand(
           name: 'save_work_entry',
           parameters: {
-            'id': explicitId, 'kind': kind, 'amountMinorUnits': amount,
-            'year': requestedMonth.$1, 'month': requestedMonth.$2,
-            'date': (operationDate ?? _defaultDateForMonth(requestedMonth.$1, requestedMonth.$2)).toIso8601String().split('T').first,
+            'id': explicitId,
+            if (kind != null) 'kind': kind,
+            'amountMinorUnits': amount,
+            if (requestedMonth != null) 'year': requestedMonth.$1,
+            if (requestedMonth != null) 'month': requestedMonth.$2,
+            if (explicitDate != null) 'date': explicitDate.toIso8601String().split('T').first,
             'note': ?note,
           },
         ));
       }
-      if (has(const ['مصروف', 'مشتريات البيت'])) {
+      if (has(const ['مصروف', 'مصروفات', 'مشتريات البيت', 'مشتريات المنزل', 'expense'])) {
         final categoryId = _category(has, text, expenseCategories);
-        if (categoryId == null || requestedMonth == null) {
+        if (explicitId == null && (categoryId == null || requestedMonth == null)) {
           return const AssistantResult.clarification('اذكر التصنيف والشهر وتاريخ المصروف الجديد.');
         }
         if (!can('save_home_expense')) return const AssistantResult.notUnderstood();
-        final date = (operationDate ?? _defaultDateForMonth(requestedMonth.$1, requestedMonth.$2)).toIso8601String().split('T').first;
         return AssistantResult.command(AssistantCommand(
           name: 'save_home_expense',
           parameters: {
-            'id': explicitId, 'amountMinorUnits': amount, 'categoryId': categoryId,
-            'categoryName': expenseCategories[categoryId] ?? categoryId,
-            'date': date, 'year': requestedMonth.$1, 'month': requestedMonth.$2,
+            'id': explicitId,
+            'amountMinorUnits': amount,
+            if (categoryId != null) 'categoryId': categoryId,
+            if (categoryId != null) 'categoryName': expenseCategories[categoryId] ?? categoryId,
+            if (explicitDate != null) 'date': explicitDate.toIso8601String().split('T').first,
+            if (requestedMonth != null) 'year': requestedMonth.$1,
+            if (requestedMonth != null) 'month': requestedMonth.$2,
             'note': ?note,
           },
         ));
@@ -641,19 +649,21 @@ final class FakeAssistantEngine implements AssistantEngine {
         return AssistantResult.command(AssistantCommand(
           name: 'save_work_home_transfer',
           parameters: {
-            'id': explicitId, 'amountMinorUnits': amount,
-            'date': (operationDate ?? DateTime.now()).toIso8601String().split('T').first,
+            'id': explicitId,
+            'amountMinorUnits': amount,
+            if (explicitDate != null) 'date': explicitDate.toIso8601String().split('T').first,
             'note': ?note,
           },
         ));
       }
       if (has(const ['فاتورة', 'فاتوره', 'اشتراك', 'ايجار', 'اجار', 'rent', 'bill'])) {
         final title = _billTitle(effectiveInput);
-        if (title == null) {
-          return const AssistantResult.clarification('ما اسم الفاتورة أو الإيجار الجديد؟');
-        }
-        if (requestedMonth == null) {
-          return const AssistantResult.clarification('ما شهر الاستحقاق الجديد؟');
+        if (explicitId == null && (title == null || requestedMonth == null)) {
+          return const AssistantResult.clarification(
+            title == null
+                ? 'ما اسم الفاتورة أو الإيجار الجديد؟'
+                : 'ما شهر الاستحقاق الجديد؟',
+          );
         }
         if (!can('save_home_bill')) return const AssistantResult.notUnderstood();
         final isRent = has(const ['ايجار', 'اجار', 'بدل سكن', 'rent']);
@@ -661,27 +671,28 @@ final class FakeAssistantEngine implements AssistantEngine {
           name: 'save_home_bill',
           parameters: {
             'id': explicitId,
-            'title': title,
-            'kind': isRent ? 'rent' : 'monthly',
+            if (title != null) 'title': title,
+            if (isRent) 'kind': 'rent',
+            if (!isRent && title != null) 'kind': 'monthly',
             'amountMinorUnits': amount,
-            'year': requestedMonth.$1,
-            'month': requestedMonth.$2,
-            'date': (operationDate ?? _defaultDateForMonth(requestedMonth.$1, requestedMonth.$2))
-                .toIso8601String().split('T').first,
+            if (requestedMonth != null) 'year': requestedMonth.$1,
+            if (requestedMonth != null) 'month': requestedMonth.$2,
+            if (explicitDate != null) 'date': explicitDate.toIso8601String().split('T').first,
             'note': ?note,
           },
         ));
       }
       if (has(const ['دين', 'ديون', 'debt'])) {
         final direction = _debtDirection(has);
-        if (direction == null) {
-          return const AssistantResult.clarification('هل اتجاه الدين دائن أم مدين؟');
-        }
         final counterparty = _counterparty(effectiveInput);
-        if (counterparty == null) {
-          return const AssistantResult.clarification('ما اسم الشخص أو الجهة في سجل الدين؟');
-        }
-        if (requestedMonth == null) {
+        if (explicitId == null &&
+            (direction == null || counterparty == null || requestedMonth == null)) {
+          if (direction == null) {
+            return const AssistantResult.clarification('هل اتجاه الدين دائن أم مدين؟');
+          }
+          if (counterparty == null) {
+            return const AssistantResult.clarification('ما اسم الشخص أو الجهة في سجل الدين؟');
+          }
           return const AssistantResult.clarification('ما شهر الاستحقاق الجديد للدين؟');
         }
         if (!can('save_debt')) return const AssistantResult.notUnderstood();
@@ -690,12 +701,11 @@ final class FakeAssistantEngine implements AssistantEngine {
           parameters: {
             'id': explicitId,
             'amountMinorUnits': amount,
-            'direction': direction,
-            'counterparty': counterparty,
-            'year': requestedMonth.$1,
-            'month': requestedMonth.$2,
-            'date': (operationDate ?? _defaultDateForMonth(requestedMonth.$1, requestedMonth.$2))
-                .toIso8601String().split('T').first,
+            if (direction != null) 'direction': direction,
+            if (counterparty != null) 'counterparty': counterparty,
+            if (requestedMonth != null) 'year': requestedMonth.$1,
+            if (requestedMonth != null) 'month': requestedMonth.$2,
+            if (explicitDate != null) 'date': explicitDate.toIso8601String().split('T').first,
             'note': ?note,
           },
         ));
@@ -816,6 +826,8 @@ final class FakeAssistantEngine implements AssistantEngine {
           'billTitle': billTitle,
           'amountMinorUnits': amount,
           'date': (operationDate ?? DateTime.now()).toIso8601String().split('T').first,
+          if (requestedMonth != null) 'year': requestedMonth.$1,
+          if (requestedMonth != null) 'month': requestedMonth.$2,
           'note': ?note,
         },
       ));
@@ -1333,14 +1345,14 @@ final class FakeAssistantEngine implements AssistantEngine {
 
   static String? _counterparty(String text) {
     final paymentDebtParty = RegExp(
-      r'(?:دفعة|دفعه|سداد|تسديد)\\s+من\\s+(?:دين|الدين)\\s+([\\p{L}]+)',
+      r'(?:دفعة|دفعه|سداد|تسديد|سددت|دفعت)\s+من\s+(?:دين|الدين)\s+([\p{L}]+)',
       unicode: true,
     ).firstMatch(text)?.group(1)?.trim();
     if (paymentDebtParty != null && paymentDebtParty.isNotEmpty) {
       return paymentDebtParty;
     }
 
-    const stop = r'(?:بمبلغ|بقيمة|مبلغ|اليوم|امس|بتاريخ|ملاحظة|note|من\s+الدين|رقم|معرف|معرّف|id|يناير|كانون\s+(?:الثاني|الاول|الأول)|فبراير|شباط|مارس|اذار|آذار|ابريل|نيسان|مايو|ايار|أيار|يونيو|حزيران|يوليو|تموز|اغسطس|أغسطس|سبتمبر|ايلول|أيلول|اكتوبر|أكتوبر|تشرين\s+(?:الاول|الأول|الثاني)|نوفمبر|ديسمبر|كانون\s+(?:الاول|الأول)|january|february|march|april|may|june|july|august|september|october|november|december|20\d{2}|[0-9]|الف|ألف|مئة|مية)';
+    const stop = r'(?:دائن|مدين|بمبلغ|بقيمة|مبلغ|اليوم|امس|بتاريخ|ملاحظة|note|من\s+الدين|رقم|معرف|معرّف|id|يناير|كانون\s+(?:الثاني|الاول|الأول)|فبراير|شباط|مارس|اذار|آذار|ابريل|نيسان|مايو|ايار|أيار|يونيو|حزيران|يوليو|تموز|اغسطس|أغسطس|سبتمبر|ايلول|أيلول|اكتوبر|أكتوبر|تشرين\s+(?:الاول|الأول|الثاني)|نوفمبر|ديسمبر|كانون\s+(?:الاول|الأول)|january|february|march|april|may|june|july|august|september|october|november|december|20\d{2}|[0-9]|الف|ألف|مئة|مية)';
     final patterns = <RegExp>[
       RegExp(
         r'(?:^|\s)(?:لي\s+عند|الي\s+عند|إلي\s+عند)\s+([\p{L}][\p{L} ]{0,35}?)(?=\s+' + stop + r'|$)',
