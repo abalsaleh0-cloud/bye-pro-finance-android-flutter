@@ -5,7 +5,6 @@ import 'package:expense_app/core/widgets/app_bottom_navigation_bar.dart';
 import 'package:expense_app/features/settings/presentation/appearance_settings_section.dart';
 import 'package:expense_app/features/settings/presentation/app_security_settings_section.dart';
 import 'package:expense_app/features/settings/presentation/backup_restore_settings_section.dart';
-import 'package:expense_app/features/settings/presentation/gemma_model_settings_section.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -184,12 +183,11 @@ class SettingsScreen extends ConsumerWidget {
             icon: Icons.auto_awesome_rounded,
           ),
           Card(
-            child: SwitchListTile(
-              key: const Key('gemma-engine-switch'),
+            child: ListTile(
               contentPadding: const EdgeInsetsDirectional.symmetric(
                 horizontal: 16,
               ),
-              secondary: Container(
+              leading: Container(
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
@@ -203,17 +201,17 @@ class SettingsScreen extends ConsumerWidget {
                   size: 19,
                 ),
               ),
-              title: Text(
-                strings.gemmaEngine,
-                style: const TextStyle(fontWeight: FontWeight.w600),
+              title: const Text(
+                'Gemma',
+                style: TextStyle(fontWeight: FontWeight.w600),
               ),
-              subtitle: Text(strings.gemmaEngineDescription),
-              value: settings.useGemma,
-              onChanged: controller.setGemmaEnabled,
+              subtitle: Text(
+                Localizations.localeOf(context).languageCode == 'ar'
+                    ? 'سيتم تجهيز وربط Gemma في المرحلة الثانية. المساعد المحلي يعمل الآن دون الاعتماد على النموذج.'
+                    : 'Gemma setup and integration are planned for Phase 2. The local assistant is active without the model.',
+              ),
             ),
           ),
-          const SizedBox(height: 8),
-          const GemmaModelSettingsSection(),
           SizedBox(height: tokens.sectionSpacing + 4),
           _sectionHeader(
             context,
