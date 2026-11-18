@@ -304,6 +304,30 @@ void main() {
       expect(result.command!.parameters['billTitle'], 'الكهرباء');
     });
 
+    test('deletes an expense only when category, amount and month identify a target', () async {
+      final result = await engine.interpret(
+        'احذف مصروف البقالة 50 لشهر 2026-11',
+        actions,
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'delete_home_expense');
+      expect(result.command!.parameters['categoryId'], 'groceries');
+      expect(result.command!.parameters['amountMinorUnits'], 50);
+      expect(result.command!.parameters['year'], 2026);
+      expect(result.command!.parameters['month'], 11);
+    });
+
+    test('does not guess the month when deleting an expense by category and amount', () async {
+      final result = await engine.interpret(
+        'احذف مصروف البقالة 50',
+        actions,
+      );
+
+      expect(result.kind, AssistantResultKind.clarification);
+      expect(result.message, contains('الشهر أو التاريخ'));
+    });
+
     test('deletes records only when an explicit stable identifier is given', () async {
       final missingId = await engine.interpret(
         'احذف مصروف البقالة',
