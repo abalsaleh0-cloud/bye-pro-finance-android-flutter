@@ -194,6 +194,7 @@
   "categoryName": "اسم التصنيف",
   "duplicateCategory": "يوجد تصنيف آخر بالاسم نفسه",
   "billDeleteHasPayments": "لا يمكن حذف هذه الفاتورة لوجود دفعات مسجلة عليها. احتفظ بسجل الدفعات أو عالجها أولاً.",
+  "assistantDebtDeleteHasPayments": "لا يمكن حذف هذا الدين لوجود دفعات مسجلة عليه. احتفظ بسجل الدفعات، ويمكنك متابعة الدفعات من سجل الدين.",
   "calculatorScientific": "علمي",
   "calculatorFinancial": "مالي",
   "calculatorExpression": "المعادلة",
