@@ -1,11 +1,8 @@
 // ignore_for_file: curly_braces_in_flow_control_structures, prefer_interpolation_to_compose_strings
 
 import 'dart:async';
-import 'dart:io';
-
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:record/record.dart';
 import 'package:flutter/services.dart';
 import 'package:expense_app/features/ai/data/android_assistant_voice_service.dart';
 
@@ -55,14 +52,12 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   final AssistantConfirmation _confirmation = AssistantConfirmation();
   UndoOperation? _undo;
   bool _busy = false;
-  final AudioRecorder _recorder = AudioRecorder();
   final ImagePicker _imagePicker = ImagePicker();
   final AndroidAssistantVoiceService _voiceService = const AndroidAssistantVoiceService();
   bool _recognizing = false;
   Uint8List? _attachmentBytes;
   bool _attachmentIsImage = false;
   String? _attachmentName;
-  bool _recording = false;
 
   @override
   void initState() {
@@ -76,8 +71,6 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     if (_recognizing) {
       unawaited(_voiceService.cancelArabicSpeechRecognition());
     }
-    if (_recording) unawaited(_recorder.stop());
-    unawaited(_recorder.dispose());
     unawaited(_gemmaModelManager.releaseModel());
     super.dispose();
   }
@@ -91,7 +84,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   );
 
   Future<void> _chooseAttachment() async {
-    if (_busy || _recording || _recognizing) return;
+    if (_busy || _recognizing) return;
     final strings = AppLocalizations.of(context)!;
     final choice = await showModalBottomSheet<_AssistantAttachmentChoice>(
       context: context,
@@ -171,7 +164,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
 
   Future<void> _pickDocumentOrMedia() async {
     final strings = AppLocalizations.of(context)!;
-    if (_busy || _recording) return;
+    if (_busy || _recognizing) return;
     try {
       final file = await FilePicker.pickFile(type: FileType.any);
       if (file == null) return;
@@ -252,39 +245,8 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     );
   }
 
-  Future<void> _showVoiceOptions() async {
-    if (_busy || _recognizing || _recording) return;
-    final strings = AppLocalizations.of(context)!;
-    final option = await showModalBottomSheet<String>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.mic_none_rounded),
-              title: Text(strings.aiVoiceInput),
-              onTap: () => Navigator.pop(context, 'dictate'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.graphic_eq_rounded),
-              title: Text(strings.aiRecordAudio),
-              onTap: () => Navigator.pop(context, 'record'),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (!mounted || option == null) return;
-    if (option == 'dictate') {
-      await _recognizeArabicSpeech();
-    } else if (option == 'record') {
-      await _toggleRecording();
-    }
-  }
-
   Future<void> _recognizeArabicSpeech() async {
-    if (_busy || _recording || _recognizing) return;
+    if (_busy || _recognizing) return;
     setState(() => _recognizing = true);
     final strings = AppLocalizations.of(context)!;
     try {
@@ -300,7 +262,6 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         text: transcript,
         selection: TextSelection.collapsed(offset: transcript.length),
       );
-      await _send();
     } on PlatformException catch (error) {
       if (!mounted || error.code == 'speech_cancelled') return;
       final message = switch (error.code) {
@@ -325,45 +286,6 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   }
 
 
-
-  Future<void> _toggleRecording() async {
-    final strings = AppLocalizations.of(context)!;
-    if (_busy) return;
-    try {
-      if (!_recording) {
-        if (!await _recorder.hasPermission()) {
-          throw StateError(strings.aiMicrophonePermission);
-        }
-        final directory = await Directory.systemTemp.createTemp('bye-pro-audio-');
-        final path = '${directory.path}/voice.wav';
-        await _recorder.start(
-          const RecordConfig(encoder: AudioEncoder.wav, sampleRate: 16000, numChannels: 1),
-          path: path,
-        );
-        if (mounted) setState(() { _recording = true; });
-      } else {
-        final path = await _recorder.stop();
-        if (path == null) throw StateError(strings.aiRecordingSaveFailed);
-        final recordingFile = File(path);
-        final bytes = await recordingFile.readAsBytes();
-        await recordingFile.delete();
-        try { await recordingFile.parent.delete(); } catch (_) {}
-        if (!_isValidWav(bytes)) throw StateError(strings.aiInvalidRecording);
-        if (bytes.length > 20 * 1024 * 1024) throw StateError(strings.aiAudioTooLarge);
-        if (mounted) setState(() {
-          _recording = false;
-          _attachmentBytes = bytes;
-          _attachmentIsImage = false;
-          _attachmentName = 'voice.wav';
-        });
-      }
-    } catch (error) {
-      if (mounted) {
-        setState(() { _recording = false; });
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString().replaceFirst('Bad state: ', ''))));
-      }
-    }
-  }
 
   void _removeAttachment() {
     setState(() {
@@ -432,7 +354,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     final text = _input.text.trim().isEmpty && mediaBytes != null
         ? (image ? strings.aiDefaultImagePrompt : strings.aiDefaultAudioPrompt)
         : _input.text.trim();
-    if ((text.isEmpty && mediaBytes == null) || _busy || _recording) return;
+    if ((text.isEmpty && mediaBytes == null) || _busy || _recognizing) return;
     final media = mediaBytes == null
         ? null
         : AssistantMedia(
@@ -982,7 +904,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
               ],
             ),
           ),
-          if (_attachmentName != null || _recording || _recognizing)
+          if (_attachmentName != null || _recognizing)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: Card(
@@ -994,7 +916,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                   child: Row(
                     children: [
                       Icon(
-                        (_recording || _recognizing)
+                        (_recognizing || _recognizing)
                             ? Icons.mic
                             : (_attachmentIsImage
                                   ? Icons.image_outlined
@@ -1003,12 +925,12 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          _recognizing ? strings.aiVoiceListening : (_recording ? strings.aiRecording : _attachmentName!),
+                          _recognizing ? strings.aiVoiceListening : _attachmentName!,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (!_recording && !_recognizing && _attachmentName != null)
+                      if (!_recognizing && !_recognizing && _attachmentName != null)
                         IconButton(
                           onPressed: _busy ? null : _removeAttachment,
                           icon: const Icon(Icons.close),
@@ -1071,7 +993,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                         height: 44,
                         child: IconButton.filledTonal(
                           key: const Key('ai-attach-button'),
-                          onPressed: _busy || _recording || _recognizing
+                          onPressed: _busy || _recognizing
                               ? null
                               : _chooseAttachment,
                           icon: const Icon(Icons.attach_file_rounded),
@@ -1086,23 +1008,23 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                         builder: (context, value, child) {
                           final hasText = value.text.trim().isNotEmpty;
                           final canInteract =
-                              !_busy && !_recording && !_recognizing;
+                              !_busy && !_recognizing;
                           return SizedBox(
                             width: 44,
                             height: 44,
                             child: IconButton.filled(
                               key: const Key('ai-contextual-input-action'),
                               onPressed: !canInteract
-                                  ? (_recording ? _toggleRecording : null)
+                                  ? null
                                   : hasText
                                       ? _send
-                                      : _showVoiceOptions,
-                              tooltip: _recording
-                                  ? strings.aiStopRecording
+                                      : _recognizeArabicSpeech,
+                              tooltip: _recognizing
+                                  ? strings.aiVoiceListening
                                   : hasText
                                       ? strings.assistantSend
-                                      : strings.aiVoiceOptions,
-                              icon: _busy
+                                      : strings.aiVoiceInput,
+                              icon: _busy || _recognizing
                                   ? const SizedBox(
                                       width: 18,
                                       height: 18,
@@ -1111,11 +1033,9 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                                       ),
                                     )
                                   : Icon(
-                                      _recording
-                                          ? Icons.stop_rounded
-                                          : hasText
-                                              ? Icons.send_rounded
-                                              : Icons.mic_none_rounded,
+                                      hasText
+                                          ? Icons.send_rounded
+                                          : Icons.mic_none_rounded,
                                     ),
                               padding: EdgeInsets.zero,
                               visualDensity: VisualDensity.compact,
