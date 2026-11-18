@@ -916,7 +916,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                   child: Row(
                     children: [
                       Icon(
-                        (_recognizing || _recognizing)
+                        _recognizing
                             ? Icons.mic
                             : (_attachmentIsImage
                                   ? Icons.image_outlined
@@ -930,7 +930,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (!_recognizing && !_recognizing && _attachmentName != null)
+                      if (!_recognizing && _attachmentName != null)
                         IconButton(
                           onPressed: _busy ? null : _removeAttachment,
                           icon: const Icon(Icons.close),
