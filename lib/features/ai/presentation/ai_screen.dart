@@ -612,7 +612,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       if (parameters['direction'] == 'creditor') strings.creditor,
       if (parameters['direction'] == 'debtor') strings.debtor,
       if (debtAction) '${strings.originalAmount}: $amount',
-      if (parameters['id'] is String) '${strings.assistantRecordId}: ${parameters['id']}',
+      if (parameters['id'] is String) 'ID: ${parameters['id']}',
       if (note.isNotEmpty) note,
     ];
     final title = switch (command.name) {
