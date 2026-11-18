@@ -642,6 +642,27 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       _ => Icons.receipt_long_outlined,
     };
 
+    if (command.name == 'save_home_bill') {
+      final billSubtitle = <String>[
+        if (formattedDate != null)
+          '${formattedDate} • ${strings.billStatusUnpaid}',
+        '${strings.billPaid}: 0 / $amount • ${strings.billRemaining}: $amount',
+        if (note.isNotEmpty) note,
+      ].join('\\n');
+      return Card(
+        child: ListTile(
+          leading: Icon(
+            kind == 'rent'
+                ? Icons.home_outlined
+                : Icons.receipt_long_outlined,
+          ),
+          title: Text(title),
+          subtitle: Text(billSubtitle),
+          isThreeLine: true,
+        ),
+      );
+    }
+
     Widget? badge;
     Widget? footer;
     if (isDebt) {
