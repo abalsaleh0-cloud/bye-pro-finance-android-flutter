@@ -597,9 +597,6 @@ final class LocalRuleAssistantEngine implements AssistantEngine {
     // Updates use the same repository-backed save action and require an exact ID.
     // Missing fields are hydrated from the existing record before confirmation.
     if (isEditIntent && explicitId != null) {
-      if (amount == null) {
-        return const AssistantResult.clarification('ما المبلغ الجديد؟');
-      }
       if (has(const ['راتب', 'معاش', 'سلفة', 'سلفه', 'دفعة', 'دفعه', 'قسط', 'مرتب'])) {
         final kind = has(const ['سلفة', 'سلفه', 'تسبيق'])
             ? 'advance'
@@ -608,13 +605,19 @@ final class LocalRuleAssistantEngine implements AssistantEngine {
                 : has(const ['راتب', 'معاش', 'مرتب'])
                     ? 'salary'
                     : null;
+        if (amount == null && kind == null && requestedMonth == null &&
+            explicitDate == null && note == null) {
+          return const AssistantResult.clarification(
+            'ما الحقل الذي تريد تغييره في سجل العمل: النوع أو المبلغ أو الشهر أو التاريخ أو الملاحظة؟',
+          );
+        }
         if (!can('save_work_entry')) return const AssistantResult.notUnderstood();
         return AssistantResult.command(AssistantCommand(
           name: 'save_work_entry',
           parameters: {
             'id': explicitId,
             if (kind != null) 'kind': kind,
-            'amountMinorUnits': amount,
+            if (amount != null) 'amountMinorUnits': amount,
             if (requestedMonth != null) 'year': requestedMonth.$1,
             if (requestedMonth != null) 'month': requestedMonth.$2,
             if (explicitDate != null) 'date': explicitDate.toIso8601String().split('T').first,
@@ -624,12 +627,18 @@ final class LocalRuleAssistantEngine implements AssistantEngine {
       }
       if (has(const ['مصروف', 'مصروفات', 'مشتريات البيت', 'مشتريات المنزل', 'expense'])) {
         final categoryId = _category(has, text, expenseCategories);
+        if (amount == null && categoryId == null && requestedMonth == null &&
+            explicitDate == null && note == null) {
+          return const AssistantResult.clarification(
+            'ما الذي تريد تغييره في المصروف: المبلغ أو التصنيف أو التاريخ أو الملاحظة؟',
+          );
+        }
         if (!can('save_home_expense')) return const AssistantResult.notUnderstood();
         return AssistantResult.command(AssistantCommand(
           name: 'save_home_expense',
           parameters: {
             'id': explicitId,
-            'amountMinorUnits': amount,
+            if (amount != null) 'amountMinorUnits': amount,
             if (categoryId != null) 'categoryId': categoryId,
             if (categoryId != null) 'categoryName': expenseCategories[categoryId] ?? categoryId,
             if (explicitDate != null) 'date': explicitDate.toIso8601String().split('T').first,
@@ -640,12 +649,18 @@ final class LocalRuleAssistantEngine implements AssistantEngine {
         ));
       }
       if (has(const ['تحويل', 'للبيت', 'للمنزل'])) {
+        if (amount == null && explicitDate == null &&
+            requestedMonth == null && note == null) {
+          return const AssistantResult.clarification(
+            'ما الذي تريد تغييره في التحويل: المبلغ أو التاريخ أو الملاحظة؟',
+          );
+        }
         if (!can('save_work_home_transfer')) return const AssistantResult.notUnderstood();
         return AssistantResult.command(AssistantCommand(
           name: 'save_work_home_transfer',
           parameters: {
             'id': explicitId,
-            'amountMinorUnits': amount,
+            if (amount != null) 'amountMinorUnits': amount,
             if (explicitDate != null) 'date': explicitDate.toIso8601String().split('T').first,
             if (requestedMonth != null) 'year': requestedMonth.$1,
             if (requestedMonth != null) 'month': requestedMonth.$2,
@@ -654,17 +669,24 @@ final class LocalRuleAssistantEngine implements AssistantEngine {
         ));
       }
       if (has(const ['فاتورة', 'فاتوره', 'اشتراك', 'ايجار', 'اجار', 'rent', 'bill'])) {
-        final title = _billTitle(effectiveInput);
-        if (!can('save_home_bill')) return const AssistantResult.notUnderstood();
+        final title = _updatedBillTitle(effectiveInput) ?? _billTitle(effectiveInput);
         final isRent = has(const ['ايجار', 'اجار', 'بدل سكن', 'rent']);
+        final isMonthly = has(const ['فاتورة شهرية', 'اشتراك شهري', 'monthly bill']);
+        if (amount == null && title == null && !isRent && !isMonthly &&
+            requestedMonth == null && explicitDate == null && note == null) {
+          return const AssistantResult.clarification(
+            'ما الذي تريد تغييره في الفاتورة: الاسم أو النوع أو المبلغ أو الشهر أو التاريخ أو الملاحظة؟',
+          );
+        }
+        if (!can('save_home_bill')) return const AssistantResult.notUnderstood();
         return AssistantResult.command(AssistantCommand(
           name: 'save_home_bill',
           parameters: {
             'id': explicitId,
             if (title != null) 'title': title,
             if (isRent) 'kind': 'rent',
-            if (!isRent && title != null) 'kind': 'monthly',
-            'amountMinorUnits': amount,
+            if (isMonthly) 'kind': 'monthly',
+            if (amount != null) 'amountMinorUnits': amount,
             if (requestedMonth != null) 'year': requestedMonth.$1,
             if (requestedMonth != null) 'month': requestedMonth.$2,
             if (explicitDate != null) 'date': explicitDate.toIso8601String().split('T').first,
@@ -675,12 +697,18 @@ final class LocalRuleAssistantEngine implements AssistantEngine {
       if (has(const ['دين', 'ديون', 'debt'])) {
         final direction = _debtDirection(has);
         final counterparty = _counterparty(effectiveInput);
+        if (amount == null && direction == null && counterparty == null &&
+            requestedMonth == null && explicitDate == null && note == null) {
+          return const AssistantResult.clarification(
+            'ما الذي تريد تغييره في الدين: المبلغ أو الطرف أو الاتجاه أو الشهر أو التاريخ أو الملاحظة؟',
+          );
+        }
         if (!can('save_debt')) return const AssistantResult.notUnderstood();
         return AssistantResult.command(AssistantCommand(
           name: 'save_debt',
           parameters: {
             'id': explicitId,
-            'amountMinorUnits': amount,
+            if (amount != null) 'amountMinorUnits': amount,
             if (direction != null) 'direction': direction,
             if (counterparty != null) 'counterparty': counterparty,
             if (requestedMonth != null) 'year': requestedMonth.$1,
@@ -1257,6 +1285,16 @@ final class LocalRuleAssistantEngine implements AssistantEngine {
       if (has(entry.value)) return entry.key;
     }
     return null;
+  }
+
+  static String? _updatedBillTitle(String text) {
+    final match = RegExp(
+      r'(?:اسمها|عنوانها|تسمى|اسم الفاتورة الجديد|الى|إلى)\\s+([\\p{L}][\\p{L}0-9 _-]{0,50}?)(?=\\s+(?:بمبلغ|بقيمة|مبلغ|لشهر|شهر|بتاريخ|ملاحظة|note|رقم|id|20\\d{2}|[0-9])|$)',
+      caseSensitive: false,
+      unicode: true,
+    ).firstMatch(text);
+    final value = match?.group(1)?.trim();
+    return value == null || value.isEmpty ? null : value;
   }
 
   static String? _billTitle(String text) {
