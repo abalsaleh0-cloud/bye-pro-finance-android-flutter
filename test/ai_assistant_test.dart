@@ -192,6 +192,21 @@ void main() {
       ));
     }
 
+    Future<void> seedWorkCashForMonth(
+      int year,
+      int month,
+      int amount, {
+      required String id,
+    }) async {
+      await WorkRepository(database).saveEntry(WorkEntry(
+        id: id,
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(amount),
+        dueMonth: MonthKey(year: year, month: month),
+        recordedAt: DateTime(year, month, 1),
+      ));
+    }
+
     test('reads work records only from the selected month', () async {
       final work = WorkRepository(database);
       await work.saveEntry(WorkEntry(
@@ -336,6 +351,7 @@ void main() {
 
     test('keeps the original transfer date when a partial edit omits a new date', () async {
       final work = WorkRepository(database);
+      await seedWorkCashForMonth(2026, 11, 1000, id: 'partial-transfer-cash');
       final originalDate = DateTime(2026, 11, 12);
       await work.saveTransfer(WorkHomeTransfer(
         id: 'partial-transfer',
@@ -359,6 +375,8 @@ void main() {
     });
     test('moves a transfer to a requested month while preserving its calendar day', () async {
       final work = WorkRepository(database);
+      await seedWorkCashForMonth(2026, 11, 600, id: 'nov-transfer-cash');
+      await seedWorkCashForMonth(2026, 12, 700, id: 'dec-transfer-cash');
       await work.saveTransfer(WorkHomeTransfer(
         id: 'month-transfer',
         amount: Money.fromMinorUnits(600),
@@ -383,7 +401,20 @@ void main() {
     });
 
     test('moves an edited expense month without changing its original day where possible', () async {
+      final work = WorkRepository(database);
       final home = HomeExpenseRepository(database);
+      await seedWorkCashForMonth(2026, 10, 50, id: 'oct-expense-cash');
+      await seedWorkCashForMonth(2026, 11, 100, id: 'nov-expense-cash');
+      await work.saveTransfer(WorkHomeTransfer(
+        id: 'oct-expense-transfer',
+        amount: Money.fromMinorUnits(50),
+        transferredAt: DateTime(2026, 10, 1),
+      ));
+      await work.saveTransfer(WorkHomeTransfer(
+        id: 'nov-expense-transfer',
+        amount: Money.fromMinorUnits(100),
+        transferredAt: DateTime(2026, 11, 1),
+      ));
       await home.save(HomeExpense(
         id: 'partial-expense',
         amount: Money.fromMinorUnits(50),
@@ -411,9 +442,15 @@ void main() {
 
     test('deletes and undoes work entry', () async {
       final created = await registry.execute('save_work_entry', {
-        'kind':'salary','amountMinorUnits':1000,'year':2026,'month':11,'id':'w1',
+        'kind': 'salary',
+        'amountMinorUnits': 1000,
+        'year': 2026,
+        'month': 11,
       });
-      final deleted = await registry.execute('delete_work_entry', {'id':'w1'});
+      final saved = (await WorkRepository(database).watchEntries().first).single;
+      final deleted = await registry.execute('delete_work_entry', {
+        'id': saved.id,
+      });
       expect(await database.select(database.workEntries).get(), isEmpty);
       await deleted.undo!();
       expect(await database.select(database.workEntries).get(), hasLength(1));
@@ -438,10 +475,16 @@ void main() {
       await registry.execute('save_work_home_transfer', {'amountMinorUnits':500, 'date': DateTime.now().toIso8601String()});
       final now = DateTime.now();
       await registry.execute('save_home_expense', {
-        'amountMinorUnits':250,'categoryId':'groceries','date':now.toIso8601String(),
-        'year':now.year,'month':now.month,'id':'h1',
+        'amountMinorUnits': 250,
+        'categoryId': 'groceries',
+        'date': now.toIso8601String(),
+        'year': now.year,
+        'month': now.month,
       });
-      final result = await registry.execute('delete_home_expense', {'id':'h1'});
+      final saved = (await HomeExpenseRepository(database).watchAll().first).single;
+      final result = await registry.execute('delete_home_expense', {
+        'id': saved.id,
+      });
       await result.undo!();
       expect(await database.select(database.homeExpenses).get(), hasLength(1));
     });
@@ -456,8 +499,14 @@ void main() {
 
     test('deletes and undoes transfer', () async {
       await seedWorkCash();
-      await registry.execute('save_work_home_transfer', {'amountMinorUnits':500,'id':'t1','date':DateTime.now().toIso8601String()});
-      final result = await registry.execute('delete_work_home_transfer', {'id':'t1'});
+      await registry.execute('save_work_home_transfer', {
+        'amountMinorUnits': 500,
+        'date': DateTime.now().toIso8601String(),
+      });
+      final saved = (await WorkRepository(database).watchTransfers().first).single;
+      final result = await registry.execute('delete_work_home_transfer', {
+        'id': saved.id,
+      });
       await result.undo!();
       expect(await database.select(database.workHomeTransfers).get(), hasLength(1));
     });
@@ -481,16 +530,16 @@ void main() {
         'month': 11,
         'date': '2026-11-04',
         'note': 'original debt note',
-        'id': 'partial-debt',
       });
+      final partialDebtId = (await DebtRepository(database).watchAll().first).single.id;
       await registry.execute('record_debt_payment', {
-        'debtId': 'partial-debt',
+        'debtId': partialDebtId,
         'amountMinorUnits': 150,
       });
 
       final prepared = await registry.prepareUpdateParameters(
         'save_debt',
-        const {'id': 'partial-debt', 'amountMinorUnits': 900},
+        {'id': partialDebtId, 'amountMinorUnits': 900},
       );
       expect(prepared['direction'], 'creditor');
       expect(prepared['counterparty'], 'Samer');
@@ -517,32 +566,24 @@ void main() {
         'counterparty': 'Ali',
         'year': 2026,
         'month': 11,
-        'id': 'd-edit',
       });
+      final editedDebtId = (await DebtRepository(database).watchAll().first).single.id;
 
       await registry.execute('save_debt', {
         'amountMinorUnits': 900,
-        'direction': 'debtor',
-        'counterparty': 'Ali',
-        'year': 2026,
-        'month': 11,
-        'id': 'd-edit',
+        'id': editedDebtId,
       });
       var debt = (await database.select(database.debts).get()).single;
       expect(debt.originalAmountMinorUnits, 900);
       expect(debt.outstandingAmountMinorUnits, 900);
 
       await registry.execute('record_debt_payment', {
-        'debtId': 'd-edit',
+        'debtId': editedDebtId,
         'amountMinorUnits': 200,
       });
       await registry.execute('save_debt', {
         'amountMinorUnits': 1000,
-        'direction': 'debtor',
-        'counterparty': 'Ali',
-        'year': 2026,
-        'month': 11,
-        'id': 'd-edit',
+        'id': editedDebtId,
       });
       debt = (await database.select(database.debts).get()).single;
       expect(debt.originalAmountMinorUnits, 1000);
@@ -555,7 +596,7 @@ void main() {
           'counterparty': 'Ali',
           'year': 2026,
           'month': 11,
-          'id': 'd-edit',
+          'id': editedDebtId,
         }),
         throwsA(isA<AssistantActionException>().having(
           (error) => error.code,
@@ -567,12 +608,19 @@ void main() {
 
     test('cannot delete debt with payment history through assistant action', () async {
       await registry.execute('save_debt', {
-        'amountMinorUnits':700,'direction':'debtor','counterparty':'Ali',
-        'year':2026,'month':11,'id':'d1',
+        'amountMinorUnits': 700,
+        'direction': 'debtor',
+        'counterparty': 'Ali',
+        'year': 2026,
+        'month': 11,
       });
-      await registry.execute('record_debt_payment', {'debtId':'d1','amountMinorUnits':200});
+      final protectedDebtId = (await DebtRepository(database).watchAll().first).single.id;
+      await registry.execute('record_debt_payment', {
+        'debtId': protectedDebtId,
+        'amountMinorUnits': 200,
+      });
       await expectLater(
-        registry.execute('delete_debt', {'id':'d1'}),
+        registry.execute('delete_debt', {'id': protectedDebtId}),
         throwsA(
           isA<AssistantActionException>().having(
             (error) => error.code,
@@ -593,27 +641,34 @@ void main() {
         'counterparty': 'Ali',
         'year': 2026,
         'month': 11,
-        'id': 'd-no-payments',
       });
 
+      final debtWithoutPaymentsId = (await DebtRepository(database).watchAll().first).single.id;
       final deletion = await registry.execute('delete_debt', {
-        'id': 'd-no-payments',
+        'id': debtWithoutPaymentsId,
       });
       expect(await database.select(database.debts).get(), isEmpty);
 
       await deletion.undo!();
       final restored = await database.select(database.debts).get();
       expect(restored, hasLength(1));
-      expect(restored.single.id, 'd-no-payments');
+      expect(restored.single.id, debtWithoutPaymentsId);
       expect(restored.single.outstandingAmountMinorUnits, 700);
     });
 
     test('records and undoes a debt payment atomically', () async {
       await registry.execute('save_debt', {
-        'amountMinorUnits':700,'direction':'debtor','counterparty':'Ali',
-        'year':2026,'month':11,'id':'d2',
+        'amountMinorUnits': 700,
+        'direction': 'debtor',
+        'counterparty': 'Ali',
+        'year': 2026,
+        'month': 11,
       });
-      final result = await registry.execute('record_debt_payment', {'debtId':'d2','amountMinorUnits':200});
+      final paymentDebtId = (await DebtRepository(database).watchAll().first).single.id;
+      final result = await registry.execute('record_debt_payment', {
+        'debtId': paymentDebtId,
+        'amountMinorUnits': 200,
+      });
       expect((await database.select(database.debts).get()).single.outstandingAmountMinorUnits, 500);
       await result.undo!();
       expect((await database.select(database.debts).get()).single.outstandingAmountMinorUnits, 700);
@@ -631,22 +686,22 @@ void main() {
         'amountMinorUnits': 400,
         'year': DateTime.now().year,
         'month': DateTime.now().month,
-        'id': 'internet-nov',
       });
+      final internetBillId = (await HomeBillRepository(database).getBills()).single.id;
 
       final bills = await registry.execute('read_home_bills', {});
       expect(bills.message, contains('Internet'));
       expect(bills.message, contains('400'));
 
       final payment = await registry.execute('record_home_bill_payment', {
-        'billId': 'internet-nov',
+        'billId': internetBillId,
         'amountMinorUnits': 100,
       });
       expect(payment.undo, isNotNull);
       expect((await HomeBillRepository(database).getBills()).single.remainingMinorUnits, 300);
       await payment.undo!();
       expect((await HomeBillRepository(database).getBills()).single.remainingMinorUnits, 400);
-      expect(await HomeBillRepository(database).paymentsFor('internet-nov'), isEmpty);
+      expect(await HomeBillRepository(database).paymentsFor(internetBillId), isEmpty);
     });
 
     test('bill edit preview retains payment history and accurate remaining amount', () async {
@@ -664,17 +719,17 @@ void main() {
         'month': now.month,
         'date': DateTime(now.year, now.month, 5).toIso8601String(),
         'note': 'monthly power bill',
-        'id': 'bill-edit-preview',
       });
+      final billEditPreviewId = (await HomeBillRepository(database).getBills()).single.id;
       await registry.execute('record_home_bill_payment', {
-        'billId': 'bill-edit-preview',
+        'billId': billEditPreviewId,
         'amountMinorUnits': 100,
         'date': DateTime.now().toIso8601String(),
       });
 
       final prepared = await registry.prepareUpdateParameters(
         'save_home_bill',
-        const {'id': 'bill-edit-preview', 'amountMinorUnits': 500},
+        {'id': billEditPreviewId, 'amountMinorUnits': 500},
       );
       expect(prepared['title'], 'Electricity');
       expect(prepared['kind'], 'monthly');
@@ -749,8 +804,8 @@ void main() {
         'amountMinorUnits': 300,
         'year': DateTime.now().year,
         'month': DateTime.now().month,
-        'id': 'bill-by-title',
       });
+      final billByTitleId = (await HomeBillRepository(database).getBills()).single.id;
       final payment = await registry.execute('record_home_bill_payment', {
         'billTitle': 'Electricity',
         'amountMinorUnits': 75,
@@ -762,7 +817,7 @@ void main() {
       expect(history.message, contains('75'));
       await payment.undo!();
       expect(
-        await HomeBillRepository(database).paymentsFor('bill-by-title'),
+        await HomeBillRepository(database).paymentsFor(billByTitleId),
         isEmpty,
       );
     });
@@ -774,8 +829,8 @@ void main() {
         'counterparty': 'Samer',
         'year': DateTime.now().year,
         'month': DateTime.now().month,
-        'id': 'debt-by-name',
       });
+      final paymentByNameDebtId = (await DebtRepository(database).watchAll().first).single.id;
       final payment = await registry.execute('record_debt_payment', {
         'counterparty': 'Samer',
         'direction': 'debtor',
@@ -809,14 +864,19 @@ void main() {
 
     test('reads debt payment history for the selected debt', () async {
       await registry.execute('save_debt', {
-        'amountMinorUnits': 700, 'direction': 'debtor',
-        'counterparty': 'Ali', 'year': 2026, 'month': 11, 'id': 'd-history',
+        'amountMinorUnits': 700,
+        'direction': 'debtor',
+        'counterparty': 'Ali',
+        'year': 2026,
+        'month': 11,
       });
+      final historyDebtId = (await DebtRepository(database).watchAll().first).single.id;
       await registry.execute('record_debt_payment', {
-        'debtId': 'd-history', 'amountMinorUnits': 225,
+        'debtId': historyDebtId,
+        'amountMinorUnits': 225,
       });
       final result = await registry.execute('read_debt_payments', {
-        'debtId': 'd-history',
+        'debtId': historyDebtId,
       });
       expect(result.message, contains('225'));
     });
@@ -828,14 +888,16 @@ void main() {
       });
       await registry.execute('save_home_bill', {
         'title': 'Internet', 'kind': 'monthly', 'amountMinorUnits': 400,
-        'year': DateTime.now().year, 'month': DateTime.now().month,
-        'id': 'bill-history',
+        'year': DateTime.now().year,
+        'month': DateTime.now().month,
       });
+      final historyBillId = (await HomeBillRepository(database).getBills()).single.id;
       await registry.execute('record_home_bill_payment', {
-        'billId': 'bill-history', 'amountMinorUnits': 125,
+        'billId': historyBillId,
+        'amountMinorUnits': 125,
       });
       final result = await registry.execute('read_home_bill_payments', {
-        'billId': 'bill-history',
+        'billId': historyBillId,
       });
       expect(result.message, contains('125'));
     });
@@ -879,10 +941,10 @@ void main() {
         'amountMinorUnits': 150,
         'year': now.year,
         'month': now.month,
-        'id': 'summary-internet',
       });
+      final summaryBillId = (await HomeBillRepository(database).getBills()).single.id;
       await registry.execute('record_home_bill_payment', {
-        'billId': 'summary-internet',
+        'billId': summaryBillId,
         'amountMinorUnits': 50,
       });
 
