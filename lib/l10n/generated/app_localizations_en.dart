@@ -22,6 +22,51 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeSection => 'Household';
 
   @override
+  String get workTransfersTab => 'Home transfers';
+
+  @override
+  String get homeIncomingFromWork => 'Incoming from work';
+
+  @override
+  String get homeMonthlyRent => 'Monthly rent';
+
+  @override
+  String get homeExpenses => 'Expenses';
+
+  @override
+  String get homeHistory => 'History';
+
+  @override
+  String get addMonthlyRent => 'Add monthly rent';
+
+  @override
+  String get billOrRentName => 'Bill or rent name';
+
+  @override
+  String get addCreditorDebt => 'Add debt owed to you (creditor)';
+
+  @override
+  String get addDebtorDebt => 'Add debt you owe (debtor)';
+
+  @override
+  String get homeCategoryChildren => 'Children\'s needs';
+
+  @override
+  String get homeCategoryEducation => 'Education';
+
+  @override
+  String get homeCategoryEntertainment => 'Entertainment';
+
+  @override
+  String get homeCategoryCommunication => 'Communications and internet';
+
+  @override
+  String get homeCategorySubscriptions => 'Subscriptions';
+
+  @override
+  String get homeCategoryGifts => 'Gifts and occasions';
+
+  @override
   String get debts => 'Debts';
 
   @override
