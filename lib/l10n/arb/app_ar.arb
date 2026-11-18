@@ -155,7 +155,7 @@
   "gemmaInferenceExplanation": "يفحص هذا الاختبار تحميل النموذج وإنتاج إجابة فعلية على الجهاز، ولا يكتفي بفحص وجود الملف وسلامته.",
   "gemmaNotDownloaded": "النموذج غير منزّل",
   "gemmaDownloading": "جارٍ تنزيل النموذج",
-  "gemmaReady": "النموذج جاهز",
+  "gemmaReady": "تم التحقق من ملف النموذج (لم يثبت التشغيل بعد)",
   "gemmaError": "حدث خطأ في النموذج",
   "gemmaDownloadModel": "تنزيل النموذج",
   "gemmaResumeDownload": "إعادة المحاولة",
