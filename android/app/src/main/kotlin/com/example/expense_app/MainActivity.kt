@@ -116,9 +116,9 @@ class MainActivity : FlutterActivity() {
             }
         }
         val disabledAlias = if (mode == "dark") {
-            ComponentName(packageName, "$packageName.MainActivityLightIcon")
+            ComponentName(packageName, "com.byepro.bye_pro_finance.MainActivityLightIcon")
         } else {
-            ComponentName(packageName, "$packageName.MainActivityDarkIcon")
+            ComponentName(packageName, "com.byepro.bye_pro_finance.MainActivityDarkIcon")
         }
 
         try {
