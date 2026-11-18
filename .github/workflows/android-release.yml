@@ -93,6 +93,49 @@ jobs:
       - name: Run Flutter tests
         run: flutter test
 
+      - name: Validate Android launcher PNG resources
+        shell: python
+        run: |
+          from pathlib import Path
+          import struct
+          import zlib
+
+          resource_root = Path("android/app/src/main/res")
+          png_files = sorted(resource_root.rglob("*.png"))
+          if not png_files:
+              raise SystemExit("No Android PNG resources were found.")
+
+          for path in png_files:
+              data = path.read_bytes()
+              if data[:8] != b"\\x89PNG\\r\\n\\x1a\\n":
+                  raise SystemExit(f"Invalid PNG signature: {path}")
+
+              chunks = []
+              offset = 8
+              saw_iend = False
+              while offset + 12 <= len(data):
+                  length = struct.unpack(">I", data[offset:offset + 4])[0]
+                  end = offset + 8 + length
+                  if end + 4 > len(data):
+                      raise SystemExit(f"Truncated PNG chunk in {path}")
+
+                  chunk_type = data[offset + 4:offset + 8]
+                  expected_crc = struct.unpack(">I", data[end:end + 4])[0]
+                  actual_crc = zlib.crc32(data[offset + 4:end]) & 0xffffffff
+                  if actual_crc != expected_crc:
+                      raise SystemExit(f"PNG CRC mismatch in {path} ({chunk_type!r})")
+
+                  chunks.append(chunk_type)
+                  offset = end + 4
+                  if chunk_type == b"IEND":
+                      saw_iend = True
+                      break
+
+              if not saw_iend or offset != len(data) or not chunks or chunks[0] != b"IHDR":
+                  raise SystemExit(f"Invalid PNG chunk structure: {path}")
+
+          print(f"Validated {len(png_files)} Android PNG resources and all chunk CRCs.")
+          
       - name: Build signed production ARM64 APK
         shell: bash
         env:
