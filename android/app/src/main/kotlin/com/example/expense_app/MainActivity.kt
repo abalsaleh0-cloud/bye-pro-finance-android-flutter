@@ -27,6 +27,8 @@ class MainActivity : FlutterFragmentActivity() {
 
     private var pendingSpeechResult: MethodChannel.Result? = null
     private var speechRecognizer: SpeechRecognizer? = null
+    private var speechAttemptGeneration = 0
+    private var offlineFallbackAttempted = false
     private var tts: TextToSpeech? = null
     private var ttsInitializing = false
     private var ttsInitialized = false
@@ -182,23 +184,13 @@ class MainActivity : FlutterFragmentActivity() {
     }
 
     private fun recognizeArabicSpeech(result: MethodChannel.Result) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
-            !SpeechRecognizer.isOnDeviceRecognitionAvailable(this)
-        ) {
-            result.error(
-                "offline_speech_unavailable",
-                "On-device speech recognition is not available on this device.",
-                null
-            )
-            return
-        }
-
         if (pendingSpeechResult != null) {
             result.error("speech_busy", "Speech recognition is already running.", null)
             return
         }
 
         pendingSpeechResult = result
+        offlineFallbackAttempted = false
         if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(
                 arrayOf(Manifest.permission.RECORD_AUDIO),
@@ -228,52 +220,33 @@ class MainActivity : FlutterFragmentActivity() {
     private fun beginArabicSpeechRecognition() {
         if (pendingSpeechResult == null) return
 
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
+            finishSpeechWithError(
+                "speech_unavailable",
+                "No Android speech recognition service is available."
+            )
+            return
+        }
+
+        val canUseOnDeviceArabic = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            SpeechRecognizer.isOnDeviceRecognitionAvailable(this)
+
+        if (canUseOnDeviceArabic) {
+            beginOnDeviceArabicSpeechRecognition()
+        } else {
+            beginDefaultArabicSpeechRecognition()
+        }
+    }
+
+    private fun beginOnDeviceArabicSpeechRecognition() {
+        if (pendingSpeechResult == null) return
+
         try {
             val recognizer = SpeechRecognizer.createOnDeviceSpeechRecognizer(this)
             speechRecognizer = recognizer
-            recognizer.setRecognitionListener(object : RecognitionListener {
-                override fun onReadyForSpeech(params: Bundle?) = Unit
-                override fun onBeginningOfSpeech() = Unit
-                override fun onRmsChanged(rmsdB: Float) = Unit
-                override fun onBufferReceived(buffer: ByteArray?) = Unit
-                override fun onEndOfSpeech() = Unit
-                override fun onPartialResults(partialResults: Bundle?) = Unit
-                override fun onEvent(eventType: Int, params: Bundle?) = Unit
-
-                override fun onError(error: Int) {
-                    val code = if (
-                        error == SpeechRecognizer.ERROR_NO_MATCH ||
-                        error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT
-                    ) {
-                        "speech_no_match"
-                    } else {
-                        "speech_failed"
-                    }
-                    finishSpeechWithError(code, "Arabic speech could not be recognized.")
-                }
-
-                override fun onResults(results: Bundle?) {
-                    val recognized = results
-                        ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                        ?.firstOrNull()
-                        ?.trim()
-                        .orEmpty()
-                    if (recognized.isEmpty()) {
-                        finishSpeechWithError("speech_no_match", "No speech was recognized.")
-                    } else {
-                        finishSpeechWithSuccess(recognized)
-                    }
-                }
-            })
-
-            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ar")
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "ar")
-                putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
-                putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
-                putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
-            }
+            val attempt = ++speechAttemptGeneration
+            val intent = createArabicRecognitionIntent(preferOffline = true)
+            attachRecognitionListener(recognizer, attempt, allowDefaultFallback = true)
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 recognizer.checkRecognitionSupport(
@@ -281,39 +254,185 @@ class MainActivity : FlutterFragmentActivity() {
                     mainExecutor,
                     object : RecognitionSupportCallback {
                         override fun onSupportResult(recognitionSupport: RecognitionSupport) {
+                            if (!isCurrentSpeechAttempt(attempt)) return
+
                             val hasInstalledArabic = recognitionSupport.installedOnDeviceLanguages
-                                .any { Locale.forLanguageTag(it).language.equals("ar", ignoreCase = true) }
+                                .any {
+                                    Locale.forLanguageTag(it).language.equals(
+                                        "ar",
+                                        ignoreCase = true
+                                    )
+                                }
+
                             if (hasInstalledArabic) {
-                                recognizer.startListening(intent)
-                            } else {
-                                finishSpeechWithError(
-                                    "arabic_language_unavailable",
-                                    "An offline Arabic speech model is not installed."
+                                startSpeechListening(
+                                    recognizer,
+                                    intent,
+                                    attempt,
+                                    allowDefaultFallback = true
                                 )
+                            } else {
+                                fallbackToDefaultArabicRecognition()
                             }
                         }
 
                         override fun onError(error: Int) {
-                            finishSpeechWithError(
-                                "arabic_language_unavailable",
-                                "Offline Arabic speech support could not be verified."
-                            )
+                            if (isCurrentSpeechAttempt(attempt)) {
+                                fallbackToDefaultArabicRecognition()
+                            }
                         }
                     }
                 )
             } else {
-                recognizer.startListening(intent)
+                startSpeechListening(
+                    recognizer,
+                    intent,
+                    attempt,
+                    allowDefaultFallback = true
+                )
             }
-        } catch (_: UnsupportedOperationException) {
+        } catch (_: SecurityException) {
+            finishSpeechWithError("permission_denied", "Microphone permission is required.")
+        } catch (_: Exception) {
+            fallbackToDefaultArabicRecognition()
+        }
+    }
+
+    private fun beginDefaultArabicSpeechRecognition() {
+        if (pendingSpeechResult == null) return
+
+        if (!SpeechRecognizer.isRecognitionAvailable(this)) {
             finishSpeechWithError(
-                "offline_speech_unavailable",
-                "On-device speech recognition is not available on this device."
+                "speech_unavailable",
+                "No Android speech recognition service is available."
+            )
+            return
+        }
+
+        try {
+            val recognizer = SpeechRecognizer.createSpeechRecognizer(this)
+            speechRecognizer = recognizer
+            val attempt = ++speechAttemptGeneration
+            attachRecognitionListener(recognizer, attempt, allowDefaultFallback = false)
+            startSpeechListening(
+                recognizer,
+                createArabicRecognitionIntent(preferOffline = false),
+                attempt,
+                allowDefaultFallback = false
             )
         } catch (_: SecurityException) {
             finishSpeechWithError("permission_denied", "Microphone permission is required.")
         } catch (_: Exception) {
             finishSpeechWithError("speech_failed", "Unable to start speech recognition.")
         }
+    }
+
+    private fun createArabicRecognitionIntent(preferOffline: Boolean): Intent {
+        return Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+            )
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ar")
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_PREFERENCE, "ar")
+            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, preferOffline)
+            putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, false)
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+        }
+    }
+
+    private fun attachRecognitionListener(
+        recognizer: SpeechRecognizer,
+        attempt: Int,
+        allowDefaultFallback: Boolean
+    ) {
+        recognizer.setRecognitionListener(object : RecognitionListener {
+            override fun onReadyForSpeech(params: Bundle?) = Unit
+            override fun onBeginningOfSpeech() = Unit
+            override fun onRmsChanged(rmsdB: Float) = Unit
+            override fun onBufferReceived(buffer: ByteArray?) = Unit
+            override fun onEndOfSpeech() = Unit
+            override fun onPartialResults(partialResults: Bundle?) = Unit
+            override fun onEvent(eventType: Int, params: Bundle?) = Unit
+
+            override fun onError(error: Int) {
+                if (!isCurrentSpeechAttempt(attempt)) return
+
+                if (allowDefaultFallback && shouldFallbackToDefault(error)) {
+                    fallbackToDefaultArabicRecognition()
+                    return
+                }
+
+                val code = if (
+                    error == SpeechRecognizer.ERROR_NO_MATCH ||
+                    error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT
+                ) {
+                    "speech_no_match"
+                } else {
+                    "speech_failed"
+                }
+                finishSpeechWithError(code, "Arabic speech could not be recognized.")
+            }
+
+            override fun onResults(results: Bundle?) {
+                if (!isCurrentSpeechAttempt(attempt)) return
+
+                val recognized = results
+                    ?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+                    ?.firstOrNull()
+                    ?.trim()
+                    .orEmpty()
+                if (recognized.isEmpty()) {
+                    finishSpeechWithError("speech_no_match", "No speech was recognized.")
+                } else {
+                    finishSpeechWithSuccess(recognized)
+                }
+            }
+        })
+    }
+
+    private fun startSpeechListening(
+        recognizer: SpeechRecognizer,
+        intent: Intent,
+        attempt: Int,
+        allowDefaultFallback: Boolean
+    ) {
+        if (!isCurrentSpeechAttempt(attempt)) return
+
+        try {
+            recognizer.startListening(intent)
+        } catch (_: SecurityException) {
+            finishSpeechWithError("permission_denied", "Microphone permission is required.")
+        } catch (_: Exception) {
+            if (allowDefaultFallback) {
+                fallbackToDefaultArabicRecognition()
+            } else {
+                finishSpeechWithError("speech_failed", "Unable to start speech recognition.")
+            }
+        }
+    }
+
+    private fun shouldFallbackToDefault(error: Int): Boolean {
+        return error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED ||
+            error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE ||
+            error == SpeechRecognizer.ERROR_CANNOT_CHECK_SUPPORT ||
+            error == SpeechRecognizer.ERROR_SERVER ||
+            error == SpeechRecognizer.ERROR_SERVER_DISCONNECTED ||
+            error == SpeechRecognizer.ERROR_NETWORK ||
+            error == SpeechRecognizer.ERROR_NETWORK_TIMEOUT ||
+            error == SpeechRecognizer.ERROR_SERVER_RECOGNITION
+    }
+
+    private fun fallbackToDefaultArabicRecognition() {
+        if (pendingSpeechResult == null || offlineFallbackAttempted) return
+
+        offlineFallbackAttempted = true
+        releaseSpeechRecognizer()
+        beginDefaultArabicSpeechRecognition()
+    }
+
+    private fun isCurrentSpeechAttempt(attempt: Int): Boolean {
+        return pendingSpeechResult != null && speechAttemptGeneration == attempt
     }
 
     private fun finishSpeechWithSuccess(text: String) {
@@ -331,8 +450,10 @@ class MainActivity : FlutterFragmentActivity() {
     }
 
     private fun releaseSpeechRecognizer() {
+        speechAttemptGeneration++
         val recognizer = speechRecognizer
         speechRecognizer = null
+        recognizer?.cancel()
         recognizer?.destroy()
     }
 
