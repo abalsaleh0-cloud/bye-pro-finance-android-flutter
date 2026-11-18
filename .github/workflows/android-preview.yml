@@ -1,10 +1,9 @@
 name: Android Preview APK
 
 on:
-  push:
+  pull_request:
     branches:
-      - feature/telegram-native-ui-redesign
-      - feature/work-actions-and-unified-log
+      - main
     paths:
       - 'android/**'
       - 'lib/**'
