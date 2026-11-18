@@ -466,7 +466,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${workspace.conversations.length} · ${active?.messages.length ?? 0} ${strings.aiMessagesCount}',
+                    '${active?.messages.length ?? 0} ${strings.aiMessagesCount}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
