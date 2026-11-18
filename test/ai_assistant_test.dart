@@ -334,6 +334,24 @@ void main() {
       );
     });
 
+    test('creates a transfer in the requested month when no exact day is given', () async {
+      await seedWorkCashForMonth(2026, 10, 500, id: 'month-only-transfer-cash');
+
+      final execution = await registry.execute('save_work_home_transfer', {
+        'amountMinorUnits': 150,
+        'year': 2026,
+        'month': 10,
+      });
+
+      final transfer = (await WorkRepository(database).watchTransfers().first)
+          .single;
+      expect(transfer.amount.minorUnits, 150);
+      expect(transfer.transferredAt.year, 2026);
+      expect(transfer.transferredAt.month, 10);
+      await execution.undo!();
+      expect(await WorkRepository(database).watchTransfers().first, isEmpty);
+    });
+
     test('maps transfers larger than received work cash to an assistant error', () async {
       await seedWorkCashForMonth(2026, 11, 500, id: 'transfer-limit-cash');
 
