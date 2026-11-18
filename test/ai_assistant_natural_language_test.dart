@@ -382,5 +382,38 @@ void main() {
     });
   });
 
+  group('Local record editing intents', () {
+    test('edits a named bill using its exact identifier', () async {
+      final result = await engine.interpret(
+        'عدل فاتورة الكهرباء رقم الفاتورة bill_1 بمبلغ 175 لشهر 2026-11',
+        actions,
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'save_home_bill');
+      expect(result.command!.parameters['id'], 'bill_1');
+      expect(result.command!.parameters['title'], 'الكهرباء');
+      expect(result.command!.parameters['amountMinorUnits'], 175);
+      expect(result.command!.parameters['year'], 2026);
+      expect(result.command!.parameters['month'], 11);
+    });
+
+    test('edits a debt while preserving the selected creditor/debtor direction', () async {
+      final result = await engine.interpret(
+        'عدل الدين عند سامر رقم الدين debt_1 بمبلغ 225 دائن لشهر 2026-11',
+        actions,
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'save_debt');
+      expect(result.command!.parameters['id'], 'debt_1');
+      expect(result.command!.parameters['counterparty'], 'سامر');
+      expect(result.command!.parameters['direction'], 'creditor');
+      expect(result.command!.parameters['amountMinorUnits'], 225);
+      expect(result.command!.parameters['year'], 2026);
+      expect(result.command!.parameters['month'], 11);
+    });
+  });
+
   });
 }
