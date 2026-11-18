@@ -1122,7 +1122,7 @@ final class FakeAssistantEngine implements AssistantEngine {
 
   static String? _billTitle(String text) {
     final match = RegExp(
-      r'(?:فاتورة|فاتوره|اشتراك)\s+([\p{L}0-9 _-]+?)(?=\s+(?:بمبلغ|بقيمة|مبلغ|لشهر|شهر|هذا الشهر|الشهر الحالي|اليوم|امس|بتاريخ|ملاحظة|note|20\d{2}|[0-9])|$)',
+      r'(?:فاتورة|فاتوره|اشتراك)\s+([\p{L}0-9 _-]+?)(?=\s+(?:رقم|معرف|معرّف|id|بمبلغ|بقيمة|مبلغ|لشهر|شهر|هذا الشهر|الشهر الحالي|اليوم|امس|بتاريخ|ملاحظة|note|20\d{2}|[0-9])|$)',
       caseSensitive: false,
       unicode: true,
     ).firstMatch(text);
@@ -1186,8 +1186,8 @@ final class FakeAssistantEngine implements AssistantEngine {
 
   static String? _counterparty(String text) {
     final patterns = <RegExp>[
-      RegExp(r'(?:من\s+)?(?:دين|الدين)\s+(?:(?:عند|لدى|على|ل)\s+)?([\p{L}][\p{L} ]{0,35}?)(?=\s+(?:بمبلغ|بقيمة|مبلغ|اليوم|امس|بتاريخ|ملاحظة|note|من\s+الدين|[0-9]|الف|ألف|مئة|مية)|$)', unicode: true),
-      RegExp(r'(?:مع|لدى|عند|لصالح|ل)\s+([\p{L}][\p{L} ]{0,35}?)(?=\s+(?:بمبلغ|بقيمة|مبلغ|دين|دينا|اليوم|امس|بتاريخ|ملاحظة|note|[0-9]|الف|ألف|مئة|مية)|$)', unicode: true),
+      RegExp(r'(?:من\s+)?(?:دين|الدين)\s+(?:(?:عند|لدى|على|ل)\s+)?([\p{L}][\p{L} ]{0,35}?)(?=\s+(?:بمبلغ|بقيمة|مبلغ|اليوم|امس|بتاريخ|ملاحظة|note|من\s+الدين|رقم|معرف|معرّف|id|[0-9]|الف|ألف|مئة|مية)|$)', unicode: true),
+      RegExp(r'(?:مع|لدى|عند|لصالح|ل)\s+([\p{L}][\p{L} ]{0,35}?)(?=\s+(?:بمبلغ|بقيمة|مبلغ|دين|دينا|اليوم|امس|بتاريخ|ملاحظة|note|رقم|معرف|معرّف|id|[0-9]|الف|ألف|مئة|مية)|$)', unicode: true),
     ];
     for (final pattern in patterns) {
       final value = pattern.firstMatch(text)?.group(1)?.trim();
