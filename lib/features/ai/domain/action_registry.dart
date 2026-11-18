@@ -126,6 +126,17 @@ final class ActionRegistry {
     if (name == 'delete_home_expense' && (year == null) != (month == null)) {
       return 'expense deletion month requires both year and month';
     }
+    if (const {'delete_work_entry', 'delete_work_home_transfer'}.contains(name) &&
+        (year == null) != (month == null)) {
+      return 'deletion month requires both year and month';
+    }
+    if (const {'delete_work_entry', 'delete_work_home_transfer'}.contains(name) &&
+        p['date'] is String && year != null) {
+      final date = DateTime.parse(p['date']! as String);
+      if (date.year != year || date.month != month) {
+        return 'deletion date and month differ';
+      }
+    }
     if (name == 'delete_home_expense' && p['date'] is String) {
       final date = DateTime.parse(p['date']! as String);
       if (year != null && (date.year != year || date.month != month)) {
@@ -158,8 +169,9 @@ final class ActionRegistry {
       return 'work record deletion needs an ID or unique kind, amount and date/month';
     }
     if (name == 'delete_work_home_transfer' && p['id'] == null &&
-        (p['amountMinorUnits'] == null || p['date'] == null)) {
-      return 'transfer deletion needs an ID or a unique amount and date';
+        (p['amountMinorUnits'] == null ||
+            (p['date'] == null && (year == null || month == null)))) {
+      return 'transfer deletion needs an ID or a unique amount and date/month';
     }
     if (name == 'delete_work_entry' &&
         p['kind'] != null &&
