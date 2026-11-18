@@ -14,7 +14,6 @@ import 'package:expense_app/core/widgets/chat_message_bubble.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
 import 'package:expense_app/core/time/calendar_date.dart';
 import 'package:expense_app/core/widgets/financial_record_card.dart';
-import 'package:expense_app/features/ai/data/gemma_model_manager.dart';
 import 'package:expense_app/features/ai/domain/action_registry.dart';
 import 'package:expense_app/features/ai/domain/assistant_confirmation.dart';
 import 'package:expense_app/features/ai/domain/assistant_engine.dart';
@@ -39,7 +38,6 @@ class AiScreen extends ConsumerStatefulWidget {
 }
 
 class _AiScreenState extends ConsumerState<AiScreen> {
-  late final GemmaModelManager _gemmaModelManager;
   final _input = TextEditingController();
   final AssistantConfirmation _confirmation = AssistantConfirmation();
   UndoOperation? _undo;
@@ -54,7 +52,6 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   @override
   void initState() {
     super.initState();
-    _gemmaModelManager = ref.read(gemmaModelManagerProvider.notifier);
   }
 
   @override
@@ -63,7 +60,6 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     if (_recognizing) {
       unawaited(_voiceService.cancelArabicSpeechRecognition());
     }
-    unawaited(_gemmaModelManager.releaseModel());
     super.dispose();
   }
 
