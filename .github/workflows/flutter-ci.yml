@@ -32,7 +32,8 @@ jobs:
           distribution: temurin
           java-version: '21'
       - name: Restore stable preview signing key
-        uses: actions/cache@v5
+        id: preview-key-cache
+        uses: actions/cache/restore@v5
         with:
           path: ~/.android/debug.keystore
           key: bye-pro-finance-preview-debug-keystore-v1
@@ -52,6 +53,12 @@ jobs:
               -validity 10000 \
               -dname "CN=Android Debug,O=Android,C=US"
           fi
+      - name: Save stable preview signing key
+        if: steps.preview-key-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: ~/.android/debug.keystore
+          key: bye-pro-finance-preview-debug-keystore-v1
       - uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: '9.5.0'
@@ -112,8 +119,10 @@ jobs:
           AAPT="$BUILD_TOOLS_DIR/aapt"
           SIGNER_OUTPUT="$("$APKSIGNER" verify --verbose --print-certs "$APK")"
           printf '%s\n' "$SIGNER_OUTPUT"
-          APK_FINGERPRINT="$(printf '%s\n' "$SIGNER_OUTPUT" | awk -F': ' '/Signer #1 certificate SHA-256 digest:/ {print $2}' | tr -d ':' | tr '[:upper:]' '[:lower:]')"
-          KEY_FINGERPRINT="$(keytool -exportcert -alias androiddebugkey -keystore "$HOME/.android/debug.keystore" -storepass android | openssl dgst -sha256 | awk '{print $2}' | tr '[:upper:]' '[:lower:]')"
+          APK_FINGERPRINT="$(printf '%s\n' "$SIGNER_OUTPUT" | awk -F': ' '/certificate SHA-256 digest:/ {print $NF; exit}' | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+          KEY_FINGERPRINT="$(keytool -exportcert -alias androiddebugkey -keystore "$HOME/.android/debug.keystore" -storepass android | openssl dgst -sha256 | awk '{print $NF}' | tr '[:upper:]' '[:lower:]')"
+          echo "APK certificate SHA-256: $APK_FINGERPRINT"
+          echo "Stable preview key SHA-256: $KEY_FINGERPRINT"
           if [[ -z "$APK_FINGERPRINT" || "$APK_FINGERPRINT" != "$KEY_FINGERPRINT" ]]; then
             echo "::error::Preview APK was not signed with the stable preview key."
             exit 1
