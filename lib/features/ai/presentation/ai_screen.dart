@@ -332,6 +332,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         'bill_has_payments' => strings.assistantBillDeleteHasPayments,
         'record_not_found' || 'bill_not_found' || 'debt_not_found' =>
           strings.assistantRecordNotFound,
+        'record_ambiguous' => strings.assistantRecordAmbiguous,
         'bill_ambiguous' => strings.assistantBillAmbiguous,
         'debt_ambiguous' => strings.assistantDebtAmbiguous,
         'bill_payment_not_available' =>
@@ -615,6 +616,12 @@ class _AiScreenState extends ConsumerState<AiScreen> {
           );
     final rawAmount = parameters['amountMinorUnits'];
     final amount = rawAmount is int ? rawAmount.toString() : '—';
+    final billPaid = parameters['paidMinorUnits'] is int
+        ? parameters['paidMinorUnits']! as int
+        : 0;
+    final billRemaining = parameters['remainingMinorUnits'] is int
+        ? (parameters['remainingMinorUnits']! as int).toString()
+        : amount;
     final isDebt = command.name == 'save_debt';
     final isCreditor = parameters['direction'] == 'creditor';
     final isDebtor = parameters['direction'] == 'debtor';
@@ -694,8 +701,8 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         amount: amount,
         details: [
           if (formattedDate != null) formattedDate,
-          '${strings.billPaid}: 0 / $amount',
-          '${strings.billRemaining}: $amount',
+          '${strings.billPaid}: $billPaid / $amount',
+          '${strings.billRemaining}: $billRemaining',
           if (note.isNotEmpty) note,
         ],
       );
