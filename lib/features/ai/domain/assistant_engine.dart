@@ -1359,7 +1359,7 @@ final class LocalRuleAssistantEngine implements AssistantEngine {
       '',
     );
     title = title.replaceFirst(
-      RegExp('\\s+$frequencyWord\
+      RegExp('\\s+$frequencyWord\$', caseSensitive: false),
       '',
     );
     title = title.replaceAll(RegExp(r'\s+'), ' ').trim();
