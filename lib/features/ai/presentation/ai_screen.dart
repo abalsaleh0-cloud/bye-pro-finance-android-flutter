@@ -1108,15 +1108,6 @@ class _AiScreenState extends ConsumerState<AiScreen> {
               ),
               child: Row(
                 children: [
-                  IconButton.filledTonal(
-                    key: const Key('ai-attach-button'),
-                    onPressed: _busy || _recording || _recognizing
-                        ? null
-                        : _chooseAttachment,
-                    icon: const Icon(Icons.attach_file_rounded),
-                    tooltip: strings.aiFiles,
-                  ),
-                  const SizedBox(width: 6),
                   Expanded(
                     child: Container(
                       constraints: const BoxConstraints(minHeight: 52),
@@ -1129,6 +1120,15 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
+                          IconButton.filledTonal(
+                            key: const Key('ai-attach-button'),
+                            onPressed: _busy || _recording || _recognizing
+                                ? null
+                                : _chooseAttachment,
+                            icon: const Icon(Icons.attach_file_rounded),
+                            tooltip: strings.aiFiles,
+                          ),
+                          const SizedBox(width: 4),
                           Expanded(
                             child: TextField(
                               key: const Key('ai-message-input'),
