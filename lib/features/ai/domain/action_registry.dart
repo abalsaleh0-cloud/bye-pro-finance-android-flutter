@@ -216,7 +216,7 @@ final class ActionRegistry {
         final previous = old;
         final item = WorkEntry(id:id, kind:(p['kind'] == 'payment'
             ? WorkEntryKind.salaryPayment
-            : WorkEntryKind.values.byName(p['kind']! as String)), amount:Money.fromMinorUnits(p['amountMinorUnits']! as int), dueMonth:MonthKey(year:p['year']! as int,month:p['month']! as int), recordedAt:p['date'] is String ? DateTime.parse(p['date']! as String) : previous?.recordedAt ?? DateTime.now(),note:p['note'] as String?);
+            : WorkEntryKind.values.byName(p['kind']! as String)), amount:Money.fromMinorUnits(p['amountMinorUnits']! as int), dueMonth:MonthKey(year:p['year']! as int,month:p['month']! as int), recordedAt:p['date'] is String ? DateTime.parse(p['date']! as String) : previous?.recordedAt ?? DateTime.now(),note:p.containsKey('note') ? p['note'] as String? : previous?.note);
         await _work.saveEntry(item);
         return ActionExecution(message:'تم حفظ سجل العمل',undo:() async { if(previous==null) { await _work.deleteEntry(id); } else { await _work.saveEntry(previous); } });
       case 'delete_work_entry':
@@ -238,7 +238,7 @@ final class ActionRegistry {
           throw StateError('The requested expense category does not exist.');
         }
         final expenseDate = DateTime.parse(p['date']! as String);
-        final item=HomeExpense(id:id,amount:Money.fromMinorUnits(p['amountMinorUnits']! as int),categoryId:selectedCategory.id,expenseDate:expenseDate,dueMonth:MonthKey(year:expenseDate.year,month:expenseDate.month),note:p['note'] as String?);
+        final item=HomeExpense(id:id,amount:Money.fromMinorUnits(p['amountMinorUnits']! as int),categoryId:selectedCategory.id,expenseDate:expenseDate,dueMonth:MonthKey(year:expenseDate.year,month:expenseDate.month),note:p.containsKey('note') ? p['note'] as String? : previous?.note);
         await _home.save(item); return ActionExecution(message:'تم حفظ مصروف المنزل',undo:() async { if(previous==null) { await _home.delete(id); } else { await _home.save(previous); } });
       case 'delete_home_expense':
         final all=await _home.watchAll().first; HomeExpense? old; for(final e in all) { if(e.id==p['id']) old=e; }
@@ -252,8 +252,8 @@ final class ActionRegistry {
           kind: HomeBillKind.values.byName(p['kind']! as String),
           amount: Money.fromMinorUnits(p['amountMinorUnits']! as int),
           dueMonth: MonthKey(year: p['year']! as int, month: p['month']! as int),
-          dueDate: p['date'] is String ? DateTime.parse(p['date']! as String) : null,
-          note: p['note'] as String?,
+          dueDate: p['date'] is String ? DateTime.parse(p['date']! as String) : existing?.dueDate,
+          note: p.containsKey('note') ? p['note'] as String? : existing?.note,
           paidMinorUnits: existing?.paidMinorUnits ?? 0,
         );
         await _bills.saveBill(bill);
@@ -425,7 +425,7 @@ final class ActionRegistry {
       case 'save_work_home_transfer':
         final id=p['id'] as String? ?? _id(); final all=await _work.watchTransfers().first; WorkHomeTransfer? old; for(final e in all) { if(e.id==id) old=e; }
         final previous = old;
-        final item=WorkHomeTransfer(id:id,amount:Money.fromMinorUnits(p['amountMinorUnits']! as int),transferredAt:p['date'] is String ? DateTime.parse(p['date']! as String) : DateTime.now(),note:p['note'] as String?);
+        final item=WorkHomeTransfer(id:id,amount:Money.fromMinorUnits(p['amountMinorUnits']! as int),transferredAt:p['date'] is String ? DateTime.parse(p['date']! as String) : DateTime.now(),note:p.containsKey('note') ? p['note'] as String? : previous?.note);
         await _work.saveTransfer(item); return ActionExecution(message:'تم تسجيل التحويل إلى المنزل',undo:() async { if(previous==null) { await _work.deleteTransfer(id); } else { await _work.saveTransfer(previous); } });
       case 'delete_work_home_transfer':
         final all=await _work.watchTransfers().first; WorkHomeTransfer? old; for(final e in all) { if(e.id==p['id']) old=e; }
@@ -446,7 +446,7 @@ final class ActionRegistry {
             'Debt amount cannot be lower than its recorded payments.',
           );
         }
-        final item=DebtEntry(id:id,direction:DebtDirection.values.byName(p['direction']! as String),originalAmount:amount,outstandingAmount:Money.fromMinorUnits(amount.minorUnits - paidTotal),dueMonth:MonthKey(year:p['year']! as int,month:p['month']! as int),createdAt:p['date'] is String ? DateTime.parse(p['date']! as String) : previous?.createdAt ?? DateTime.now(),counterparty:p['counterparty']! as String,note:p['note'] as String?);
+        final item=DebtEntry(id:id,direction:DebtDirection.values.byName(p['direction']! as String),originalAmount:amount,outstandingAmount:Money.fromMinorUnits(amount.minorUnits - paidTotal),dueMonth:MonthKey(year:p['year']! as int,month:p['month']! as int),createdAt:p['date'] is String ? DateTime.parse(p['date']! as String) : previous?.createdAt ?? DateTime.now(),counterparty:p['counterparty']! as String,note:p.containsKey('note') ? p['note'] as String? : previous?.note);
         await _debts.save(item); return ActionExecution(message:'تم حفظ الدين',undo:() async { if(previous==null) { await _debts.delete(id); } else { await _debts.save(previous); } });
       case 'delete_debt':
         final all=await _debts.watchAll().first;
