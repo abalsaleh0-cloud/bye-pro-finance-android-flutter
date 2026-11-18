@@ -277,6 +277,8 @@ final class LocalRuleAssistantEngine implements AssistantEngine {
 
     final writeVerb = has(const [
       'اضف',
+      'اضيف',
+      'اضيفلي',
       'ضيف',
       'زيد',
       'سجل',
@@ -472,7 +474,12 @@ final class LocalRuleAssistantEngine implements AssistantEngine {
     }
 
     if (isDeleteIntent) {
-      final action = has(const ['فاتورة', 'فواتير', 'اشتراك', 'ايجار', 'اجار'])
+      final action = has(const [
+        'فاتورة', 'فواتير', 'الفواتير', 'اشتراك', 'اشتراكات',
+        'الاشتراكات', 'ايجار', 'ايجارات', 'الايجارات', 'اجار',
+        'اجارات', 'الاجارات', 'بدل سكن', 'rent', 'rents',
+        'bill', 'bills', 'invoice', 'invoices',
+      ])
           ? 'delete_home_bill'
           : has(const ['دين', 'ديون'])
               ? 'delete_debt'
@@ -842,17 +849,15 @@ final class LocalRuleAssistantEngine implements AssistantEngine {
     }
 
     final isRent = has(const [
-      'ايجار',
-      'اجار',
-      'بدل سكن',
-      'rent',
+      'ايجار', 'ايجارات', 'الايجار', 'الايجارات',
+      'اجار', 'اجارات', 'الاجار', 'الاجارات',
+      'ايجار شهري', 'ايجارات شهرية', 'ايجار شهريا',
+      'بدل سكن', 'rent', 'rents',
     ]);
     final isBill = has(const [
-      'فاتورة',
-      'فاتوره',
-      'فواتير',
-      'اشتراك',
-      'bill',
+      'فاتورة', 'فاتوره', 'الفاتورة', 'فواتير', 'الفواتير',
+      'اشتراك', 'اشتراكات', 'الاشتراك', 'الاشتراكات',
+      'bill', 'bills', 'invoice', 'invoices',
     ]);
     if (isWriteIntent && (isRent || isBill)) {
       if (amount == null) {
@@ -1229,7 +1234,11 @@ final class LocalRuleAssistantEngine implements AssistantEngine {
     if (has(const ['تحويلات', 'التحويلات', 'التحويلات للبيت', 'transfers'])) {
       return 'read_work_transfers';
     }
-    if (has(const ['فواتير', 'فواتير المنزل', 'الايجار', 'الاشتراكات', 'bills', 'rent'])) {
+    if (has(const [
+      'فواتير', 'الفواتير', 'فواتير المنزل', 'الايجار', 'الايجارات',
+      'اجار', 'اجارات', 'الاشتراك', 'الاشتراكات',
+      'bills', 'rent', 'rents', 'invoices',
+    ])) {
       return 'read_home_bills';
     }
     if (has(const ['مصروفات المنزل', 'مصروفات البيت', 'مشتريات البيت', 'home expenses'])) {
@@ -1299,12 +1308,26 @@ final class LocalRuleAssistantEngine implements AssistantEngine {
 
   static String? _billTitle(String text) {
     final match = RegExp(
-      r'(?:فاتورة|فاتوره|اشتراك)\s+([\p{L}0-9 _-]+?)(?=\s+(?:رقم|معرف|معرّف|id|بمبلغ|بقيمة|مبلغ|لشهر|شهر|هذا الشهر|الشهر الحالي|اليوم|امس|بتاريخ|ملاحظة|note|20\d{2}|[0-9])|$)',
+      r'(?:الفاتورة|الفواتير|فاتورة|فاتوره|فواتير|الاشتراك|الاشتراكات|اشتراك|اشتراكات|invoice|invoices|bill|bills)\s+(?:(?:ال)?(?:شهري|شهرية|شهريا|شهريه|monthly)\s+)?([\p{L}0-9 _-]+?)(?=\s+(?:رقم|معرف|معرّف|id|بمبلغ|بقيمة|مبلغ|لشهر|شهر|هذا الشهر|الشهر الحالي|اليوم|امس|بتاريخ|ملاحظة|note|(?:ال)?(?:شهري|شهرية|شهريا|شهريه|monthly)|20\d{2}|[0-9])|$)',
       caseSensitive: false,
       unicode: true,
     ).firstMatch(text);
-    final title = match?.group(1)?.trim();
+    var title = match?.group(1)?.trim();
     if (title == null || title.isEmpty) return null;
+
+    // Frequency words describe the recurring schedule, not the bill name.
+    const frequencyWord = r'(?:ال)?(?:شهري|شهرية|شهريا|شهريه|monthly)';
+    title = title.replaceFirst(
+      RegExp('^$frequencyWord\\s+', caseSensitive: false),
+      '',
+    );
+    title = title.replaceFirst(
+      RegExp('\\s+$frequencyWord$', caseSensitive: false),
+      '',
+    );
+    title = title.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+    if (title.isEmpty) return null;
     final normalizedTitle = _input.normalize(title);
     if (_input.containsAny(normalizedTitle, const ['رقم الفاتورة', 'رقم', 'معرف', 'معرّف', 'id'])) {
       return null;
