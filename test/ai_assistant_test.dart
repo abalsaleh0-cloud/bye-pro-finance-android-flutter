@@ -402,11 +402,39 @@ void main() {
       await registry.execute('record_debt_payment', {'debtId':'d1','amountMinorUnits':200});
       await expectLater(
         registry.execute('delete_debt', {'id':'d1'}),
-        throwsStateError,
+        throwsA(
+          isA<AssistantActionException>().having(
+            (error) => error.code,
+            'code',
+            'debt_has_payments',
+          ),
+        ),
       );
       expect(await database.select(database.debts).get(), hasLength(1));
       expect(await database.select(database.debtPayments).get(), hasLength(1));
       expect((await database.select(database.debts).get()).single.outstandingAmountMinorUnits, 500);
+    });
+
+    test('deletes and restores a debt when no payment history exists', () async {
+      await registry.execute('save_debt', {
+        'amountMinorUnits': 700,
+        'direction': 'debtor',
+        'counterparty': 'Ali',
+        'year': 2026,
+        'month': 11,
+        'id': 'd-no-payments',
+      });
+
+      final deletion = await registry.execute('delete_debt', {
+        'id': 'd-no-payments',
+      });
+      expect(await database.select(database.debts).get(), isEmpty);
+
+      await deletion.undo!();
+      final restored = await database.select(database.debts).get();
+      expect(restored, hasLength(1));
+      expect(restored.single.id, 'd-no-payments');
+      expect(restored.single.outstandingAmountMinorUnits, 700);
     });
 
     test('records and undoes a debt payment atomically', () async {
