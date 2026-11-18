@@ -1073,20 +1073,6 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      SizedBox(
-                        width: 44,
-                        height: 44,
-                        child: IconButton(
-                          key: const Key('ai-emoji-button'),
-                          onPressed: _busy || _recording || _recognizing
-                              ? null
-                              : _showEmojiPicker,
-                          tooltip: strings.aiEmoji,
-                          icon: const Icon(Icons.emoji_emotions_outlined),
-                          padding: EdgeInsets.zero,
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      ),
                       Expanded(
                         child: Directionality(
                           textDirection: Directionality.of(context),
