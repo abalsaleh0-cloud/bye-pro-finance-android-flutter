@@ -254,5 +254,6 @@
   "homeCategoryEntertainment": "Entertainment",
   "homeCategoryCommunication": "Communications and internet",
   "homeCategorySubscriptions": "Subscriptions",
-  "homeCategoryGifts": "Gifts and occasions"
+  "homeCategoryGifts": "Gifts and occasions",
+  "personName": "Person name"
 }
