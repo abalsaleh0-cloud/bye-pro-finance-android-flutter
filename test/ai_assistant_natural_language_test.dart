@@ -440,6 +440,54 @@ void main() {
       expect(result.command!.parameters['amountMinorUnits'], 75);
     });
 
+    test('continues a work deletion request after the user selects its record kind', () async {
+      const context = 'المستخدم: احذف سجل 1500 لشهر 2026-11\n'
+          'المساعد: هل تريد حذف راتب أم سلفة أم دفعة؟';
+      final result = await engine.interpret(
+        'راتب',
+        actions,
+        conversationContext: context,
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'delete_work_entry');
+      expect(result.command!.parameters['kind'], 'salary');
+      expect(result.command!.parameters['amountMinorUnits'], 1500);
+      expect(result.command!.parameters['year'], 2026);
+      expect(result.command!.parameters['month'], 11);
+    });
+
+    test('continues a transfer deletion request after the user supplies its date', () async {
+      const context = 'المستخدم: احذف تحويل 250 للمنزل\n'
+          'المساعد: ما تاريخ أو شهر التحويل حتى أحدده بدقة؟';
+      final result = await engine.interpret(
+        '2026-11-15',
+        actions,
+        conversationContext: context,
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'delete_work_home_transfer');
+      expect(result.command!.parameters['amountMinorUnits'], 250);
+      expect(result.command!.parameters['date'], '2026-11-15');
+    });
+
+    test('continues a custom category rename after the new name is supplied', () async {
+      const context = 'المستخدم: عدل تصنيف لوازم المكتب\n'
+          'المساعد: ما الاسم الجديد للتصنيف؟';
+      final result = await engine.interpret(
+        'تجهيزات مكتبية',
+        actions,
+        conversationContext: context,
+        expenseCategories: const {'custom_office': 'لوازم المكتب'},
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'save_home_category');
+      expect(result.command!.parameters['id'], 'custom_office');
+      expect(result.command!.parameters['name'], 'تجهيزات مكتبية');
+    });
+
     test('uses yesterday and preserves the operation note without a model', () async {
       final result = await engine.interpret(
         'سجل مصروف 30 على البقالة أمس ملاحظة مشتريات البيت',
