@@ -594,7 +594,7 @@ final class FakeAssistantEngine implements AssistantEngine {
     }
 
     // Updates use the same repository-backed save action and require an exact ID.
-    // The complete fields are supplied so existing values are never guessed.
+    // Missing fields are hydrated from the existing record before confirmation.
     if (isEditIntent && explicitId != null) {
       if (amount == null) {
         return const AssistantResult.clarification('ما المبلغ الجديد؟');
@@ -607,9 +607,6 @@ final class FakeAssistantEngine implements AssistantEngine {
                 : has(const ['راتب', 'معاش', 'مرتب'])
                     ? 'salary'
                     : null;
-        if (requestedMonth == null && explicitId == null) {
-          return const AssistantResult.clarification('ما الشهر والسنة المسجل فيهما هذا السجل؟');
-        }
         if (!can('save_work_entry')) return const AssistantResult.notUnderstood();
         return AssistantResult.command(AssistantCommand(
           name: 'save_work_entry',
@@ -626,9 +623,6 @@ final class FakeAssistantEngine implements AssistantEngine {
       }
       if (has(const ['مصروف', 'مصروفات', 'مشتريات البيت', 'مشتريات المنزل', 'expense'])) {
         final categoryId = _category(has, text, expenseCategories);
-        if (explicitId == null && (categoryId == null || requestedMonth == null)) {
-          return const AssistantResult.clarification('اذكر التصنيف والشهر وتاريخ المصروف الجديد.');
-        }
         if (!can('save_home_expense')) return const AssistantResult.notUnderstood();
         return AssistantResult.command(AssistantCommand(
           name: 'save_home_expense',
@@ -658,13 +652,6 @@ final class FakeAssistantEngine implements AssistantEngine {
       }
       if (has(const ['فاتورة', 'فاتوره', 'اشتراك', 'ايجار', 'اجار', 'rent', 'bill'])) {
         final title = _billTitle(effectiveInput);
-        if (explicitId == null && (title == null || requestedMonth == null)) {
-          return AssistantResult.clarification(
-            title == null
-                ? 'ما اسم الفاتورة أو الإيجار الجديد؟'
-                : 'ما شهر الاستحقاق الجديد؟',
-          );
-        }
         if (!can('save_home_bill')) return const AssistantResult.notUnderstood();
         final isRent = has(const ['ايجار', 'اجار', 'بدل سكن', 'rent']);
         return AssistantResult.command(AssistantCommand(
@@ -685,16 +672,6 @@ final class FakeAssistantEngine implements AssistantEngine {
       if (has(const ['دين', 'ديون', 'debt'])) {
         final direction = _debtDirection(has);
         final counterparty = _counterparty(effectiveInput);
-        if (explicitId == null &&
-            (direction == null || counterparty == null || requestedMonth == null)) {
-          if (direction == null) {
-            return const AssistantResult.clarification('هل اتجاه الدين دائن أم مدين؟');
-          }
-          if (counterparty == null) {
-            return const AssistantResult.clarification('ما اسم الشخص أو الجهة في سجل الدين؟');
-          }
-          return const AssistantResult.clarification('ما شهر الاستحقاق الجديد للدين؟');
-        }
         if (!can('save_debt')) return const AssistantResult.notUnderstood();
         return AssistantResult.command(AssistantCommand(
           name: 'save_debt',
@@ -1286,7 +1263,12 @@ final class FakeAssistantEngine implements AssistantEngine {
       unicode: true,
     ).firstMatch(text);
     final title = match?.group(1)?.trim();
-    return title == null || title.isEmpty ? null : title;
+    if (title == null || title.isEmpty) return null;
+    final normalizedTitle = _input.normalize(title);
+    if (_input.containsAny(normalizedTitle, const ['رقم الفاتورة', 'رقم', 'معرف', 'معرّف', 'id'])) {
+      return null;
+    }
+    return title;
   }
 
   static String? _debtDirection(
