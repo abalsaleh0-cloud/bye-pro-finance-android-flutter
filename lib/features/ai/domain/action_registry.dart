@@ -107,7 +107,21 @@ final class ActionRegistry {
       if (expected == null) return 'unexpected parameter: ' + entry.key;
       if (entry.value != null && entry.value.runtimeType != expected) return 'invalid parameter type: ' + entry.key;
     }
-    for (final key in d.requiredParameters) {
+    final updateActions = const {
+      'save_work_entry',
+      'save_home_expense',
+      'save_home_bill',
+      'save_debt',
+      'save_work_home_transfer',
+    };
+    final hasStableId = p['id'] is String && (p['id']! as String).trim().isNotEmpty;
+    if (p['id'] is String && (p['id']! as String).trim().isEmpty) {
+      return 'invalid record ID';
+    }
+    final requiredParameters = hasStableId && updateActions.contains(name)
+        ? const <String>{'amountMinorUnits'}
+        : d.requiredParameters;
+    for (final key in requiredParameters) {
       if (p[key] != null) continue;
       // The local Arabic engine may resolve a named bill/debt to one exact
       // record. Gemma's tool schema keeps the stable identifier required.
@@ -160,10 +174,14 @@ final class ActionRegistry {
     }.contains(name) && (year == null) != (month == null)) {
       return 'list month requires both year and month';
     }
-    if (name == 'save_work_entry' && !{'salary','advance','payment','salaryPayment'}.contains(p['kind'])) return 'invalid kind';
-    if (name == 'save_debt' && !{'creditor','debtor'}.contains(p['direction'])) return 'invalid direction';
-    if (name == 'save_home_bill' && !{'monthly','rent'}.contains(p['kind'])) return 'invalid bill kind';
-    if (name == 'save_home_bill' && (p['title']! as String).trim().isEmpty) return 'missing bill title';
+    if (name == 'save_work_entry' && p['kind'] != null &&
+        !{'salary','advance','payment','salaryPayment'}.contains(p['kind'])) return 'invalid kind';
+    if (name == 'save_debt' && p['direction'] != null &&
+        !{'creditor','debtor'}.contains(p['direction'])) return 'invalid direction';
+    if (name == 'save_home_bill' && p['kind'] != null &&
+        !{'monthly','rent'}.contains(p['kind'])) return 'invalid bill kind';
+    if (name == 'save_home_bill' && p['title'] is String &&
+        (p['title']! as String).trim().isEmpty) return 'missing bill title';
     if (name == 'record_home_bill_payment' &&
         (p['billId'] == null && p['billTitle'] == null)) return 'missing bill';
     if (name == 'delete_home_expense' && p['id'] == null &&
@@ -209,13 +227,23 @@ final class ActionRegistry {
         !{'dashboard','work','home','debts','ai','settings'}.contains(p['section'])) {
       return 'invalid navigation section';
     }
-    if (name == 'save_home_expense' && p['categoryId'] == null && p['categoryName'] == null) return 'missing category';
+    if (name == 'save_home_expense' && p['id'] == null &&
+        p['categoryId'] == null && p['categoryName'] == null) return 'missing category';
     if (name == 'save_home_expense' && p['categoryName'] is String && (p['categoryName']! as String).trim().isEmpty) return 'missing category';
     if (name == 'save_home_category' && (p['name']! as String).trim().isEmpty) return 'missing category name';
     if (name == 'delete_home_category' && p['id'] == null && p['name'] == null) return 'missing category';
     if (name == 'delete_home_category' && p['name'] is String && (p['name']! as String).trim().isEmpty) return 'missing category';
     if ((name == 'save_home_expense' || name == 'save_home_bill' || name == 'save_debt' || name == 'save_work_entry' || name == 'record_home_bill_payment' || name == 'record_debt_payment' || name == 'save_work_home_transfer' || name == 'delete_home_expense' || name == 'delete_work_entry' || name == 'delete_work_home_transfer') && p['date'] is String && DateTime.tryParse(p['date']! as String) == null) return 'invalid date';
-    if (name == 'save_home_expense' && p['date'] is String && (year != DateTime.parse(p['date']! as String).year || month != DateTime.parse(p['date']! as String).month)) return 'expense date and due month differ';
+    if (name == 'save_home_expense' && p['date'] is String &&
+        year is int && month is int &&
+        (year != DateTime.parse(p['date']! as String).year ||
+            month != DateTime.parse(p['date']! as String).month)) {
+      return 'expense date and due month differ';
+    }
+    if (const {'save_work_entry', 'save_home_bill', 'save_debt'}.contains(name) &&
+        (year == null) != (month == null)) {
+      return 'operation month requires both year and month';
+    }
     if (const {'save_work_entry', 'save_home_bill', 'save_debt'}.contains(name) &&
         p['date'] is String && year is int && month is int) {
       final date = DateTime.parse(p['date']! as String);
@@ -224,12 +252,97 @@ final class ActionRegistry {
       }
     }
     if (name == 'save_work_home_transfer' && p['date'] is String && DateTime.tryParse(p['date']! as String) == null) return 'invalid date';
-    if (name == 'save_debt' && (p['counterparty']! as String).trim().isEmpty) return 'missing counterparty';
+    if (name == 'save_debt' && p['counterparty'] is String &&
+        (p['counterparty']! as String).trim().isEmpty) return 'missing counterparty';
     if (name == 'record_debt_payment' && p['debtId'] == null && p['counterparty'] == null) return 'missing debt';
     if (name == 'record_debt_payment' && p['counterparty'] is String && (p['counterparty']! as String).trim().isEmpty) return 'missing debt';
     if (name == 'record_debt_payment' && p['direction'] != null && !{'creditor','debtor'}.contains(p['direction'])) return 'invalid debt direction';
     return null;
   }
+  /// Hydrates edits from the existing record so the review card shows the full
+  /// record and fields not mentioned by the user remain unchanged.
+  Future<Map<String, Object?>> prepareUpdateParameters(
+    String name,
+    Map<String, Object?> parameters,
+  ) async {
+    final id = parameters['id'] as String?;
+    if (id == null || id.trim().isEmpty) return Map<String, Object?>.from(parameters);
+    final hydrated = <String, Object?>{};
+
+    switch (name) {
+      case 'save_work_entry':
+        final existing = (await _work.watchEntries().first)
+            .where((item) => item.id == id).firstOrNull;
+        if (existing == null) throw const AssistantActionException('record_not_found');
+        hydrated.addAll({
+          'kind': existing.kind == WorkEntryKind.salaryPayment
+              ? 'salaryPayment'
+              : existing.kind.name,
+          'year': existing.dueMonth.year,
+          'month': existing.dueMonth.month,
+          'date': existing.recordedAt.toIso8601String().split('T').first,
+          if (existing.note != null) 'note': existing.note,
+        });
+        break;
+      case 'save_home_expense':
+        final existing = (await _home.watchAll().first)
+            .where((item) => item.id == id).firstOrNull;
+        if (existing == null) throw const AssistantActionException('record_not_found');
+        final category = (await _categories.getAll())
+            .where((item) => item.id == existing.categoryId).firstOrNull;
+        hydrated.addAll({
+          'categoryId': existing.categoryId,
+          'categoryName': category == null ? existing.categoryId : _categoryLabel(category),
+          'date': existing.expenseDate.toIso8601String().split('T').first,
+          'year': existing.dueMonth.year,
+          'month': existing.dueMonth.month,
+          if (existing.note != null) 'note': existing.note,
+        });
+        break;
+      case 'save_home_bill':
+        final existing = (await _bills.getBills())
+            .where((item) => item.id == id).firstOrNull;
+        if (existing == null) throw const AssistantActionException('record_not_found');
+        hydrated.addAll({
+          'title': existing.title,
+          'kind': existing.kind.name,
+          'year': existing.dueMonth.year,
+          'month': existing.dueMonth.month,
+          if (existing.dueDate != null)
+            'date': existing.dueDate!.toIso8601String().split('T').first,
+          if (existing.note != null) 'note': existing.note,
+        });
+        break;
+      case 'save_debt':
+        final existing = (await _debts.watchAll().first)
+            .where((item) => item.id == id).firstOrNull;
+        if (existing == null) throw const AssistantActionException('record_not_found');
+        hydrated.addAll({
+          'direction': existing.direction.name,
+          'counterparty': existing.counterparty,
+          'year': existing.dueMonth.year,
+          'month': existing.dueMonth.month,
+          'date': existing.createdAt.toIso8601String().split('T').first,
+          if (existing.note != null) 'note': existing.note,
+        });
+        break;
+      case 'save_work_home_transfer':
+        final existing = (await _work.watchTransfers().first)
+            .where((item) => item.id == id).firstOrNull;
+        if (existing == null) throw const AssistantActionException('record_not_found');
+        hydrated.addAll({
+          'date': existing.transferredAt.toIso8601String().split('T').first,
+          if (existing.note != null) 'note': existing.note,
+        });
+        break;
+      default:
+        return Map<String, Object?>.from(parameters);
+    }
+
+    hydrated.addAll(parameters);
+    return hydrated;
+  }
+
   Future<ActionExecution> execute(String name, Map<String,Object?> p) async {
     final error = validate(name,p); if (error != null) throw ArgumentError(error);
     switch(name) {
@@ -278,13 +391,34 @@ final class ActionRegistry {
           undo: () => _categories.save(existing),
         );
       case 'save_work_entry':
-        final id = p['id'] as String? ?? _id();
+        final suppliedId = p['id'] as String?;
+        final id = suppliedId ?? _id();
         final all = await _work.watchEntries().first;
         WorkEntry? old; for(final e in all) { if(e.id == id) old=e; }
         final previous = old;
-        final item = WorkEntry(id:id, kind:(p['kind'] == 'payment'
-            ? WorkEntryKind.salaryPayment
-            : WorkEntryKind.values.byName(p['kind']! as String)), amount:Money.fromMinorUnits(p['amountMinorUnits']! as int), dueMonth:MonthKey(year:p['year']! as int,month:p['month']! as int), recordedAt:p['date'] is String ? DateTime.parse(p['date']! as String) : previous?.recordedAt ?? DateTime.now(),note:p.containsKey('note') ? p['note'] as String? : previous?.note);
+        if (suppliedId != null && previous == null) {
+          throw const AssistantActionException('record_not_found');
+        }
+        final kindName = p['kind'] as String? ??
+            (previous?.kind == WorkEntryKind.salaryPayment
+                ? 'salaryPayment'
+                : previous?.kind.name ?? 'salary');
+        final dueMonth = p['year'] is int && p['month'] is int
+            ? MonthKey(year:p['year']! as int,month:p['month']! as int)
+            : previous?.dueMonth;
+        if (dueMonth == null) throw ArgumentError('Missing work month');
+        final item = WorkEntry(
+          id: id,
+          kind: kindName == 'payment'
+              ? WorkEntryKind.salaryPayment
+              : WorkEntryKind.values.byName(kindName),
+          amount: Money.fromMinorUnits(p['amountMinorUnits']! as int),
+          dueMonth: dueMonth,
+          recordedAt: p['date'] is String
+              ? DateTime.parse(p['date']! as String)
+              : previous?.recordedAt ?? DateTime.now(),
+          note: p.containsKey('note') ? p['note'] as String? : previous?.note,
+        );
         await _work.saveEntry(item);
         return ActionExecution(message:'تم حفظ سجل العمل',undo:() async { if(previous==null) { await _work.deleteEntry(id); } else { await _work.saveEntry(previous); } });
       case 'delete_work_entry': {
@@ -324,21 +458,38 @@ final class ActionRegistry {
         );
       }
       case 'save_home_expense':
-        final id=p['id'] as String? ?? _id(); final all=await _home.watchAll().first; HomeExpense? old; for(final e in all) { if(e.id==id) old=e; }
+        final suppliedId = p['id'] as String?;
+        final id = suppliedId ?? _id();
+        final all = await _home.watchAll().first;
+        HomeExpense? old; for(final e in all) { if(e.id == id) old=e; }
         final previous = old;
+        if (suppliedId != null && previous == null) {
+          throw const AssistantActionException('record_not_found');
+        }
         final availableCategories = await _categories.getAll();
         final requestedCategoryId = p['categoryId'] as String?;
         final requestedCategoryName = p['categoryName'] as String?;
-        final selectedCategory = availableCategories.where((category) =>
-          category.id == requestedCategoryId ||
-          (requestedCategoryName != null &&
-            _normalizeCategoryText(_categoryLabel(category)) == _normalizeCategoryText(requestedCategoryName))
-        ).firstOrNull;
+        final selectedCategory = requestedCategoryId == null && requestedCategoryName == null
+            ? availableCategories.where((category) => category.id == previous?.categoryId).firstOrNull
+            : availableCategories.where((category) =>
+                category.id == requestedCategoryId ||
+                (requestedCategoryName != null &&
+                  _normalizeCategoryText(_categoryLabel(category)) == _normalizeCategoryText(requestedCategoryName))
+              ).firstOrNull;
         if (selectedCategory == null) {
           throw StateError('The requested expense category does not exist.');
         }
-        final expenseDate = DateTime.parse(p['date']! as String);
-        final item=HomeExpense(id:id,amount:Money.fromMinorUnits(p['amountMinorUnits']! as int),categoryId:selectedCategory.id,expenseDate:expenseDate,dueMonth:MonthKey(year:expenseDate.year,month:expenseDate.month),note:p.containsKey('note') ? p['note'] as String? : previous?.note);
+        final expenseDate = p['date'] is String
+            ? DateTime.parse(p['date']! as String)
+            : previous?.expenseDate ?? DateTime.now();
+        final item = HomeExpense(
+          id: id,
+          amount: Money.fromMinorUnits(p['amountMinorUnits']! as int),
+          categoryId: selectedCategory.id,
+          expenseDate: expenseDate,
+          dueMonth: MonthKey(year: expenseDate.year, month: expenseDate.month),
+          note: p.containsKey('note') ? p['note'] as String? : previous?.note,
+        );
         await _home.save(item); return ActionExecution(message:'تم حفظ مصروف المنزل',undo:() async { if(previous==null) { await _home.delete(id); } else { await _home.save(previous); } });
       case 'delete_home_expense': {
         final requestedId = p['id'] as String?;
@@ -387,15 +538,28 @@ final class ActionRegistry {
         );
       }
       case 'save_home_bill':
-        final id = p['id'] as String? ?? _id();
+        final suppliedId = p['id'] as String?;
+        final id = suppliedId ?? _id();
         final existing = (await _bills.getBills()).where((bill) => bill.id == id).firstOrNull;
+        if (suppliedId != null && existing == null) {
+          throw const AssistantActionException('record_not_found');
+        }
+        final dueMonth = p['year'] is int && p['month'] is int
+            ? MonthKey(year: p['year']! as int, month: p['month']! as int)
+            : existing?.dueMonth;
+        if (dueMonth == null) throw ArgumentError('Missing bill month');
+        final previousDate = existing?.dueDate;
         final bill = HomeBill(
           id: id,
-          title: p['title']! as String,
-          kind: HomeBillKind.values.byName(p['kind']! as String),
+          title: p['title'] as String? ?? existing?.title ?? '',
+          kind: HomeBillKind.values.byName(
+            p['kind'] as String? ?? existing?.kind.name ?? 'monthly',
+          ),
           amount: Money.fromMinorUnits(p['amountMinorUnits']! as int),
-          dueMonth: MonthKey(year: p['year']! as int, month: p['month']! as int),
-          dueDate: p['date'] is String ? DateTime.parse(p['date']! as String) : existing?.dueDate,
+          dueMonth: dueMonth,
+          dueDate: p['date'] is String
+              ? DateTime.parse(p['date']! as String)
+              : previousDate,
           note: p.containsKey('note') ? p['note'] as String? : existing?.note,
           paidMinorUnits: existing?.paidMinorUnits ?? 0,
         );
@@ -421,7 +585,7 @@ final class ActionRegistry {
         final existing = matchingBills.single;
         final payments = await _bills.paymentsFor(existing.id);
         if (payments.isNotEmpty) {
-          throw StateError('A bill with payment history cannot be deleted');
+          throw const AssistantActionException('bill_has_payments');
         }
         await _bills.deleteBill(existing.id);
         return ActionExecution(
@@ -438,9 +602,9 @@ final class ActionRegistry {
               : _normalizeCategoryText(bill.title) == _normalizeCategoryText(requestedBillTitle ?? '')
         ).toList(growable: false);
         if (matchingBills.length != 1) {
-          throw StateError(matchingBills.isEmpty
-              ? 'The requested bill was not found.'
-              : 'More than one bill has this name; select the exact bill first.');
+          throw AssistantActionException(
+            matchingBills.isEmpty ? 'bill_not_found' : 'bill_ambiguous',
+          );
         }
         final paidAt = p['date'] is String ? DateTime.parse(p['date']! as String) : DateTime.now();
         final payment = HomeBillPayment(
@@ -450,7 +614,13 @@ final class ActionRegistry {
           paidAt: paidAt,
           note: p['note'] as String?,
         );
-        await _bills.recordPayment(payment);
+        try {
+          await _bills.recordPayment(payment);
+        } on InsufficientBillPaymentBalanceException {
+          throw const AssistantActionException('bill_payment_not_available');
+        } on ArgumentError {
+          throw const AssistantActionException('bill_payment_not_available');
+        }
         return ActionExecution(
           message: 'تم تسجيل دفعة الفاتورة',
           undo: () => _bills.undoPayment(payment.id),
@@ -566,9 +736,22 @@ final class ActionRegistry {
         return ActionExecution(message: summary);
       }
       case 'save_work_home_transfer':
-        final id=p['id'] as String? ?? _id(); final all=await _work.watchTransfers().first; WorkHomeTransfer? old; for(final e in all) { if(e.id==id) old=e; }
+        final suppliedId = p['id'] as String?;
+        final id = suppliedId ?? _id();
+        final all = await _work.watchTransfers().first;
+        WorkHomeTransfer? old; for(final e in all) { if(e.id == id) old=e; }
         final previous = old;
-        final item=WorkHomeTransfer(id:id,amount:Money.fromMinorUnits(p['amountMinorUnits']! as int),transferredAt:p['date'] is String ? DateTime.parse(p['date']! as String) : DateTime.now(),note:p.containsKey('note') ? p['note'] as String? : previous?.note);
+        if (suppliedId != null && previous == null) {
+          throw const AssistantActionException('record_not_found');
+        }
+        final item = WorkHomeTransfer(
+          id: id,
+          amount: Money.fromMinorUnits(p['amountMinorUnits']! as int),
+          transferredAt: p['date'] is String
+              ? DateTime.parse(p['date']! as String)
+              : previous?.transferredAt ?? DateTime.now(),
+          note: p.containsKey('note') ? p['note'] as String? : previous?.note,
+        );
         await _work.saveTransfer(item); return ActionExecution(message:'تم تسجيل التحويل إلى المنزل',undo:() async { if(previous==null) { await _work.deleteTransfer(id); } else { await _work.saveTransfer(previous); } });
       case 'delete_work_home_transfer': {
         final requestedId = p['id'] as String?;
@@ -603,9 +786,15 @@ final class ActionRegistry {
         );
       }
       case 'save_debt':
-        final id=p['id'] as String? ?? _id(); final all=await _debts.watchAll().first; DebtEntry? old; for(final e in all) { if(e.id==id) old=e; }
+        final suppliedId = p['id'] as String?;
+        final id = suppliedId ?? _id();
+        final all = await _debts.watchAll().first;
+        DebtEntry? old; for(final e in all) { if(e.id == id) old=e; }
         final previous = old;
-        final amount=Money.fromMinorUnits(p['amountMinorUnits']! as int);
+        if (suppliedId != null && previous == null) {
+          throw const AssistantActionException('record_not_found');
+        }
+        final amount = Money.fromMinorUnits(p['amountMinorUnits']! as int);
         final previousPayments = previous == null
             ? const <DebtPayment>[]
             : await _debts.watchPayments(id).first;
@@ -614,11 +803,26 @@ final class ActionRegistry {
           (total, payment) => total + payment.amount.minorUnits,
         );
         if (paidTotal > amount.minorUnits) {
-          throw ArgumentError(
-            'Debt amount cannot be lower than its recorded payments.',
-          );
+          throw const AssistantActionException('debt_amount_below_paid');
         }
-        final item=DebtEntry(id:id,direction:DebtDirection.values.byName(p['direction']! as String),originalAmount:amount,outstandingAmount:Money.fromMinorUnits(amount.minorUnits - paidTotal),dueMonth:MonthKey(year:p['year']! as int,month:p['month']! as int),createdAt:p['date'] is String ? DateTime.parse(p['date']! as String) : previous?.createdAt ?? DateTime.now(),counterparty:p['counterparty']! as String,note:p.containsKey('note') ? p['note'] as String? : previous?.note);
+        final dueMonth = p['year'] is int && p['month'] is int
+            ? MonthKey(year:p['year']! as int,month:p['month']! as int)
+            : previous?.dueMonth;
+        if (dueMonth == null) throw ArgumentError('Missing debt month');
+        final item = DebtEntry(
+          id: id,
+          direction: DebtDirection.values.byName(
+            p['direction'] as String? ?? previous?.direction.name ?? 'debtor',
+          ),
+          originalAmount: amount,
+          outstandingAmount: Money.fromMinorUnits(amount.minorUnits - paidTotal),
+          dueMonth: dueMonth,
+          createdAt: p['date'] is String
+              ? DateTime.parse(p['date']! as String)
+              : previous?.createdAt ?? DateTime.now(),
+          counterparty: p['counterparty'] as String? ?? previous?.counterparty ?? '',
+          note: p.containsKey('note') ? p['note'] as String? : previous?.note,
+        );
         await _debts.save(item); return ActionExecution(message:'تم حفظ الدين',undo:() async { if(previous==null) { await _debts.delete(id); } else { await _debts.save(previous); } });
       case 'delete_debt':
         final all=await _debts.watchAll().first;
@@ -650,9 +854,9 @@ final class ActionRegistry {
                   (requestedDirection == null || debt.direction.name == requestedDirection)
         ).toList(growable: false);
         if (matchingDebts.length != 1) {
-          throw StateError(matchingDebts.isEmpty
-              ? 'The requested debt was not found.'
-              : 'More than one debt matches this name; select the exact debt first.');
+          throw AssistantActionException(
+            matchingDebts.isEmpty ? 'debt_not_found' : 'debt_ambiguous',
+          );
         }
         final payment = DebtPayment(
           id: _id(),
@@ -661,7 +865,15 @@ final class ActionRegistry {
           paidAt: p['date'] is String ? DateTime.parse(p['date']! as String) : DateTime.now(),
           note: p['note'] as String?,
         );
-        await _debts.recordPayment(payment); return ActionExecution(message:'تم تسجيل دفعة الدين',undo:()=>_debts.undoPayment(payment.id));
+        try {
+          await _debts.recordPayment(payment);
+        } on ArgumentError {
+          throw const AssistantActionException('debt_payment_exceeds_balance');
+        }
+        return ActionExecution(
+          message: 'تم تسجيل دفعة الدين',
+          undo: () => _debts.undoPayment(payment.id),
+        );
       case 'read_work_remaining':
         final all = await _work.watchEntries().first;
         final now = DateTime.now();
