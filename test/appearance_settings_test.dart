@@ -81,7 +81,10 @@ void main() {
     );
     // This card is lazy-loaded separately from its section heading.
     await tester.drag(settingsScroll, const Offset(0, -320));
-    await tester.pumpAndSettle();
+    // The security card starts an asynchronous secure-storage read and shows
+    // a continuously animating progress indicator; pump one frame instead of
+    // waiting for all animations to settle.
+    await tester.pump();
     expect(find.byKey(const Key('app-security-settings-card')), findsOneWidget);
 
     expect(find.byType(NavigationBar), findsOneWidget);
