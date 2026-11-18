@@ -246,8 +246,30 @@ final class FakeAssistantEngine implements AssistantEngine {
     if (readVerb) {
       final readAction = _readAction(has);
       if (readAction != null && can(readAction)) {
+        final requestedMonth = _input.extractMonth(effectiveInput);
+        final allRecords = has(const ['كل', 'جميع', 'كافة', 'من البداية', 'all records', 'everything']);
+        final parameters = <String, Object?>{
+          if (requestedMonth != null) 'year': requestedMonth.$1,
+          if (requestedMonth != null) 'month': requestedMonth.$2,
+          if (allRecords) 'allRecords': true,
+        };
+        if (readAction == 'read_home_bill_payments') {
+          final billTitle = _billTitle(effectiveInput);
+          if (billTitle == null) {
+            return const AssistantResult.clarification('دفعات أي فاتورة تريد عرضها؟ اذكر اسم الفاتورة.');
+          }
+          parameters['billTitle'] = billTitle;
+        } else if (readAction == 'read_debt_payments') {
+          final counterparty = _counterparty(effectiveInput);
+          if (counterparty == null) {
+            return const AssistantResult.clarification('دفعات أي دين تريد عرضها؟ اذكر اسم الشخص أو الجهة.');
+          }
+          parameters['counterparty'] = counterparty;
+          final direction = _debtDirection(has);
+          if (direction != null) parameters['direction'] = direction;
+        }
         return AssistantResult.command(
-          AssistantCommand(name: readAction, parameters: {}),
+          AssistantCommand(name: readAction, parameters: parameters),
         );
       }
     }
@@ -353,6 +375,152 @@ final class FakeAssistantEngine implements AssistantEngine {
             : _defaultDateForMonth(requestedMonth.$1, requestedMonth.$2));
     final note = _extractNote(effectiveInput);
 
+    final isCategoryIntent = has(const [
+      'تصنيف', 'التصنيفات', 'فئة المصروف', 'تصنيفات المنزل',
+      'expense category', 'categories',
+    ]);
+    final isDeleteIntent = has(const [
+      'احذف', 'حذف', 'امسح', 'ازل', 'إزالة', 'delete', 'remove',
+    ]);
+    final isEditIntent = has(const [
+      'عدل', 'عدّل', 'تعديل', 'غير', 'غيّر', 'تغيير', 'edit', 'update',
+    ]);
+    final explicitId = _extractIdentifier(effectiveInput);
+
+    if (isDeleteIntent && isCategoryIntent) {
+      final categoryName = _category(has, text, expenseCategories);
+      if (explicitId == null && categoryName == null) {
+        return const AssistantResult.clarification('ما اسم التصنيف أو معرّفه الذي تريد حذفه؟');
+      }
+      if (!can('delete_home_category')) return const AssistantResult.notUnderstood();
+      return AssistantResult.command(AssistantCommand(
+        name: 'delete_home_category',
+        parameters: {
+          if (explicitId != null) 'id': explicitId,
+          if (explicitId == null) 'name': expenseCategories[categoryName] ?? categoryName!,
+        },
+      ));
+    }
+
+    if (isWriteIntent && isCategoryIntent && !isDeleteIntent && !isEditIntent) {
+      final nameMatch = RegExp(
+        r'(?:تصنيف|فئة)\\s+(.+?)(?=\\s+(?:ملاحظة|note)|$)',
+        caseSensitive: false,
+        unicode: true,
+      ).firstMatch(effectiveInput);
+      final name = nameMatch?.group(1)?.trim();
+      if (name == null || name.isEmpty) {
+        return const AssistantResult.clarification('ما اسم التصنيف الجديد؟');
+      }
+      if (!can('save_home_category')) return const AssistantResult.notUnderstood();
+      return AssistantResult.command(AssistantCommand(
+        name: 'save_home_category',
+        parameters: {'name': name},
+      ));
+    }
+
+    if (isDeleteIntent) {
+      final action = has(const ['فاتورة', 'فواتير', 'اشتراك', 'ايجار', 'اجار'])
+          ? 'delete_home_bill'
+          : has(const ['دين', 'ديون'])
+              ? 'delete_debt'
+              : has(const ['تحويل', 'للبيت', 'للمنزل'])
+                  ? 'delete_work_home_transfer'
+                  : has(const ['مصروف', 'مشتريات البيت', 'expense'])
+                      ? 'delete_home_expense'
+                      : 'delete_work_entry';
+      if (action == 'delete_home_bill' && explicitId == null) {
+        final billTitle = _billTitle(effectiveInput);
+        if (billTitle == null) {
+          return const AssistantResult.clarification('ما اسم الفاتورة أو الإيجار الذي تريد حذفه؟');
+        }
+        if (!can(action)) return const AssistantResult.notUnderstood();
+        return AssistantResult.command(AssistantCommand(
+          name: action,
+          parameters: {'billTitle': billTitle},
+        ));
+      }
+      if (action == 'delete_debt' && explicitId == null) {
+        final counterparty = _counterparty(effectiveInput);
+        if (counterparty == null) {
+          return const AssistantResult.clarification('اذكر اسم صاحب الدين أو معرّف الدين الذي تريد حذفه.');
+        }
+        final direction = _debtDirection(has);
+        if (!can(action)) return const AssistantResult.notUnderstood();
+        return AssistantResult.command(AssistantCommand(
+          name: action,
+          parameters: {
+            'counterparty': counterparty,
+            if (direction != null) 'direction': direction,
+          },
+        ));
+      }
+      if (explicitId == null) {
+        return const AssistantResult.clarification('اذكر رقم السجل أو معرّفه حتى أحذف السجل الصحيح.');
+      }
+      if (!can(action)) return const AssistantResult.notUnderstood();
+      return AssistantResult.command(AssistantCommand(
+        name: action,
+        parameters: {'id': explicitId},
+      ));
+    }
+
+    // Updates use the same repository-backed save action and require an exact ID.
+    // The complete fields are supplied so existing values are never guessed.
+    if (isEditIntent && explicitId != null) {
+      if (amount == null) {
+        return const AssistantResult.clarification('ما المبلغ الجديد؟');
+      }
+      if (has(const ['راتب', 'معاش', 'سلفة', 'دفعة', 'مرتب'])) {
+        final kind = has(const ['سلفة', 'سلفه', 'تسبيق'])
+            ? 'advance'
+            : has(const ['دفعة', 'دفعه', 'قسط'])
+                ? 'payment'
+                : 'salary';
+        if (requestedMonth == null) {
+          return const AssistantResult.clarification('ما الشهر والسنة المسجل فيهما هذا السجل؟');
+        }
+        if (!can('save_work_entry')) return const AssistantResult.notUnderstood();
+        return AssistantResult.command(AssistantCommand(
+          name: 'save_work_entry',
+          parameters: {
+            'id': explicitId, 'kind': kind, 'amountMinorUnits': amount,
+            'year': requestedMonth.$1, 'month': requestedMonth.$2,
+            'date': (operationDate ?? _defaultDateForMonth(requestedMonth.$1, requestedMonth.$2)).toIso8601String().split('T').first,
+            if (note != null) 'note': note,
+          },
+        ));
+      }
+      if (has(const ['مصروف', 'مشتريات البيت'])) {
+        final categoryId = _category(has, text, expenseCategories);
+        if (categoryId == null || requestedMonth == null) {
+          return const AssistantResult.clarification('اذكر التصنيف والشهر وتاريخ المصروف الجديد.');
+        }
+        if (!can('save_home_expense')) return const AssistantResult.notUnderstood();
+        final date = (operationDate ?? _defaultDateForMonth(requestedMonth.$1, requestedMonth.$2)).toIso8601String().split('T').first;
+        return AssistantResult.command(AssistantCommand(
+          name: 'save_home_expense',
+          parameters: {
+            'id': explicitId, 'amountMinorUnits': amount, 'categoryId': categoryId,
+            'categoryName': expenseCategories[categoryId] ?? categoryId,
+            'date': date, 'year': requestedMonth.$1, 'month': requestedMonth.$2,
+            if (note != null) 'note': note,
+          },
+        ));
+      }
+      if (has(const ['تحويل', 'للبيت', 'للمنزل'])) {
+        if (!can('save_work_home_transfer')) return const AssistantResult.notUnderstood();
+        return AssistantResult.command(AssistantCommand(
+          name: 'save_work_home_transfer',
+          parameters: {
+            'id': explicitId, 'amountMinorUnits': amount,
+            'date': (operationDate ?? DateTime.now()).toIso8601String().split('T').first,
+            if (note != null) 'note': note,
+          },
+        ));
+      }
+    }
+
     final isTransfer = has(const [
       'حول',
       'حولت',
@@ -378,7 +546,7 @@ final class FakeAssistantEngine implements AssistantEngine {
           name: 'save_work_home_transfer',
           parameters: {
             'amountMinorUnits': amount,
-            if (operationDate != null) 'date': operationDate.toIso8601String().split('T').first,
+            'date': (operationDate ?? DateTime.now()).toIso8601String().split('T').first,
             if (note != null) 'note': note,
           },
         ),
@@ -441,11 +609,30 @@ final class FakeAssistantEngine implements AssistantEngine {
             'amountMinorUnits': amount,
             'year': requestedMonth.$1,
             'month': requestedMonth.$2,
-            if (operationDate != null) 'date': operationDate.toIso8601String().split('T').first,
+            'date': (operationDate ?? DateTime.now()).toIso8601String().split('T').first,
             if (note != null) 'note': note,
           },
         ),
       );
+    }
+
+    final billPaymentIntent = isWriteIntent &&
+        has(const ['دفعت', 'سددت', 'سداد', 'تسديد', 'دفعة', 'دفعه', 'ادفع']) &&
+        has(const ['فاتورة', 'فاتوره', 'اشتراك', 'bill']);
+    if (billPaymentIntent) {
+      if (amount == null) return const AssistantResult.clarification('كم مبلغ الدفعة؟');
+      final billTitle = _billTitle(effectiveInput);
+      if (billTitle == null) return const AssistantResult.clarification('ما اسم الفاتورة التي دفعت لها؟');
+      if (!can('record_home_bill_payment')) return const AssistantResult.notUnderstood();
+      return AssistantResult.command(AssistantCommand(
+        name: 'record_home_bill_payment',
+        parameters: {
+          'billTitle': billTitle,
+          'amountMinorUnits': amount,
+          'date': (operationDate ?? DateTime.now()).toIso8601String().split('T').first,
+          if (note != null) 'note': note,
+        },
+      ));
     }
 
     final isRent = has(const [
@@ -490,7 +677,7 @@ final class FakeAssistantEngine implements AssistantEngine {
             'amountMinorUnits': amount,
             'year': requestedMonth.$1,
             'month': requestedMonth.$2,
-            if (operationDate != null) 'date': operationDate.toIso8601String().split('T').first,
+            'date': (operationDate ?? DateTime.now()).toIso8601String().split('T').first,
             if (note != null) 'note': note,
           },
         ),
@@ -552,7 +739,27 @@ final class FakeAssistantEngine implements AssistantEngine {
       'لي دين',
       'debt',
     ]);
-    if (isWriteIntent && isDebt) {
+    final debtPaymentIntent = isWriteIntent && isDebt &&
+        has(const ['دفعت', 'سددت', 'سداد', 'تسديد', 'دفعة', 'دفعه', 'ادفع']);
+    if (debtPaymentIntent) {
+      if (amount == null) return const AssistantResult.clarification('كم مبلغ الدفعة التي سددتها؟');
+      final counterparty = _counterparty(effectiveInput);
+      if (counterparty == null) return const AssistantResult.clarification('لمن سددت الدفعة؟ اذكر اسم الشخص أو الجهة.');
+      if (!can('record_debt_payment')) return const AssistantResult.notUnderstood();
+      final direction = _debtDirection(has);
+      return AssistantResult.command(AssistantCommand(
+        name: 'record_debt_payment',
+        parameters: {
+          'counterparty': counterparty,
+          if (direction != null) 'direction': direction,
+          'amountMinorUnits': amount,
+          'date': (operationDate ?? DateTime.now()).toIso8601String().split('T').first,
+          if (note != null) 'note': note,
+        },
+      ));
+    }
+
+    if (isWriteIntent && isDebt && !debtPaymentIntent) {
       if (amount == null) {
         return const AssistantResult.clarification('ما مبلغ الدين؟');
       }
@@ -579,7 +786,7 @@ final class FakeAssistantEngine implements AssistantEngine {
             'counterparty': counterparty,
             'year': requestedMonth.$1,
             'month': requestedMonth.$2,
-            if (operationDate != null) 'date': operationDate.toIso8601String().split('T').first,
+            'date': (operationDate ?? DateTime.now()).toIso8601String().split('T').first,
             if (note != null) 'note': note,
           },
         ),
@@ -824,7 +1031,8 @@ final class FakeAssistantEngine implements AssistantEngine {
 
   static String? _billTitle(String text) {
     final match = RegExp(
-      r'(?:فاتورة|اشتراك)\s+([\p{L} ]+?)(?=\s+(?:بمبلغ|بقيمة|مبلغ|لشهر|شهر|هذا الشهر|الشهر الحالي|20\d{2}|[0-9]))',
+      r'(?:فاتورة|فاتوره|اشتراك)\s+([\p{L}0-9 _-]+?)(?=\s+(?:بمبلغ|بقيمة|مبلغ|لشهر|شهر|هذا الشهر|الشهر الحالي|اليوم|امس|بتاريخ|ملاحظة|note|20\d{2}|[0-9])|$)',
+      caseSensitive: false,
       unicode: true,
     ).firstMatch(text);
     final title = match?.group(1)?.trim();
