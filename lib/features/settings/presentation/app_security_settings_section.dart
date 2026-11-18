@@ -278,6 +278,7 @@ class _AppSecuritySettingsSectionState
     final scheme = Theme.of(context).colorScheme;
 
     return Card(
+      key: const Key('app-security-settings-card'),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
