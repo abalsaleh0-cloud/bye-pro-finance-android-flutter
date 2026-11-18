@@ -360,14 +360,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  TextField(
-                    controller: amount,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: strings.calculatorAmount,
-                      suffixIcon: calculatorSuffix(context, amount, strings),
-                    ),
-                  ),
                   DropdownButtonFormField<String>(
                     key: const Key('home-expense-category'),
                     initialValue: selectedCategoryId,
@@ -403,6 +395,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         setDialogState(() => selectedCategoryId = value);
                       }
                     },
+                  ),
+                  TextField(
+                    controller: amount,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: strings.calculatorAmount,
+                      suffixIcon: calculatorSuffix(context, amount, strings),
+                    ),
                   ),
                   TextField(
                     controller: date,
