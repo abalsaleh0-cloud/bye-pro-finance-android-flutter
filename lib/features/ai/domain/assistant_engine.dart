@@ -488,6 +488,57 @@ final class FakeAssistantEngine implements AssistantEngine {
           },
         ));
       }
+      if (action == 'delete_work_home_transfer' && explicitId == null) {
+        if (amount == null) {
+          return const AssistantResult.clarification('كم مبلغ التحويل الذي تريد حذفه؟');
+        }
+        if (requestedMonth == null && explicitDate == null) {
+          return const AssistantResult.clarification('ما تاريخ أو شهر التحويل حتى أحدده بدقة؟');
+        }
+        if (!can(action)) return const AssistantResult.notUnderstood();
+        return AssistantResult.command(AssistantCommand(
+          name: action,
+          parameters: {
+            'amountMinorUnits': amount,
+            'year': ?requestedMonth?.$1,
+            'month': ?requestedMonth?.$2,
+            if (explicitDate != null)
+              'date': explicitDate.toIso8601String().split('T').first,
+          },
+        ));
+      }
+      if (action == 'delete_work_entry' && explicitId == null) {
+        final kind = has(const ['سلفة', 'سلفه', 'تسبيق'])
+            ? 'advance'
+            : has(const ['دفعة', 'دفعه', 'قسط'])
+                ? 'payment'
+                : has(const ['راتب', 'معاش', 'مرتب'])
+                    ? 'salary'
+                    : null;
+        if (kind == null) {
+          return const AssistantResult.clarification(
+            'هل تريد حذف راتب أم سلفة أم دفعة؟',
+          );
+        }
+        if (amount == null) {
+          return const AssistantResult.clarification('ما مبلغ سجل العمل الذي تريد حذفه؟');
+        }
+        if (requestedMonth == null && explicitDate == null) {
+          return const AssistantResult.clarification('ما شهر أو تاريخ سجل العمل؟');
+        }
+        if (!can(action)) return const AssistantResult.notUnderstood();
+        return AssistantResult.command(AssistantCommand(
+          name: action,
+          parameters: {
+            'kind': kind,
+            'amountMinorUnits': amount,
+            'year': ?requestedMonth?.$1,
+            'month': ?requestedMonth?.$2,
+            if (explicitDate != null)
+              'date': explicitDate.toIso8601String().split('T').first,
+          },
+        ));
+      }
       if (action == 'delete_home_expense' && explicitId == null) {
         final categoryId = _category(has, text, expenseCategories);
         if (categoryId == null || amount == null) {
