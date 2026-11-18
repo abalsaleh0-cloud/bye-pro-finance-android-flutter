@@ -380,7 +380,7 @@ final class FakeAssistantEngine implements AssistantEngine {
     final note = _extractNote(effectiveInput);
 
     final isCategoryIntent = has(const [
-      'تصنيف', 'التصنيفات', 'فئة المصروف', 'تصنيفات المنزل',
+      'تصنيف', 'التصنيفات', 'فئة', 'فئة المصروف', 'تصنيفات المنزل',
       'expense category', 'categories',
     ]);
     final isDeleteIntent = has(const [
@@ -403,6 +403,35 @@ final class FakeAssistantEngine implements AssistantEngine {
           'id': ?explicitId,
           if (explicitId == null) 'name': expenseCategories[categoryName] ?? categoryName!,
         },
+      ));
+    }
+
+    if (isEditIntent && isCategoryIntent && !isDeleteIntent) {
+      final categoryId = _category(has, text, expenseCategories);
+      if (categoryId == null) {
+        return const AssistantResult.clarification(
+          'ما اسم التصنيف المخصص الذي تريد تعديل اسمه؟',
+        );
+      }
+      if (!categoryId.startsWith('custom_')) {
+        return const AssistantResult.clarification(
+          'التصنيفات الأساسية ثابتة. أستطيع تعديل اسم التصنيف المخصص فقط.',
+        );
+      }
+      final newName = RegExp(
+        r'(?:الى|إلى|ليصبح|لتصبح|باسم|اسم جديد)\\s+(.+?)(?=\\s+(?:ملاحظة|note)|$)',
+        caseSensitive: false,
+        unicode: true,
+      ).firstMatch(effectiveInput)?.group(1)?.trim();
+      if (newName == null || newName.isEmpty) {
+        return const AssistantResult.clarification(
+          'ما الاسم الجديد للتصنيف؟',
+        );
+      }
+      if (!can('save_home_category')) return const AssistantResult.notUnderstood();
+      return AssistantResult.command(AssistantCommand(
+        name: 'save_home_category',
+        parameters: {'id': categoryId, 'name': newName},
       ));
     }
 
