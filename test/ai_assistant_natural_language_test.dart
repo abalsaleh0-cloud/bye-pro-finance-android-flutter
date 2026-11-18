@@ -585,6 +585,19 @@ void main() {
       expect(result.command!.parameters['date'], isNull);
     });
 
+    test('uses the requested month when editing a transfer without an explicit day', () async {
+      final result = await engine.interpret(
+        'عدل تحويل للبيت رقم التحويل transfer_1 بمبلغ 300 لشهر 2026-12',
+        actions,
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'save_work_home_transfer');
+      expect(result.command!.parameters['id'], 'transfer_1');
+      expect(result.command!.parameters['year'], 2026);
+      expect(result.command!.parameters['month'], 12);
+      expect(result.command!.parameters.containsKey('date'), isFalse);
+    });
     test('allows a partial salary update by stable ID', () async {
       final result = await engine.interpret(
         'عدل راتب رقم السجل work_1 بمبلغ 1800',
