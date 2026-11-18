@@ -100,11 +100,11 @@ class MainActivity : FlutterActivity() {
         val enabledAlias = when (mode) {
             "dark" -> ComponentName(
                 packageName,
-                "$packageName.MainActivityDarkIcon"
+                "com.byepro.bye_pro_finance.MainActivityDarkIcon"
             )
             "light" -> ComponentName(
                 packageName,
-                "$packageName.MainActivityLightIcon"
+                "com.byepro.bye_pro_finance.MainActivityLightIcon"
             )
             else -> {
                 result.error(
