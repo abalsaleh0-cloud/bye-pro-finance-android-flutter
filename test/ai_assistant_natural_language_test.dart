@@ -582,9 +582,64 @@ void main() {
       expect(result.command!.name, 'save_work_home_transfer');
       expect(result.command!.parameters['id'], 'transfer_1');
       expect(result.command!.parameters['amountMinorUnits'], 225);
-      expect(result.command!.parameters['date'], isA<String>());
+      expect(result.command!.parameters['date'], isNull);
     });
 
+    test('allows a partial salary update by stable ID', () async {
+      final result = await engine.interpret(
+        'عدل راتب رقم السجل work_1 بمبلغ 1800',
+        actions,
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'save_work_entry');
+      expect(result.command!.parameters['id'], 'work_1');
+      expect(result.command!.parameters['amountMinorUnits'], 1800);
+      expect(result.command!.parameters.containsKey('year'), isFalse);
+      expect(result.command!.parameters.containsKey('month'), isFalse);
+    });
+
+    test('allows a partial expense update without replacing its category', () async {
+      final result = await engine.interpret(
+        'عدل مصروف رقم السجل expense_1 بمبلغ 175',
+        actions,
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'save_home_expense');
+      expect(result.command!.parameters['id'], 'expense_1');
+      expect(result.command!.parameters['amountMinorUnits'], 175);
+      expect(result.command!.parameters.containsKey('categoryId'), isFalse);
+      expect(result.command!.parameters.containsKey('date'), isFalse);
+    });
+
+    test('allows a partial bill update without replacing its title or month', () async {
+      final result = await engine.interpret(
+        'عدل فاتورة رقم الفاتورة bill_1 بمبلغ 190',
+        actions,
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'save_home_bill');
+      expect(result.command!.parameters['id'], 'bill_1');
+      expect(result.command!.parameters['amountMinorUnits'], 190);
+      expect(result.command!.parameters.containsKey('title'), isFalse);
+      expect(result.command!.parameters.containsKey('year'), isFalse);
+    });
+
+    test('allows a partial debt update without changing creditor/debtor direction', () async {
+      final result = await engine.interpret(
+        'عدل دين رقم الدين debt_1 بمبلغ 240',
+        actions,
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'save_debt');
+      expect(result.command!.parameters['id'], 'debt_1');
+      expect(result.command!.parameters['amountMinorUnits'], 240);
+      expect(result.command!.parameters.containsKey('direction'), isFalse);
+      expect(result.command!.parameters.containsKey('counterparty'), isFalse);
+    });
   });
 
   });
