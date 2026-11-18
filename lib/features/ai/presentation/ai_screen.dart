@@ -90,51 +90,6 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     selectedMonth: ref.read(selectedMonthProvider),
   );
 
-  Future<void> _showEmojiPicker() async {
-    const emojis = [
-      '😀', '😂', '🥰', '😍', '😊', '😉', '😎',
-      '🤍', '❤️', '💙', '👍', '🙏', '👏', '🔥',
-      '🎉', '✨', '🌹', '☕', '🤔', '😢', '😅',
-    ];
-    final selected = await showModalBottomSheet<String>(
-      context: context,
-      showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 4, 12, 18),
-          child: Wrap(
-            alignment: WrapAlignment.spaceEvenly,
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final emoji in emojis)
-                SizedBox(
-                  width: 44,
-                  height: 44,
-                  child: IconButton(
-                    key: Key('ai-emoji-$emoji'),
-                    onPressed: () => Navigator.pop(sheetContext, emoji),
-                    icon: Text(emoji, style: const TextStyle(fontSize: 24)),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-    if (!mounted || selected == null) return;
-
-    final value = _input.value;
-    final selection = value.selection;
-    final start = selection.isValid ? selection.start : value.text.length;
-    final end = selection.isValid ? selection.end : value.text.length;
-    final nextText = value.text.replaceRange(start, end, selected);
-    _input.value = TextEditingValue(
-      text: nextText,
-      selection: TextSelection.collapsed(offset: start + selected.length),
-    );
-  }
-
   Future<void> _chooseAttachment() async {
     if (_busy || _recording || _recognizing) return;
     final strings = AppLocalizations.of(context)!;
