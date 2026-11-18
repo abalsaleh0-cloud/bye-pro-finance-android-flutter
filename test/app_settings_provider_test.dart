@@ -38,8 +38,8 @@ void main() {
     expect(await database.readSetting('ai_engine'), 'fake');
   });
 
-  test('starts dark and persists light/dark selections before completing', () async {
-    expect(container.read(appSettingsProvider).themeMode, ThemeMode.dark);
+  test('defaults to automatic appearance and preserves explicit selections', () async {
+    expect(container.read(appSettingsProvider).themeMode, ThemeMode.system);
 
     final controller = container.read(appSettingsProvider.notifier);
     await controller.setThemeMode(ThemeMode.light);
