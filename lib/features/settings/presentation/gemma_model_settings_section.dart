@@ -112,8 +112,8 @@ class GemmaModelSettingsSection extends ConsumerWidget {
               LinearProgressIndicator(value: model.progress / 100),
               Text('${model.progress.toStringAsFixed(0)}%'),
               Text(
-                '~${(GemmaModelManager.expectedSize * model.progress / 100 / 1000000).round()} MB'
-                ' / ${(GemmaModelManager.expectedSize / 1000000).round()} MB',
+                '~${GemmaModelManager.estimatedDownloadedMegabytes(model.progress)} MB'
+                ' / ${GemmaModelManager.expectedDownloadMegabytes} MB',
               ),
             ],
             if (model.error != null) Text(model.error!),
