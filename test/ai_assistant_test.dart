@@ -279,6 +279,87 @@ void main() {
       await result.undo!();
       expect(await database.select(database.workEntries).get(), isEmpty);
     });
+    test('prepares and applies a partial work edit without changing its date or type', () async {
+      final work = WorkRepository(database);
+      final originalDate = DateTime(2026, 11, 8);
+      await work.saveEntry(WorkEntry(
+        id: 'partial-work',
+        kind: WorkEntryKind.advance,
+        amount: Money.fromMinorUnits(500),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: originalDate,
+        note: 'ملاحظة أصلية',
+      ));
+
+      final prepared = await registry.prepareUpdateParameters(
+        'save_work_entry',
+        const {'id': 'partial-work', 'amountMinorUnits': 800},
+      );
+      expect(prepared['kind'], 'advance');
+      expect(prepared['year'], 2026);
+      expect(prepared['month'], 11);
+      expect(prepared['date'], '2026-11-08');
+      expect(prepared['note'], 'ملاحظة أصلية');
+      expect(registry.validate('save_work_entry', prepared), isNull);
+
+      await registry.execute('save_work_entry', prepared);
+      final updated = (await work.watchEntries().first).single;
+      expect(updated.amount.minorUnits, 800);
+      expect(updated.kind, WorkEntryKind.advance);
+      expect(updated.recordedAt, originalDate);
+      expect(updated.note, 'ملاحظة أصلية');
+    });
+
+    test('keeps the original transfer date when a partial edit omits a new date', () async {
+      final work = WorkRepository(database);
+      final originalDate = DateTime(2026, 11, 12);
+      await work.saveTransfer(WorkHomeTransfer(
+        id: 'partial-transfer',
+        amount: Money.fromMinorUnits(600),
+        transferredAt: originalDate,
+        note: 'التحويل الأصلي',
+      ));
+
+      final prepared = await registry.prepareUpdateParameters(
+        'save_work_home_transfer',
+        const {'id': 'partial-transfer', 'amountMinorUnits': 850},
+      );
+      expect(prepared['date'], '2026-11-12');
+      expect(prepared['note'], 'التحويل الأصلي');
+
+      await registry.execute('save_work_home_transfer', prepared);
+      final updated = (await work.watchTransfers().first).single;
+      expect(updated.amount.minorUnits, 850);
+      expect(updated.transferredAt, originalDate);
+      expect(updated.note, 'التحويل الأصلي');
+    });
+
+    test('moves an edited expense month without changing its original day where possible', () async {
+      final home = HomeExpenseRepository(database);
+      await home.save(HomeExpense(
+        id: 'partial-expense',
+        amount: Money.fromMinorUnits(50),
+        categoryId: 'groceries',
+        expenseDate: DateTime(2026, 10, 31),
+        dueMonth: MonthKey(year: 2026, month: 10),
+        note: 'ملاحظة المصروف',
+      ));
+
+      final prepared = await registry.prepareUpdateParameters(
+        'save_home_expense',
+        const {
+          'id': 'partial-expense',
+          'amountMinorUnits': 75,
+          'year': 2026,
+          'month': 11,
+        },
+      );
+      expect(prepared['categoryId'], 'groceries');
+      expect(prepared['categoryName'], isNotEmpty);
+      expect(prepared['date'], '2026-11-30');
+      expect(prepared['note'], 'ملاحظة المصروف');
+      expect(registry.validate('save_home_expense', prepared), isNull);
+    });
 
     test('deletes and undoes work entry', () async {
       final created = await registry.execute('save_work_entry', {
