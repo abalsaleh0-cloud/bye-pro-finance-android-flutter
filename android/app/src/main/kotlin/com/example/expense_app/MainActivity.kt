@@ -125,12 +125,10 @@ class MainActivity : FlutterFragmentActivity() {
     private fun applyPendingLauncherIcon() {
         val preferences = getSharedPreferences("bye_pro_launcher", MODE_PRIVATE)
         val mode = preferences.getString("pending_icon_mode", null) ?: return
-        val lastAppliedMode = preferences.getString("active_icon_mode", null)
-        if (lastAppliedMode == mode) {
-            preferences.edit().remove("pending_icon_mode").apply()
-            return
-        }
-
+        // Do not trust the preference as proof that Android still has the
+        // matching alias enabled. PackageManager may restore manifest defaults
+        // after an app update while SharedPreferences survives the update.
+        // Always reconcile both aliases with the requested appearance.
         val enabledAlias = when (mode) {
             "dark" -> ComponentName(packageName, "$packageName.MainActivityDarkIcon")
             "light" -> ComponentName(packageName, "$packageName.MainActivityLightIcon")
