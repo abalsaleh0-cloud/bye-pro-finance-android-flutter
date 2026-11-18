@@ -10,8 +10,8 @@
     <application
         android:label="Bye Pro Finance"
         android:name="${applicationName}"
-        android:icon="@drawable/ic_launcher_dark"
-        android:roundIcon="@drawable/ic_launcher_dark">
+        android:icon="@drawable/ic_launcher"
+        android:roundIcon="@drawable/ic_launcher">
         <activity
             android:name=".MainActivity"
             android:exported="true"
