@@ -49,9 +49,7 @@ tasks.configureEach {
 
 android {
     namespace = "com.example.expense_app"
-    // flutter_local_notifications 23.x and AndroidX Core 1.19 require API 37.
-    // This changes compile-time APIs only; targetSdk remains independently configured.
-    compileSdk = 37
+    compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
