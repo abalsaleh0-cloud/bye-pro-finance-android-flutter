@@ -247,7 +247,7 @@ void main() {
     });
 
     test('accepts a custom category as a clarification answer', () async {
-      const context = 'المستخدم: سجل مصروف البيت 45 هذا الشهر\\n'
+      const context = 'المستخدم: سجل مصروف البيت 45 هذا الشهر\n'
           'المساعد: ما تصنيف المصروف؟ مثل الطعام أو الكهرباء أو المواصلات.';
       final result = await engine.interpret(
         'مستلزمات المكتب',
