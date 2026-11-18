@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/features/ai/domain/assistant_engine.dart';
 
 import 'package:expense_app/features/ai/domain/gemma_assistant_engine.dart';
@@ -98,6 +99,7 @@ class GemmaModelManager extends Notifier<GemmaModelState>
       'b3ca0d2f076785a8f4b2219ddbd2bdb99954eae1';
   static const expectedSha256 =
       '181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c';
+  static const _verifiedModelSetting = 'gemma_verified_model';
   static const modelUrl =
       'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/$modelRevision/$modelFileName';
   static const systemInstruction = '''
@@ -170,11 +172,19 @@ class GemmaModelManager extends Notifier<GemmaModelState>
         return;
       }
       final path = await FlutterEdgeAi.getModelPath(modelFileName);
-      final length = await File(path).length();
+      final modelFile = File(path);
+      final length = await modelFile.length();
       if (length != expectedSize) {
         state = const GemmaModelState(
           status: GemmaModelStatus.error,
           error: 'حجم ملف النموذج غير مطابق؛ احتفظ التطبيق بالملف ولم يشغّله. يمكنك حذفه يدوياً بعد التأكد.',
+        );
+        return;
+      }
+      if (!await _verifyAndRememberModel(modelFile)) {
+        state = const GemmaModelState(
+          status: GemmaModelStatus.error,
+          error: 'بصمة ملف Gemma غير مطابقة للنسخة المعتمدة. احذف الملف وأعد تنزيل النموذج.',
         );
         return;
       }
@@ -225,8 +235,7 @@ class GemmaModelManager extends Notifier<GemmaModelState>
       }
       // Stream the multi-gigabyte file through SHA-256 without loading it all
       // into RAM. A same-size but corrupt file must never be marked ready.
-      final digest = await sha256.bind(modelFile.openRead()).first;
-      if (digest.toString() != expectedSha256) {
+      if (!await _verifyAndRememberModel(modelFile, forceHash: true)) {
         await FlutterEdgeAi.uninstallModel(modelFileName);
         throw StateError('Downloaded model SHA-256 does not match the pinned digest.');
       }
@@ -259,6 +268,9 @@ class GemmaModelManager extends Notifier<GemmaModelState>
     await releaseModel();
     try {
       await FlutterEdgeAi.uninstallModel(modelFileName);
+      await ref
+          .read(appDatabaseProvider)
+          .writeSetting(_verifiedModelSetting, '');
       state = const GemmaModelState();
     } catch (_) {
       state = const GemmaModelState(
@@ -266,6 +278,38 @@ class GemmaModelManager extends Notifier<GemmaModelState>
         error: 'تعذر حذف النموذج.',
       );
     }
+  }
+
+  Future<bool> _verifyAndRememberModel(
+    File modelFile, {
+    bool forceHash = false,
+  }) async {
+    final modified = await modelFile.lastModified();
+    final verificationMarker =
+        '$expectedSha256:$expectedSize:${modified.millisecondsSinceEpoch}';
+
+    if (!forceHash) {
+      try {
+        final previous = await ref
+            .read(appDatabaseProvider)
+            .readSetting(_verifiedModelSetting);
+        if (previous == verificationMarker) return true;
+      } catch (_) {
+        // A missing/corrupt settings store only means the file must be hashed.
+      }
+    }
+
+    final digest = await sha256.bind(modelFile.openRead()).first;
+    if (digest.toString() != expectedSha256) return false;
+
+    try {
+      await ref
+          .read(appDatabaseProvider)
+          .writeSetting(_verifiedModelSetting, verificationMarker);
+    } catch (_) {
+      // Keep the verified model usable; it will be re-hashed next time.
+    }
+    return true;
   }
 
   Future<void> _checkMultimodalMemory(AssistantMedia? media) async {
