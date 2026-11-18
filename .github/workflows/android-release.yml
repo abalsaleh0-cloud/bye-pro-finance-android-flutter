@@ -2,6 +2,14 @@ name: Android Release
 
 on:
   workflow_dispatch:
+  # One-time automatic production build when the corrected release workflow
+  # is merged to main. The path filter avoids building a production APK on
+  # every subsequent application commit.
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/android-release.yml
 
 permissions:
   contents: read
@@ -85,7 +93,7 @@ jobs:
       - name: Run Flutter tests
         run: flutter test
 
-      - name: Build signed release APK
+      - name: Build signed production ARM64 APK
         shell: bash
         env:
           KEYSTORE_PATH: ${{ runner.temp }}/bye-pro-release-keystore.jks
@@ -94,12 +102,54 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
           set -euo pipefail
-          flutter build apk --release --flavor production
+          flutter build apk --release --flavor production --target-platform android-arm64
 
-      - name: Upload release APK
+      - name: Verify production package and signing identity
+        shell: bash
+        env:
+          KEYSTORE_PATH: ${{ runner.temp }}/bye-pro-release-keystore.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          APK="build/app/outputs/flutter-apk/app-production-release.apk"
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          BUILD_TOOLS_DIR="$(find "$SDK_ROOT/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n1)"
+          APKSIGNER="$BUILD_TOOLS_DIR/apksigner"
+          AAPT="$BUILD_TOOLS_DIR/aapt"
+
+          if [[ ! -s "$APK" ]]; then
+            echo "::error::The production-flavor APK was not created at the expected path."
+            exit 1
+          fi
+
+          SIGNER_OUTPUT="$("$APKSIGNER" verify --verbose --print-certs "$APK")"
+          APK_FINGERPRINT="$(printf '%s\\n' "$SIGNER_OUTPUT" | awk -F': ' '/certificate SHA-256 digest:/ {print $NF; exit}' | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+          KEY_FINGERPRINT="$(keytool -exportcert -alias "$KEY_ALIAS" -keystore "$KEYSTORE_PATH" -storepass "$KEYSTORE_PASSWORD" | openssl dgst -sha256 | awk '{print $NF}' | tr '[:upper:]' '[:lower:]')"
+
+          if [[ -z "$APK_FINGERPRINT" || "$APK_FINGERPRINT" != "$KEY_FINGERPRINT" ]]; then
+            echo "::error::The production APK signing certificate does not match the configured original production key."
+            exit 1
+          fi
+
+          BADGING="$("$AAPT" dump badging "$APK" | sed -n '1p')"
+          printf '%s\\n' "$BADGING"
+          if [[ "$BADGING" != *"name='com.byepro.bye_pro_finance'"* ]]; then
+            echo "::error::The APK package ID is not the original production application ID."
+            exit 1
+          fi
+          if [[ "$BADGING" == *".preview"* ]]; then
+            echo "::error::A preview APK cannot be delivered as the production update."
+            exit 1
+          fi
+
+          echo "Production package ID and signing certificate verified."
+          sha256sum "$APK" | tee "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload original production APK
         uses: actions/upload-artifact@v4
         with:
-          name: bye-pro-finance-android-${{ github.run_number }}
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: bye-pro-finance-production-${{ github.run_number }}
+          path: build/app/outputs/flutter-apk/app-production-release.apk
           if-no-files-found: error
           retention-days: 30
