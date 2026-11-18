@@ -993,9 +993,12 @@ final class FakeAssistantEngine implements AssistantEngine {
     final monthQuestion = normalizer.containsAny(normalizedQuestion, const [
       'اي شهر',
       'ما الشهر',
+      'ما شهر',
       'لأي شهر',
       'الشهر المستحق',
       'السنة والشهر',
+      'شهر سجل العمل',
+      'شهر التحويل',
     ]);
     final directionQuestion = normalizer.containsAny(normalizedQuestion, const [
       'هل المبلغ لك',
@@ -1011,6 +1014,8 @@ final class FakeAssistantEngine implements AssistantEngine {
       'صاحب الدين',
       'ما اسم التصنيف الجديد',
       'اسم التصنيف الجديد',
+      'ما الاسم الجديد للتصنيف',
+      'الاسم الجديد للتصنيف',
       'ما اسم التصنيف',
       'اسم الفاتورة',
       'اسم الاشتراك',
@@ -1022,7 +1027,15 @@ final class FakeAssistantEngine implements AssistantEngine {
     ]);
     final dateQuestion = normalizer.containsAny(normalizedQuestion, const [
       'ما تاريخ المصروف',
+      'ما تاريخ سجل العمل',
+      'ما تاريخ التحويل',
+      'ما تاريخ',
       'ما التاريخ',
+    ]);
+    final kindQuestion = normalizer.containsAny(normalizedQuestion, const [
+      'هل تريد حذف راتب',
+      'راتب ام سلفة ام دفعة',
+      'ما نوع سجل العمل',
     ]);
     final identifierQuestion = normalizer.containsAny(normalizedQuestion, const [
       'رقم السجل',
@@ -1037,6 +1050,9 @@ final class FakeAssistantEngine implements AssistantEngine {
     final answerHasDirection = _debtDirection(
       (phrases) => normalizer.containsAny(normalizedAnswer, phrases),
     ) != null;
+    final answerHasKind = normalizer.containsAny(normalizedAnswer, const [
+      'راتب', 'معاش', 'مرتب', 'سلفة', 'سلفه', 'دفعة', 'دفعه', 'قسط',
+    ]);
     final answerHasCategory = _category(
       (phrases) => normalizer.containsAny(normalizedAnswer, phrases),
       normalizedAnswer,
@@ -1073,6 +1089,7 @@ final class FakeAssistantEngine implements AssistantEngine {
         (monthQuestion && answerHasMonth) ||
         (directionQuestion && answerHasDirection) ||
         (nameQuestion && answerIsShortText) ||
+        (kindQuestion && answerHasKind) ||
         (categoryQuestion && answerHasCategory) ||
         (dateQuestion && answerHasDate) ||
         (identifierQuestion && answerHasIdentifier);
