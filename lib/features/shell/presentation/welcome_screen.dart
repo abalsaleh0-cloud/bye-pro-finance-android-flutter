@@ -11,28 +11,7 @@ class WelcomeScreen extends ConsumerStatefulWidget {
 }
 
 class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
-  bool _checking = true;
   bool _saving = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkFirstLaunch();
-  }
-
-  Future<void> _checkFirstLaunch() async {
-    try {
-      final seen = await ref.read(appDatabaseProvider).readSetting('welcome_seen');
-      if (!mounted) return;
-      if (seen == 'true') {
-        context.go('/dashboard');
-        return;
-      }
-    } catch (_) {
-      // Keep the welcome screen available if settings cannot be read.
-    }
-    if (mounted) setState(() => _checking = false);
-  }
 
   Future<void> _continue() async {
     if (_saving) return;
@@ -50,21 +29,9 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     final scheme = Theme.of(context).colorScheme;
     final isEnglish = Localizations.localeOf(context).languageCode == 'en';
 
-    // The welcome route is also the lightweight startup gate on later launches.
-    // Show an adaptive loader while the saved first-launch flag is restored,
-    // rather than presenting an inactive welcome button during database startup.
-    if (_checking) {
-      return Scaffold(
-        backgroundColor: scheme.surface,
-        body: Center(
-          child: CircularProgressIndicator(
-            color: scheme.primary,
-            semanticsLabel: isEnglish ? 'Loading' : 'جارٍ التحميل',
-          ),
-        ),
-      );
-    }
-
+    // This route is now reached only after the router confirms a first launch.
+    // Returning users are routed directly to the dashboard before this widget
+    // is ever built.
     return Scaffold(
       body: SafeArea(
         child: LayoutBuilder(
@@ -136,7 +103,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                       width: double.infinity,
                       height: 54,
                       child: FilledButton(
-                        onPressed: _checking || _saving ? null : _continue,
+                        onPressed: _saving ? null : _continue,
                         child: _saving
                             ? const SizedBox(
                                 width: 22,
