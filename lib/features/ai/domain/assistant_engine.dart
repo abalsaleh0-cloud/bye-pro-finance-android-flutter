@@ -80,9 +80,6 @@ final class FallbackAssistantEngine implements AssistantEngine {
     );
   }
 
-
-/// Backward-compatible name retained for existing tests and integrations.
-typedef FakeAssistantEngine = LocalRuleAssistantEngine;
 }
 
 final class LocalRuleAssistantEngine implements AssistantEngine {
@@ -1362,4 +1359,8 @@ final class LocalRuleAssistantEngine implements AssistantEngine {
       }
     }
     return null;
-  }}
+  }
+}
+
+/// Backward-compatible name retained for existing tests and integrations.
+typedef FakeAssistantEngine = LocalRuleAssistantEngine;
