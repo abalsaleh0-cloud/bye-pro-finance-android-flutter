@@ -20,6 +20,19 @@ void main() {
     });
   });
 
+  group('Explicit calendar date parsing', () {
+    test('parses ISO and day-first dates using Arabic digits too', () {
+      expect(input.extractDate('2026-11-18'), DateTime(2026, 11, 18));
+      expect(input.extractDate('18/11/2026'), DateTime(2026, 11, 18));
+      expect(input.extractDate('١٨-١١-٢٠٢٦'), DateTime(2026, 11, 18));
+    });
+
+    test('rejects impossible calendar dates instead of normalizing them', () {
+      expect(input.extractDate('31/11/2026'), isNull);
+      expect(input.extractDate('2026-02-30'), isNull);
+    });
+  });
+
   group('Arabic and colloquial amount formats', () {
     test('parses Eastern Arabic and Persian digits', () {
       expect(numbers.parseInteger('١٥٠٠'), 1500);
