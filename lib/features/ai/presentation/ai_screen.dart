@@ -523,6 +523,16 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       }
       setState(() => _undo = execution.undo);
       _addAssistantMessage(execution.message);
+    } on AssistantActionException catch (error) {
+      if (mounted) {
+        setState(_confirmation.cancel);
+        if (error.code == 'debt_has_payments') {
+          _addAssistantMessage(strings.assistantDebtDeleteHasPayments);
+        } else {
+          _addAssistantMessage(strings.assistantNotUnderstood);
+          await _openManual();
+        }
+      }
     } catch (_) {
       if (mounted) {
         setState(_confirmation.cancel);
