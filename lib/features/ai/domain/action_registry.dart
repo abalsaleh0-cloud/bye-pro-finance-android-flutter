@@ -340,6 +340,17 @@ final class ActionRegistry {
     }
 
     hydrated.addAll(parameters);
+    final year = parameters['year'];
+    final month = parameters['month'];
+    if (year is int && month is int && parameters['date'] == null &&
+        hydrated['date'] is String &&
+        const {'save_work_entry', 'save_home_expense', 'save_home_bill', 'save_debt'}
+            .contains(name)) {
+      final previousDate = DateTime.parse(hydrated['date']! as String);
+      final lastDay = DateTime(year, month + 1, 0).day;
+      final day = previousDate.day > lastDay ? lastDay : previousDate.day;
+      hydrated['date'] = DateTime(year, month, day).toIso8601String().split('T').first;
+    }
     return hydrated;
   }
 
