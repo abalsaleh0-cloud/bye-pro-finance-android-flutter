@@ -54,6 +54,7 @@ void main() {
         child: const MyApp(),
       ),
     );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('open-settings')));
     await tester.pumpAndSettle();
 
