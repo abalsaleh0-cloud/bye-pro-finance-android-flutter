@@ -126,10 +126,16 @@ void main() {
       final functions = generator.receivedFunctions!;
       final debt = functions.singleWhere((item) => item.name == 'read_debt_payments');
       final bill = functions.singleWhere((item) => item.name == 'read_home_bill_payments');
-      expect(debt.properties.keys, contains('debtId'));
-      expect(debt.required, contains('debtId'));
-      expect(bill.properties.keys, contains('billId'));
-      expect(bill.required, contains('billId'));
+      expect(
+        debt.properties.keys,
+        containsAll(['debtId', 'id', 'counterparty', 'direction']),
+      );
+      expect(debt.required, isEmpty);
+      expect(
+        bill.properties.keys,
+        containsAll(['billId', 'id', 'billTitle']),
+      );
+      expect(bill.required, isEmpty);
     });
 
     test('keeps Gemma deletion tool schemas aligned with local safe match fields', () async {
