@@ -34,7 +34,7 @@ class HomeBillsSection extends ConsumerWidget {
       builder: (dialogContext) => StatefulBuilder(builder: (context, setState) => EntryFormDialog(
         title: Text(existing != null ? strings.editRecord : kind == HomeBillKind.rent ? strings.addMonthlyRent : strings.addMonthlyBill),
         content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(key: const Key('home-bill-name'), controller: title, decoration: InputDecoration(labelText: strings.billOrRentName)),
+          TextField(key: const Key('home-bill-name'), controller: title, decoration: InputDecoration(labelText: kind == HomeBillKind.rent ? strings.billOrRentName : strings.billName)),
           TextField(controller: amount, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: strings.billAmount, suffixIcon: calculatorSuffix(context, amount, strings))),
           TextField(key: const Key('home-bill-date'), controller: date, readOnly: true, decoration: InputDecoration(labelText: strings.recordedAt, hintText: 'YYYY-MM-DD', suffixIcon: calendarSuffix(context, date, strings, monthOnly: false))),
           TextField(controller: note, decoration: InputDecoration(labelText: strings.note)),
