@@ -71,15 +71,15 @@ class _MyAppState extends ConsumerState<MyApp> {
 class _LauncherIconSync {
   static const MethodChannel _channel =
       MethodChannel('com.byepro.finance/app_icon');
-  static String? _lastApplied;
+  static String? _lastQueued;
   static Future<void> _pending = Future<void>.value();
 
   static Future<void> update(String mode) {
     _pending = _pending.then((_) async {
-      if (_lastApplied == mode) return;
+      if (_lastQueued == mode) return;
       try {
-        await _channel.invokeMethod<void>('setAppIcon', {'mode': mode});
-        _lastApplied = mode;
+        await _channel.invokeMethod<void>('queueAppIcon', {'mode': mode});
+        _lastQueued = mode;
       } catch (_) {
         // Launcher icon support must never interrupt the finance app.
       }
