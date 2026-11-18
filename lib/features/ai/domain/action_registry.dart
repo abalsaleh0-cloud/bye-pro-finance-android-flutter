@@ -118,8 +118,21 @@ final class ActionRegistry {
     if (p['id'] is String && (p['id']! as String).trim().isEmpty) {
       return 'invalid record ID';
     }
+    final editableParameters = <String, Set<String>>{
+      'save_work_entry': {'amountMinorUnits', 'kind', 'year', 'month', 'date', 'note'},
+      'save_home_expense': {'amountMinorUnits', 'categoryId', 'categoryName', 'year', 'month', 'date', 'note'},
+      'save_home_bill': {'amountMinorUnits', 'title', 'kind', 'year', 'month', 'date', 'note'},
+      'save_debt': {'amountMinorUnits', 'direction', 'counterparty', 'year', 'month', 'date', 'note'},
+      'save_work_home_transfer': {'amountMinorUnits', 'year', 'month', 'date', 'note'},
+    }[name];
+    if (hasStableId &&
+        updateActions.contains(name) &&
+        editableParameters != null &&
+        !editableParameters.any(p.containsKey)) {
+      return 'no update fields';
+    }
     final requiredParameters = hasStableId && updateActions.contains(name)
-        ? const <String>{'amountMinorUnits'}
+        ? const <String>{}
         : d.requiredParameters;
     for (final key in requiredParameters) {
       if (p[key] != null) continue;
@@ -280,6 +293,7 @@ final class ActionRegistry {
             .where((item) => item.id == id).firstOrNull;
         if (existing == null) throw const AssistantActionException('record_not_found');
         hydrated.addAll({
+          'amountMinorUnits': existing.amount.minorUnits,
           'kind': existing.kind == WorkEntryKind.salaryPayment
               ? 'salaryPayment'
               : existing.kind.name,
@@ -296,6 +310,7 @@ final class ActionRegistry {
         final category = (await _categories.getAll())
             .where((item) => item.id == existing.categoryId).firstOrNull;
         hydrated.addAll({
+          'amountMinorUnits': existing.amount.minorUnits,
           'categoryId': existing.categoryId,
           'categoryName': category == null ? existing.categoryId : _categoryLabel(category),
           'date': existing.expenseDate.toIso8601String().split('T').first,
@@ -309,6 +324,7 @@ final class ActionRegistry {
             .where((item) => item.id == id).firstOrNull;
         if (existing == null) throw const AssistantActionException('record_not_found');
         hydrated.addAll({
+          'amountMinorUnits': existing.amount.minorUnits,
           'title': existing.title,
           'kind': existing.kind.name,
           'year': existing.dueMonth.year,
@@ -325,6 +341,7 @@ final class ActionRegistry {
             .where((item) => item.id == id).firstOrNull;
         if (existing == null) throw const AssistantActionException('record_not_found');
         hydrated.addAll({
+          'amountMinorUnits': existing.originalAmount.minorUnits,
           'direction': existing.direction.name,
           'counterparty': existing.counterparty,
           'year': existing.dueMonth.year,
@@ -338,6 +355,7 @@ final class ActionRegistry {
             .where((item) => item.id == id).firstOrNull;
         if (existing == null) throw const AssistantActionException('record_not_found');
         hydrated.addAll({
+          'amountMinorUnits': existing.amount.minorUnits,
           'date': existing.transferredAt.toIso8601String().split('T').first,
           if (existing.note != null) 'note': existing.note,
         });
@@ -435,7 +453,9 @@ final class ActionRegistry {
           kind: kindName == 'payment'
               ? WorkEntryKind.salaryPayment
               : WorkEntryKind.values.byName(kindName),
-          amount: Money.fromMinorUnits(p['amountMinorUnits']! as int),
+          amount: p['amountMinorUnits'] is int
+              ? Money.fromMinorUnits(p['amountMinorUnits']! as int)
+              : previous!.amount,
           dueMonth: dueMonth,
           recordedAt: p['date'] is String
               ? DateTime.parse(p['date']! as String)
@@ -507,7 +527,9 @@ final class ActionRegistry {
             : previous?.expenseDate ?? DateTime.now();
         final item = HomeExpense(
           id: id,
-          amount: Money.fromMinorUnits(p['amountMinorUnits']! as int),
+          amount: p['amountMinorUnits'] is int
+              ? Money.fromMinorUnits(p['amountMinorUnits']! as int)
+              : previous!.amount,
           categoryId: selectedCategory.id,
           expenseDate: expenseDate,
           dueMonth: MonthKey(year: expenseDate.year, month: expenseDate.month),
@@ -578,7 +600,9 @@ final class ActionRegistry {
           kind: HomeBillKind.values.byName(
             p['kind'] as String? ?? existing?.kind.name ?? 'monthly',
           ),
-          amount: Money.fromMinorUnits(p['amountMinorUnits']! as int),
+          amount: p['amountMinorUnits'] is int
+              ? Money.fromMinorUnits(p['amountMinorUnits']! as int)
+              : existing!.amount,
           dueMonth: dueMonth,
           dueDate: p['date'] is String
               ? DateTime.parse(p['date']! as String)
@@ -777,7 +801,9 @@ final class ActionRegistry {
         }
         final item = WorkHomeTransfer(
           id: id,
-          amount: Money.fromMinorUnits(p['amountMinorUnits']! as int),
+          amount: p['amountMinorUnits'] is int
+              ? Money.fromMinorUnits(p['amountMinorUnits']! as int)
+              : previous!.amount,
           transferredAt: p['date'] is String
               ? DateTime.parse(p['date']! as String)
               : previous?.transferredAt ?? DateTime.now(),
@@ -825,7 +851,9 @@ final class ActionRegistry {
         if (suppliedId != null && previous == null) {
           throw const AssistantActionException('record_not_found');
         }
-        final amount = Money.fromMinorUnits(p['amountMinorUnits']! as int);
+        final amount = p['amountMinorUnits'] is int
+            ? Money.fromMinorUnits(p['amountMinorUnits']! as int)
+            : previous!.originalAmount;
         final previousPayments = previous == null
             ? const <DebtPayment>[]
             : await _debts.watchPayments(id).first;
