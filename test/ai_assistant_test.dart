@@ -830,7 +830,6 @@ void main() {
         'year': DateTime.now().year,
         'month': DateTime.now().month,
       });
-      final paymentByNameDebtId = (await DebtRepository(database).watchAll().first).single.id;
       final payment = await registry.execute('record_debt_payment', {
         'counterparty': 'Samer',
         'direction': 'debtor',
