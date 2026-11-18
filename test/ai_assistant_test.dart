@@ -745,6 +745,62 @@ void main() {
       expect(result.message, contains('250'));
     });
 
+    test('deletes a work record by unique kind, amount and month and supports undo', () async {
+      final work = WorkRepository(database);
+      await work.saveEntry(WorkEntry(
+        id: 'salary-oct',
+        kind: WorkEntryKind.salary,
+        amount: Money.fromMinorUnits(1500),
+        dueMonth: MonthKey(year: 2026, month: 10),
+        recordedAt: DateTime(2026, 10, 1),
+      ));
+      await work.saveEntry(WorkEntry(
+        id: 'salary-nov',
+        kind: WorkEntryKind.salary,
+        amount: Money.fromMinorUnits(1500),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime(2026, 11, 1),
+      ));
+
+      final deletion = await registry.execute('delete_work_entry', {
+        'kind': 'salary',
+        'amountMinorUnits': 1500,
+        'year': 2026,
+        'month': 11,
+      });
+
+      expect((await work.watchEntries().first).map((item) => item.id),
+          ['salary-oct']);
+      await deletion.undo!();
+      expect((await work.watchEntries().first).map((item) => item.id).toSet(),
+          {'salary-oct', 'salary-nov'});
+    });
+
+    test('deletes a transfer by unique amount and date and supports undo', () async {
+      final work = WorkRepository(database);
+      await work.saveTransfer(WorkHomeTransfer(
+        id: 'transfer-one',
+        amount: Money.fromMinorUnits(250),
+        transferredAt: DateTime(2026, 11, 14),
+      ));
+      await work.saveTransfer(WorkHomeTransfer(
+        id: 'transfer-two',
+        amount: Money.fromMinorUnits(250),
+        transferredAt: DateTime(2026, 11, 15),
+      ));
+
+      final deletion = await registry.execute('delete_work_home_transfer', {
+        'amountMinorUnits': 250,
+        'date': '2026-11-15',
+      });
+
+      expect((await work.watchTransfers().first).map((item) => item.id),
+          ['transfer-one']);
+      await deletion.undo!();
+      expect((await work.watchTransfers().first).map((item) => item.id).toSet(),
+          {'transfer-one', 'transfer-two'});
+    });
+
     test('deletes a home expense by a unique category amount and month and supports undo', () async {
       final work = WorkRepository(database);
       await work.saveTransfer(WorkHomeTransfer(
