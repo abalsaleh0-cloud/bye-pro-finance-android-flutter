@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/native.dart';
 import 'package:expense_app/core/database/app_database.dart';
 import 'package:expense_app/core/database/database_providers.dart';
@@ -21,10 +23,13 @@ void main() {
     await database.close();
   });
 
-  test('persists messages and restores them in a new provider container', () async {
-    final controller = container.read(aiChatMessagesProvider.notifier);
+  test('persists messages and restores the active chat in a new container',
+      () async {
+    final controller = container.read(aiChatWorkspaceProvider.notifier);
     controller.add(const AiChatMessage('رسالة المستخدم', fromUser: true));
-    controller.add(const AiChatMessage('رد المساعد'));
+    controller.add(
+      const AiChatMessage('رد المساعد', includeInModelContext: true),
+    );
     await controller.flush();
 
     final restoredContainer = ProviderContainer(
@@ -32,23 +37,111 @@ void main() {
     );
     try {
       final restoredController =
-          restoredContainer.read(aiChatMessagesProvider.notifier);
+          restoredContainer.read(aiChatWorkspaceProvider.notifier);
       await restoredController.flush();
 
-      final messages = restoredContainer.read(aiChatMessagesProvider);
-      expect(messages, hasLength(2));
-      expect(messages.first.text, 'رسالة المستخدم');
-      expect(messages.first.fromUser, isTrue);
-      expect(messages.last.text, 'رد المساعد');
-      expect(messages.last.fromUser, isFalse);
+      final workspace = restoredContainer.read(aiChatWorkspaceProvider);
+      expect(workspace.conversations, hasLength(1));
+      expect(workspace.messages, hasLength(2));
+      expect(workspace.messages.first.text, 'رسالة المستخدم');
+      expect(workspace.messages.first.fromUser, isTrue);
+      expect(workspace.messages.last.text, 'رد المساعد');
+      expect(workspace.messages.last.fromUser, isFalse);
+      expect(workspace.activeConversation?.title, 'رسالة المستخدم');
+      expect(workspace.messages.last.includeInModelContext, isTrue);
     } finally {
       restoredContainer.dispose();
     }
   });
 
-  test('restores whether an assistant message may be used as dialogue context', () async {
-    final controller = container.read(aiChatMessagesProvider.notifier);
-    controller.add(const AiChatMessage('ما الشهر المقصود؟', includeInModelContext: true));
+  test('keeps separate conversations and restores the selected one', () async {
+    final controller = container.read(aiChatWorkspaceProvider.notifier);
+    controller.add(const AiChatMessage('محادثة أولى', fromUser: true));
+    final firstId = container
+        .read(aiChatWorkspaceProvider)
+        .activeConversationId!;
+
+    controller.newConversation();
+    controller.add(const AiChatMessage('محادثة ثانية', fromUser: true));
+    final secondId = container
+        .read(aiChatWorkspaceProvider)
+        .activeConversationId!;
+
+    expect(secondId, isNot(firstId));
+    expect(container.read(aiChatWorkspaceProvider).conversations, hasLength(2));
+
+    controller.selectConversation(firstId);
+    await controller.flush();
+
+    final restoredContainer = ProviderContainer(
+      overrides: [appDatabaseProvider.overrideWithValue(database)],
+    );
+    try {
+      final restoredController =
+          restoredContainer.read(aiChatWorkspaceProvider.notifier);
+      await restoredController.flush();
+      final workspace = restoredContainer.read(aiChatWorkspaceProvider);
+      expect(workspace.activeConversationId, firstId);
+      expect(workspace.messages.single.text, 'محادثة أولى');
+      expect(workspace.conversations.map((item) => item.id),
+          contains(secondId));
+    } finally {
+      restoredContainer.dispose();
+    }
+  });
+
+  test('deleting a chat removes only that conversation', () async {
+    final controller = container.read(aiChatWorkspaceProvider.notifier);
+    controller.add(const AiChatMessage('احتفظ بهذه المحادثة', fromUser: true));
+    final keptId = container
+        .read(aiChatWorkspaceProvider)
+        .activeConversationId!;
+
+    controller.newConversation();
+    controller.add(const AiChatMessage('هذه ستحذف', fromUser: true));
+    final deletedId = container
+        .read(aiChatWorkspaceProvider)
+        .activeConversationId!;
+
+    controller.deleteConversation(deletedId);
+    await controller.flush();
+
+    final workspace = container.read(aiChatWorkspaceProvider);
+    expect(workspace.conversations, hasLength(1));
+    expect(workspace.conversations.single.id, keptId);
+    expect(workspace.activeConversationId, keptId);
+    expect(workspace.messages.single.text, 'احتفظ بهذه المحادثة');
+  });
+
+  test('migrates the previous single-chat storage without losing messages',
+      () async {
+    await database.writeSetting(
+      'ai_chat_messages_v1',
+      jsonEncode([
+        const AiChatMessage('سؤال سابق', fromUser: true).toJson(),
+        const AiChatMessage(
+          'رد سابق',
+          includeInModelContext: true,
+        ).toJson(),
+      ]),
+    );
+
+    final controller = container.read(aiChatWorkspaceProvider.notifier);
+    await controller.flush();
+
+    final workspace = container.read(aiChatWorkspaceProvider);
+    expect(workspace.conversations, hasLength(1));
+    expect(workspace.messages, hasLength(2));
+    expect(workspace.messages.first.text, 'سؤال سابق');
+    expect(workspace.activeConversation?.title, 'سؤال سابق');
+    expect(await database.readSetting('ai_chat_conversations_v2'), isNotNull);
+  });
+
+  test('restores whether assistant dialogue can be used as model context',
+      () async {
+    final controller = container.read(aiChatWorkspaceProvider.notifier);
+    controller.add(const AiChatMessage('ما الشهر المقصود؟',
+        includeInModelContext: true));
     controller.add(const AiChatMessage('نتيجة مالية من قاعدة البيانات: 2500'));
     await controller.flush();
 
@@ -56,9 +149,11 @@ void main() {
       overrides: [appDatabaseProvider.overrideWithValue(database)],
     );
     try {
-      final restoredController = restoredContainer.read(aiChatMessagesProvider.notifier);
+      final restoredController =
+          restoredContainer.read(aiChatWorkspaceProvider.notifier);
       await restoredController.flush();
-      final messages = restoredContainer.read(aiChatMessagesProvider);
+      final messages =
+          restoredContainer.read(aiChatWorkspaceProvider).messages;
       expect(messages.first.includeInModelContext, isTrue);
       expect(messages.last.includeInModelContext, isFalse);
     } finally {
@@ -66,7 +161,7 @@ void main() {
     }
   });
 
-  test('builds context from dialogue and excludes tool results', () {
+  test('builds context from recent dialogue and excludes tool results', () {
     final messages = [
       const AiChatMessage('أضف راتب 1500', fromUser: true),
       const AiChatMessage('أي شهر تقصد؟', includeInModelContext: true),
@@ -83,36 +178,52 @@ void main() {
 
   test('limits context to the newest messages and character budget', () {
     final messages = List.generate(
-      12,
+      20,
       (index) => AiChatMessage('رسالة رقم $index', fromUser: true),
     );
 
     final context = buildAiConversationContext(
       messages,
-      maxMessages: 3,
-      maxCharacters: 80,
+      maxMessages: 4,
+      maxCharacters: 90,
     );
-    expect(context, contains('رسالة رقم 11'));
-    expect(context, contains('رسالة رقم 10'));
+    expect(context, contains('رسالة رقم 19'));
+    expect(context, contains('رسالة رقم 18'));
     expect(context, isNot(contains('رسالة رقم 0')));
-    expect(context.length, lessThanOrEqualTo(80));
+    expect(context.length, lessThanOrEqualTo(90));
   });
 
-  test('clear persists an empty conversation', () async {
-    final controller = container.read(aiChatMessagesProvider.notifier);
+  test('clearing active dialogue persists an empty active conversation',
+      () async {
+    final controller = container.read(aiChatWorkspaceProvider.notifier);
     controller.add(const AiChatMessage('رسالة'));
     await controller.flush();
 
-    controller.clear();
+    controller.clearActiveConversation();
     await controller.flush();
 
-    expect(await database.readSetting('ai_chat_messages_v1'), '[]');
+    final workspace = container.read(aiChatWorkspaceProvider);
+    expect(workspace.messages, isEmpty);
+    final raw = await database.readSetting('ai_chat_conversations_v2');
+    expect(raw, isNotNull);
+    expect(raw, contains('"messages":[]'));
   });
 
   test('ignores malformed persisted data without throwing', () async {
+    await database.writeSetting('ai_chat_conversations_v2', '{broken json');
     await database.writeSetting('ai_chat_messages_v1', '{broken json');
-    final controller = container.read(aiChatMessagesProvider.notifier);
+    final controller = container.read(aiChatWorkspaceProvider.notifier);
     await controller.flush();
-    expect(container.read(aiChatMessagesProvider), isEmpty);
+    expect(container.read(aiChatWorkspaceProvider).messages, isEmpty);
+  });
+
+  test('limits the number of saved conversations', () async {
+    final controller = container.read(aiChatWorkspaceProvider.notifier);
+    for (var index = 0; index < 35; index++) {
+      controller.newConversation();
+      controller.add(AiChatMessage('محادثة $index', fromUser: true));
+    }
+    await controller.flush();
+    expect(container.read(aiChatWorkspaceProvider).conversations.length, 30);
   });
 }
