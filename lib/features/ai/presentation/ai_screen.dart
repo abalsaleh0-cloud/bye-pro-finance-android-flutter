@@ -28,19 +28,11 @@ import 'package:material_ui/material_ui.dart';
 
 enum _AssistantAttachmentChoice { camera, gallery, files }
 
-final assistantEngineProvider = Provider<AssistantEngine>((ref) {
-  final settings = ref.watch(appSettingsProvider);
-  final modelState = ref.watch(gemmaModelManagerProvider);
-  final manager = ref.watch(gemmaModelManagerProvider.notifier);
-  const fallback = FakeAssistantEngine();
-  if (settings.useGemma && modelState.status == GemmaModelStatus.ready) {
-    return FallbackAssistantEngine(
-      primary: GemmaAssistantEngine(manager),
-      fallback: fallback,
-    );
-  }
-  return fallback;
-});
+// Phase 1: the offline deterministic engine is the only active engine.
+// Gemma is intentionally kept out of this path until the dedicated Phase 2.
+final assistantEngineProvider = Provider<AssistantEngine>(
+  (ref) => const FakeAssistantEngine(),
+);
 
 class AiScreen extends ConsumerStatefulWidget {
   const AiScreen({super.key});
@@ -452,11 +444,12 @@ class _AiScreenState extends ConsumerState<AiScreen> {
           );
           if (mounted) {
             final summary = execution.dashboardSummary;
-            _addAssistantMessage(
-              summary == null
-                  ? execution.message
-                  : _dashboardSummaryMessage(summary, strings),
-            );
+            final message = command.name == 'read_home_categories'
+                ? '${strings.category}: ${availableCategories.values.join('، ')}'
+                : summary == null
+                    ? execution.message
+                    : _dashboardSummaryMessage(summary, strings);
+            _addAssistantMessage(message);
           }
         } else {
           setState(() => _confirmation.request(command));
@@ -611,6 +604,9 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         ? (parameters['note']! as String).trim()
         : '';
     final date = _displayDate(parameters['date']);
+    final rawAmount = parameters['amountMinorUnits'];
+    final amount = rawAmount is int ? rawAmount.toString() : '—';
+    final debtAction = command.name == 'save_debt';
     final details = <String>[
       if (date != null) toAsciiDigits(
         MaterialLocalizations.of(context).formatFullDate(
@@ -621,11 +617,10 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         _kindName(kind, strings)!,
       if (parameters['direction'] == 'creditor') strings.creditor,
       if (parameters['direction'] == 'debtor') strings.debtor,
+      if (debtAction) '${strings.originalAmount}: $amount',
+      if (parameters['id'] is String) '${strings.assistantRecordId}: ${parameters['id']}',
       if (note.isNotEmpty) note,
     ];
-    final rawAmount = parameters['amountMinorUnits'];
-    final amount = rawAmount is int ? rawAmount.toString() : '—';
-    final debtAction = command.name == 'save_debt';
     final title = switch (command.name) {
       'save_work_entry' => _kindName(kind, strings) ?? strings.work,
       'save_work_home_transfer' => strings.transferredToHome,
