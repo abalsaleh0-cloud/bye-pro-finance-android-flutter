@@ -443,8 +443,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   if (parsedAmount == null ||
                       parsedAmount <= 0 ||
                       selectedCategoryId.trim().isEmpty ||
-                      parsedDate == null ||
-                      year == null ||
                       parsedDate == null) {
                     setDialogState(() => error = strings.invalidRecord);
                     return;
