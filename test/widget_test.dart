@@ -463,7 +463,7 @@ void main() {
     expect(find.byKey(const Key('debt-amount')), findsOneWidget);
     expect(find.byKey(const Key('debt-date')), findsOneWidget);
     expect(find.byKey(const Key('debt-note')), findsOneWidget);
-    expect(find.text('دين لك (دائن)'), findsOneWidget);
+    expect(find.text('إضافة دين لك (دائن)'), findsOneWidget);
     expect(find.byType(DropdownButtonFormField<DebtDirection>), findsNothing);
     await tester.tap(find.text('إلغاء'));
     await tester.pumpAndSettle();
@@ -778,7 +778,7 @@ void main() {
 
     await tester.tap(find.text('المنزل').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('home-tab-3')));
+    await tester.tap(find.byKey(const Key('home-tab-2')));
     await tester.pumpAndSettle();
 
     expect(find.text('فاتورة قابلة للتعديل'), findsOneWidget);
@@ -874,7 +874,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('home-add-monthly-bill')));
     await tester.pumpAndSettle();
-    expect(fieldValues(), contains(previousMonth.toString()));
+    expect(fieldValues().any((value) => value.startsWith('$previousMonth-')), isTrue);
     await tester.tap(find.text('إلغاء'));
     await tester.pumpAndSettle();
   });
