@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
 void main() {
-  testWidgets('outgoing chat bubble is right-tail shaped in dark mode', (tester) async {
+  testWidgets('outgoing chat bubble uses Telegram Dark Blue palette', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.dark,
@@ -28,7 +28,8 @@ void main() {
     final decoration = bubble.decoration! as BoxDecoration;
     final radius = AppDesignTokens.standard().cardRadius;
 
-    expect(decoration.color, AppTheme.dark.colorScheme.primary);
+    expect(decoration.color, const Color(0xFF3E618A));
+    expect(decoration.color, AppTheme.dark.colorScheme.tertiaryContainer);
     expect(
       decoration.borderRadius,
       BorderRadius.only(
@@ -38,19 +39,21 @@ void main() {
         bottomRight: const Radius.circular(6),
       ),
     );
-    expect(bubble.padding, const EdgeInsets.symmetric(horizontal: 16, vertical: 10));
-    expect(find.text('رسالة تجريبية'), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.text('رسالة تجريبية')).style!.color,
+      Colors.white,
+    );
   });
 
-  testWidgets('incoming chat bubble is left-tail shaped in light mode', (tester) async {
+  testWidgets('incoming chat bubble uses Telegram Dark Blue surface', (tester) async {
     await tester.pumpWidget(
       MaterialApp(
-        theme: AppTheme.light,
+        theme: AppTheme.dark,
         home: const Scaffold(
           body: Align(
             alignment: Alignment.centerLeft,
             child: ChatMessageBubble(
-              key: Key('incoming-chat-bubble'),
+              key: Key('incoming-dark-chat-bubble'),
               text: 'رد تجريبي',
               isOutgoing: false,
             ),
@@ -60,21 +63,39 @@ void main() {
     );
 
     final bubble = tester.widget<Container>(
-      find.byKey(const Key('incoming-chat-bubble')),
+      find.byKey(const Key('incoming-dark-chat-bubble')),
     );
-    final decoration = bubble.decoration! as BoxDecoration;
-    final radius = AppDesignTokens.standard().cardRadius;
-
-    expect(decoration.color, AppTheme.light.colorScheme.surfaceContainerHigh);
     expect(
-      decoration.borderRadius,
-      BorderRadius.only(
-        topLeft: Radius.circular(radius),
-        topRight: Radius.circular(radius),
-        bottomLeft: const Radius.circular(6),
-        bottomRight: Radius.circular(radius),
-      ),
+      (bubble.decoration! as BoxDecoration).color,
+      const Color(0xFF232E3B),
     );
     expect(find.text('رد تجريبي'), findsOneWidget);
+  });
+
+  testWidgets('outgoing chat bubble uses Telegram Blue light palette', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.light,
+        home: const Scaffold(
+          body: Align(
+            alignment: Alignment.centerRight,
+            child: ChatMessageBubble(
+              key: Key('outgoing-light-chat-bubble'),
+              text: 'رسالة فاتحة',
+              isOutgoing: true,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final bubble = tester.widget<Container>(
+      find.byKey(const Key('outgoing-light-chat-bubble')),
+    );
+    expect(
+      (bubble.decoration! as BoxDecoration).color,
+      const Color(0xFFEFFFDE),
+    );
+    expect(find.text('رسالة فاتحة'), findsOneWidget);
   });
 }
