@@ -124,7 +124,7 @@ jobs:
           fi
 
           SIGNER_OUTPUT="$("$APKSIGNER" verify --verbose --print-certs "$APK")"
-          APK_FINGERPRINT="$(printf '%s\\n' "$SIGNER_OUTPUT" | awk -F': ' '/certificate SHA-256 digest:/ {print $NF; exit}' | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+          APK_FINGERPRINT="$(printf '%s\n' "$SIGNER_OUTPUT" | awk -F': ' '/certificate SHA-256 digest:/ {print $NF; exit}' | tr -d ':' | tr '[:upper:]' '[:lower:]')"
           KEY_FINGERPRINT="$(keytool -exportcert -alias "$KEY_ALIAS" -keystore "$KEYSTORE_PATH" -storepass "$KEYSTORE_PASSWORD" | openssl dgst -sha256 | awk '{print $NF}' | tr '[:upper:]' '[:lower:]')"
 
           if [[ -z "$APK_FINGERPRINT" || "$APK_FINGERPRINT" != "$KEY_FINGERPRINT" ]]; then
@@ -133,7 +133,7 @@ jobs:
           fi
 
           BADGING="$("$AAPT" dump badging "$APK" | sed -n '1p')"
-          printf '%s\\n' "$BADGING"
+          printf '%s\n' "$BADGING"
           if [[ "$BADGING" != *"name='com.byepro.bye_pro_finance'"* ]]; then
             echo "::error::The APK package ID is not the original production application ID."
             exit 1
