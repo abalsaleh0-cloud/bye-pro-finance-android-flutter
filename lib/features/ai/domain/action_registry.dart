@@ -308,6 +308,8 @@ final class ActionRegistry {
           'kind': existing.kind.name,
           'year': existing.dueMonth.year,
           'month': existing.dueMonth.month,
+          'paidMinorUnits': existing.paidMinorUnits,
+          'remainingMinorUnits': existing.remainingMinorUnits,
           if (existing.dueDate != null)
             'date': existing.dueDate!.toIso8601String().split('T').first,
           if (existing.note != null) 'note': existing.note,
@@ -457,9 +459,9 @@ final class ActionRegistry {
           return true;
         }).toList(growable: false);
         if (matches.length != 1) {
-          throw StateError(matches.isEmpty
-              ? 'Work record not found'
-              : 'More than one work record matches; specify the exact date or ID.');
+          throw AssistantActionException(
+            matches.isEmpty ? 'record_not_found' : 'record_ambiguous',
+          );
         }
         final deleted = matches.single;
         await _work.deleteEntry(deleted.id);
@@ -537,9 +539,9 @@ final class ActionRegistry {
           return true;
         }).toList(growable: false);
         if (matches.length != 1) {
-          throw StateError(matches.isEmpty
-              ? 'Home expense not found'
-              : 'More than one expense matches; specify the month/date or ID.');
+          throw AssistantActionException(
+            matches.isEmpty ? 'record_not_found' : 'record_ambiguous',
+          );
         }
         final deleted = matches.single;
         await _home.delete(deleted.id);
@@ -592,7 +594,11 @@ final class ActionRegistry {
           requestedId != null ? bill.id == requestedId :
           _normalizeCategoryText(bill.title) == _normalizeCategoryText(requestedTitle ?? '')
         ).toList(growable: false);
-        if (matchingBills.length != 1) throw StateError(matchingBills.isEmpty ? 'Home bill not found' : 'Bill title is ambiguous');
+        if (matchingBills.length != 1) {
+          throw AssistantActionException(
+            matchingBills.isEmpty ? 'bill_not_found' : 'bill_ambiguous',
+          );
+        }
         final existing = matchingBills.single;
         final payments = await _bills.paymentsFor(existing.id);
         if (payments.isNotEmpty) {
@@ -706,7 +712,9 @@ final class ActionRegistry {
           (direction == null || debt.direction.name == direction)
         ).toList(growable: false);
         if (matching.length != 1) {
-          throw StateError(matching.isEmpty ? 'Debt not found.' : 'More than one debt matches this party.');
+          throw AssistantActionException(
+            matching.isEmpty ? 'debt_not_found' : 'debt_ambiguous',
+          );
         }
         final payments = await _debts.watchPayments(matching.single.id).first;
         if (payments.isEmpty) return const ActionExecution(message: 'لا توجد دفعات مسجلة لهذا الدين.');
@@ -723,7 +731,9 @@ final class ActionRegistry {
           _normalizeCategoryText(bill.title) == _normalizeCategoryText(title ?? '')
         ).toList(growable: false);
         if (matching.length != 1) {
-          throw StateError(matching.isEmpty ? 'Bill not found.' : 'More than one bill matches this title.');
+          throw AssistantActionException(
+            matching.isEmpty ? 'bill_not_found' : 'bill_ambiguous',
+          );
         }
         final payments = await _bills.paymentsFor(matching.single.id);
         if (payments.isEmpty) return const ActionExecution(message: 'لا توجد دفعات مسجلة لهذه الفاتورة.');
@@ -785,9 +795,9 @@ final class ActionRegistry {
           return true;
         }).toList(growable: false);
         if (matches.length != 1) {
-          throw StateError(matches.isEmpty
-              ? 'Transfer not found'
-              : 'More than one transfer matches; specify the exact date or ID.');
+          throw AssistantActionException(
+            matches.isEmpty ? 'record_not_found' : 'record_ambiguous',
+          );
         }
         final deleted = matches.single;
         await _work.deleteTransfer(deleted.id);
@@ -845,7 +855,11 @@ final class ActionRegistry {
           _normalizeCategoryText(debt.counterparty) == _normalizeCategoryText(counterparty ?? '') &&
           (direction == null || debt.direction.name == direction)
         ).toList(growable: false);
-        if(matches.length != 1) throw StateError(matches.isEmpty ? 'Debt not found' : 'Debt party is ambiguous');
+        if (matches.length != 1) {
+          throw AssistantActionException(
+            matches.isEmpty ? 'debt_not_found' : 'debt_ambiguous',
+          );
+        }
         final deleted = matches.single;
         final payments = await _debts.watchPayments(deleted.id).first;
         if (payments.isNotEmpty) {
@@ -977,6 +991,7 @@ final class ActionRegistry {
     'save_home_bill' => const {
       'title': String, 'kind': String, 'amountMinorUnits': int,
       'year': int, 'month': int, 'date': String, 'id': String, 'note': String,
+      'paidMinorUnits': int, 'remainingMinorUnits': int,
     },
     'delete_home_bill' => const {'id': String, 'billId': String, 'billTitle': String},
     'record_home_bill_payment' => const {
