@@ -95,6 +95,16 @@ class GemmaModelManager extends Notifier<GemmaModelState>
     implements GemmaTurnGenerator {
   static const modelFileName = 'gemma-4-E2B-it.litertlm';
   static const expectedSize = 2588147712;
+
+  /// The download library reports percentage, not bytes. This provides a
+  /// clearly estimated decimal-MB counter for the settings UI.
+  static int estimatedDownloadedMegabytes(double progress) {
+    final safeProgress = progress.clamp(0.0, 100.0);
+    return (expectedSize * safeProgress / 100 / 1000000).round();
+  }
+
+  static int get expectedDownloadMegabytes =>
+      (expectedSize / 1000000).round();
   static const modelRevision =
       'b3ca0d2f076785a8f4b2219ddbd2bdb99954eae1';
   static const expectedSha256 =
