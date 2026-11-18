@@ -47,9 +47,9 @@ void main() {
     expect(darkTokens.sectionSpacing, lightTokens.sectionSpacing);
     expect(darkTokens.inputVerticalPadding, lightTokens.inputVerticalPadding);
     expect(darkTokens.cardPadding, lightTokens.cardPadding);
-    expect(lightTokens.cardRadius, 16);
-    expect(lightTokens.controlRadius, 12);
-    expect(lightTokens.dialogRadius, 20);
+    expect(lightTokens.cardRadius, 24);
+    expect(lightTokens.controlRadius, 999);
+    expect(lightTokens.dialogRadius, 28);
     expect(lightTokens.buttonHeight, 48);
     expect(lightTokens.touchTargetSize, 44);
     expect(lightTokens.navigationBarHeight, 68);

@@ -80,6 +80,7 @@ void main() {
         child: const MyApp(),
       ),
     );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('open-calculator')));
     await tester.pumpAndSettle();
 
@@ -109,6 +110,7 @@ void main() {
         child: const MyApp(),
       ),
     );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('open-calculator')));
     await tester.pumpAndSettle();
 
@@ -145,6 +147,7 @@ void main() {
         child: const MyApp(),
       ),
     );
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('open-calendar')));
     await tester.pumpAndSettle();
@@ -164,6 +167,7 @@ void main() {
         child: const MyApp(),
       ),
     );
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('open-settings')));
     await tester.pumpAndSettle();
@@ -196,6 +200,7 @@ void main() {
         child: const MyApp(),
       ),
     );
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('العمل').last);
     await tester.pumpAndSettle();
