@@ -216,7 +216,10 @@ class SettingsScreen extends ConsumerWidget {
                 controller.setGemmaEnabled(enabled);
                 if (!enabled) {
                   unawaited(
-                    ref.read(gemmaModelManagerProvider.notifier).releaseModel(),
+                    ref
+                        .read(gemmaModelManagerProvider.notifier)
+                        .releaseModel()
+                        .catchError((_) {}),
                   );
                 }
               },
