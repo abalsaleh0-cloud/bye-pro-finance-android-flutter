@@ -3,6 +3,8 @@ import 'package:expense_app/core/providers/app_settings_provider.dart';
 import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:expense_app/core/widgets/app_bottom_navigation_bar.dart';
 import 'package:expense_app/features/settings/presentation/appearance_settings_section.dart';
+import 'package:expense_app/features/settings/presentation/app_security_settings_section.dart';
+import 'package:expense_app/features/settings/presentation/backup_restore_settings_section.dart';
 import 'package:expense_app/features/settings/presentation/gemma_model_settings_section.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -218,6 +220,17 @@ class SettingsScreen extends ConsumerWidget {
             title: strings.settingsData,
             icon: Icons.storage_rounded,
           ),
+          const BackupRestoreSettingsSection(),
+          SizedBox(height: tokens.sectionSpacing + 4),
+          _sectionHeader(
+            context,
+            title: Localizations.localeOf(context).languageCode == 'en'
+                ? 'Security'
+                : 'الأمان',
+            icon: Icons.shield_outlined,
+          ),
+          const AppSecuritySettingsSection(),
+          SizedBox(height: tokens.sectionSpacing + 4),
           Card(
             child: ListTile(
               key: const Key('settings-clear-financial-data'),

@@ -100,11 +100,11 @@ class MainActivity : FlutterActivity() {
         val enabledAlias = when (mode) {
             "dark" -> ComponentName(
                 packageName,
-                "com.byepro.bye_pro_finance.MainActivityDarkIcon"
+                "$packageName.MainActivityDarkIcon"
             )
             "light" -> ComponentName(
                 packageName,
-                "com.byepro.bye_pro_finance.MainActivityLightIcon"
+                "$packageName.MainActivityLightIcon"
             )
             else -> {
                 result.error(
@@ -116,20 +116,22 @@ class MainActivity : FlutterActivity() {
             }
         }
         val disabledAlias = if (mode == "dark") {
-            ComponentName(packageName, "com.byepro.bye_pro_finance.MainActivityLightIcon")
+            ComponentName(packageName, "$packageName.MainActivityLightIcon")
         } else {
-            ComponentName(packageName, "com.byepro.bye_pro_finance.MainActivityDarkIcon")
+            ComponentName(packageName, "$packageName.MainActivityDarkIcon")
         }
 
         try {
-            packageManager.setComponentEnabledSetting(
-                disabledAlias,
-                PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-                PackageManager.DONT_KILL_APP
-            )
+            // Enable the new launcher entry first so the app never has a
+            // moment with no enabled MAIN/LAUNCHER activity.
             packageManager.setComponentEnabledSetting(
                 enabledAlias,
                 PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                PackageManager.DONT_KILL_APP
+            )
+            packageManager.setComponentEnabledSetting(
+                disabledAlias,
+                PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
                 PackageManager.DONT_KILL_APP
             )
             result.success(true)

@@ -10,8 +10,8 @@
     <application
         android:label="Bye Pro Finance"
         android:name="${applicationName}"
-        android:icon="@drawable/ic_launcher"
-        android:roundIcon="@drawable/ic_launcher">
+        android:icon="@drawable/ic_launcher_dark"
+        android:roundIcon="@drawable/ic_launcher_dark">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -26,7 +26,7 @@
                 android:resource="@style/NormalTheme" />
         </activity>
         <activity-alias
-            android:name="com.byepro.bye_pro_finance.MainActivityDarkIcon"
+            android:name="${applicationId}.MainActivityDarkIcon"
             android:targetActivity="com.example.expense_app.MainActivity"
             android:enabled="true"
             android:exported="true"
@@ -38,7 +38,7 @@
             </intent-filter>
         </activity-alias>
         <activity-alias
-            android:name="com.byepro.bye_pro_finance.MainActivityLightIcon"
+            android:name="${applicationId}.MainActivityLightIcon"
             android:targetActivity="com.example.expense_app.MainActivity"
             android:enabled="false"
             android:exported="true"
