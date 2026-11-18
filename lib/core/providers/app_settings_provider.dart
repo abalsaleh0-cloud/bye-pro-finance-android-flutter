@@ -75,14 +75,15 @@ class AppSettingsController extends Notifier<AppSettings> {
     }
   }
 
-  void setThemeMode(ThemeMode mode) {
+  /// Applies the selection immediately and completes only after it is saved.
+  Future<void> setThemeMode(ThemeMode mode) async {
     _revision++;
     state = state.copyWith(themeMode: mode);
-    unawaited(_write('theme_mode', switch (mode) {
+    await _write('theme_mode', switch (mode) {
       ThemeMode.dark => 'dark',
       ThemeMode.light => 'light',
       ThemeMode.system => 'system',
-    }));
+    });
   }
 
   void setLocale(Locale locale) {
