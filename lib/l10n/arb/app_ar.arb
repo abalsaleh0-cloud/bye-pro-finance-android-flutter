@@ -239,5 +239,20 @@
   "aiCopied": "تم نسخ الرسالة",
   "aiUnsupportedAttachment": "يمكن إرفاق الصور وملفات WAV فقط.",
   "aiAttachmentFallback": "مرفق",
-  "assistantClarificationFallback": "يرجى التوضيح."
+  "assistantClarificationFallback": "يرجى التوضيح.",
+  "workTransfersTab": "تحويلات المنزل",
+  "homeIncomingFromWork": "الوارد من العمل",
+  "homeMonthlyRent": "الإيجارات الشهرية",
+  "homeExpenses": "المصروفات",
+  "homeHistory": "السجل",
+  "addMonthlyRent": "إضافة إيجار شهري",
+  "billOrRentName": "اسم الفاتورة أو الإيجار",
+  "addCreditorDebt": "إضافة دين لك (دائن)",
+  "addDebtorDebt": "إضافة دين عليك (مدين)",
+  "homeCategoryChildren": "مستلزمات الأطفال",
+  "homeCategoryEducation": "التعليم",
+  "homeCategoryEntertainment": "الترفيه",
+  "homeCategoryCommunication": "الاتصالات والإنترنت",
+  "homeCategorySubscriptions": "الاشتراكات",
+  "homeCategoryGifts": "الهدايا والمناسبات"
 }
