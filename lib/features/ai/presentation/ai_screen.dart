@@ -700,7 +700,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         title: title,
         amount: amount,
         details: [
-          if (formattedDate != null) formattedDate,
+          ?formattedDate,
           '${strings.billPaid}: $billPaid / $amount',
           '${strings.billRemaining}: $billRemaining',
           if (note.isNotEmpty) note,
