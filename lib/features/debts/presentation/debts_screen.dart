@@ -456,7 +456,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(tokens.controlRadius),
                             child: LinearProgressIndicator(
                               value: progress,
                               minHeight: 7,
