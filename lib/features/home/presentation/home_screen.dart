@@ -364,7 +364,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     controller: amount,
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
-                      labelText: strings.amountMinorUnits,
+                      labelText: strings.calculatorAmount,
                       suffixIcon: calculatorSuffix(context, amount, strings),
                     ),
                   ),
