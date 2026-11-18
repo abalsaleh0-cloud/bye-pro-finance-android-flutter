@@ -745,6 +745,48 @@ void main() {
       expect(result.message, contains('250'));
     });
 
+    test('deletes a home expense by a unique category amount and month and supports undo', () async {
+      final work = WorkRepository(database);
+      await work.saveTransfer(WorkHomeTransfer(
+        id: 'transfer-oct',
+        amount: Money.fromMinorUnits(500),
+        transferredAt: DateTime(2026, 10, 1),
+      ));
+      await work.saveTransfer(WorkHomeTransfer(
+        id: 'transfer-nov',
+        amount: Money.fromMinorUnits(500),
+        transferredAt: DateTime(2026, 11, 1),
+      ));
+      final home = HomeExpenseRepository(database);
+      await home.save(HomeExpense(
+        id: 'expense-oct',
+        amount: Money.fromMinorUnits(50),
+        categoryId: 'groceries',
+        expenseDate: DateTime(2026, 10, 12),
+        dueMonth: MonthKey(year: 2026, month: 10),
+      ));
+      await home.save(HomeExpense(
+        id: 'expense-nov',
+        amount: Money.fromMinorUnits(50),
+        categoryId: 'groceries',
+        expenseDate: DateTime(2026, 11, 12),
+        dueMonth: MonthKey(year: 2026, month: 11),
+      ));
+
+      final deletion = await registry.execute('delete_home_expense', {
+        'categoryId': 'groceries',
+        'amountMinorUnits': 50,
+        'year': 2026,
+        'month': 11,
+      });
+
+      final remaining = await home.watchAll().first;
+      expect(remaining.map((item) => item.id), ['expense-oct']);
+      await deletion.undo!();
+      expect((await home.watchAll().first).map((item) => item.id).toSet(),
+          {'expense-oct', 'expense-nov'});
+    });
+
     test('read-only actions do not expose undo and run without approval metadata', () async {
       final descriptor = registry.descriptor('read_work_remaining')!;
       expect(descriptor.readOnly, isTrue);
