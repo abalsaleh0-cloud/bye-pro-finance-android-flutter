@@ -16,11 +16,17 @@ class HomeBillsSection extends ConsumerWidget {
   final MonthKey? selectedMonth;
   final HomeBillKind? kind;
 
+  DateTime _defaultSelectedDate() {
+    final month = selectedMonth ?? MonthKey(year: DateTime.now().year, month: DateTime.now().month);
+    final now = DateTime.now();
+    final lastDay = DateTime(month.year, month.month + 1, 0).day;
+    return DateTime(month.year, month.month, now.day > lastDay ? lastDay : now.day);
+  }
+
   Future<void> _addBill(BuildContext context, WidgetRef ref, AppLocalizations strings, HomeBillKind kind, {HomeBill? existing}) async {
     final title = TextEditingController(text: existing?.title ?? '');
     final amount = TextEditingController(text: existing?.amount.minorUnits.toString() ?? '');
-    final defaultMonth = selectedMonth ?? MonthKey(year: DateTime.now().year, month: DateTime.now().month);
-    final date = TextEditingController(text: formatCalendarDate(existing?.calendarDate ?? DateTime(defaultMonth.year, defaultMonth.month, DateTime.now().day.clamp(1, DateTime(defaultMonth.year, defaultMonth.month + 1, 0).day))));
+    final date = TextEditingController(text: formatCalendarDate(existing?.calendarDate ?? _defaultSelectedDate()));
     final note = TextEditingController(text: existing?.note ?? '');
     String? error;
     await showDialog<void>(
