@@ -342,6 +342,32 @@ void main() {
       expect(result.command!.parameters['month'], 11);
     });
 
+    test('deletes a work entry using its kind, amount and requested month', () async {
+      final result = await engine.interpret(
+        'احذف راتب 1500 لشهر 2026-11',
+        actions,
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'delete_work_entry');
+      expect(result.command!.parameters['kind'], 'salary');
+      expect(result.command!.parameters['amountMinorUnits'], 1500);
+      expect(result.command!.parameters['year'], 2026);
+      expect(result.command!.parameters['month'], 11);
+    });
+
+    test('deletes a transfer only when its amount and explicit date are supplied', () async {
+      final result = await engine.interpret(
+        'احذف تحويل 250 للمنزل بتاريخ 2026-11-15',
+        actions,
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'delete_work_home_transfer');
+      expect(result.command!.parameters['amountMinorUnits'], 250);
+      expect(result.command!.parameters['date'], '2026-11-15');
+    });
+
     test('does not guess the month when deleting an expense by category and amount', () async {
       final result = await engine.interpret(
         'احذف مصروف البقالة 50',
