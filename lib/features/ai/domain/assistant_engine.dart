@@ -418,11 +418,29 @@ final class FakeAssistantEngine implements AssistantEngine {
           'التصنيفات الأساسية ثابتة. أستطيع تعديل اسم التصنيف المخصص فقط.',
         );
       }
-      final newName = RegExp(
+      final patternedNewName = RegExp(
         r'(?:الى|إلى|ليصبح|لتصبح|باسم|اسم جديد)\s+(.+?)(?=\s+(?:ملاحظة|note)|$)',
         caseSensitive: false,
         unicode: true,
       ).firstMatch(effectiveInput)?.group(1)?.trim();
+      String? lastAssistantQuestion;
+      for (final line in conversationContext.split('\n').toList().reversed) {
+        final trimmed = line.trim();
+        if (trimmed.startsWith('المساعد:')) {
+          lastAssistantQuestion =
+              trimmed.substring('المساعد:'.length).trim();
+          break;
+        }
+      }
+      final isRenameFollowUp = lastAssistantQuestion != null &&
+          _input.containsAny(
+            _input.normalize(lastAssistantQuestion),
+            const ['ما الاسم الجديد للتصنيف'],
+          );
+      final newName = patternedNewName ??
+          (isRenameFollowUp && input.trim().length <= 60
+              ? input.trim()
+              : null);
       if (newName == null || newName.isEmpty) {
         return const AssistantResult.clarification(
           'ما الاسم الجديد للتصنيف؟',
