@@ -115,8 +115,8 @@ class MainActivity : FlutterFragmentActivity() {
         result.success(true)
     }
 
-    override fun onPause() {
-        super.onPause()
+    override fun onStop() {
+        super.onStop()
         applyPendingLauncherIcon()
     }
 
