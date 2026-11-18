@@ -294,7 +294,7 @@ void main() {
       await registry.execute('save_work_home_transfer', {'amountMinorUnits':500, 'date': DateTime.now().toIso8601String()});
       final now = DateTime.now();
       final result = await registry.execute('save_home_expense', {
-        'amountMinorUnits':250,'categoryId':'food','date':now.toIso8601String(),
+        'amountMinorUnits':250,'categoryId':'groceries','date':now.toIso8601String(),
         'year':now.year,'month':now.month,
       });
       expect(await database.select(database.homeExpenses).get(), hasLength(1));
@@ -307,7 +307,7 @@ void main() {
       await registry.execute('save_work_home_transfer', {'amountMinorUnits':500, 'date': DateTime.now().toIso8601String()});
       final now = DateTime.now();
       await registry.execute('save_home_expense', {
-        'amountMinorUnits':250,'categoryId':'food','date':now.toIso8601String(),
+        'amountMinorUnits':250,'categoryId':'groceries','date':now.toIso8601String(),
         'year':now.year,'month':now.month,'id':'h1',
       });
       final result = await registry.execute('delete_home_expense', {'id':'h1'});
@@ -446,6 +446,120 @@ void main() {
       await payment.undo!();
       expect((await HomeBillRepository(database).getBills()).single.remainingMinorUnits, 400);
       expect(await HomeBillRepository(database).paymentsFor('internet-nov'), isEmpty);
+    });
+
+    test('creates, lists and removes a custom category safely', () async {
+      final create = await registry.execute('save_home_category', {
+        'name': 'Office supplies',
+      });
+      final categories = await registry.execute('read_home_categories', {});
+      expect(categories.message, contains('Office supplies'));
+      final saved = (await HomeExpenseCategoryRepository(database).getAll())
+          .singleWhere((item) => item.name == 'Office supplies');
+      final deleted = await registry.execute('delete_home_category', {
+        'name': 'Office supplies',
+      });
+      expect(
+        (await HomeExpenseCategoryRepository(database).getAll())
+            .any((item) => item.id == saved.id),
+        isFalse,
+      );
+      await deleted.undo!();
+      expect(
+        (await HomeExpenseCategoryRepository(database).getAll())
+            .any((item) => item.id == saved.id),
+        isTrue,
+      );
+      await create.undo!();
+    });
+
+    test('lists all home expenses across months when allRecords is requested', () async {
+      await seedWorkCash();
+      await registry.execute('save_work_home_transfer', {
+        'amountMinorUnits': 1000,
+        'date': DateTime.now().toIso8601String(),
+      });
+      await registry.execute('save_home_expense', {
+        'amountMinorUnits': 100,
+        'categoryId': 'groceries',
+        'date': DateTime(2026, 10, 2).toIso8601String(),
+        'year': 2026,
+        'month': 10,
+        'id': 'expense-oct',
+      });
+      await registry.execute('save_home_expense', {
+        'amountMinorUnits': 150,
+        'categoryId': 'utilities',
+        'date': DateTime(2026, 11, 2).toIso8601String(),
+        'year': 2026,
+        'month': 11,
+        'id': 'expense-nov',
+      });
+      final result = await registry.execute('read_home_expenses', {
+        'allRecords': true,
+      });
+      expect(result.message, contains('expense-oct'));
+      expect(result.message, contains('expense-nov'));
+    });
+
+    test('records and reads bill payments by exact bill title', () async {
+      await seedWorkCash();
+      await registry.execute('save_work_home_transfer', {
+        'amountMinorUnits': 1000,
+        'date': DateTime.now().toIso8601String(),
+      });
+      await registry.execute('save_home_bill', {
+        'title': 'Electricity',
+        'kind': 'monthly',
+        'amountMinorUnits': 300,
+        'year': DateTime.now().year,
+        'month': DateTime.now().month,
+        'id': 'bill-by-title',
+      });
+      final payment = await registry.execute('record_home_bill_payment', {
+        'billTitle': 'Electricity',
+        'amountMinorUnits': 75,
+      });
+      expect(payment.message, contains('الفاتورة'));
+      final history = await registry.execute('read_home_bill_payments', {
+        'billTitle': 'Electricity',
+      });
+      expect(history.message, contains('75'));
+      await payment.undo!();
+      expect(
+        await HomeBillRepository(database).paymentsFor('bill-by-title'),
+        isEmpty,
+      );
+    });
+
+    test('records and reads debt payments by exact counterparty', () async {
+      await registry.execute('save_debt', {
+        'amountMinorUnits': 500,
+        'direction': 'debtor',
+        'counterparty': 'Samer',
+        'year': DateTime.now().year,
+        'month': DateTime.now().month,
+        'id': 'debt-by-name',
+      });
+      final payment = await registry.execute('record_debt_payment', {
+        'counterparty': 'Samer',
+        'direction': 'debtor',
+        'amountMinorUnits': 125,
+      });
+      final history = await registry.execute('read_debt_payments', {
+        'counterparty': 'Samer',
+        'direction': 'debtor',
+      });
+      expect(history.message, contains('125'));
+      expect(
+        (await database.select(database.debts).get()).single.outstandingAmountMinorUnits,
+        375,
+      );
+      await payment.undo!();
+      expect(
+        (await database.select(database.debts).get()).single.outstandingAmountMinorUnits,
+        500,
+      );
     });
 
     test('reads work-to-home transfer history', () async {
