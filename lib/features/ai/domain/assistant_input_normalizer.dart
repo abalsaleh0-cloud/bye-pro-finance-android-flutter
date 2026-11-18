@@ -204,7 +204,7 @@ final class AssistantInputNormalizer {
   DateTime? extractDate(String input) {
     final raw = _numbers.normalizeDigits(input);
     final iso = RegExp(
-      r'(?<!\\d)(20\\d{2})[-/.](0?[1-9]|1[0-2])[-/.](0?[1-9]|[12]\\d|3[01])(?!\\d)',
+      r'(?<!\d)(20\d{2})[-/.](0?[1-9]|1[0-2])[-/.](0?[1-9]|[12]\d|3[01])(?!\d)',
     ).firstMatch(raw);
     if (iso != null) {
       return _validDate(
@@ -214,7 +214,7 @@ final class AssistantInputNormalizer {
       );
     }
     final dayFirst = RegExp(
-      r'(?<!\\d)(0?[1-9]|[12]\\d|3[01])[-/.](0?[1-9]|1[0-2])[-/.](20\\d{2})(?!\\d)',
+      r'(?<!\d)(0?[1-9]|[12]\d|3[01])[-/.](0?[1-9]|1[0-2])[-/.](20\d{2})(?!\d)',
     ).firstMatch(raw);
     if (dayFirst != null) {
       return _validDate(
