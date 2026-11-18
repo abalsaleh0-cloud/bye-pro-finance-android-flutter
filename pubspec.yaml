@@ -1,7 +1,7 @@
 name: expense_app
 description: "Personal expenses app built with Flutter."
 publish_to: 'none'
-version: 1.1.72+173
+version: 1.1.73+174
 environment:
   sdk: ^3.14.0
 
@@ -21,7 +21,7 @@ dependencies:
   device_info_plus: ^13.3.0
   local_auth: ^3.0.2
   flutter_secure_storage: ^11.2.0
-  flutter_local_notifications: ^23.0.2
+  flutter_local_notifications: 22.3.3
   timezone: ^0.11.2
   flutter_timezone: ^5.1.1
   share_plus: ^13.3.1
