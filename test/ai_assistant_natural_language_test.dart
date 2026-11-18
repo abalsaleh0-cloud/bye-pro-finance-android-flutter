@@ -539,6 +539,52 @@ void main() {
       expect(result.command!.parameters['year'], 2026);
       expect(result.command!.parameters['month'], 11);
     });
+
+    test('edits a work record using its stable identifier', () async {
+      final result = await engine.interpret(
+        'عدل راتب رقم السجل work_1 بمبلغ 1750 لشهر 2026-11',
+        actions,
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'save_work_entry');
+      expect(result.command!.parameters['id'], 'work_1');
+      expect(result.command!.parameters['kind'], 'salary');
+      expect(result.command!.parameters['amountMinorUnits'], 1750);
+      expect(result.command!.parameters['year'], 2026);
+      expect(result.command!.parameters['month'], 11);
+    });
+
+    test('edits a household expense by identifier and its selected category', () async {
+      final result = await engine.interpret(
+        'عدل مصروف البقالة رقم السجل expense_1 بمبلغ 175 بتاريخ 2026-11-18',
+        actions,
+        expenseCategories: const {'groceries': 'البقالة'},
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'save_home_expense');
+      expect(result.command!.parameters['id'], 'expense_1');
+      expect(result.command!.parameters['categoryId'], 'groceries');
+      expect(result.command!.parameters['amountMinorUnits'], 175);
+      expect(result.command!.parameters['date'], '2026-11-18');
+      expect(result.command!.parameters['year'], 2026);
+      expect(result.command!.parameters['month'], 11);
+    });
+
+    test('edits a work-to-home transfer using its stable identifier', () async {
+      final result = await engine.interpret(
+        'عدل تحويل للبيت رقم التحويل transfer_1 بمبلغ 225',
+        actions,
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'save_work_home_transfer');
+      expect(result.command!.parameters['id'], 'transfer_1');
+      expect(result.command!.parameters['amountMinorUnits'], 225);
+      expect(result.command!.parameters['date'], isA<String>());
+    });
+
   });
 
   });
