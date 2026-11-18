@@ -460,10 +460,15 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     final strings = AppLocalizations.of(context)!;
     setState(() => _busy = true);
     try {
+      final pendingCommand = _confirmation.pending;
       final execution = await _confirmation.approve(
         (command) => _registry().execute(command.name, command.parameters),
       );
       if (execution == null || !mounted) return;
+      if (pendingCommand?.name == 'save_home_category' ||
+          pendingCommand?.name == 'delete_home_category') {
+        ref.invalidate(homeExpenseCategoriesProvider);
+      }
       setState(() => _undo = execution.undo);
       _addAssistantMessage(execution.message);
     } catch (_) {
@@ -484,6 +489,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     try {
       await undo();
       if (mounted) {
+        ref.invalidate(homeExpenseCategoriesProvider);
         setState(() => _undo = null);
         _addAssistantMessage(
           AppLocalizations.of(context)!.assistantUndone,
