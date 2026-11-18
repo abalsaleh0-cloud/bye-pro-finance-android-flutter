@@ -6,20 +6,53 @@ import 'assistant_input_normalizer.dart';
 import 'number_normalizer.dart';
 
 enum AssistantResultKind { command, answer, clarification, notUnderstood }
+
+enum AssistantResultSource { local, gemma }
+
 final class AssistantCommand {
   const AssistantCommand({required this.name, required this.parameters});
   final String name;
   final Map<String,Object?> parameters;
 }
+
 final class AssistantResult {
-  const AssistantResult._(this.kind,{this.command,this.message});
-  const AssistantResult.command(AssistantCommand value):this._(AssistantResultKind.command,command:value);
-  const AssistantResult.answer(String value):this._(AssistantResultKind.answer,message:value);
-  const AssistantResult.clarification(String value):this._(AssistantResultKind.clarification,message:value);
-  const AssistantResult.notUnderstood():this._(AssistantResultKind.notUnderstood);
+  const AssistantResult._(
+    this.kind, {
+    this.command,
+    this.message,
+    this.source = AssistantResultSource.local,
+    this.usedGemmaFallback = false,
+  });
+
+  const AssistantResult.command(AssistantCommand value)
+      : this._(AssistantResultKind.command, command: value);
+  const AssistantResult.answer(String value)
+      : this._(AssistantResultKind.answer, message: value);
+  const AssistantResult.clarification(String value)
+      : this._(AssistantResultKind.clarification, message: value);
+  const AssistantResult.notUnderstood()
+      : this._(AssistantResultKind.notUnderstood);
+
   final AssistantResultKind kind;
   final AssistantCommand? command;
   final String? message;
+  final AssistantResultSource source;
+
+  /// True when Gemma was tried but the local deterministic engine produced
+  /// the result shown to the user.
+  final bool usedGemmaFallback;
+
+  AssistantResult withSource(
+    AssistantResultSource value, {
+    bool usedGemmaFallback = false,
+  }) =>
+      AssistantResult._(
+        kind,
+        command: command,
+        message: message,
+        source: value,
+        usedGemmaFallback: usedGemmaFallback,
+      );
 }
 final class AssistantInputException implements Exception {
   const AssistantInputException(this.message);
@@ -70,13 +103,17 @@ final class FallbackAssistantEngine implements AssistantEngine {
       expenseCategories: expenseCategories,
     );
     if (result.kind != AssistantResultKind.notUnderstood || media != null) {
-      return result;
+      return result.withSource(AssistantResultSource.gemma);
     }
-    return fallback.interpret(
+    final localResult = await fallback.interpret(
       input,
       availableActions,
       conversationContext: conversationContext,
       expenseCategories: expenseCategories,
+    );
+    return localResult.withSource(
+      AssistantResultSource.local,
+      usedGemmaFallback: true,
     );
   }
 
