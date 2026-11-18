@@ -209,11 +209,13 @@ final class GemmaAssistantEngine implements AssistantEngine {
         .join('؛ ');
     final categoryInstruction = categoryCatalog.isEmpty
         ? ''
-        : '\\nالتصنيفات الفعلية المتاحة في هذا التطبيق (المعرّف = الاسم): $categoryCatalog. عند تسجيل مصروف اختر التصنيف المطابق من هذه القائمة، ولا تخترع تصنيفاً أو معرّفاً.';
-    if (context.isEmpty) return '$categoryInstruction\\n$currentText';
-    return 'سياق المحادثة السابق للرجوع إليه لفهم الإحالات واستكمال الحوار فقط:\\n'
-        '$context$categoryInstruction\\n\\n'
-        'رسالة المستخدم الحالية:\\n$currentText';
+        : '\nالتصنيفات الفعلية المتاحة في هذا التطبيق (المعرّف = الاسم): $categoryCatalog. عند تسجيل مصروف اختر التصنيف المطابق من هذه القائمة، ولا تخترع تصنيفاً أو معرّفاً.';
+    if (context.isEmpty) {
+      return categoryCatalog.isEmpty ? currentText : '$categoryInstruction\n$currentText';
+    }
+    return 'سياق المحادثة السابق للرجوع إليه لفهم الإحالات واستكمال الحوار فقط:\n'
+        '$context$categoryInstruction\n\n'
+        'رسالة المستخدم الحالية:\n$currentText';
   }
 
   GemmaFunctionSpec _functionFor(ActionDescriptor descriptor) {
