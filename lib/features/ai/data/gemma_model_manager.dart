@@ -117,7 +117,7 @@ class GemmaModelManager extends Notifier<GemmaModelState>
 افهم الشهر بصيغته الرقمية أو اسمه، مثل 2026-11 أو 11/2026 أو تشرين الثاني أو نوفمبر أو الشهر الحالي أو هالشهر أو الشهر الماضي أو الشهر الجاي. حوّلها إلى السنة ورقم الشهر الصحيحين. لا تفترض تاريخاً عند غياب أي إشارة زمنية.
 ميّز بين السؤال عن الراتب وبين إنشاء راتب، وبين تسجيل الراتب وبين تسجيل دفعة مستلمة منه. عبارة مثل «كم راتبي؟» سؤال قراءة وليست أمراً بالحفظ. وعبارة «استلمت دفعة من راتبي» تعني دفعة مستلمة، لا راتباً جديداً.
 إذا كان الكلام سؤالاً عن قراءة معلومات، استخدم دالة القراءة المناسبة فقط. إذا كان طلباً لتغيير البيانات، لا تختَر دالة كتابة إلا عند وجود قصد واضح للإضافة أو التسجيل أو التعديل أو الحذف أو الدفع أو التحويل.
-لا تخترع مبلغاً أو قسماً أو تاريخاً أو اسماً أو تصنيفاً أو معرّف سجل ناقصاً. إذا نقصت معلومة لازمة، استدعِ ask_clarification بسؤال عربي واحد قصير عن المعلومة الناقصة فقط.
+لا تخترع مبلغاً أو قسماً أو تاريخاً أو اسماً أو تصنيفاً أو معرّف سجل ناقصاً. عند تسجيل دفعة فاتورة، استخدم billTitle بالاسم الحقيقي الذي ذكره المستخدم أو billId إذا كان معروفاً من نتيجة قراءة سابقة. وعند تسجيل دفعة دين أو قراءة سجل دفعاته، استخدم counterparty والاتجاه إذا توفر الاسم؛ لا تطلب معرّفاً داخلياً من المستخدم إذا كان الاسم كافياً لتحديد سجل واحد. إذا تطابق الاسم مع أكثر من سجل، اطلب التوضيح ولا تختر أحدها بالتخمين. إذا نقصت معلومة لازمة، استدعِ ask_clarification بسؤال عربي واحد قصير عن المعلومة الناقصة فقط.
 لا تحسب أي رصيد أو مجموع ولا تعرض أي رقم مالي من عندك؛ التطبيق وحده يقرأ قاعدة البيانات ويحسب النتائج.
 لا تطلب وصولاً مباشراً إلى قاعدة البيانات. عند السؤال عن سجلات المستخدم أو أرصدته، استخدم دوال القراءة المعروضة فقط، ولا تعتمد على أي معلومة مالية خارج نتائجها.
 في الأسئلة العامة، والتحية، وشرح طريقة استخدام التطبيق، أجب بصورة طبيعية ومختصرة بالعربية دون الحاجة إلى استدعاء دالة.
@@ -163,10 +163,12 @@ class GemmaModelManager extends Notifier<GemmaModelState>
   }
 
   Future<void> refresh() async {
+    if (state.status == GemmaModelStatus.downloading) return;
     try {
       // Installation state and file metadata can be checked without loading
       // the multi-platform inference runtime into memory.
       final installed = await FlutterEdgeAi.isModelInstalled(modelFileName);
+      if (state.status == GemmaModelStatus.downloading) return;
       if (!installed) {
         state = const GemmaModelState();
         return;
@@ -267,7 +269,10 @@ class GemmaModelManager extends Notifier<GemmaModelState>
   Future<void> deleteModel() async {
     await releaseModel();
     try {
-      await FlutterEdgeAi.uninstallModel(modelFileName);
+      final installed = await FlutterEdgeAi.isModelInstalled(modelFileName);
+      if (installed) {
+        await FlutterEdgeAi.uninstallModel(modelFileName);
+      }
       await ref
           .read(appDatabaseProvider)
           .writeSetting(_verifiedModelSetting, '');
