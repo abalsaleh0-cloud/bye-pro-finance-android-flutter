@@ -10,16 +10,22 @@ final class AiChatMessage {
     this.text, {
     this.fromUser = false,
     bool? includeInModelContext,
+    this.assistantSource,
   }) : includeInModelContext = includeInModelContext ?? fromUser;
 
   final String text;
   final bool fromUser;
   final bool includeInModelContext;
 
+  /// Source of an assistant reply: gemma, local, or localAfterGemma.
+  /// User messages and app-only status messages leave this null.
+  final String? assistantSource;
+
   Map<String, Object?> toJson() => {
         'text': text,
         'fromUser': fromUser,
         'includeInModelContext': includeInModelContext,
+        if (assistantSource != null) 'assistantSource': assistantSource,
       };
 
   static AiChatMessage? fromJson(Object? value) {
@@ -28,6 +34,8 @@ final class AiChatMessage {
     final fromUser = value['fromUser'];
     if (text is! String || fromUser is! bool) return null;
     final includeInModelContext = value['includeInModelContext'];
+    final assistantSource = value['assistantSource'];
+    const allowedSources = {'gemma', 'local', 'localAfterGemma'};
     return AiChatMessage(
       text,
       fromUser: fromUser,
@@ -35,6 +43,10 @@ final class AiChatMessage {
       includeInModelContext: includeInModelContext is bool
           ? includeInModelContext
           : fromUser,
+      assistantSource: assistantSource is String &&
+              allowedSources.contains(assistantSource)
+          ? assistantSource
+          : null,
     );
   }
 }
