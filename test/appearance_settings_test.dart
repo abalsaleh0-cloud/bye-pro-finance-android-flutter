@@ -37,6 +37,7 @@ void main() {
   setUp(() async {
     await testDatabase.clearFinancialData();
     await testDatabase.customStatement('DELETE FROM app_settings');
+    await testDatabase.writeSetting('welcome_seen', 'true');
   });
 
   tearDownAll(() async {
