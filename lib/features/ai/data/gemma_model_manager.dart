@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:expense_app/features/ai/domain/assistant_engine.dart';
 
@@ -91,7 +92,9 @@ class GemmaModelManager extends Notifier<GemmaModelState>
   static const modelFileName = 'gemma-4-E2B-it.litertlm';
   static const expectedSize = 2588147712;
   static const modelRevision =
-      '6e5c4f1e395deb959c494953478fa5cec4b8008f';
+      'b3ca0d2f076785a8f4b2219ddbd2bdb99954eae1';
+  static const expectedSha256 =
+      '181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c';
   static const modelUrl =
       'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/$modelRevision/$modelFileName';
   static const systemInstruction = '''
@@ -111,7 +114,7 @@ class GemmaModelManager extends Notifier<GemmaModelState>
 إذا كان الكلام سؤالاً عن قراءة معلومات، استخدم دالة القراءة المناسبة فقط. إذا كان طلباً لتغيير البيانات، لا تختَر دالة كتابة إلا عند وجود قصد واضح للإضافة أو التسجيل أو التعديل أو الحذف أو الدفع أو التحويل.
 لا تخترع مبلغاً أو قسماً أو تاريخاً أو اسماً أو تصنيفاً أو معرّف سجل ناقصاً. إذا نقصت معلومة لازمة، استدعِ ask_clarification بسؤال عربي واحد قصير عن المعلومة الناقصة فقط.
 لا تحسب أي رصيد أو مجموع ولا تعرض أي رقم مالي من عندك؛ التطبيق وحده يقرأ قاعدة البيانات ويحسب النتائج.
-لا تطلب ولا تتلقَّ بيانات مالية من قاعدة البيانات.
+لا تطلب وصولاً مباشراً إلى قاعدة البيانات. عند السؤال عن سجلات المستخدم أو أرصدته، استخدم دوال القراءة المعروضة فقط، ولا تعتمد على أي معلومة مالية خارج نتائجها.
 في الأسئلة العامة، والتحية، وشرح طريقة استخدام التطبيق، أجب بصورة طبيعية ومختصرة بالعربية دون الحاجة إلى استدعاء دالة.
 في الأسئلة عن بيانات المستخدم أو سجلاته أو أرصدته أو مبالغه، استخدم دوال القراءة المناسبة. لا تجب عن حقيقة مالية شخصية من الذاكرة أو التخمين.
 إذا كان طلب المستخدم واضحاً، استدعِ الدالة المناسبة. إذا نقصت معلومة لازمة، اسأل سؤالاً عربياً واحداً عنها فقط. إذا كانت العبارة تحتمل أكثر من عملية مالية، لا تختر إحداها بالتخمين.
@@ -209,10 +212,18 @@ class GemmaModelManager extends Notifier<GemmaModelState>
           .install();
 
       final path = await FlutterEdgeAi.getModelPath(modelFileName);
-      final length = await File(path).length();
+      final modelFile = File(path);
+      final length = await modelFile.length();
       if (length != expectedSize) {
         await FlutterEdgeAi.uninstallModel(modelFileName);
         throw StateError('Downloaded model size does not match the pinned size.');
+      }
+      // Stream the multi-gigabyte file through SHA-256 without loading it all
+      // into RAM. A same-size but corrupt file must never be marked ready.
+      final digest = await sha256.bind(modelFile.openRead()).first;
+      if (digest.toString() != expectedSha256) {
+        await FlutterEdgeAi.uninstallModel(modelFileName);
+        throw StateError('Downloaded model SHA-256 does not match the pinned digest.');
       }
       state = const GemmaModelState(
         status: GemmaModelStatus.ready,
