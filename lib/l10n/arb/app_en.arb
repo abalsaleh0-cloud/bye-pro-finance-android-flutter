@@ -164,6 +164,7 @@
   "aiAttachWav": "Attach WAV audio",
   "aiSectionOpened": "Opened section",
   "aiVoiceInput": "Speak now",
+  "aiEmojiPicker": "Choose an emoji",
   "aiVoiceListening": "Listening to your voice…",
   "aiVoiceOfflineUnavailable": "On-device speech recognition is not available on this device.",
   "aiArabicLanguageUnavailable": "An offline Arabic speech recognition model is not installed on this device.",
