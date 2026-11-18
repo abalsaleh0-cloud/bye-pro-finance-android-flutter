@@ -411,7 +411,6 @@ final class GemmaAssistantEngine implements AssistantEngine {
         'counterparty' => 'ما اسم الطرف المعني بالدين؟',
         'categoryId' || 'categoryName' => 'ما تصنيف المصروف؟',
         'name' => 'ما اسم التصنيف الذي تريد إضافته؟',
-        'counterparty' => 'ما اسم صاحب الدين؟',
         'title' => 'ما اسم الفاتورة أو الإيجار؟',
         'billId' => 'أي فاتورة تريد تسجيل الدفعة عليها؟',
         'date' => 'ما تاريخ المصروف؟',
