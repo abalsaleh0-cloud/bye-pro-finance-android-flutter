@@ -206,7 +206,7 @@ final class ActionRegistry {
     if (name == 'save_home_category' && (p['name']! as String).trim().isEmpty) return 'missing category name';
     if (name == 'delete_home_category' && p['id'] == null && p['name'] == null) return 'missing category';
     if (name == 'delete_home_category' && p['name'] is String && (p['name']! as String).trim().isEmpty) return 'missing category';
-    if ((name == 'save_home_expense' || name == 'save_home_bill' || name == 'save_debt' || name == 'save_work_entry' || name == 'record_home_bill_payment' || name == 'record_debt_payment' || name == 'save_work_home_transfer') && p['date'] is String && DateTime.tryParse(p['date']! as String) == null) return 'invalid date';
+    if ((name == 'save_home_expense' || name == 'save_home_bill' || name == 'save_debt' || name == 'save_work_entry' || name == 'record_home_bill_payment' || name == 'record_debt_payment' || name == 'save_work_home_transfer' || name == 'delete_home_expense' || name == 'delete_work_entry' || name == 'delete_work_home_transfer') && p['date'] is String && DateTime.tryParse(p['date']! as String) == null) return 'invalid date';
     if (name == 'save_home_expense' && p['date'] is String && (year != DateTime.parse(p['date']! as String).year || month != DateTime.parse(p['date']! as String).month)) return 'expense date and due month differ';
     if (const {'save_work_entry', 'save_home_bill', 'save_debt'}.contains(name) &&
         p['date'] is String && year is int && month is int) {
