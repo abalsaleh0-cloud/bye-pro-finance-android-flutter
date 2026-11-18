@@ -299,6 +299,7 @@ final class FakeAssistantEngine implements AssistantEngine {
       'اضافة',
       'تسجيل',
       'سدد',
+      'سددت',
       'سداد',
       'تسديد',
       'دفعت',
@@ -1079,7 +1080,7 @@ final class FakeAssistantEngine implements AssistantEngine {
 
   static String? _counterparty(String text) {
     final patterns = <RegExp>[
-      RegExp(r'(?:من\s+)?(?:دين|الدين)\s+(?:(?:عند|لدى|على|ل)\s+)?([\p{L}][\p{L} ]{0,35}?)(?=\s+(?:بمبلغ|بقيمة|مبلغ|اليوم|امس|بتاريخ|ملاحظة|note)|$)', unicode: true),
+      RegExp(r'(?:من\s+)?(?:دين|الدين)\s+(?:(?:عند|لدى|على|ل)\s+)?([\p{L}][\p{L} ]{0,35}?)(?=\s+(?:بمبلغ|بقيمة|مبلغ|اليوم|امس|بتاريخ|ملاحظة|note|من\s+الدين)|$)', unicode: true),
       RegExp(r'(?:مع|لدى|عند|لصالح|ل)\s+([\p{L}][\p{L} ]{0,35}?)(?=\s+(?:بمبلغ|بقيمة|مبلغ|دين|دينا|اليوم|امس|بتاريخ|ملاحظة|note)|$)', unicode: true),
     ];
     for (final pattern in patterns) {
