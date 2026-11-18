@@ -81,8 +81,8 @@ final class ActionRegistry {
     ActionDescriptor('read_home_expenses', {}, readOnly: true),
     ActionDescriptor('read_debts', {}, readOnly: true),
     ActionDescriptor('read_work_transfers', {}, readOnly: true),
-    ActionDescriptor('read_debt_payments', {'debtId'}, readOnly: true),
-    ActionDescriptor('read_home_bill_payments', {'billId'}, readOnly: true),
+    ActionDescriptor('read_debt_payments', {}, readOnly: true),
+    ActionDescriptor('read_home_bill_payments', {}, readOnly: true),
     ActionDescriptor('save_work_home_transfer', {'amountMinorUnits'}),
     ActionDescriptor('delete_work_home_transfer', {}),
     ActionDescriptor('save_debt', {'amountMinorUnits','direction','counterparty','year','month'}),
@@ -824,14 +824,27 @@ final class ActionRegistry {
         if (suppliedId != null && previous == null) {
           throw const AssistantActionException('record_not_found');
         }
+        final originalDate = previous?.transferredAt ?? DateTime.now();
+        final requestedYear = p['year'];
+        final requestedMonth = p['month'];
+        final lastDayOfRequestedMonth =
+            requestedYear is int && requestedMonth is int
+                ? DateTime(requestedYear, requestedMonth + 1, 0).day
+                : originalDate.day;
+        final preservedDay = originalDate.day > lastDayOfRequestedMonth
+            ? lastDayOfRequestedMonth
+            : originalDate.day;
+        final transferDate = p['date'] is String
+            ? DateTime.parse(p['date']! as String)
+            : requestedYear is int && requestedMonth is int
+                ? DateTime(requestedYear, requestedMonth, preservedDay)
+                : originalDate;
         final item = WorkHomeTransfer(
           id: id,
           amount: p['amountMinorUnits'] is int
               ? Money.fromMinorUnits(p['amountMinorUnits']! as int)
               : previous!.amount,
-          transferredAt: p['date'] is String
-              ? DateTime.parse(p['date']! as String)
-              : previous?.transferredAt ?? DateTime.now(),
+          transferredAt: transferDate,
           note: p.containsKey('note') ? p['note'] as String? : previous?.note,
         );
         try {

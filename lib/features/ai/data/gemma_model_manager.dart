@@ -1,13 +1,18 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/features/ai/domain/assistant_engine.dart';
 
 import 'package:expense_app/features/ai/domain/gemma_assistant_engine.dart';
 import 'package:flutter_edge_ai/flutter_edge_ai.dart';
 import 'package:flutter_edge_ai_litertlm/flutter_edge_ai_litertlm.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+int physicalRamMegabytesFromBytes(int physicalRamBytes) =>
+    physicalRamBytes ~/ (1024 * 1024);
 
 bool supportsGemmaMultimodalMemory(int physicalRamMegabytes) =>
     physicalRamMegabytes >= 6 * 1024;
@@ -90,8 +95,21 @@ class GemmaModelManager extends Notifier<GemmaModelState>
     implements GemmaTurnGenerator {
   static const modelFileName = 'gemma-4-E2B-it.litertlm';
   static const expectedSize = 2588147712;
+
+  /// The download library reports percentage, not bytes. This provides a
+  /// clearly estimated decimal-MB counter for the settings UI.
+  static int estimatedDownloadedMegabytes(double progress) {
+    final safeProgress = progress.clamp(0.0, 100.0);
+    return (expectedSize * safeProgress / 100 / 1000000).round();
+  }
+
+  static int get expectedDownloadMegabytes =>
+      (expectedSize / 1000000).round();
   static const modelRevision =
-      '6e5c4f1e395deb959c494953478fa5cec4b8008f';
+      'b3ca0d2f076785a8f4b2219ddbd2bdb99954eae1';
+  static const expectedSha256 =
+      '181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c';
+  static const _verifiedModelSetting = 'gemma_verified_model';
   static const modelUrl =
       'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/$modelRevision/$modelFileName';
   static const systemInstruction = '''
@@ -109,9 +127,9 @@ class GemmaModelManager extends Notifier<GemmaModelState>
 افهم الشهر بصيغته الرقمية أو اسمه، مثل 2026-11 أو 11/2026 أو تشرين الثاني أو نوفمبر أو الشهر الحالي أو هالشهر أو الشهر الماضي أو الشهر الجاي. حوّلها إلى السنة ورقم الشهر الصحيحين. لا تفترض تاريخاً عند غياب أي إشارة زمنية.
 ميّز بين السؤال عن الراتب وبين إنشاء راتب، وبين تسجيل الراتب وبين تسجيل دفعة مستلمة منه. عبارة مثل «كم راتبي؟» سؤال قراءة وليست أمراً بالحفظ. وعبارة «استلمت دفعة من راتبي» تعني دفعة مستلمة، لا راتباً جديداً.
 إذا كان الكلام سؤالاً عن قراءة معلومات، استخدم دالة القراءة المناسبة فقط. إذا كان طلباً لتغيير البيانات، لا تختَر دالة كتابة إلا عند وجود قصد واضح للإضافة أو التسجيل أو التعديل أو الحذف أو الدفع أو التحويل.
-لا تخترع مبلغاً أو قسماً أو تاريخاً أو اسماً أو تصنيفاً أو معرّف سجل ناقصاً. إذا نقصت معلومة لازمة، استدعِ ask_clarification بسؤال عربي واحد قصير عن المعلومة الناقصة فقط.
+لا تخترع مبلغاً أو قسماً أو تاريخاً أو اسماً أو تصنيفاً أو معرّف سجل ناقصاً. عند تسجيل دفعة فاتورة، استخدم billTitle بالاسم الحقيقي الذي ذكره المستخدم أو billId إذا كان معروفاً من نتيجة قراءة سابقة. وعند تسجيل دفعة دين أو قراءة سجل دفعاته، استخدم counterparty والاتجاه إذا توفر الاسم؛ لا تطلب معرّفاً داخلياً من المستخدم إذا كان الاسم كافياً لتحديد سجل واحد. إذا تطابق الاسم مع أكثر من سجل، اطلب التوضيح ولا تختر أحدها بالتخمين. إذا نقصت معلومة لازمة، استدعِ ask_clarification بسؤال عربي واحد قصير عن المعلومة الناقصة فقط.
 لا تحسب أي رصيد أو مجموع ولا تعرض أي رقم مالي من عندك؛ التطبيق وحده يقرأ قاعدة البيانات ويحسب النتائج.
-لا تطلب ولا تتلقَّ بيانات مالية من قاعدة البيانات.
+لا تطلب وصولاً مباشراً إلى قاعدة البيانات. عند السؤال عن سجلات المستخدم أو أرصدته، استخدم دوال القراءة المعروضة فقط، ولا تعتمد على أي معلومة مالية خارج نتائجها.
 في الأسئلة العامة، والتحية، وشرح طريقة استخدام التطبيق، أجب بصورة طبيعية ومختصرة بالعربية دون الحاجة إلى استدعاء دالة.
 في الأسئلة عن بيانات المستخدم أو سجلاته أو أرصدته أو مبالغه، استخدم دوال القراءة المناسبة. لا تجب عن حقيقة مالية شخصية من الذاكرة أو التخمين.
 إذا كان طلب المستخدم واضحاً، استدعِ الدالة المناسبة. إذا نقصت معلومة لازمة، اسأل سؤالاً عربياً واحداً عنها فقط. إذا كانت العبارة تحتمل أكثر من عملية مالية، لا تختر إحداها بالتخمين.
@@ -146,7 +164,10 @@ class GemmaModelManager extends Notifier<GemmaModelState>
 
   @override
   GemmaModelState build() {
-    unawaited(refresh());
+    // Wait until Riverpod has committed the initial state before refresh reads
+    // notifier.state; invoking it directly inside build reads an uninitialized
+    // provider and breaks screens that eagerly watch model status.
+    unawaited(Future<void>.microtask(refresh));
     ref.onDispose(() {
       _idleTimer?.cancel();
       unawaited(releaseModel());
@@ -155,19 +176,30 @@ class GemmaModelManager extends Notifier<GemmaModelState>
   }
 
   Future<void> refresh() async {
+    if (state.status == GemmaModelStatus.downloading) return;
     try {
-      await _ensureNativeInitialized();
+      // Installation state and file metadata can be checked without loading
+      // the multi-platform inference runtime into memory.
       final installed = await FlutterEdgeAi.isModelInstalled(modelFileName);
+      if (state.status == GemmaModelStatus.downloading) return;
       if (!installed) {
         state = const GemmaModelState();
         return;
       }
       final path = await FlutterEdgeAi.getModelPath(modelFileName);
-      final length = await File(path).length();
+      final modelFile = File(path);
+      final length = await modelFile.length();
       if (length != expectedSize) {
         state = const GemmaModelState(
           status: GemmaModelStatus.error,
           error: 'حجم ملف النموذج غير مطابق؛ احتفظ التطبيق بالملف ولم يشغّله. يمكنك حذفه يدوياً بعد التأكد.',
+        );
+        return;
+      }
+      if (!await _verifyAndRememberModel(modelFile)) {
+        state = const GemmaModelState(
+          status: GemmaModelStatus.error,
+          error: 'بصمة ملف Gemma غير مطابقة للنسخة المعتمدة. احذف الملف وأعد تنزيل النموذج.',
         );
         return;
       }
@@ -190,6 +222,7 @@ class GemmaModelManager extends Notifier<GemmaModelState>
       progress: 0,
     );
     try {
+      await _ensureNativeInitialized();
       await FlutterEdgeAi.installModel(
         modelType: ModelType.gemma4,
         fileType: ModelFileType.litertlm,
@@ -209,10 +242,17 @@ class GemmaModelManager extends Notifier<GemmaModelState>
           .install();
 
       final path = await FlutterEdgeAi.getModelPath(modelFileName);
-      final length = await File(path).length();
+      final modelFile = File(path);
+      final length = await modelFile.length();
       if (length != expectedSize) {
         await FlutterEdgeAi.uninstallModel(modelFileName);
         throw StateError('Downloaded model size does not match the pinned size.');
+      }
+      // Stream the multi-gigabyte file through SHA-256 without loading it all
+      // into RAM. A same-size but corrupt file must never be marked ready.
+      if (!await _verifyAndRememberModel(modelFile, forceHash: true)) {
+        await FlutterEdgeAi.uninstallModel(modelFileName);
+        throw StateError('Downloaded model SHA-256 does not match the pinned digest.');
       }
       state = const GemmaModelState(
         status: GemmaModelStatus.ready,
@@ -242,7 +282,13 @@ class GemmaModelManager extends Notifier<GemmaModelState>
   Future<void> deleteModel() async {
     await releaseModel();
     try {
-      await FlutterEdgeAi.uninstallModel(modelFileName);
+      final installed = await FlutterEdgeAi.isModelInstalled(modelFileName);
+      if (installed) {
+        await FlutterEdgeAi.uninstallModel(modelFileName);
+      }
+      await ref
+          .read(appDatabaseProvider)
+          .writeSetting(_verifiedModelSetting, '');
       state = const GemmaModelState();
     } catch (_) {
       state = const GemmaModelState(
@@ -252,12 +298,45 @@ class GemmaModelManager extends Notifier<GemmaModelState>
     }
   }
 
+  Future<bool> _verifyAndRememberModel(
+    File modelFile, {
+    bool forceHash = false,
+  }) async {
+    final modified = await modelFile.lastModified();
+    final verificationMarker =
+        '$expectedSha256:$expectedSize:${modified.millisecondsSinceEpoch}';
+
+    if (!forceHash) {
+      try {
+        final previous = await ref
+            .read(appDatabaseProvider)
+            .readSetting(_verifiedModelSetting);
+        if (previous == verificationMarker) return true;
+      } catch (_) {
+        // A missing/corrupt settings store only means the file must be hashed.
+      }
+    }
+
+    final digest = await sha256.bind(modelFile.openRead()).first;
+    if (digest.toString() != expectedSha256) return false;
+
+    try {
+      await ref
+          .read(appDatabaseProvider)
+          .writeSetting(_verifiedModelSetting, verificationMarker);
+    } catch (_) {
+      // Keep the verified model usable; it will be re-hashed next time.
+    }
+    return true;
+  }
+
   Future<void> _checkMultimodalMemory(AssistantMedia? media) async {
     if (media == null || (!media.hasImage && !media.hasAudio)) {
       return;
     }
     final info = await DeviceInfoPlugin().androidInfo;
-    if (!supportsGemmaMultimodalMemory(info.physicalRamSize)) {
+    final ramMegabytes = physicalRamMegabytesFromBytes(info.physicalRamSize);
+    if (!supportsGemmaMultimodalMemory(ramMegabytes)) {
       throw const AssistantInputException('تحليل الصور والصوت يحتاج هاتفاً بذاكرة RAM لا تقل عن 6GB. يمكنك متابعة المحادثة النصية.');
     }
   }
@@ -268,6 +347,7 @@ class GemmaModelManager extends Notifier<GemmaModelState>
   }) async {
     _idleTimer?.cancel();
     if (_model == null || _model!.isClosed) {
+      await _ensureNativeInitialized();
       _model = await FlutterEdgeAi.getActiveModel(
         // 512 tokens is too small for the system prompt plus the finance tool schemas.
         // Keep a bounded 2K window to avoid the repeated ContextLimitException

@@ -10,6 +10,8 @@ on:
       - feature/task-8-work-home-transfers
       - feature/task-9-monthly-dashboard
       - feature/task-10-debt-payment-history
+      - feature/ai-full-finance-integration
+      - feature/ai-gemma-integration
   pull_request:
 
 permissions:

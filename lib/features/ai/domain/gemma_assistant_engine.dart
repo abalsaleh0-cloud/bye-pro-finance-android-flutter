@@ -53,6 +53,13 @@ final class GemmaAssistantEngine implements AssistantEngine {
   final Duration timeout;
   static const _numbers = NumberNormalizer();
   static const _input = AssistantInputNormalizer();
+  static const _partialUpdateActions = <String>{
+    'save_work_entry',
+    'save_home_expense',
+    'save_home_bill',
+    'save_debt',
+    'save_work_home_transfer',
+  };
 
   @override
   Future<AssistantResult> interpret(
@@ -144,11 +151,26 @@ final class GemmaAssistantEngine implements AssistantEngine {
         return const AssistantResult.notUnderstood();
       }
 
-      final missing = descriptor.requiredParameters
-          .where((key) => normalized[key] == null)
-          .toList(growable: false);
-      if (missing.isNotEmpty) {
-        return AssistantResult.clarification(_questionFor(missing.first));
+      final hasStableId = normalized['id'] is String &&
+          (normalized['id']! as String).trim().isNotEmpty;
+      final isPartialUpdate =
+          hasStableId && _partialUpdateActions.contains(output.name);
+      if (isPartialUpdate) {
+        final editableFields = _propertiesFor(output.name!)
+            .keys
+            .where((key) => key != 'id');
+        if (!editableFields.any(normalized.containsKey)) {
+          return const AssistantResult.clarification(
+            'ما التغيير المطلوب على هذا السجل؟',
+          );
+        }
+      } else {
+        final missing = descriptor.requiredParameters
+            .where((key) => normalized[key] == null)
+            .toList(growable: false);
+        if (missing.isNotEmpty) {
+          return AssistantResult.clarification(_questionFor(missing.first));
+        }
       }
 
       return AssistantResult.command(
@@ -223,7 +245,12 @@ final class GemmaAssistantEngine implements AssistantEngine {
       name: descriptor.name,
       description: _descriptionFor(descriptor.name),
       properties: _propertiesFor(descriptor.name),
-      required: descriptor.requiredParameters.toList()..sort(),
+      // Save tools can represent both creation and record-ID edits. The
+      // engine validates create requirements after the model returns, while
+      // ID edits may supply only the fields the user asked to change.
+      required: _partialUpdateActions.contains(descriptor.name)
+          ? const <String>[]
+          : (descriptor.requiredParameters.toList()..sort()),
     );
   }
 
@@ -240,9 +267,9 @@ final class GemmaAssistantEngine implements AssistantEngine {
         'read_home_expenses' => 'List household daily expenses with identifiers.',
         'read_debts' => 'List debts, counterparties, outstanding amounts, and identifiers.',
         'read_work_transfers' => 'List work-to-home transfers with amounts and dates.',
-        'read_debt_payments' => 'List payment history for the specified debt identifier.',
-        'read_home_bill_payments' => 'List payment history for the specified household bill identifier.',
-        'save_work_home_transfer' => 'Transfer money from work to household.',
+        'read_debt_payments' => 'List payment history for one debt selected by debt ID or an exact unique counterparty name and optional direction.',
+        'read_home_bill_payments' => 'List payment history for one household bill selected by bill ID or an exact unique bill title.',
+        'save_work_home_transfer' => 'Transfer money from work to household. Use date for an exact day or year and month for a month-only date; preserve the original day when editing an existing transfer.',
         'delete_work_home_transfer' => 'Delete one work-to-household transfer by identifier or a unique amount and date/month match.',
         'save_debt' => 'Create a debt record.',
         'delete_debt' => 'Delete one debt by identifier or exact unique counterparty and optional direction.',
@@ -251,6 +278,9 @@ final class GemmaAssistantEngine implements AssistantEngine {
         'read_month_total' => 'Request a section total for a specified month from the app.',
         'read_dashboard_summary' => 'Read the selected-month financial dashboard summary. All figures must be calculated by the app from its stored records; do not estimate or invent values.',
         'navigate_to_section' => 'Open one app section selected by the user without changing financial data.',
+        'read_home_categories' => 'List all existing household expense categories available for selection.',
+        'save_home_category' => 'Create a custom household expense category or rename an existing custom category by ID.',
+        'delete_home_category' => 'Delete an unused custom expense category by ID or exact name; built-in categories are protected.',
         _ => 'Perform an allowed application action.',
       };
 
@@ -334,8 +364,17 @@ final class GemmaAssistantEngine implements AssistantEngine {
       'read_home_categories' => <String, Map<String, Object>>{},
       'save_home_category' => {'name': string, 'id': string},
       'delete_home_category' => {'id': string, 'name': string},
-      'read_debt_payments' => {'debtId': string},
-      'read_home_bill_payments' => {'billId': string},
+      'read_debt_payments' => {
+          'debtId': string,
+          'id': string,
+          'counterparty': string,
+          'direction': {'type': 'string', 'enum': ['creditor', 'debtor']},
+        },
+      'read_home_bill_payments' => {
+          'billId': string,
+          'id': string,
+          'billTitle': string,
+        },
       'save_home_expense' => {
           'amountMinorUnits': integer,
           'categoryId': string,
@@ -350,6 +389,8 @@ final class GemmaAssistantEngine implements AssistantEngine {
           'amountMinorUnits': integer,
           'id': string,
           'date': date,
+          'year': integer,
+          'month': integer,
           'note': note,
         },
       'save_debt' => {

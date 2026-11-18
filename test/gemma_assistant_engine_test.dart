@@ -54,6 +54,135 @@ void main() {
     'read_month_total',
   ];
 
+  group('Gemma action coverage and partial updates', () {
+    test('exposes every registered finance action with a matching schema', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.text(''),
+      );
+      final actionNames = ActionRegistry.descriptors
+          .map((descriptor) => descriptor.name)
+          .toList(growable: false);
+
+      await GemmaAssistantEngine(generator).interpret(
+        'اعرض ملخص الشهر',
+        actionNames,
+      );
+
+      final functions = generator.receivedFunctions!;
+      expect(
+        functions.map((function) => function.name),
+        containsAll([...actionNames, 'ask_clarification']),
+      );
+      for (final descriptor in ActionRegistry.descriptors) {
+        final function = functions.singleWhere(
+          (item) => item.name == descriptor.name,
+        );
+        expect(
+          function.properties.keys,
+          containsAll(descriptor.requiredParameters),
+          reason: 'Schema for ${descriptor.name} must expose every ActionRegistry required parameter',
+        );
+        expect(
+          function.required.every(function.properties.containsKey),
+          isTrue,
+          reason: 'Required fields for ${function.name} must exist in its schema',
+        );
+      }
+      final transfer = functions.singleWhere(
+        (item) => item.name == 'save_work_home_transfer',
+      );
+      expect(transfer.properties.keys, containsAll(['year', 'month', 'date']));
+    });
+
+    test('passes the requested year and month for a new household transfer', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.call('save_work_home_transfer', {
+          'amountMinorUnits': 350,
+          'year': 2026,
+          'month': 10,
+        }),
+      );
+      final result = await GemmaAssistantEngine(generator).interpret(
+        'حوّل 350 إلى المنزل في أكتوبر 2026',
+        ActionRegistry.descriptors.map((descriptor) => descriptor.name).toList(),
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'save_work_home_transfer');
+      expect(result.command!.parameters, {
+        'amountMinorUnits': 350,
+        'year': 2026,
+        'month': 10,
+      });
+    });
+
+    test('allows an edit by ID to provide only the changed field', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.call('save_work_entry', {
+          'id': 'salary-nov',
+          'amountMinorUnits': 1800,
+        }),
+      );
+      final result = await GemmaAssistantEngine(generator).interpret(
+        'عدّل الراتب المحدد واجعله 1800',
+        ActionRegistry.descriptors.map((descriptor) => descriptor.name).toList(),
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'save_work_entry');
+      expect(result.command!.parameters, {
+        'id': 'salary-nov',
+        'amountMinorUnits': 1800,
+      });
+      final saveWork = generator.receivedFunctions!
+          .singleWhere((function) => function.name == 'save_work_entry');
+      expect(saveWork.required, isEmpty);
+    });
+
+    test('still asks for missing fields when creating a new record', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.call('save_work_entry', {
+          'kind': 'salary',
+          'amountMinorUnits': 1200,
+        }),
+      );
+      final result = await GemmaAssistantEngine(generator).interpret(
+        'أضف راتباً بقيمة 1200',
+        ActionRegistry.descriptors.map((descriptor) => descriptor.name).toList(),
+      );
+
+      expect(result.kind, AssistantResultKind.clarification);
+      expect(result.message, contains('الشهر'));
+    });
+
+    test('resolves payment history by unique bill title or debt party', () async {
+      final debtGenerator = _FakeGemmaGenerator(
+        const GemmaModelOutput.call('read_debt_payments', {
+          'counterparty': 'سامر',
+          'direction': 'creditor',
+        }),
+      );
+      final debtResult = await GemmaAssistantEngine(debtGenerator).interpret(
+        'اعرض دفعات الدين عند سامر',
+        ActionRegistry.descriptors.map((descriptor) => descriptor.name).toList(),
+      );
+      expect(debtResult.kind, AssistantResultKind.command);
+      expect(debtResult.command!.parameters['counterparty'], 'سامر');
+
+      final billGenerator = _FakeGemmaGenerator(
+        const GemmaModelOutput.call('read_home_bill_payments', {
+          'billTitle': 'Electricity',
+        }),
+      );
+      final billResult = await GemmaAssistantEngine(billGenerator).interpret(
+        'اعرض دفعات فاتورة الكهرباء',
+        ActionRegistry.descriptors.map((descriptor) => descriptor.name).toList(),
+      );
+      expect(billResult.kind, AssistantResultKind.command);
+      expect(billResult.command!.parameters['billTitle'], 'Electricity');
+    });
+  });
+
   group('GemmaAssistantEngine output validation', () {
     test('forwards image and audio bytes to the turn generator', () async {
       final imageBytes = Uint8List.fromList([1, 2, 3]);
@@ -126,10 +255,16 @@ void main() {
       final functions = generator.receivedFunctions!;
       final debt = functions.singleWhere((item) => item.name == 'read_debt_payments');
       final bill = functions.singleWhere((item) => item.name == 'read_home_bill_payments');
-      expect(debt.properties.keys, contains('debtId'));
-      expect(debt.required, contains('debtId'));
-      expect(bill.properties.keys, contains('billId'));
-      expect(bill.required, contains('billId'));
+      expect(
+        debt.properties.keys,
+        containsAll(['debtId', 'id', 'counterparty', 'direction']),
+      );
+      expect(debt.required, isEmpty);
+      expect(
+        bill.properties.keys,
+        containsAll(['billId', 'id', 'billTitle']),
+      );
+      expect(bill.required, isEmpty);
     });
 
     test('keeps Gemma deletion tool schemas aligned with local safe match fields', () async {

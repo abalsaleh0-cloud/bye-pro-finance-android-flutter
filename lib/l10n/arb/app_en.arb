@@ -261,5 +261,6 @@
   "assistantHomeBalanceInsufficient": "The household balance available is not sufficient to record or edit this expense.",
   "assistantBillCommitmentNotAvailable": "The bill cannot be changed because the household's outstanding bills and commitments would exceed its available balance.",
   "assistantHomeCommitmentNotCovered": "The transfer cannot be moved because the original month would no longer have enough household balance to cover expenses and outstanding bills.",
-  "personName": "Person name"
+  "personName": "Person name",
+  "gemmaNotificationPermissionDenied": "Notification permission was not granted. The download may continue in the background, but its progress notification may not appear in the notification shade."
 }
