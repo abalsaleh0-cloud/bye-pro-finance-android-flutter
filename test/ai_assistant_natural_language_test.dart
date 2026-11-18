@@ -2,7 +2,7 @@ import 'package:expense_app/features/ai/domain/assistant_engine.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  const engine = FakeAssistantEngine();
+  const engine = LocalRuleAssistantEngine();
   const actions = [
     'read_work_remaining',
     'read_month_total',
