@@ -155,7 +155,7 @@
   "gemmaInferenceExplanation": "This test loads the model and requires it to generate a real on-device response. It does more than verify that the model file exists and is intact.",
   "gemmaNotDownloaded": "Model not downloaded",
   "gemmaDownloading": "Downloading model",
-  "gemmaReady": "Model file verified (runtime not yet proven)",
+  "gemmaReady": "Model file verified",
   "gemmaError": "Model error",
   "gemmaDownloadModel": "Download model",
   "gemmaResumeDownload": "Retry download",
