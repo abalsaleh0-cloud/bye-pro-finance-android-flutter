@@ -73,13 +73,47 @@ void main() {
         functions.map((function) => function.name),
         containsAll([...actionNames, 'ask_clarification']),
       );
-      for (final function in functions) {
+      for (final descriptor in ActionRegistry.descriptors) {
+        final function = functions.singleWhere(
+          (item) => item.name == descriptor.name,
+        );
+        expect(
+          function.properties.keys,
+          containsAll(descriptor.requiredParameters),
+          reason: 'Schema for ${descriptor.name} must expose every ActionRegistry required parameter',
+        );
         expect(
           function.required.every(function.properties.containsKey),
           isTrue,
           reason: 'Required fields for ${function.name} must exist in its schema',
         );
       }
+      final transfer = functions.singleWhere(
+        (item) => item.name == 'save_work_home_transfer',
+      );
+      expect(transfer.properties.keys, containsAll(['year', 'month', 'date']));
+    });
+
+    test('passes the requested year and month for a new household transfer', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.call('save_work_home_transfer', {
+          'amountMinorUnits': 350,
+          'year': 2026,
+          'month': 10,
+        }),
+      );
+      final result = await GemmaAssistantEngine(generator).interpret(
+        'حوّل 350 إلى المنزل في أكتوبر 2026',
+        ActionRegistry.descriptors.map((descriptor) => descriptor.name).toList(),
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'save_work_home_transfer');
+      expect(result.command!.parameters, {
+        'amountMinorUnits': 350,
+        'year': 2026,
+        'month': 10,
+      });
     });
 
     test('allows an edit by ID to provide only the changed field', () async {
