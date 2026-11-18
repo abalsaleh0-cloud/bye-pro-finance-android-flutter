@@ -164,6 +164,7 @@
   "aiAttachWav": "إرفاق ملف صوتي WAV",
   "aiSectionOpened": "تم فتح القسم",
   "aiVoiceInput": "تحدث الآن",
+  "aiEmojiPicker": "اختيار رمز تعبيري",
   "aiVoiceListening": "جارٍ الاستماع إلى كلامك…",
   "aiVoiceOfflineUnavailable": "التعرّف الصوتي المحلي غير متاح على هذا الجهاز.",
   "aiArabicLanguageUnavailable": "حزمة التعرّف الصوتي العربية المحلية غير مثبّتة على الجهاز.",
