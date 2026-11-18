@@ -49,21 +49,6 @@ class AppSettingsController extends Notifier<AppSettings> {
       ]);
       if (_revision != 0) return;
 
-      // Remove obsolete palette-engine preferences while preserving the
-      // selected Light/Dark/System mode and all financial records.
-      try {
-        await database.customStatement(
-          "DELETE FROM app_settings "
-          "WHERE setting_key IN ('theme_id', 'custom_themes', 'appearance_preset')",
-        );
-      } catch (_) {
-        // Theme cleanup must never prevent restoring language or app mode.
-      }
-
-      // The cleanup above is asynchronous. A user may change appearance while
-      // it runs, so re-check the revision before applying the older snapshot.
-      if (_revision != 0) return;
-
       state = AppSettings(
         themeMode: switch (values[0]) {
           'dark' => ThemeMode.dark,
