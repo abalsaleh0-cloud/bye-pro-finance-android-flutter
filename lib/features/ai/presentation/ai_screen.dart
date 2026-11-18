@@ -520,13 +520,6 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     if (section != null && mounted) context.go(section, extra: true);
   }
 
-  String? _displayDate(Object? rawDate) {
-    if (rawDate is! String) return null;
-    final date = DateTime.tryParse(rawDate);
-    if (date == null) return null;
-    return MaterialLocalizations.of(context).formatMediumDate(date);
-  }
-
   String? _kindName(Object? rawKind, AppLocalizations strings) {
     if (rawKind is! String) return null;
     return switch (rawKind) {
@@ -596,7 +589,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       if (command.name == 'record_home_bill_payment' &&
           parameters['billTitle'] is String)
         parameters['billTitle']! as String,
-      if (formattedDate != null) formattedDate,
+      ?formattedDate,
       if (kind is String && _kindName(kind, strings) != null)
         _kindName(kind, strings)!,
       if (isDebt) '${strings.originalAmount}: $amount',
@@ -728,6 +721,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     _ => Icons.shopping_cart_outlined,
   };
 
+  @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
     final pending = _confirmation.pending;
