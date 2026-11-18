@@ -366,8 +366,11 @@ final class FakeAssistantEngine implements AssistantEngine {
 
     final amount = _input.extractAmount(effectiveInput);
     final explicitDate = _input.extractDate(effectiveInput) ?? _extractRelativeDate(has);
-    final requestedMonth = _input.extractMonth(effectiveInput) ??
-        (explicitDate == null ? null : (explicitDate.year, explicitDate.month));
+    // A fully specified date is the source of truth for its month. This
+    // avoids silently moving an explicit date to a separately mentioned month.
+    final requestedMonth = explicitDate == null
+        ? _input.extractMonth(effectiveInput)
+        : (explicitDate.year, explicitDate.month);
     final operationDate = requestedMonth == null
         ? explicitDate
         : (explicitDate != null && explicitDate.year == requestedMonth.$1 &&
