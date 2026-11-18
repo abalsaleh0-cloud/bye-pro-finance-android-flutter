@@ -365,6 +365,14 @@ final class ActionRegistry {
     }
 
     hydrated.addAll(parameters);
+    final explicitDate = parameters['date'];
+    if (explicitDate is String && parameters['year'] == null &&
+        parameters['month'] == null &&
+        const {'save_work_entry', 'save_home_bill', 'save_debt'}.contains(name)) {
+      final changedDate = DateTime.parse(explicitDate);
+      hydrated['year'] = changedDate.year;
+      hydrated['month'] = changedDate.month;
+    }
     final year = parameters['year'];
     final month = parameters['month'];
     if (year is int && month is int && parameters['date'] == null &&
