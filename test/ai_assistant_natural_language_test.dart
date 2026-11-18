@@ -246,6 +246,30 @@ void main() {
       expect(removed.command!.parameters['name'], 'لوازم المكتب');
     });
 
+    test('renames a custom category while preserving its stable ID', () async {
+      final result = await engine.interpret(
+        'عدل تصنيف لوازم المكتب إلى تجهيزات مكتبية',
+        actions,
+        expenseCategories: const {'custom_office': 'لوازم المكتب'},
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'save_home_category');
+      expect(result.command!.parameters['id'], 'custom_office');
+      expect(result.command!.parameters['name'], 'تجهيزات مكتبية');
+    });
+
+    test('does not rename a built-in localized category', () async {
+      final result = await engine.interpret(
+        'عدل تصنيف البقالة إلى الطعام',
+        actions,
+        expenseCategories: const {'groceries': 'البقالة'},
+      );
+
+      expect(result.kind, AssistantResultKind.clarification);
+      expect(result.message, contains('التصنيفات الأساسية'));
+    });
+
     test('accepts a custom category as a clarification answer', () async {
       const context = 'المستخدم: سجل مصروف البيت 45 هذا الشهر\n'
           'المساعد: ما تصنيف المصروف؟ مثل الطعام أو الكهرباء أو المواصلات.';
