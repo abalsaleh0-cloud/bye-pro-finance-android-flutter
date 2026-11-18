@@ -66,7 +66,7 @@ final class ActionRegistry {
     ActionDescriptor('read_home_categories', {}, readOnly: true),
     ActionDescriptor('save_home_category', {'name'}),
     ActionDescriptor('delete_home_category', {}),
-    ActionDescriptor('delete_home_expense', {'id'}),
+    ActionDescriptor('delete_home_expense', {}),
     ActionDescriptor('save_home_bill', {'title','kind','amountMinorUnits','year','month'}),
     ActionDescriptor('delete_home_bill', {}),
     ActionDescriptor('record_home_bill_payment', {'amountMinorUnits'}),
@@ -138,6 +138,11 @@ final class ActionRegistry {
     if (name == 'save_home_bill' && (p['title']! as String).trim().isEmpty) return 'missing bill title';
     if (name == 'record_home_bill_payment' &&
         (p['billId'] == null && p['billTitle'] == null)) return 'missing bill';
+    if (name == 'delete_home_expense' && p['id'] == null &&
+        ((p['categoryId'] == null && p['categoryName'] == null) ||
+            p['amountMinorUnits'] == null)) {
+      return 'expense deletion needs an ID or a unique category and amount';
+    }
     if ((name == 'read_home_bill_payments' || name == 'delete_home_bill') &&
         p['billId'] == null && p['billTitle'] == null && p['id'] == null) {
       return 'missing bill';
@@ -260,9 +265,52 @@ final class ActionRegistry {
         final expenseDate = DateTime.parse(p['date']! as String);
         final item=HomeExpense(id:id,amount:Money.fromMinorUnits(p['amountMinorUnits']! as int),categoryId:selectedCategory.id,expenseDate:expenseDate,dueMonth:MonthKey(year:expenseDate.year,month:expenseDate.month),note:p.containsKey('note') ? p['note'] as String? : previous?.note);
         await _home.save(item); return ActionExecution(message:'تم حفظ مصروف المنزل',undo:() async { if(previous==null) { await _home.delete(id); } else { await _home.save(previous); } });
-      case 'delete_home_expense':
-        final all=await _home.watchAll().first; HomeExpense? old; for(final e in all) { if(e.id==p['id']) old=e; }
-        if(old==null) throw StateError('Home expense not found'); final deleted = old; await _home.delete(deleted.id); return ActionExecution(message:'تم حذف مصروف المنزل',undo:()=>_home.save(deleted));
+      case 'delete_home_expense': {
+        final requestedId = p['id'] as String?;
+        final categoryId = p['categoryId'] as String?;
+        final categoryName = p['categoryName'] as String?;
+        final categories = await _categories.getAll();
+        final category = categories.where((item) =>
+          item.id == categoryId ||
+          (categoryName != null &&
+            _normalizeCategoryText(_categoryLabel(item)) ==
+                _normalizeCategoryText(categoryName))
+        ).firstOrNull;
+        if (requestedId == null && category == null) {
+          throw StateError('The requested expense category was not found.');
+        }
+        final date = p['date'] is String
+            ? DateTime.parse(p['date']! as String)
+            : null;
+        final month = p['year'] is int && p['month'] is int
+            ? MonthKey(year: p['year']! as int, month: p['month']! as int)
+            : null;
+        final matches = (await _home.watchAll().first).where((expense) {
+          if (requestedId != null) return expense.id == requestedId;
+          if (expense.categoryId != category!.id) return false;
+          if (p['amountMinorUnits'] is int &&
+              expense.amount.minorUnits != p['amountMinorUnits']) return false;
+          if (month != null && expense.dueMonth != month) return false;
+          if (date != null) {
+            final savedDate = expense.expenseDate.toLocal();
+            if (savedDate.year != date.year ||
+                savedDate.month != date.month ||
+                savedDate.day != date.day) return false;
+          }
+          return true;
+        }).toList(growable: false);
+        if (matches.length != 1) {
+          throw StateError(matches.isEmpty
+              ? 'Home expense not found'
+              : 'More than one expense matches; specify the month/date or ID.');
+        }
+        final deleted = matches.single;
+        await _home.delete(deleted.id);
+        return ActionExecution(
+          message: 'تم حذف مصروف المنزل',
+          undo: () => _home.save(deleted),
+        );
+      }
       case 'save_home_bill':
         final id = p['id'] as String? ?? _id();
         final existing = (await _bills.getBills()).where((bill) => bill.id == id).firstOrNull;
@@ -573,8 +621,12 @@ final class ActionRegistry {
       'kind': String, 'amountMinorUnits': int, 'year': int, 'month': int,
       'date': String, 'id': String, 'note': String,
     },
-    'delete_work_entry' || 'delete_home_expense' || 'delete_work_home_transfer' =>
+    'delete_work_entry' || 'delete_work_home_transfer' =>
       const {'id': String},
+    'delete_home_expense' => const {
+      'id': String, 'categoryId': String, 'categoryName': String,
+      'amountMinorUnits': int, 'date': String, 'year': int, 'month': int,
+    },
     'delete_debt' => const {
       'id': String, 'debtId': String, 'counterparty': String, 'direction': String,
     },
