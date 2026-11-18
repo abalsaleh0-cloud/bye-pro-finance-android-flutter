@@ -253,6 +253,7 @@
   "assistantBillAmbiguous": "وجدت أكثر من فاتورة بهذا الاسم. حدّد الشهر أو معرّف الفاتورة.",
   "assistantDebtAmbiguous": "وجدت أكثر من دين بهذا الاسم. حدّد اتجاه الدين (دائن أو مدين) أو معرّف السجل.",
   "assistantRecordNotFound": "لم أجد السجل المحدد. تحقق من معرّف السجل.",
+  "assistantRecordAmbiguous": "وجدت أكثر من سجل مطابق. حدّد تاريخ العملية أو الشهر أو معرّف السجل.",
   "assistantBillPaymentNotAvailable": "تعذر تسجيل الدفعة لأن المبلغ يتجاوز المتبقي من الفاتورة أو الرصيد المتاح.",
   "assistantDebtPaymentExceedsBalance": "مبلغ الدفعة أكبر من المبلغ المتبقي من الدين.",
   "assistantDebtAmountBelowPaid": "لا يمكن تخفيض أصل الدين إلى أقل من مجموع دفعاته المسجلة.",
