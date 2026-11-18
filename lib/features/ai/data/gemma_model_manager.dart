@@ -68,12 +68,16 @@ class GemmaModelState {
     this.progress = 0,
     this.error,
     this.cancelled = false,
+    this.installed = false,
   });
 
   final GemmaModelStatus status;
   final double progress;
   final String? error;
   final bool cancelled;
+  /// True only when the model registry reports an installed model file.
+  /// This prevents showing a destructive delete action after a plain download error. 
+  final bool installed;
 
   GemmaModelState copyWith({
     GemmaModelStatus? status,
@@ -81,12 +85,14 @@ class GemmaModelState {
     String? error,
     bool clearError = false,
     bool? cancelled,
+    bool? installed,
   }) {
     return GemmaModelState(
       status: status ?? this.status,
       progress: progress ?? this.progress,
       error: clearError ? null : error ?? this.error,
       cancelled: cancelled ?? this.cancelled,
+      installed: installed ?? this.installed,
     );
   }
 }
@@ -175,12 +181,20 @@ class GemmaModelManager extends Notifier<GemmaModelState>
     return const GemmaModelState();
   }
 
+  String _describeError(Object error) {
+    final detail = error.toString().replaceAll(RegExp(r'\\s+'), ' ').trim();
+    if (detail.isEmpty) return error.runtimeType.toString();
+    final bounded = detail.length > 220 ? '${detail.substring(0, 220)}…' : detail;
+    return '${error.runtimeType}: $bounded';
+  }
+
   Future<void> refresh() async {
     if (state.status == GemmaModelStatus.downloading) return;
+    var installed = false;
     try {
       // Installation state and file metadata can be checked without loading
       // the multi-platform inference runtime into memory.
-      final installed = await FlutterEdgeAi.isModelInstalled(modelFileName);
+      installed = await FlutterEdgeAi.isModelInstalled(modelFileName);
       if (state.status == GemmaModelStatus.downloading) return;
       if (!installed) {
         state = const GemmaModelState();
@@ -192,22 +206,29 @@ class GemmaModelManager extends Notifier<GemmaModelState>
       if (length != expectedSize) {
         state = const GemmaModelState(
           status: GemmaModelStatus.error,
-          error: 'حجم ملف النموذج غير مطابق؛ احتفظ التطبيق بالملف ولم يشغّله. يمكنك حذفه يدوياً بعد التأكد.',
+          error: 'حجم ملف النموذج غير مطابق؛ لم يتم تشغيله. لا تحذف الملف قبل مراجعة سبب المشكلة.',
+          installed: true,
         );
         return;
       }
       if (!await _verifyAndRememberModel(modelFile)) {
         state = const GemmaModelState(
           status: GemmaModelStatus.error,
-          error: 'بصمة ملف Gemma غير مطابقة للنسخة المعتمدة. احذف الملف وأعد تنزيل النموذج.',
+          error: 'بصمة ملف Gemma غير مطابقة للنسخة المعتمدة. لم يتم تشغيل الملف.',
+          installed: true,
         );
         return;
       }
-      state = const GemmaModelState(status: GemmaModelStatus.ready, progress: 100);
-    } catch (_) {
       state = const GemmaModelState(
+        status: GemmaModelStatus.ready,
+        progress: 100,
+        installed: true,
+      );
+    } catch (error) {
+      state = GemmaModelState(
         status: GemmaModelStatus.error,
-        error: 'تعذر التحقق من ملف النموذج.',
+        installed: installed,
+        error: 'تعذر التحقق من ملف النموذج. التفاصيل: ${_describeError(error)}',
       );
     }
   }
@@ -216,10 +237,12 @@ class GemmaModelManager extends Notifier<GemmaModelState>
     if (state.status == GemmaModelStatus.downloading) {
       return;
     }
+    final previouslyInstalled = state.installed;
     _cancelToken = CancelToken();
-    state = const GemmaModelState(
+    state = GemmaModelState(
       status: GemmaModelStatus.downloading,
       progress: 0,
+      installed: previouslyInstalled,
     );
     try {
       await _ensureNativeInitialized();
@@ -257,17 +280,20 @@ class GemmaModelManager extends Notifier<GemmaModelState>
       state = const GemmaModelState(
         status: GemmaModelStatus.ready,
         progress: 100,
+        installed: true,
       );
     } catch (error) {
       if (CancelToken.isCancel(error)) {
-        state = const GemmaModelState(
+        state = GemmaModelState(
           status: GemmaModelStatus.notDownloaded,
           cancelled: true,
+          installed: previouslyInstalled,
         );
       } else {
-        state = const GemmaModelState(
+        state = GemmaModelState(
           status: GemmaModelStatus.error,
-          error: 'فشل تنزيل النموذج أو التحقق منه. لم يتم تفعيله.',
+          installed: previouslyInstalled,
+          error: 'فشل تنزيل النموذج أو التحقق منه. التفاصيل: ${_describeError(error)}',
         );
       }
     } finally {
