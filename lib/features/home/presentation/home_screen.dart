@@ -635,7 +635,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
     ref.listen<int>(homeAddRequestProvider, (previous, next) {
-      if (widget.swipePage || widget.mode != HomeScreenMode.overview || next <= (previous ?? 0)) return;
+      if (widget.swipePage || widget.mode != HomeScreenMode.overview || next <= (previous ?? 0)) {
+        return;
+      }
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           _showHomeAddOptions(context, ref, strings);
