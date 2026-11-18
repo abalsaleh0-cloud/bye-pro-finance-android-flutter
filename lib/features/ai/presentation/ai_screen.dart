@@ -55,6 +55,7 @@ class AiScreen extends ConsumerStatefulWidget {
 
 class _AiScreenState extends ConsumerState<AiScreen> {
   final _input = TextEditingController();
+  final _scrollController = ScrollController();
   final AssistantConfirmation _confirmation = AssistantConfirmation();
   UndoOperation? _undo;
   bool _busy = false;
@@ -73,6 +74,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   @override
   void dispose() {
     _input.dispose();
+    _scrollController.dispose();
     if (_recognizing) {
       unawaited(_voiceService.cancelArabicSpeechRecognition());
     }
@@ -233,12 +235,258 @@ class _AiScreenState extends ConsumerState<AiScreen> {
 
   bool _isValidWav(Uint8List bytes) => isValidGemmaWavAudio(bytes);
 
+  void _scheduleScrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) return;
+      final position = _scrollController.position;
+      if (!position.hasContentDimensions) return;
+      _scrollController
+          .animateTo(
+            position.maxScrollExtent,
+            duration: const Duration(milliseconds: 240),
+            curve: Curves.easeOutCubic,
+          )
+          .catchError((Object _) {});
+    });
+  }
+
   void _addAssistantMessage(
     String text, {
     bool includeInModelContext = false,
   }) {
-    ref.read(aiChatMessagesProvider.notifier).add(
+    ref.read(aiChatWorkspaceProvider.notifier).add(
       AiChatMessage(text, includeInModelContext: includeInModelContext),
+    );
+    _scheduleScrollToBottom();
+  }
+
+  void _startNewConversation() {
+    if (_busy || _recognizing) return;
+    ref.read(aiChatWorkspaceProvider.notifier).newConversation();
+    setState(() {
+      _confirmation.cancel();
+      _undo = null;
+      _attachmentBytes = null;
+      _attachmentName = null;
+      _input.clear();
+    });
+    _scheduleScrollToBottom();
+  }
+
+  Future<void> _showConversationHistory() async {
+    if (_busy) return;
+    final strings = AppLocalizations.of(context)!;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => FractionallySizedBox(
+        heightFactor: 0.72,
+        child: Consumer(
+          builder: (context, sheetRef, _) {
+            final workspace = sheetRef.watch(aiChatWorkspaceProvider);
+            final conversations = workspace.conversations;
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsetsDirectional.fromSTEB(16, 4, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            strings.aiConversationHistory,
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: strings.cancel,
+                          onPressed: () => Navigator.pop(sheetContext),
+                          icon: const Icon(Icons.close_rounded),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    if (conversations.isEmpty)
+                      Expanded(
+                        child: Center(
+                          child: Text(
+                            strings.aiNoConversations,
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      )
+                    else
+                      Expanded(
+                        child: ListView.separated(
+                          itemCount: conversations.length,
+                          separatorBuilder: (_, _) => const Divider(height: 1),
+                          itemBuilder: (context, index) {
+                            final conversation = conversations[index];
+                            final isActive =
+                                conversation.id == workspace.activeConversationId;
+                            final date = toAsciiDigits(
+                              MaterialLocalizations.of(context)
+                                  .formatMediumDate(conversation.updatedAt),
+                            );
+                            return ListTile(
+                              selected: isActive,
+                              leading: Icon(
+                                isActive
+                                    ? Icons.chat_bubble_rounded
+                                    : Icons.chat_bubble_outline_rounded,
+                              ),
+                              title: Text(
+                                conversation.title.isEmpty
+                                    ? strings.aiNewConversation
+                                    : conversation.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              subtitle: Text(
+                                '$date · ${conversation.messages.length} ${strings.aiMessagesCount}',
+                              ),
+                              trailing: IconButton(
+                                tooltip: strings.aiDeleteConversation,
+                                onPressed: () async {
+                                  final accepted = await showDialog<bool>(
+                                    context: context,
+                                    builder: (dialogContext) => AlertDialog(
+                                      title: Text(strings.aiDeleteConversation),
+                                      content: Text(
+                                        strings.aiDeleteConversationWarning,
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(
+                                            dialogContext,
+                                            false,
+                                          ),
+                                          child: Text(strings.cancel),
+                                        ),
+                                        FilledButton(
+                                          onPressed: () => Navigator.pop(
+                                            dialogContext,
+                                            true,
+                                          ),
+                                          child: Text(strings.delete),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  if (accepted == true) {
+                                    final wasActive = isActive;
+                                    sheetRef
+                                        .read(aiChatWorkspaceProvider.notifier)
+                                        .deleteConversation(conversation.id);
+                                    if (wasActive && mounted) {
+                                      setState(() {
+                                        _confirmation.cancel();
+                                        _undo = null;
+                                        _attachmentBytes = null;
+                                        _attachmentName = null;
+                                        _input.clear();
+                                      });
+                                      _scheduleScrollToBottom();
+                                    }
+                                  }
+                                },
+                                icon: const Icon(Icons.delete_outline_rounded),
+                              ),
+                              onTap: () {
+                                sheetRef
+                                    .read(aiChatWorkspaceProvider.notifier)
+                                    .selectConversation(conversation.id);
+                                Navigator.pop(sheetContext);
+                                if (mounted) {
+                                  setState(() {
+                                    _confirmation.cancel();
+                                    _undo = null;
+                                    _attachmentBytes = null;
+                                    _attachmentName = null;
+                                    _input.clear();
+                                  });
+                                  _scheduleScrollToBottom();
+                                }
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _conversationToolbar(
+    AiChatWorkspaceState workspace,
+    AppLocalizations strings,
+    AppDesignTokens tokens,
+  ) {
+    final active = workspace.activeConversation;
+    final title = active == null || active.title.isEmpty
+        ? strings.aiNewConversation
+        : active.title;
+    return Padding(
+      padding: EdgeInsetsDirectional.fromSTEB(
+        tokens.pageHorizontalPadding,
+        6,
+        tokens.pageHorizontalPadding,
+        8,
+      ),
+      child: Container(
+        padding: const EdgeInsetsDirectional.fromSTEB(14, 8, 6, 8),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(tokens.cardRadius),
+          border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.forum_outlined),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${active?.messages.length ?? 0} ${strings.aiMessagesCount}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              tooltip: strings.aiConversationHistory,
+              onPressed: _busy ? null : _showConversationHistory,
+              icon: const Icon(Icons.history_rounded),
+            ),
+            IconButton(
+              tooltip: strings.aiNewConversation,
+              onPressed: _busy ? null : _startNewConversation,
+              icon: const Icon(Icons.add_comment_outlined),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -408,12 +656,12 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         ? text
         : '$text\\n[$attachmentLabel: ${_attachmentName ?? strings.aiAttachmentFallback}]';
     final conversationContext = buildAiConversationContext(
-      ref.read(aiChatMessagesProvider),
+      ref.read(aiChatWorkspaceProvider).messages,
     );
 
     setState(() {
       _busy = true;
-      ref.read(aiChatMessagesProvider.notifier).add(
+      ref.read(aiChatWorkspaceProvider.notifier).add(
         AiChatMessage(displayedText, fromUser: true),
       );
       _input.clear();
@@ -830,7 +1078,12 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
     final pending = _confirmation.pending;
-    final messages = ref.watch(aiChatMessagesProvider);
+    final workspace = ref.watch(aiChatWorkspaceProvider);
+    final messages = workspace.messages;
+    ref.listen<AiChatWorkspaceState>(
+      aiChatWorkspaceProvider,
+      (previous, next) => _scheduleScrollToBottom(),
+    );
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final tokens = AppDesignTokens.of(context);
@@ -839,8 +1092,11 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     return Scaffold(
       body: Column(
         children: [
+          _conversationToolbar(workspace, strings, tokens),
           Expanded(
             child: ListView(
+              controller: _scrollController,
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: tokens.pageInsets(bottom: tokens.pageVerticalPadding * 2),
               children: [
                 if (messages.isEmpty)

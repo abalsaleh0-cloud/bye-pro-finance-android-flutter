@@ -108,10 +108,10 @@ final class GemmaAssistantEngine implements AssistantEngine {
           return const AssistantResult.notUnderstood();
         }
 
-        // Never let free-form model text invent or repeat personal financial
-        // figures. Personal-record questions must use an app-owned read tool.
-        if (RegExp(r'[0-9٠-٩۰-۹]').hasMatch(response) ||
-            _looksLikePersonalRecordQuestion(text)) {
+        // Personal financial facts must come from an app-owned read tool.
+        // General dialogue may legitimately contain numbers (for example,
+        // numbered suggestions), so do not reject every numeric free-form reply.
+        if (_looksLikePersonalRecordQuestion(text)) {
           return const AssistantResult.notUnderstood();
         }
 
@@ -200,7 +200,25 @@ final class GemmaAssistantEngine implements AssistantEngine {
       'كم ضل',
       'قديش ضل',
       'كم استلمت',
+      'قديش استلمت',
       'كم دفعت',
+      'قديش دفعت',
+      'كم صرفت',
+      'قديش صرفت',
+      'كم أنفقت',
+      'قديش أنفقت',
+      'كم دخلي',
+      'قديش دخلي',
+      'مجموع دخلي',
+      'كم معي',
+      'قديش معي',
+      'كم علي',
+      'قديش علي',
+      'كم لي',
+      'قديش لي',
+      'مجموع الديون',
+      'الديون المستحقة',
+      'الفواتير المستحقة',
       'مجموع المصاريف',
       'اجمالي المصاريف',
       'اعرض المصروفات',
