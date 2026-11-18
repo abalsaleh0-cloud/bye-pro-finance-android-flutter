@@ -194,6 +194,7 @@
   "categoryName": "Category name",
   "duplicateCategory": "A category with this name already exists",
   "billDeleteHasPayments": "This bill has recorded payments and cannot be deleted. Keep its payment history or resolve it first.",
+  "assistantDebtDeleteHasPayments": "This debt cannot be deleted because it has recorded payments. Keep its payment history and manage those payments from the debt history.",
   "calculatorScientific": "Scientific",
   "calculatorFinancial": "Finance",
   "calculatorExpression": "Expression",
