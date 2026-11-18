@@ -250,7 +250,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
       // ID edits may supply only the fields the user asked to change.
       required: _partialUpdateActions.contains(descriptor.name)
           ? const <String>[]
-          : descriptor.requiredParameters.toList()..sort(),
+          : (descriptor.requiredParameters.toList()..sort()),
     );
   }
 
