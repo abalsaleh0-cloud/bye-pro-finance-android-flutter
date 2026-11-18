@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   build-preview:
-    name: Build installable preview APK
+    name: Build installable ARM64 profile preview APK
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -58,13 +58,13 @@ jobs:
       - name: Run Flutter tests
         run: flutter test
 
-      - name: Build preview APK
-        run: flutter build apk --debug --flavor preview
+      - name: Build ARM64 profile preview APK
+        run: flutter build apk --profile --flavor preview --target-platform android-arm64
 
       - name: Upload preview APK
         uses: actions/upload-artifact@v4
         with:
           name: bye-pro-finance-preview-${{ github.run_number }}
-          path: build/app/outputs/flutter-apk/app-preview-debug.apk
+          path: build/app/outputs/flutter-apk/app-preview-profile.apk
           if-no-files-found: error
           retention-days: 14
