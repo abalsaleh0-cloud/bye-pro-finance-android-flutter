@@ -239,5 +239,20 @@
   "aiCopied": "Message copied",
   "aiUnsupportedAttachment": "Only images and WAV audio files can be attached.",
   "aiAttachmentFallback": "Attachment",
-  "assistantClarificationFallback": "Please clarify."
+  "assistantClarificationFallback": "Please clarify.",
+  "workTransfersTab": "Home transfers",
+  "homeIncomingFromWork": "Incoming from work",
+  "homeMonthlyRent": "Monthly rent",
+  "homeExpenses": "Expenses",
+  "homeHistory": "History",
+  "addMonthlyRent": "Add monthly rent",
+  "billOrRentName": "Bill or rent name",
+  "addCreditorDebt": "Add debt owed to you (creditor)",
+  "addDebtorDebt": "Add debt you owe (debtor)",
+  "homeCategoryChildren": "Children's needs",
+  "homeCategoryEducation": "Education",
+  "homeCategoryEntertainment": "Entertainment",
+  "homeCategoryCommunication": "Communications and internet",
+  "homeCategorySubscriptions": "Subscriptions",
+  "homeCategoryGifts": "Gifts and occasions"
 }
