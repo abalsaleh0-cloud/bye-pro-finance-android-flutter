@@ -250,7 +250,7 @@ class AiChatController extends Notifier<AiChatWorkspaceState> {
 
       if (!restored && _revision == startingRevision) {
         final legacyRaw = await database.readSetting(_legacyStorageKey);
-        if (legacyRaw != null) {
+        if (legacyRaw != null && _revision == startingRevision) {
           try {
             final decoded = jsonDecode(legacyRaw);
             if (decoded is List) {
