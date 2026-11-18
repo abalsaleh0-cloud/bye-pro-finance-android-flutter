@@ -22,6 +22,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeSection => 'Household';
 
   @override
+  String get personName => 'Person name';
+
+  @override
   String get workTransfersTab => 'Home transfers';
 
   @override
