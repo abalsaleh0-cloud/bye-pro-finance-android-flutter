@@ -26,6 +26,18 @@ void main() {
     await database.close();
   });
 
+  test('persists explicit Gemma opt-in and opt-out', () async {
+    final controller = container.read(appSettingsProvider.notifier);
+
+    await controller.setGemmaEnabled(true);
+    expect(container.read(appSettingsProvider).useGemma, isTrue);
+    expect(await database.readSetting('ai_engine'), 'gemma');
+
+    await controller.setGemmaEnabled(false);
+    expect(container.read(appSettingsProvider).useGemma, isFalse);
+    expect(await database.readSetting('ai_engine'), 'fake');
+  });
+
   test('starts dark and persists light/dark selections before completing', () async {
     expect(container.read(appSettingsProvider).themeMode, ThemeMode.dark);
 
