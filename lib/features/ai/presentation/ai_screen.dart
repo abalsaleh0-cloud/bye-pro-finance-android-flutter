@@ -273,9 +273,14 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   void _addAssistantMessage(
     String text, {
     bool includeInModelContext = false,
+    String? assistantSource,
   }) {
     ref.read(aiChatWorkspaceProvider.notifier).add(
-      AiChatMessage(text, includeInModelContext: includeInModelContext),
+      AiChatMessage(
+        text,
+        includeInModelContext: includeInModelContext,
+        assistantSource: assistantSource,
+      ),
     );
     _scheduleScrollToBottom();
   }
@@ -510,6 +515,57 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     );
   }
 
+  Widget _assistantSourceBadge(
+    String source,
+    AppLocalizations strings,
+  ) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isGemma = source == 'gemma';
+    final label = switch (source) {
+      'gemma' => strings.aiSourceGemma,
+      'localAfterGemma' => strings.aiSourceLocalFallback,
+      _ => strings.aiSourceLocal,
+    };
+
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(start: 4, top: 6, bottom: 2),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: isGemma
+              ? scheme.primaryContainer
+              : scheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isGemma ? Icons.memory_rounded : Icons.smart_toy_outlined,
+                size: 14,
+                color: isGemma
+                    ? scheme.onPrimaryContainer
+                    : scheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: isGemma
+                      ? scheme.onPrimaryContainer
+                      : scheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _copyMessage(String text) async {
     await Clipboard.setData(ClipboardData(text: text));
     if (!mounted) return;
@@ -692,6 +748,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     });
 
     final registry = _registry();
+    String? replySource;
     try {
       final categoryItems =
           await ref.read(homeExpenseCategoryRepositoryProvider).getAll();
@@ -701,7 +758,8 @@ class _AiScreenState extends ConsumerState<AiScreen> {
               ? category.id
               : (_categoryName(category.id, strings) ?? category.name.trim()),
       };
-      var result = await ref.read(assistantEngineProvider).interpret(
+      final selectedEngine = ref.read(assistantEngineProvider);
+      var result = await selectedEngine.interpret(
         text,
         registry.actionNames,
         media: media,
@@ -731,9 +789,17 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                       localResult.command!.parameters,
                     ) ==
                     null
-            ? localResult
+            ? localResult.withSource(
+                AssistantResultSource.local,
+                usedGemmaFallback: true,
+              )
             : const AssistantResult.notUnderstood();
       }
+      replySource = result.usedGemmaFallback
+          ? 'localAfterGemma'
+          : result.source == AssistantResultSource.gemma
+              ? 'gemma'
+              : 'local';
       if (!mounted) return;
 
       if (result.kind == AssistantResultKind.clarification ||
@@ -741,10 +807,14 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         _addAssistantMessage(
           result.message ?? strings.assistantClarificationFallback,
           includeInModelContext: true,
+          assistantSource: replySource,
         );
       } else if (result.kind == AssistantResultKind.notUnderstood ||
           result.command == null) {
-        _addAssistantMessage(strings.assistantNotUnderstood);
+        _addAssistantMessage(
+          strings.assistantNotUnderstood,
+          assistantSource: replySource,
+        );
         await _openManual();
       } else {
         final originalCommand = result.command!;
@@ -758,17 +828,24 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         );
         final error = registry.validate(command.name, command.parameters);
         if (error != null) {
-          _addAssistantMessage(strings.assistantNotUnderstood);
+          _addAssistantMessage(
+            strings.assistantNotUnderstood,
+            assistantSource: replySource,
+          );
           await _openManual();
         } else if (command.name == 'navigate_to_section') {
           final section = command.parameters['section']! as String;
           final route = _sectionRoute(section);
           if (route == null) {
-            _addAssistantMessage(strings.assistantNotUnderstood);
+            _addAssistantMessage(
+              strings.assistantNotUnderstood,
+              assistantSource: replySource,
+            );
             await _openManual();
           } else {
             _addAssistantMessage(
               '${strings.aiSectionOpened}: ${_sectionLabel(section, strings)}',
+              assistantSource: replySource,
             );
             if (mounted) context.go(route);
           }
@@ -784,22 +861,32 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                 : summary == null
                     ? execution.message
                     : _dashboardSummaryMessage(summary, strings);
-            _addAssistantMessage(message);
+            _addAssistantMessage(
+              message,
+              assistantSource: replySource,
+            );
           }
         } else {
           setState(() => _confirmation.request(command));
-          _addAssistantMessage(strings.assistantReview);
+          _addAssistantMessage(
+            strings.assistantReview,
+            assistantSource: replySource,
+          );
         }
       }
     } on AssistantActionException catch (error) {
       if (mounted) {
         _addAssistantMessage(
           _assistantActionErrorMessage(error.code, strings),
+          assistantSource: replySource,
         );
       }
     } catch (_) {
       if (mounted) {
-        _addAssistantMessage(strings.assistantNotUnderstood);
+        _addAssistantMessage(
+          strings.assistantNotUnderstood,
+          assistantSource: replySource,
+        );
         await _openManual();
       }
     } finally {
@@ -1173,6 +1260,12 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                                 isOutgoing: message.fromUser,
                               ),
                             ),
+                            if (!message.fromUser &&
+                                message.assistantSource != null)
+                              _assistantSourceBadge(
+                                message.assistantSource!,
+                                strings,
+                              ),
                             Align(
                               alignment: message.fromUser
                                   ? Alignment.centerRight
