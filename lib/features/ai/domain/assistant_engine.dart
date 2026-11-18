@@ -459,6 +459,32 @@ final class FakeAssistantEngine implements AssistantEngine {
           },
         ));
       }
+      if (action == 'delete_home_expense' && explicitId == null) {
+        final categoryId = _category(has, text, expenseCategories);
+        if (categoryId == null || amount == null) {
+          return const AssistantResult.clarification(
+            'اذكر تصنيف المصروف ومبلغه، أو معرّف السجل.',
+          );
+        }
+        if (requestedMonth == null && explicitDate == null) {
+          return const AssistantResult.clarification(
+            'ما الشهر أو التاريخ المسجل فيه المصروف حتى أتأكد من اختيار السجل الصحيح؟',
+          );
+        }
+        if (!can(action)) return const AssistantResult.notUnderstood();
+        return AssistantResult.command(AssistantCommand(
+          name: action,
+          parameters: {
+            'categoryId': categoryId,
+            'categoryName': expenseCategories[categoryId] ?? categoryId,
+            'amountMinorUnits': amount,
+            'year': ?requestedMonth?.$1,
+            'month': ?requestedMonth?.$2,
+            if (explicitDate != null)
+              'date': explicitDate.toIso8601String().split('T').first,
+          },
+        ));
+      }
       if (explicitId == null) {
         return const AssistantResult.clarification('اذكر رقم السجل أو معرّفه حتى أحذف السجل الصحيح.');
       }
