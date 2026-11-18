@@ -40,6 +40,7 @@ abstract interface class AssistantEngine {
     List<String> availableActions, {
     AssistantMedia? media,
     String conversationContext = '',
+    Map<String, String> expenseCategories = const {},
   });
 }
 /// Tries the local language model first and the deterministic Arabic
@@ -59,12 +60,14 @@ final class FallbackAssistantEngine implements AssistantEngine {
     List<String> availableActions, {
     AssistantMedia? media,
     String conversationContext = '',
+    Map<String, String> expenseCategories = const {},
   }) async {
     final result = await primary.interpret(
       input,
       availableActions,
       media: media,
       conversationContext: conversationContext,
+      expenseCategories: expenseCategories,
     );
     if (result.kind != AssistantResultKind.notUnderstood || media != null) {
       return result;
@@ -73,6 +76,7 @@ final class FallbackAssistantEngine implements AssistantEngine {
       input,
       availableActions,
       conversationContext: conversationContext,
+      expenseCategories: expenseCategories,
     );
   }
 }
@@ -88,6 +92,7 @@ final class FakeAssistantEngine implements AssistantEngine {
     List<String> availableActions, {
     AssistantMedia? media,
     String conversationContext = '',
+    Map<String, String> expenseCategories = const {},
   }) async {
     if (media != null) return const AssistantResult.notUnderstood();
     final effectiveInput = _mergeClarificationReply(input, conversationContext);
@@ -332,7 +337,16 @@ final class FakeAssistantEngine implements AssistantEngine {
     }
 
     final amount = _input.extractAmount(effectiveInput);
-    final requestedMonth = _input.extractMonth(effectiveInput);
+    final explicitDate = _input.extractDate(effectiveInput);
+    final requestedMonth = _input.extractMonth(effectiveInput) ??
+        (explicitDate == null ? null : (explicitDate.year, explicitDate.month));
+    final operationDate = requestedMonth == null
+        ? explicitDate
+        : (explicitDate != null && explicitDate.year == requestedMonth.$1 &&
+                explicitDate.month == requestedMonth.$2
+            ? explicitDate
+            : _defaultDateForMonth(requestedMonth.$1, requestedMonth.$2));
+    final note = _extractNote(effectiveInput);
 
     final isTransfer = has(const [
       'حول',
@@ -357,7 +371,11 @@ final class FakeAssistantEngine implements AssistantEngine {
       return AssistantResult.command(
         AssistantCommand(
           name: 'save_work_home_transfer',
-          parameters: {'amountMinorUnits': amount},
+          parameters: {
+            'amountMinorUnits': amount,
+            if (operationDate != null) 'date': operationDate.toIso8601String().split('T').first,
+            if (note != null) 'note': note,
+          },
         ),
       );
     }
@@ -418,6 +436,8 @@ final class FakeAssistantEngine implements AssistantEngine {
             'amountMinorUnits': amount,
             'year': requestedMonth.$1,
             'month': requestedMonth.$2,
+            if (operationDate != null) 'date': operationDate.toIso8601String().split('T').first,
+            if (note != null) 'note': note,
           },
         ),
       );
@@ -465,6 +485,8 @@ final class FakeAssistantEngine implements AssistantEngine {
             'amountMinorUnits': amount,
             'year': requestedMonth.$1,
             'month': requestedMonth.$2,
+            if (operationDate != null) 'date': operationDate.toIso8601String().split('T').first,
+            if (note != null) 'note': note,
           },
         ),
       );
@@ -484,7 +506,7 @@ final class FakeAssistantEngine implements AssistantEngine {
       if (amount == null) {
         return const AssistantResult.clarification('كم قيمة مصروف المنزل؟');
       }
-      final category = _category(has, text);
+      final category = _category(has, text, expenseCategories);
       if (category == null) {
         return const AssistantResult.clarification(
           'ما تصنيف المصروف؟ مثل الطعام أو الكهرباء أو المواصلات.',
@@ -498,23 +520,21 @@ final class FakeAssistantEngine implements AssistantEngine {
       if (!can('save_home_expense')) {
         return const AssistantResult.notUnderstood();
       }
-      final explicitDate = RegExp(
-        r'(20\d{2}-\d{2}-\d{2})',
-      ).firstMatch(_input.normalize(input))?.group(1);
-      final date = explicitDate ??
-          (requestedMonth.$1.toString() +
-              '-' +
-              requestedMonth.$2.toString().padLeft(2, '0') +
-              '-01');
+      final date = (operationDate ?? _defaultDateForMonth(requestedMonth.$1, requestedMonth.$2))
+          .toIso8601String()
+          .split('T')
+          .first;
       return AssistantResult.command(
         AssistantCommand(
           name: 'save_home_expense',
           parameters: {
             'amountMinorUnits': amount,
             'categoryId': category,
+            'categoryName': expenseCategories[category] ?? category,
             'date': date,
             'year': requestedMonth.$1,
             'month': requestedMonth.$2,
+            if (note != null) 'note': note,
           },
         ),
       );
@@ -554,6 +574,8 @@ final class FakeAssistantEngine implements AssistantEngine {
             'counterparty': counterparty,
             'year': requestedMonth.$1,
             'month': requestedMonth.$2,
+            if (operationDate != null) 'date': operationDate.toIso8601String().split('T').first,
+            if (note != null) 'note': note,
           },
         ),
       );
@@ -752,7 +774,16 @@ final class FakeAssistantEngine implements AssistantEngine {
   static String? _category(
     bool Function(Iterable<String>) has,
     String text,
+    Map<String, String> availableCategories,
   ) {
+    final normalizedText = _input.normalize(text);
+    for (final entry in availableCategories.entries) {
+      final label = entry.value.trim();
+      if (label.isNotEmpty && _input.containsAny(normalizedText, [label])) {
+        return entry.key;
+      }
+      if (_input.containsAny(normalizedText, [entry.key])) return entry.key;
+    }
     final explicit = RegExp(
       r'(?:تصنيف|فئة|بند)\s+([\p{L}0-9_-]+)',
       unicode: true,
@@ -795,6 +826,35 @@ final class FakeAssistantEngine implements AssistantEngine {
       return 'debtor';
     }
     return null;
+  }
+
+  static DateTime _defaultDateForMonth(int year, int month) {
+    final today = DateTime.now().day;
+    final lastDay = DateTime(year, month + 1, 0).day;
+    return DateTime(year, month, today > lastDay ? lastDay : today);
+  }
+
+  static String? _extractNote(String text) {
+    final match = RegExp(
+      r'(?:ملاحظة|ملاحظات|note|notes)\\s*(?::|هي|أنها|انه)?\\s*(.+)
+    final match = RegExp(
+      r'(?:مع|لدى|عند|لصالح|من)\s+([\p{L}]+)',
+      unicode: true,
+    ).firstMatch(text);
+    final name = match?.group(1)?.trim();
+    if (name == null ||
+        name.isEmpty ||
+        const {'شخص', 'احد', 'طرف', 'البيت', 'المنزل'}.contains(name)) {
+      return null;
+    }
+    return name;
+  }
+},
+      caseSensitive: false,
+      unicode: true,
+    ).firstMatch(text);
+    final value = match?.group(1)?.trim();
+    return value == null || value.isEmpty ? null : value;
   }
 
   static String? _counterparty(String text) {
