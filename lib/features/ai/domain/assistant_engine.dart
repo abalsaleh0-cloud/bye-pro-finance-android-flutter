@@ -419,7 +419,7 @@ final class FakeAssistantEngine implements AssistantEngine {
         );
       }
       final newName = RegExp(
-        r'(?:الى|إلى|ليصبح|لتصبح|باسم|اسم جديد)\\s+(.+?)(?=\\s+(?:ملاحظة|note)|$)',
+        r'(?:الى|إلى|ليصبح|لتصبح|باسم|اسم جديد)\s+(.+?)(?=\s+(?:ملاحظة|note)|$)',
         caseSensitive: false,
         unicode: true,
       ).firstMatch(effectiveInput)?.group(1)?.trim();
