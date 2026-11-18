@@ -9,6 +9,7 @@ void main() {
     final dark = AppTheme.dark.colorScheme;
 
     expect(light.primary, const Color(0xFF229AF0));
+    expect(light.onPrimary, const Color(0xFF102A3D));
     expect(light.surface, Colors.white);
     expect(light.onSurface, const Color(0xFF1A1D21));
     expect(light.onSurfaceVariant, const Color(0xFF757575));
