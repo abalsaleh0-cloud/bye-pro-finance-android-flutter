@@ -647,6 +647,8 @@ final class LocalRuleAssistantEngine implements AssistantEngine {
             'id': explicitId,
             'amountMinorUnits': amount,
             if (explicitDate != null) 'date': explicitDate.toIso8601String().split('T').first,
+            if (requestedMonth != null) 'year': requestedMonth.$1,
+            if (requestedMonth != null) 'month': requestedMonth.$2,
             'note': ?note,
           },
         ));
