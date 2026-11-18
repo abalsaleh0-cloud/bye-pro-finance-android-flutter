@@ -18,6 +18,18 @@ void main() {
     'save_debt',
     'read_dashboard_summary',
     'navigate_to_section',
+    'read_home_categories',
+    'save_home_category',
+    'delete_home_category',
+    'delete_home_bill',
+    'delete_home_expense',
+    'delete_work_entry',
+    'delete_work_home_transfer',
+    'delete_debt',
+    'record_home_bill_payment',
+    'record_debt_payment',
+    'read_home_bill_payments',
+    'read_debt_payments',
   ];
 
   group('Arabic natural-language work commands', () {
@@ -215,5 +227,84 @@ void main() {
       expect(result.command!.parameters['year'], 2026);
       expect(result.command!.parameters['month'], 10);
     });
+    test('creates and deletes a custom expense category by its live label', () async {
+      final added = await engine.interpret(
+        'أضف تصنيف لوازم المكتب',
+        actions,
+      );
+      expect(added.kind, AssistantResultKind.command);
+      expect(added.command!.name, 'save_home_category');
+      expect(added.command!.parameters['name'], 'لوازم المكتب');
+
+      final removed = await engine.interpret(
+        'احذف تصنيف لوازم المكتب',
+        actions,
+        expenseCategories: const {'custom_1': 'لوازم المكتب'},
+      );
+      expect(removed.kind, AssistantResultKind.command);
+      expect(removed.command!.name, 'delete_home_category');
+      expect(removed.command!.parameters['name'], 'لوازم المكتب');
+    });
+
+    test('records a bill payment against an exact bill title', () async {
+      final result = await engine.interpret(
+        'دفعت 75 فاتورة الكهرباء اليوم',
+        actions,
+      );
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'record_home_bill_payment');
+      expect(result.command!.parameters['billTitle'], 'الكهرباء');
+      expect(result.command!.parameters['amountMinorUnits'], 75);
+      expect(result.command!.parameters['date'], isA<String>());
+    });
+
+    test('records a debt payment with the named counterparty', () async {
+      final result = await engine.interpret(
+        'سددت 100 من دين سامر',
+        actions,
+      );
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'record_debt_payment');
+      expect(result.command!.parameters['counterparty'], 'سامر');
+      expect(result.command!.parameters['amountMinorUnits'], 100);
+    });
+
+    test('reads all matching section records when asked for all', () async {
+      final result = await engine.interpret(
+        'اعرض كل مصروفات المنزل',
+        actions,
+      );
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'read_home_expenses');
+      expect(result.command!.parameters['allRecords'], isTrue);
+    });
+
+    test('reads payment history by the actual bill title', () async {
+      final result = await engine.interpret(
+        'اعرض دفعات فاتورة الكهرباء',
+        actions,
+      );
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'read_home_bill_payments');
+      expect(result.command!.parameters['billTitle'], 'الكهرباء');
+    });
+
+    test('deletes records only when an explicit stable identifier is given', () async {
+      final missingId = await engine.interpret(
+        'احذف مصروف البقالة',
+        actions,
+      );
+      expect(missingId.kind, AssistantResultKind.clarification);
+      expect(missingId.message, contains('معرّفه'));
+
+      final withId = await engine.interpret(
+        'احذف مصروف رقم السجل exp_123',
+        actions,
+      );
+      expect(withId.kind, AssistantResultKind.command);
+      expect(withId.command!.name, 'delete_home_expense');
+      expect(withId.command!.parameters['id'], 'exp_123');
+    });
+
   });
 }
