@@ -346,6 +346,9 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
         ),
       );
     } finally {
+      // Wait until the dialog route detaches its TextFields before disposing
+      // the controllers, matching the work-entry form lifecycle.
+      await WidgetsBinding.instance.endOfFrame;
       amount.dispose();
       transferredAt.dispose();
       note.dispose();
