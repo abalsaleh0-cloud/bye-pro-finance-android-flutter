@@ -22,7 +22,7 @@ class ChatMessageBubble extends StatelessWidget {
       key: key,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: isOutgoing ? scheme.primary : scheme.surfaceContainerHigh,
+        color: isOutgoing ? scheme.tertiaryContainer : scheme.surfaceContainerHigh,
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(radius),
           topRight: Radius.circular(radius),
@@ -33,7 +33,7 @@ class ChatMessageBubble extends StatelessWidget {
       child: Text(
         text,
         style: theme.textTheme.bodyMedium?.copyWith(
-          color: isOutgoing ? scheme.onPrimary : scheme.onSurface,
+          color: isOutgoing ? scheme.onTertiaryContainer : scheme.onSurface,
           fontSize: 16,
           height: 1.35,
         ),
