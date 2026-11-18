@@ -43,7 +43,7 @@
             android:targetActivity="com.example.expense_app.MainActivity"
             android:enabled="false"
             android:exported="true"
-            android:icon="@drawable/ic_launcher_light"
+            android:icon="@mipmap/ic_launcher_light"
             android:label="Bye Pro Finance">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
