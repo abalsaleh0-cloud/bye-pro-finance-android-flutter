@@ -365,7 +365,7 @@ final class FakeAssistantEngine implements AssistantEngine {
     }
 
     final amount = _input.extractAmount(effectiveInput);
-    final explicitDate = _input.extractDate(effectiveInput);
+    final explicitDate = _input.extractDate(effectiveInput) ?? _extractRelativeDate(has);
     final requestedMonth = _input.extractMonth(effectiveInput) ??
         (explicitDate == null ? null : (explicitDate.year, explicitDate.month));
     final operationDate = requestedMonth == null
@@ -817,8 +817,16 @@ final class FakeAssistantEngine implements AssistantEngine {
     final amountQuestion = normalizer.containsAny(normalizedQuestion, const [
       'ما المبلغ',
       'كم المبلغ',
+      'ما مبلغ',
+      'كم مبلغ',
+      'مبلغ الدفعة',
+      'مبلغ الدين',
       'قيمة المبلغ',
       'كم قيمة',
+      'قيمة الفاتورة',
+      'قيمة الايجار',
+      'قيمة المصروف',
+      'قيمة الراتب',
     ]);
     final monthQuestion = normalizer.containsAny(normalizedQuestion, const [
       'اي شهر',
@@ -837,6 +845,11 @@ final class FakeAssistantEngine implements AssistantEngine {
       'ما اسم الشخص',
       'اسم الشخص او الجهة',
       'ما اسم الطرف',
+      'اسم صاحب الدين',
+      'صاحب الدين',
+      'ما اسم التصنيف الجديد',
+      'اسم التصنيف الجديد',
+      'ما اسم التصنيف',
       'اسم الفاتورة',
       'اسم الاشتراك',
     ]);
@@ -1057,6 +1070,22 @@ final class FakeAssistantEngine implements AssistantEngine {
     return null;
   }
 
+  static DateTime? _extractRelativeDate(
+    bool Function(Iterable<String>) has,
+  ) {
+    final today = DateTime.now();
+    if (has(const ['قبل امس', 'قبل أمس', 'day before yesterday'])) {
+      return DateTime(today.year, today.month, today.day - 2);
+    }
+    if (has(const ['امس', 'أمس', 'البارحة', 'yesterday'])) {
+      return DateTime(today.year, today.month, today.day - 1);
+    }
+    if (has(const ['اليوم', 'هاليوم', 'today'])) {
+      return DateTime(today.year, today.month, today.day);
+    }
+    return null;
+  }
+
   static DateTime _defaultDateForMonth(int year, int month) {
     final today = DateTime.now().day;
     final lastDay = DateTime(year, month + 1, 0).day;
@@ -1085,8 +1114,8 @@ final class FakeAssistantEngine implements AssistantEngine {
 
   static String? _counterparty(String text) {
     final patterns = <RegExp>[
-      RegExp(r'(?:من\s+)?(?:دين|الدين)\s+(?:(?:عند|لدى|على|ل)\s+)?([\p{L}][\p{L} ]{0,35}?)(?=\s+(?:بمبلغ|بقيمة|مبلغ|اليوم|امس|بتاريخ|ملاحظة|note|من\s+الدين)|$)', unicode: true),
-      RegExp(r'(?:مع|لدى|عند|لصالح|ل)\s+([\p{L}][\p{L} ]{0,35}?)(?=\s+(?:بمبلغ|بقيمة|مبلغ|دين|دينا|اليوم|امس|بتاريخ|ملاحظة|note)|$)', unicode: true),
+      RegExp(r'(?:من\s+)?(?:دين|الدين)\s+(?:(?:عند|لدى|على|ل)\s+)?([\p{L}][\p{L} ]{0,35}?)(?=\s+(?:بمبلغ|بقيمة|مبلغ|اليوم|امس|بتاريخ|ملاحظة|note|من\s+الدين|[0-9]|الف|ألف|مئة|مية)|$)', unicode: true),
+      RegExp(r'(?:مع|لدى|عند|لصالح|ل)\s+([\p{L}][\p{L} ]{0,35}?)(?=\s+(?:بمبلغ|بقيمة|مبلغ|دين|دينا|اليوم|امس|بتاريخ|ملاحظة|note|[0-9]|الف|ألف|مئة|مية)|$)', unicode: true),
     ];
     for (final pattern in patterns) {
       final value = pattern.firstMatch(text)?.group(1)?.trim();
