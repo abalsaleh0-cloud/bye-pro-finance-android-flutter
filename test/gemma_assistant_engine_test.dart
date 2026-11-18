@@ -460,6 +460,31 @@ void main() {
 
       expect(result.kind, AssistantResultKind.clarification);
     });
+
+    test('allows natural general conversation replies containing numbers', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.text(
+          'إليك 3 خطوات بسيطة لتنظيم محادثاتك: ابدأ بعنوان واضح، '
+          'اجمع كل موضوع في محادثة مستقلة، وراجع السجل عند الحاجة.',
+        ),
+      );
+      final result = await GemmaAssistantEngine(generator)
+          .interpret('كيف أنظم محادثاتي؟', actions);
+
+      expect(result.kind, AssistantResultKind.answer);
+      expect(result.message, contains('3 خطوات'));
+    });
+
+    test('does not allow a free-form answer to invent personal financial figures', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.text('رصيدك الحالي 1500 دينار.'),
+      );
+      final result = await GemmaAssistantEngine(generator)
+          .interpret('كم رصيدي؟', actions);
+
+      expect(result.kind, AssistantResultKind.notUnderstood);
+      expect(result.command, isNull);
+    });
   });
 
   test('interpreting a valid write command does not write to the database', () async {
