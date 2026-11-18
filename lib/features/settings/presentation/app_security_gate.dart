@@ -129,10 +129,29 @@ class _AppSecurityGateState extends State<AppSecurityGate> {
   @override
   Widget build(BuildContext context) {
     if (!_ready) {
+      final isEnglish = Localizations.localeOf(context).languageCode == 'en';
       return Scaffold(
         backgroundColor: Theme.of(context).colorScheme.surface,
-        body: const SafeArea(
-          child: Center(child: CircularProgressIndicator()),
+        body: SafeArea(
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.lock_outline_rounded,
+                  size: 38,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  isEnglish
+                      ? 'Checking app protection…'
+                      : 'جارٍ التحقق من حماية التطبيق…',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
+            ),
+          ),
         ),
       );
     }
