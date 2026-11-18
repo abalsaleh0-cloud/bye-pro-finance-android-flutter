@@ -168,6 +168,7 @@ class GemmaModelManager extends Notifier<GemmaModelState>
 ''';
 
   CancelToken? _cancelToken;
+  Future<void>? _refreshInFlight;
   InferenceModel? _model;
   Timer? _idleTimer;
   bool _modelSupportsImage = false;
@@ -210,7 +211,23 @@ class GemmaModelManager extends Notifier<GemmaModelState>
     return '${error.runtimeType}: $bounded';
   }
 
-  Future<void> refresh() async {
+  Future<void> refresh() {
+    if (state.status == GemmaModelStatus.downloading) {
+      return Future<void>.value();
+    }
+    final active = _refreshInFlight;
+    if (active != null) return active;
+
+    final operation = _refreshOnce();
+    _refreshInFlight = operation;
+    return operation.whenComplete(() {
+      if (identical(_refreshInFlight, operation)) {
+        _refreshInFlight = null;
+      }
+    });
+  }
+
+  Future<void> _refreshOnce() async {
     if (state.status == GemmaModelStatus.downloading) return;
     var installed = false;
     try {
