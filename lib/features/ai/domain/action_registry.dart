@@ -138,6 +138,44 @@ final class ActionRegistry {
   Future<ActionExecution> execute(String name, Map<String,Object?> p) async {
     final error = validate(name,p); if (error != null) throw ArgumentError(error);
     switch(name) {
+      case 'read_home_categories':
+        final categories = await _categories.getAll();
+        return ActionExecution(
+          message: categories.map((category) =>
+            '${category.id}: ${_categoryLabel(category)}'
+          ).join('؛ '),
+        );
+      case 'save_home_category':
+        final name = (p['name']! as String).trim();
+        final id = (p['id'] as String?)?.trim().isNotEmpty == true
+            ? (p['id']! as String).trim()
+            : 'custom_${_id()}';
+        final existing = (await _categories.getAll())
+            .where((category) => category.id == id)
+            .firstOrNull;
+        final category = HomeExpenseCategory(id: id, name: name);
+        await _categories.save(category);
+        return ActionExecution(
+          message: 'تم حفظ التصنيف: $name',
+          undo: () async {
+            if (existing == null) {
+              await _categories.removeCustom(id);
+            } else {
+              await _categories.save(existing);
+            }
+          },
+        );
+      case 'delete_home_category':
+        final id = p['id']! as String;
+        final existing = (await _categories.getAll())
+            .where((category) => category.id == id)
+            .firstOrNull;
+        if (existing == null) throw StateError('Category not found');
+        await _categories.removeCustom(id);
+        return ActionExecution(
+          message: 'تم حذف التصنيف: ${_categoryLabel(existing)}',
+          undo: () => _categories.save(existing),
+        );
       case 'save_work_entry':
         final id = p['id'] as String? ?? _id();
         final all = await _work.watchEntries().first;
@@ -145,7 +183,7 @@ final class ActionRegistry {
         final previous = old;
         final item = WorkEntry(id:id, kind:(p['kind'] == 'payment'
             ? WorkEntryKind.salaryPayment
-            : WorkEntryKind.values.byName(p['kind']! as String)), amount:Money.fromMinorUnits(p['amountMinorUnits']! as int), dueMonth:MonthKey(year:p['year']! as int,month:p['month']! as int), recordedAt:previous?.recordedAt ?? DateTime.now(),note:p['note'] as String?);
+            : WorkEntryKind.values.byName(p['kind']! as String)), amount:Money.fromMinorUnits(p['amountMinorUnits']! as int), dueMonth:MonthKey(year:p['year']! as int,month:p['month']! as int), recordedAt:p['date'] is String ? DateTime.parse(p['date']! as String) : previous?.recordedAt ?? DateTime.now(),note:p['note'] as String?);
         await _work.saveEntry(item);
         return ActionExecution(message:'تم حفظ سجل العمل',undo:() async { if(previous==null) { await _work.deleteEntry(id); } else { await _work.saveEntry(previous); } });
       case 'delete_work_entry':
@@ -155,7 +193,19 @@ final class ActionRegistry {
       case 'save_home_expense':
         final id=p['id'] as String? ?? _id(); final all=await _home.watchAll().first; HomeExpense? old; for(final e in all) { if(e.id==id) old=e; }
         final previous = old;
-        final item=HomeExpense(id:id,amount:Money.fromMinorUnits(p['amountMinorUnits']! as int),categoryId:p['categoryId']! as String,expenseDate:DateTime.parse(p['date']! as String),dueMonth:MonthKey(year:p['year']! as int,month:p['month']! as int),note:p['note'] as String?);
+        final availableCategories = await _categories.getAll();
+        final requestedCategoryId = p['categoryId'] as String?;
+        final requestedCategoryName = p['categoryName'] as String?;
+        final selectedCategory = availableCategories.where((category) =>
+          category.id == requestedCategoryId ||
+          (requestedCategoryName != null &&
+            _normalizeCategoryText(_categoryLabel(category)) == _normalizeCategoryText(requestedCategoryName))
+        ).firstOrNull;
+        if (selectedCategory == null) {
+          throw StateError('The requested expense category does not exist.');
+        }
+        final expenseDate = DateTime.parse(p['date']! as String);
+        final item=HomeExpense(id:id,amount:Money.fromMinorUnits(p['amountMinorUnits']! as int),categoryId:selectedCategory.id,expenseDate:expenseDate,dueMonth:MonthKey(year:expenseDate.year,month:expenseDate.month),note:p['note'] as String?);
         await _home.save(item); return ActionExecution(message:'تم حفظ مصروف المنزل',undo:() async { if(previous==null) { await _home.delete(id); } else { await _home.save(previous); } });
       case 'delete_home_expense':
         final all=await _home.watchAll().first; HomeExpense? old; for(final e in all) { if(e.id==p['id']) old=e; }
@@ -169,6 +219,7 @@ final class ActionRegistry {
           kind: HomeBillKind.values.byName(p['kind']! as String),
           amount: Money.fromMinorUnits(p['amountMinorUnits']! as int),
           dueMonth: MonthKey(year: p['year']! as int, month: p['month']! as int),
+          dueDate: p['date'] is String ? DateTime.parse(p['date']! as String) : null,
           note: p['note'] as String?,
           paidMinorUnits: existing?.paidMinorUnits ?? 0,
         );
@@ -196,11 +247,25 @@ final class ActionRegistry {
           undo: () async => _bills.saveBill(existing),
         );
       case 'record_home_bill_payment':
+        final bills = await _bills.getBills();
+        final requestedBillId = p['billId'] as String?;
+        final requestedBillTitle = p['billTitle'] as String?;
+        final matchingBills = bills.where((bill) =>
+          requestedBillId != null
+              ? bill.id == requestedBillId
+              : _normalizeCategoryText(bill.title) == _normalizeCategoryText(requestedBillTitle ?? '')
+        ).toList(growable: false);
+        if (matchingBills.length != 1) {
+          throw StateError(matchingBills.isEmpty
+              ? 'The requested bill was not found.'
+              : 'More than one bill has this name; select the exact bill first.');
+        }
+        final paidAt = p['date'] is String ? DateTime.parse(p['date']! as String) : DateTime.now();
         final payment = HomeBillPayment(
           id: _id(),
-          billId: p['billId']! as String,
+          billId: matchingBills.single.id,
           amount: Money.fromMinorUnits(p['amountMinorUnits']! as int),
-          paidAt: DateTime.now(),
+          paidAt: paidAt,
           note: p['note'] as String?,
         );
         await _bills.recordPayment(payment);
@@ -324,14 +389,35 @@ final class ActionRegistry {
             'Debt amount cannot be lower than its recorded payments.',
           );
         }
-        final item=DebtEntry(id:id,direction:DebtDirection.values.byName(p['direction']! as String),originalAmount:amount,outstandingAmount:Money.fromMinorUnits(amount.minorUnits - paidTotal),dueMonth:MonthKey(year:p['year']! as int,month:p['month']! as int),createdAt:previous?.createdAt ?? DateTime.now(),counterparty:p['counterparty']! as String,note:p['note'] as String?);
+        final item=DebtEntry(id:id,direction:DebtDirection.values.byName(p['direction']! as String),originalAmount:amount,outstandingAmount:Money.fromMinorUnits(amount.minorUnits - paidTotal),dueMonth:MonthKey(year:p['year']! as int,month:p['month']! as int),createdAt:p['date'] is String ? DateTime.parse(p['date']! as String) : previous?.createdAt ?? DateTime.now(),counterparty:p['counterparty']! as String,note:p['note'] as String?);
         await _debts.save(item); return ActionExecution(message:'تم حفظ الدين',undo:() async { if(previous==null) { await _debts.delete(id); } else { await _debts.save(previous); } });
       case 'delete_debt':
         final all=await _debts.watchAll().first; DebtEntry? old; for(final e in all) { if(e.id==p['id']) old=e; }
         if(old==null) throw StateError('Debt not found'); final deleted = old; final payments=await _debts.watchPayments(deleted.id).first; await _debts.delete(deleted.id);
         return ActionExecution(message:'تم حذف الدين',undo:() async { await _debts.restoreDebt(deleted,payments); });
       case 'record_debt_payment':
-        final payment=DebtPayment(id:_id(),debtId:p['debtId']! as String,amount:Money.fromMinorUnits(p['amountMinorUnits']! as int),paidAt:DateTime.now(),note:p['note'] as String?);
+        final allDebts = await _debts.watchAll().first;
+        final requestedDebtId = p['debtId'] as String?;
+        final requestedCounterparty = p['counterparty'] as String?;
+        final requestedDirection = p['direction'] as String?;
+        final matchingDebts = allDebts.where((debt) =>
+          requestedDebtId != null
+              ? debt.id == requestedDebtId
+              : _normalizeCategoryText(debt.counterparty) == _normalizeCategoryText(requestedCounterparty ?? '') &&
+                  (requestedDirection == null || debt.direction.name == requestedDirection)
+        ).toList(growable: false);
+        if (matchingDebts.length != 1) {
+          throw StateError(matchingDebts.isEmpty
+              ? 'The requested debt was not found.'
+              : 'More than one debt matches this name; select the exact debt first.');
+        }
+        final payment = DebtPayment(
+          id: _id(),
+          debtId: matchingDebts.single.id,
+          amount: Money.fromMinorUnits(p['amountMinorUnits']! as int),
+          paidAt: p['date'] is String ? DateTime.parse(p['date']! as String) : DateTime.now(),
+          note: p['note'] as String?,
+        );
         await _debts.recordPayment(payment); return ActionExecution(message:'تم تسجيل دفعة الدين',undo:()=>_debts.undoPayment(payment.id));
       case 'read_work_remaining':
         final all = await _work.watchEntries().first;
@@ -414,5 +500,13 @@ final class ActionRegistry {
     'read_work_remaining' || 'read_month_total' || 'read_dashboard_summary' || 'navigate_to_section' => const {'section': String, 'year': int, 'month': int},
     _ => const {},
   };
+  static String _categoryLabel(HomeExpenseCategory category) =>
+      category.name.trim().isEmpty ? category.id : category.name.trim();
+
+  static String _normalizeCategoryText(String value) => value
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'\\s+'), ' ');
+
   static String _id()=>DateTime.now().microsecondsSinceEpoch.toString();
 }
