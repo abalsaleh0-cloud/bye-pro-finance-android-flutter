@@ -79,10 +79,14 @@ final class FallbackAssistantEngine implements AssistantEngine {
       expenseCategories: expenseCategories,
     );
   }
+
+
+/// Backward-compatible name retained for existing tests and integrations.
+typedef FakeAssistantEngine = LocalRuleAssistantEngine;
 }
 
-final class FakeAssistantEngine implements AssistantEngine {
-  const FakeAssistantEngine();
+final class LocalRuleAssistantEngine implements AssistantEngine {
+  const LocalRuleAssistantEngine();
 
   static const _input = AssistantInputNormalizer();
 
