@@ -252,27 +252,6 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     );
   }
 
-  Future<void> _speakAssistantReply(String text) async {
-    if (text.trim().isEmpty) return;
-    try {
-      await _voiceService.speakArabic(text);
-    } on PlatformException {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.aiArabicTtsUnavailable),
-        ),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.aiArabicTtsUnavailable),
-        ),
-      );
-    }
-  }
-
   Future<void> _showVoiceOptions() async {
     if (_busy || _recognizing || _recording) return;
     final strings = AppLocalizations.of(context)!;
@@ -898,16 +877,6 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                                     onPressed: () => _copyMessage(message.text),
                                     icon: const Icon(Icons.copy_rounded, size: 16),
                                     label: Text(strings.aiCopy),
-                                  ),
-                                  TextButton.icon(
-                                    onPressed: _busy
-                                        ? null
-                                        : () => _speakAssistantReply(message.text),
-                                    icon: const Icon(
-                                      Icons.volume_up_outlined,
-                                      size: 16,
-                                    ),
-                                    label: Text(strings.aiListen),
                                   ),
                                   ],
                                 ),
