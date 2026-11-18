@@ -563,44 +563,60 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     final kind = parameters['kind'];
     final categoryId = parameters['categoryId'];
     final categoryName = parameters['categoryName'] is String
-        ? parameters['categoryName']! as String
+        ? (parameters['categoryName']! as String).trim()
         : _categoryName(categoryId, strings);
     final note = parameters['note'] is String
         ? (parameters['note']! as String).trim()
         : '';
-    final date = _displayDate(parameters['date']);
+    final rawDate = parameters['date'];
+    final parsedDate = rawDate is String ? DateTime.tryParse(rawDate) : null;
+    final formattedDate = parsedDate == null
+        ? null
+        : toAsciiDigits(
+            MaterialLocalizations.of(context).formatFullDate(parsedDate),
+          );
     final rawAmount = parameters['amountMinorUnits'];
     final amount = rawAmount is int ? rawAmount.toString() : '—';
-    final debtAction = command.name == 'save_debt';
+    final isDebt = command.name == 'save_debt';
+    final isCreditor = parameters['direction'] == 'creditor';
+    final isDebtor = parameters['direction'] == 'debtor';
+    final debtDirectionLabel = isCreditor
+        ? strings.creditor
+        : isDebtor
+            ? strings.debtor
+            : null;
+
     final details = <String>[
-      if (date != null) toAsciiDigits(
-        MaterialLocalizations.of(context).formatFullDate(
-          DateTime.parse(parameters['date']! as String),
-        ),
-      ),
+      if (command.name == 'record_home_bill_payment' &&
+          parameters['billTitle'] is String)
+        parameters['billTitle']! as String,
+      if (formattedDate != null) formattedDate,
       if (kind is String && _kindName(kind, strings) != null)
         _kindName(kind, strings)!,
-      if (parameters['direction'] == 'creditor') strings.creditor,
-      if (parameters['direction'] == 'debtor') strings.debtor,
-      if (debtAction) '${strings.originalAmount}: $amount',
+      if (isDebt) '${strings.originalAmount}: $amount',
+      if (debtDirectionLabel != null && !isDebt) debtDirectionLabel,
       if (parameters['id'] is String) 'ID: ${parameters['id']}',
       if (note.isNotEmpty) note,
     ];
+
     final title = switch (command.name) {
       'save_work_entry' => _kindName(kind, strings) ?? strings.work,
       'save_work_home_transfer' => strings.transferredToHome,
       'save_home_expense' => categoryName ?? strings.homeSection,
-      'save_home_bill' => (parameters['title'] as String?) ?? strings.monthlyBills,
-      'record_home_bill_payment' =>
-        (parameters['billTitle'] as String?) ?? strings.addBillPayment,
+      'save_home_bill' =>
+        (parameters['title'] as String?) ?? strings.monthlyBills,
+      'record_home_bill_payment' => strings.addBillPayment,
       'save_debt' || 'record_debt_payment' =>
         (parameters['counterparty'] as String?) ?? strings.debts,
-      'save_home_category' => (parameters['name'] as String?) ?? strings.category,
-      'delete_home_category' => (parameters['name'] as String?) ?? strings.category,
-      'delete_home_bill' => (parameters['billTitle'] as String?) ?? strings.monthlyBills,
-      'delete_debt' => (parameters['counterparty'] as String?) ?? strings.debts,
+      'save_home_category' || 'delete_home_category' =>
+        (parameters['name'] as String?) ?? strings.category,
+      'delete_home_bill' =>
+        (parameters['billTitle'] as String?) ?? strings.monthlyBills,
+      'delete_debt' =>
+        (parameters['counterparty'] as String?) ?? strings.debts,
       _ => strings.assistantOperation,
     };
+
     final icon = switch (command.name) {
       'save_work_entry' => kind == 'advance'
           ? Icons.request_quote_outlined
@@ -609,21 +625,61 @@ class _AiScreenState extends ConsumerState<AiScreen> {
               : Icons.payments_outlined,
       'save_work_home_transfer' => Icons.swap_horiz,
       'save_home_expense' => _categoryIconForAssistant(categoryId),
-      'save_home_bill' || 'record_home_bill_payment' || 'delete_home_bill' =>
-        Icons.receipt_long_outlined,
+      'save_home_bill' || 'delete_home_bill' =>
+        kind == 'rent' ? Icons.home_outlined : Icons.receipt_long_outlined,
+      'record_home_bill_payment' => Icons.payments_outlined,
       'save_debt' || 'record_debt_payment' || 'delete_debt' =>
-        parameters['direction'] == 'creditor'
+        isCreditor
             ? Icons.call_received_outlined
             : Icons.call_made_outlined,
       'save_home_category' || 'delete_home_category' => Icons.sell_outlined,
       _ => Icons.receipt_long_outlined,
     };
+
+    Widget? badge;
+    Widget? footer;
+    if (isDebt) {
+      final scheme = Theme.of(context).colorScheme;
+      final tokens = AppDesignTokens.of(context);
+      badge = Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isCreditor ? scheme.tertiaryContainer : scheme.secondaryContainer,
+          borderRadius: BorderRadius.circular(tokens.controlRadius),
+        ),
+        child: Text(
+          debtDirectionLabel ?? '',
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: isCreditor
+                    ? scheme.onTertiaryContainer
+                    : scheme.onSecondaryContainer,
+              ),
+        ),
+      );
+      footer = ClipRRect(
+        borderRadius: BorderRadius.circular(tokens.controlRadius),
+        child: LinearProgressIndicator(
+          value: 0,
+          minHeight: 7,
+          backgroundColor: scheme.surfaceContainerHighest,
+          color: scheme.tertiary,
+        ),
+      );
+    }
+
     return FinancialRecordCard(
       icon: icon,
       title: title,
       amount: amount,
-      amountLabel: debtAction ? strings.outstandingAmount : null,
+      amountLabel: isDebt
+          ? strings.outstandingAmount
+          : command.name == 'record_debt_payment'
+              ? strings.recordDebtPayment
+              : null,
       details: details,
+      badge: badge,
+      footer: footer,
     );
   }
 
