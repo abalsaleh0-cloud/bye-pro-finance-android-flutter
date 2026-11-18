@@ -1359,7 +1359,112 @@ final class LocalRuleAssistantEngine implements AssistantEngine {
       '',
     );
     title = title.replaceFirst(
-      RegExp('\\s+$frequencyWord$', caseSensitive: false),
+      RegExp('\\s+$frequencyWord\
+      '',
+    );
+    title = title.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+    if (title.isEmpty) return null;
+    final normalizedTitle = _input.normalize(title);
+    if (_input.containsAny(normalizedTitle, const ['رقم الفاتورة', 'رقم', 'معرف', 'معرّف', 'id'])) {
+      return null;
+    }
+    return title;
+  }
+
+  static String? _debtDirection(
+    bool Function(Iterable<String>) has,
+  ) {
+    if (has(const ['دائن', 'لي عند', 'الي عند', 'لي بذمة', 'مستحق لي', 'شخص مدين لي', 'creditor'])) {
+      return 'creditor';
+    }
+    if (has(const ['مدين', 'علي دين', 'مبلغ علي', 'في ذمتي', 'علي ذمة', 'مستحق علي', 'انا مدين', 'عليه', 'debtor'])) {
+      return 'debtor';
+    }
+    return null;
+  }
+
+  static DateTime? _extractRelativeDate(
+    bool Function(Iterable<String>) has,
+  ) {
+    final today = DateTime.now();
+    if (has(const ['قبل امس', 'قبل أمس', 'day before yesterday'])) {
+      return DateTime(today.year, today.month, today.day - 2);
+    }
+    if (has(const ['امس', 'أمس', 'البارحة', 'yesterday'])) {
+      return DateTime(today.year, today.month, today.day - 1);
+    }
+    if (has(const ['اليوم', 'هاليوم', 'today'])) {
+      return DateTime(today.year, today.month, today.day);
+    }
+    return null;
+  }
+
+  static DateTime _defaultDateForMonth(int year, int month) {
+    final today = DateTime.now().day;
+    final lastDay = DateTime(year, month + 1, 0).day;
+    return DateTime(year, month, today > lastDay ? lastDay : today);
+  }
+
+  static String? _extractNote(String text) {
+    final match = RegExp(
+      r'(?:ملاحظة|ملاحظات|note|notes)\s*(?::|هي|أنها|انه)?\s*(.+)$',
+      caseSensitive: false,
+      unicode: true,
+    ).firstMatch(text);
+    final value = match?.group(1)?.trim();
+    return value == null || value.isEmpty ? null : value;
+  }
+
+  static String? _extractIdentifier(String text) {
+    final match = RegExp(
+      r'(?:معرّف|معرف|رقم\s+(?:السجل|الفاتورة|الدين|المصروف|التحويل|التصنيف)|id)\s*[:#：]?\s*([A-Za-z0-9_-]{2,64})',
+      caseSensitive: false,
+      unicode: true,
+    ).firstMatch(text);
+    final value = match?.group(1)?.trim();
+    return value == null || value.isEmpty ? null : value;
+  }
+
+  static String? _counterparty(String text) {
+    final paymentDebtParty = RegExp(
+      r'(?:دفعة|دفعه|سداد|تسديد|سددت|دفعت)\s+من\s+(?:دين|الدين)\s+([\p{L}]+)',
+      unicode: true,
+    ).firstMatch(text)?.group(1)?.trim();
+    if (paymentDebtParty != null && paymentDebtParty.isNotEmpty) {
+      return paymentDebtParty;
+    }
+
+    const stop = r'(?:دائن|مدين|بمبلغ|بقيمة|مبلغ|اليوم|امس|بتاريخ|ملاحظة|note|من\s+الدين|رقم|معرف|معرّف|id|يناير|كانون\s+(?:الثاني|الاول|الأول)|فبراير|شباط|مارس|اذار|آذار|ابريل|نيسان|مايو|ايار|أيار|يونيو|حزيران|يوليو|تموز|اغسطس|أغسطس|سبتمبر|ايلول|أيلول|اكتوبر|أكتوبر|تشرين\s+(?:الاول|الأول|الثاني)|نوفمبر|ديسمبر|كانون\s+(?:الاول|الأول)|january|february|march|april|may|june|july|august|september|october|november|december|20\d{2}|[0-9]|الف|ألف|مئة|مية)';
+    final patterns = <RegExp>[
+      RegExp(
+        r'(?:^|\s)(?:لي\s+عند|الي\s+عند|إلي\s+عند)\s+([\p{L}][\p{L} ]{0,35}?)(?=\s+' + stop + r'|$)',
+        unicode: true,
+      ),
+      RegExp(
+        r'(?:^|\s)(?:من\s+)?(?:دين|الدين)\s+(?:(?:عند|لدى|على|ل)\s+)?([\p{L}][\p{L} ]{0,35}?)(?=\s+' + stop + r'|$)',
+        unicode: true,
+      ),
+      RegExp(
+        r'(?:^|\s)(?:مع|لدى|عند|لصالح|ل)\s+([\p{L}][\p{L} ]{0,35}?)(?=\s+' + stop + r'|$)',
+        unicode: true,
+      ),
+    ];
+    for (final pattern in patterns) {
+      final value = pattern.firstMatch(text)?.group(1)?.trim();
+      if (value != null &&
+          value.isNotEmpty &&
+          !const {'شخص', 'احد', 'طرف', 'البيت', 'المنزل'}.contains(value)) {
+        return value;
+      }
+    }
+    return null;
+  }
+}
+
+/// Backward-compatible name retained for existing tests and integrations.
+typedef FakeAssistantEngine = LocalRuleAssistantEngine;
+, caseSensitive: false),
       '',
     );
     title = title.replaceAll(RegExp(r'\s+'), ' ').trim();
