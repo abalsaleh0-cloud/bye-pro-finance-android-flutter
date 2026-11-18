@@ -333,6 +333,30 @@ void main() {
       expect(updated.transferredAt, originalDate);
       expect(updated.note, 'التحويل الأصلي');
     });
+    test('moves a transfer to a requested month while preserving its calendar day', () async {
+      final work = WorkRepository(database);
+      await work.saveTransfer(WorkHomeTransfer(
+        id: 'month-transfer',
+        amount: Money.fromMinorUnits(600),
+        transferredAt: DateTime(2026, 11, 12),
+      ));
+
+      final prepared = await registry.prepareUpdateParameters(
+        'save_work_home_transfer',
+        const {
+          'id': 'month-transfer',
+          'amountMinorUnits': 700,
+          'year': 2026,
+          'month': 12,
+        },
+      );
+      expect(prepared['date'], '2026-12-12');
+      expect(registry.validate('save_work_home_transfer', prepared), isNull);
+
+      await registry.execute('save_work_home_transfer', prepared);
+      final updated = (await work.watchTransfers().first).single;
+      expect(updated.transferredAt, DateTime(2026, 12, 12));
+    });
 
     test('moves an edited expense month without changing its original day where possible', () async {
       final home = HomeExpenseRepository(database);
