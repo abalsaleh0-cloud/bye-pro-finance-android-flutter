@@ -473,33 +473,27 @@ void main() {
       await create.undo!();
     });
 
-    test('lists all home expenses across months when allRecords is requested', () async {
-      await seedWorkCash();
-      await registry.execute('save_work_home_transfer', {
-        'amountMinorUnits': 1000,
-        'date': DateTime.now().toIso8601String(),
-      });
-      await registry.execute('save_home_expense', {
-        'amountMinorUnits': 100,
-        'categoryId': 'groceries',
-        'date': DateTime(2026, 10, 2).toIso8601String(),
-        'year': 2026,
-        'month': 10,
-        'id': 'expense-oct',
-      });
-      await registry.execute('save_home_expense', {
-        'amountMinorUnits': 150,
-        'categoryId': 'utilities',
-        'date': DateTime(2026, 11, 2).toIso8601String(),
-        'year': 2026,
-        'month': 11,
-        'id': 'expense-nov',
-      });
-      final result = await registry.execute('read_home_expenses', {
+    test('lists all work records across months when allRecords is requested', () async {
+      final work = WorkRepository(database);
+      await work.saveEntry(WorkEntry(
+        id: 'work-oct',
+        kind: WorkEntryKind.salary,
+        amount: Money.fromMinorUnits(1000),
+        dueMonth: MonthKey(year: 2026, month: 10),
+        recordedAt: DateTime(2026, 10, 2),
+      ));
+      await work.saveEntry(WorkEntry(
+        id: 'work-nov',
+        kind: WorkEntryKind.salary,
+        amount: Money.fromMinorUnits(1200),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime(2026, 11, 2),
+      ));
+      final result = await registry.execute('read_work_records', {
         'allRecords': true,
       });
-      expect(result.message, contains('expense-oct'));
-      expect(result.message, contains('expense-nov'));
+      expect(result.message, contains('work-oct'));
+      expect(result.message, contains('work-nov'));
     });
 
     test('records and reads bill payments by exact bill title', () async {
