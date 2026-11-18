@@ -309,6 +309,30 @@ void main() {
       expect(updated.recordedAt, originalDate);
       expect(updated.note, 'ملاحظة أصلية');
     });
+    test('synchronizes the due month when an edited work record receives a new date', () async {
+      final work = WorkRepository(database);
+      await work.saveEntry(WorkEntry(
+        id: 'date-change-work',
+        kind: WorkEntryKind.salary,
+        amount: Money.fromMinorUnits(500),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime(2026, 11, 8),
+      ));
+
+      final prepared = await registry.prepareUpdateParameters(
+        'save_work_entry',
+        const {'id': 'date-change-work', 'date': '2026-12-08'},
+      );
+      expect(prepared['year'], 2026);
+      expect(prepared['month'], 12);
+      expect(prepared['amountMinorUnits'], 500);
+      expect(registry.validate('save_work_entry', prepared), isNull);
+
+      await registry.execute('save_work_entry', prepared);
+      final updated = (await work.watchEntries().first).single;
+      expect(updated.dueMonth, MonthKey(year: 2026, month: 12));
+      expect(updated.recordedAt, DateTime(2026, 12, 8));
+    });
 
     test('keeps the original transfer date when a partial edit omits a new date', () async {
       final work = WorkRepository(database);
