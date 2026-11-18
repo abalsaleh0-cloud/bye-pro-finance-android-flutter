@@ -58,6 +58,9 @@ void main() {
     await tester.tap(find.byKey(const Key('open-settings')));
     await tester.pumpAndSettle();
 
+    // The appearance selector is in the first visible settings section.
+    expect(find.byKey(const Key('theme-mode-selector')), findsOneWidget);
+
     // Settings uses a lazy ListView: scroll to instantiate each section
     // before asserting that its controls are present.
     final settingsScroll = find.byType(Scrollable).first;
@@ -95,7 +98,6 @@ void main() {
     expect(find.text('لوحات إضافية'), findsNothing);
     expect(find.byKey(const Key('create-theme-from-color')), findsNothing);
     expect(find.byKey(const Key('import-theme-json')), findsNothing);
-    expect(find.byKey(const Key('theme-mode-selector')), findsOneWidget);
 
     await tester.ensureVisible(find.text('الوضع الداكن'));
     await tester.tap(find.text('الوضع الداكن'));
