@@ -423,6 +423,44 @@ void main() {
       await result.undo!();
       expect(await database.select(database.debts).get(), isEmpty);
     });
+    test('partial debt edit retains its direction, party, date, and payment history', () async {
+      final date = DateTime(2026, 11, 4);
+      await registry.execute('save_debt', {
+        'amountMinorUnits': 700,
+        'direction': 'creditor',
+        'counterparty': 'Samer',
+        'year': 2026,
+        'month': 11,
+        'date': '2026-11-04',
+        'note': 'original debt note',
+        'id': 'partial-debt',
+      });
+      await registry.execute('record_debt_payment', {
+        'debtId': 'partial-debt',
+        'amountMinorUnits': 150,
+      });
+
+      final prepared = await registry.prepareUpdateParameters(
+        'save_debt',
+        const {'id': 'partial-debt', 'amountMinorUnits': 900},
+      );
+      expect(prepared['direction'], 'creditor');
+      expect(prepared['counterparty'], 'Samer');
+      expect(prepared['year'], 2026);
+      expect(prepared['month'], 11);
+      expect(prepared['date'], '2026-11-04');
+      expect(prepared['note'], 'original debt note');
+      expect(registry.validate('save_debt', prepared), isNull);
+
+      await registry.execute('save_debt', prepared);
+      final debt = (await DebtRepository(database).watchAll().first).single;
+      expect(debt.originalAmount.minorUnits, 900);
+      expect(debt.outstandingAmount.minorUnits, 750);
+      expect(debt.direction.name, 'creditor');
+      expect(debt.counterparty, 'Samer');
+      expect(debt.createdAt, date);
+      expect((await DebtRepository(database).watchPayments(debt.id).first), hasLength(1));
+    });
 
     test('editing debt recalculates outstanding balance after recorded payments', () async {
       await registry.execute('save_debt', {
@@ -471,7 +509,11 @@ void main() {
           'month': 11,
           'id': 'd-edit',
         }),
-        throwsArgumentError,
+        throwsA(isA<AssistantActionException>().having(
+          (error) => error.code,
+          'code',
+          'debt_amount_below_paid',
+        )),
       );
     });
 
@@ -559,6 +601,46 @@ void main() {
       expect(await HomeBillRepository(database).paymentsFor('internet-nov'), isEmpty);
     });
 
+    test('bill edit preview retains payment history and accurate remaining amount', () async {
+      await seedWorkCash();
+      await registry.execute('save_work_home_transfer', {
+        'amountMinorUnits': 500,
+        'date': DateTime.now().toIso8601String(),
+      });
+      final now = DateTime.now();
+      await registry.execute('save_home_bill', {
+        'title': 'Electricity',
+        'kind': 'monthly',
+        'amountMinorUnits': 400,
+        'year': now.year,
+        'month': now.month,
+        'date': DateTime(now.year, now.month, 5).toIso8601String(),
+        'note': 'monthly power bill',
+        'id': 'bill-edit-preview',
+      });
+      await registry.execute('record_home_bill_payment', {
+        'billId': 'bill-edit-preview',
+        'amountMinorUnits': 100,
+        'date': DateTime.now().toIso8601String(),
+      });
+
+      final prepared = await registry.prepareUpdateParameters(
+        'save_home_bill',
+        const {'id': 'bill-edit-preview', 'amountMinorUnits': 500},
+      );
+      expect(prepared['title'], 'Electricity');
+      expect(prepared['kind'], 'monthly');
+      expect(prepared['paidMinorUnits'], 100);
+      expect(prepared['remainingMinorUnits'], 300);
+      expect(prepared['note'], 'monthly power bill');
+      expect(registry.validate('save_home_bill', prepared), isNull);
+
+      await registry.execute('save_home_bill', prepared);
+      final bill = (await HomeBillRepository(database).getBills()).single;
+      expect(bill.title, 'Electricity');
+      expect(bill.paidMinorUnits, 100);
+      expect(bill.remainingMinorUnits, 400);
+    });
     test('creates, lists and removes a custom category safely', () async {
       final create = await registry.execute('save_home_category', {
         'name': 'Office supplies',
