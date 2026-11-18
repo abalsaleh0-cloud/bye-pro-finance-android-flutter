@@ -33,6 +33,12 @@ final class AssistantDashboardSummary {
   final int homeBalanceMinorUnits;
 }
 
+final class AssistantActionException implements Exception {
+  const AssistantActionException(this.code);
+
+  final String code;
+}
+
 final class ActionExecution {
   const ActionExecution({
     required this.message,
@@ -625,7 +631,12 @@ final class ActionRegistry {
           (direction == null || debt.direction.name == direction)
         ).toList(growable: false);
         if(matches.length != 1) throw StateError(matches.isEmpty ? 'Debt not found' : 'Debt party is ambiguous');
-        final deleted = matches.single; final payments=await _debts.watchPayments(deleted.id).first; await _debts.delete(deleted.id);
+        final deleted = matches.single;
+        final payments = await _debts.watchPayments(deleted.id).first;
+        if (payments.isNotEmpty) {
+          throw const AssistantActionException('debt_has_payments');
+        }
+        await _debts.delete(deleted.id);
         return ActionExecution(message:'تم حذف الدين',undo:() async { await _debts.restoreDebt(deleted,payments); });
       case 'record_debt_payment':
         final allDebts = await _debts.watchAll().first;
