@@ -4,6 +4,7 @@ import 'package:expense_app/core/database/app_database.dart';
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
+import 'package:expense_app/core/time/calendar_date.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
 import 'package:expense_app/features/debts/domain/debt_entry.dart';
 import 'package:expense_app/features/debts/domain/debt_payment.dart';
@@ -229,6 +230,7 @@ void main() {
     }
     expect(find.byType(NavigationBar), findsOneWidget);
 
+    await tester.ensureVisible(find.byKey(const Key('home-tab-5')));
     await tester.tap(find.byKey(const Key('home-tab-5')));
     await tester.pumpAndSettle();
     expect(
@@ -307,9 +309,11 @@ void main() {
     await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('المنزل')));
     await tester.pumpAndSettle();
     final homeMonthPicker = find.byKey(const Key('home-selected-month-picker'));
-    final previousMonthLabel = MaterialLocalizations.of(
-      tester.element(homeMonthPicker),
-    ).formatMonthYear(DateTime(previousMonth.year, previousMonth.month, 1));
+    final previousMonthLabel = toAsciiDigits(
+      MaterialLocalizations.of(tester.element(homeMonthPicker)).formatMonthYear(
+        DateTime(previousMonth.year, previousMonth.month, 1),
+      ),
+    );
     expect(
       find.descendant(
         of: homeMonthPicker,
@@ -326,9 +330,11 @@ void main() {
     await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('العمل')));
     await tester.pumpAndSettle();
     final workMonthPicker = find.byKey(const Key('work-selected-month-picker'));
-    final currentMonthLabel = MaterialLocalizations.of(
-      tester.element(workMonthPicker),
-    ).formatMonthYear(DateTime(currentMonth.year, currentMonth.month, 1));
+    final currentMonthLabel = toAsciiDigits(
+      MaterialLocalizations.of(tester.element(workMonthPicker)).formatMonthYear(
+        DateTime(currentMonth.year, currentMonth.month, 1),
+      ),
+    );
     expect(
       find.descendant(
         of: workMonthPicker,
