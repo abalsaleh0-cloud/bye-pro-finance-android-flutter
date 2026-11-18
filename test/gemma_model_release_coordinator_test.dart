@@ -8,6 +8,23 @@ void main() {
       expect(supportsGemmaMultimodalMemory(6143), isFalse);
     });
 
+    test('converts Android RAM bytes to megabytes before checking the 6 GB limit', () {
+      expect(physicalRamMegabytesFromBytes(5 * 1024 * 1024 * 1024), 5120);
+      expect(physicalRamMegabytesFromBytes(6 * 1024 * 1024 * 1024), 6144);
+      expect(
+        supportsGemmaMultimodalMemory(
+          physicalRamMegabytesFromBytes(5 * 1024 * 1024 * 1024),
+        ),
+        isFalse,
+      );
+      expect(
+        supportsGemmaMultimodalMemory(
+          physicalRamMegabytesFromBytes(6 * 1024 * 1024 * 1024),
+        ),
+        isTrue,
+      );
+    });
+
     test('allows devices with at least 6 GB RAM or unknown RAM', () {
       expect(supportsGemmaMultimodalMemory(6144), isTrue);
       expect(supportsGemmaMultimodalMemory(8192), isTrue);
