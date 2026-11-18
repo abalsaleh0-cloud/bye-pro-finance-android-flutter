@@ -14,7 +14,7 @@ void main() {
     messenger.setMockMethodCallHandler(channel, null);
   });
 
-  test('returns recognized Arabic text from the Android voice bridge', () async {
+  test('returns recognized Arabic text for the editable message field', () async {
     messenger.setMockMethodCallHandler(channel, (call) async {
       expect(call.method, 'recognizeArabicSpeech');
       return 'أضف راتب 1500';
