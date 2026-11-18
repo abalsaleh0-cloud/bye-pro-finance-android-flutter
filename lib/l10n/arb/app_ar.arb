@@ -257,5 +257,9 @@
   "assistantBillPaymentNotAvailable": "تعذر تسجيل الدفعة لأن المبلغ يتجاوز المتبقي من الفاتورة أو الرصيد المتاح.",
   "assistantDebtPaymentExceedsBalance": "مبلغ الدفعة أكبر من المبلغ المتبقي من الدين.",
   "assistantDebtAmountBelowPaid": "لا يمكن تخفيض أصل الدين إلى أقل من مجموع دفعاته المسجلة.",
+  "assistantWorkBalanceInsufficient": "لا يمكن تنفيذ العملية لأن المبلغ سيجعل التحويلات أكبر من الرصيد المستلم في قسم العمل.",
+  "assistantHomeBalanceInsufficient": "لا يمكن تسجيل المصروف أو تعديله لأن رصيد المنزل المتاح لا يكفي.",
+  "assistantBillCommitmentNotAvailable": "لا يمكن تعديل الفاتورة لأن ذلك سيجعل الالتزامات والفواتير المستحقة أكبر من رصيد المنزل المتاح.",
+  "assistantHomeCommitmentNotCovered": "لا يمكن نقل التحويل لأن رصيد المنزل لن يكفي لتغطية المصروفات والفواتير المستحقة في شهر التحويل الأصلي.",
   "personName": "اسم الشخص"
 }
