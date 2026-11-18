@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/native.dart';
 import 'package:expense_app/core/database/app_database.dart';
 import 'package:expense_app/core/database/database_providers.dart';
@@ -24,17 +26,38 @@ void main() {
     await database.close();
   });
 
-  test('appearance mode is applied immediately and saved locally', () async {
-    final controller = container.read(appSettingsProvider.notifier);
-    controller.setThemeMode(ThemeMode.dark);
-
+  test('starts dark and persists light/dark selections before completing', () async {
     expect(container.read(appSettingsProvider).themeMode, ThemeMode.dark);
-    await database.readSetting('theme_mode');
+
+    final controller = container.read(appSettingsProvider.notifier);
+    await controller.setThemeMode(ThemeMode.light);
+
+    expect(container.read(appSettingsProvider).themeMode, ThemeMode.light);
+    expect(await database.readSetting('theme_mode'), 'light');
+
+    await controller.setThemeMode(ThemeMode.dark);
+    expect(container.read(appSettingsProvider).themeMode, ThemeMode.dark);
     expect(await database.readSetting('theme_mode'), 'dark');
 
-    controller.setThemeMode(ThemeMode.light);
-    expect(container.read(appSettingsProvider).themeMode, ThemeMode.light);
-    await database.readSetting('theme_mode');
+    await controller.setThemeMode(ThemeMode.light);
     expect(await database.readSetting('theme_mode'), 'light');
+
+    // Simulate a process restart and make sure the saved choice is restored.
+    container.dispose();
+    final restored = Completer<void>();
+    container = ProviderContainer(
+      overrides: [appDatabaseProvider.overrideWithValue(database)],
+    );
+    container.listen<AppSettings>(
+      appSettingsProvider,
+      (previous, next) {
+        if (next.themeMode == ThemeMode.light && !restored.isCompleted) {
+          restored.complete();
+        }
+      },
+      fireImmediately: true,
+    );
+    await restored.future.timeout(const Duration(seconds: 2));
+    expect(container.read(appSettingsProvider).themeMode, ThemeMode.light);
   });
 }
