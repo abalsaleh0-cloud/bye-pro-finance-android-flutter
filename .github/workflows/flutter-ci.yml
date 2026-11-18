@@ -83,21 +83,6 @@ jobs:
             exit 1
           fi
           printf 'flutter.sdk=%s\nsdk.dir=%s\n' "$FLUTTER_ROOT" "$ANDROID_SDK" > android/local.properties
-      - name: Compile Android Kotlin sources (all debug variants)
-        shell: bash
-        run: |
-          set -euo pipefail
-          TASK_OUTPUT="$(gradle -p android :app:tasks --all --console=plain)"
-          mapfile -t KOTLIN_TASKS < <(
-            printf '%s\n' "$TASK_OUTPUT" |
-              awk '$1 ~ /^compile[A-Za-z0-9]*DebugKotlin$/ { print ":app:" $1 }'
-          )
-          if (( ${#KOTLIN_TASKS[@]} == 0 )); then
-            echo "::error::No Android debug Kotlin compilation task was found."
-            exit 1
-          fi
-          printf 'Compiling Android Kotlin tasks: %s\n' "${KOTLIN_TASKS[*]}"
-          gradle -p android "${KOTLIN_TASKS[@]}" --no-daemon
       - name: Generate localization sources
         run: flutter gen-l10n
       - name: Generate Drift database code
