@@ -287,52 +287,6 @@ class _AiScreenState extends ConsumerState<AiScreen> {
 
 
 
-  Future<void> _showEmojiPicker() async {
-    const emojis = [
-      '😀', '😃', '😄', '😁', '😆', '😂', '🤣', '😊',
-      '😍', '🥰', '😘', '😎', '🤔', '🤗', '😴', '😭',
-      '😡', '👍', '👎', '🙏', '👏', '💪', '❤️', '🔥',
-    ];
-    final selected = await showModalBottomSheet<String>(
-      context: context,
-      builder: (sheetContext) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: emojis
-                .map(
-                  (emoji) => InkWell(
-                    borderRadius: BorderRadius.circular(22),
-                    onTap: () => Navigator.pop(sheetContext, emoji),
-                    child: SizedBox(
-                      width: 40,
-                      height: 40,
-                      child: Center(
-                        child: Text(emoji, style: const TextStyle(fontSize: 25)),
-                      ),
-                    ),
-                  ),
-                )
-                .toList(),
-          ),
-        ),
-      ),
-    );
-    if (selected == null || !mounted) return;
-
-    final current = _input.value;
-    final selection = current.selection;
-    final start = selection.isValid ? selection.start : current.text.length;
-    final end = selection.isValid ? selection.end : current.text.length;
-    final updated = current.text.replaceRange(start, end, selected);
-    _input.value = TextEditingValue(
-      text: updated,
-      selection: TextSelection.collapsed(offset: start + selected.length),
-    );
-  }
-
   void _removeAttachment() {
     setState(() {
       _attachmentBytes = null;
@@ -1010,13 +964,12 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                         height: 40,
                         child: IconButton(
                           key: const Key('ai-emoji-button'),
-                          onPressed: _showEmojiPicker,
-                          icon: const Icon(
-                            Icons.sentiment_satisfied_alt_outlined,
-                            size: 24,
-                          ),
+                          onPressed: _busy || _recognizing
+                              ? null
+                              : _chooseAttachment,
+                          icon: const Icon(Icons.attach_file_rounded, size: 24),
                           color: scheme.onSurfaceVariant,
-                          tooltip: strings.aiEmojiPicker,
+                          tooltip: strings.aiFiles,
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints.tightFor(
                             width: 40,
@@ -1050,27 +1003,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                           ),
                         ),
                       ),
-                      SizedBox(
-                        width: 40,
-                        height: 40,
-                        child: IconButton(
-                          key: const Key('ai-attach-button'),
-                          onPressed: _busy || _recognizing
-                              ? null
-                              : _chooseAttachment,
-                          icon: const Icon(Icons.attach_file_rounded, size: 24),
-                          color: scheme.onSurfaceVariant,
-                          tooltip: strings.aiFiles,
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints.tightFor(
-                            width: 40,
-                            height: 40,
-                          ),
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      ),
-                      const SizedBox(width: 2),
-                      SizedBox(
+                      const SizedBox(width: 2),                      SizedBox(
                         width: 40,
                         height: 40,
                         child: ValueListenableBuilder<TextEditingValue>(
