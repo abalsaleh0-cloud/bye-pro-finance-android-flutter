@@ -80,8 +80,8 @@ void main() {
     });
   });
 
-  group('FakeAssistantEngine', () {
-    const engine = FakeAssistantEngine();
+  group('LocalRuleAssistantEngine', () {
+    const engine = LocalRuleAssistantEngine();
     const actions = [
       'read_work_remaining',
       'read_month_total',
