@@ -60,6 +60,10 @@ class AppSettingsController extends Notifier<AppSettings> {
         // Theme cleanup must never prevent restoring language or app mode.
       }
 
+      // The cleanup above is asynchronous. A user may change appearance while
+      // it runs, so re-check the revision before applying the older snapshot.
+      if (_revision != 0) return;
+
       state = AppSettings(
         themeMode: switch (values[0]) {
           'dark' => ThemeMode.dark,
