@@ -198,12 +198,12 @@ final class ActionRegistry {
         final requestedName = p['name'] as String?;
         final matches = allCategories.where((category) =>
           requestedId != null ? category.id == requestedId :
-          _normalizeCategoryText(_categoryLabel(category)) == _normalizeCategoryText(requestedName ?? '')
+          (_normalizeCategoryText(_categoryLabel(category)) == _normalizeCategoryText(requestedName ?? '') ||
+            _normalizeCategoryText(category.id) == _normalizeCategoryText(requestedName ?? ''))
         ).toList(growable: false);
         if (matches.length != 1) throw StateError(matches.isEmpty ? 'Category not found' : 'Category name is ambiguous');
         final existing = matches.single;
         final id = existing.id;
-        if (existing == null) throw StateError('Category not found');
         await _categories.removeCustom(id);
         return ActionExecution(
           message: 'تم حذف التصنيف: ${_categoryLabel(existing)}',
@@ -549,21 +549,54 @@ final class ActionRegistry {
     }
   }
   Map<String, Type> _typesFor(String name) => switch (name) {
-    'save_work_entry' => const {'kind': String, 'amountMinorUnits': int, 'year': int, 'month': int, 'date': String, 'id': String, 'note': String},
-    'delete_work_entry' || 'delete_home_expense' || 'delete_work_home_transfer' || 'delete_debt' || 'delete_home_category' => const {'id': String, 'name': String},
-    'save_home_expense' => const {'amountMinorUnits': int, 'categoryId': String, 'categoryName': String, 'date': String, 'year': int, 'month': int, 'id': String, 'note': String},
+    'save_work_entry' => const {
+      'kind': String, 'amountMinorUnits': int, 'year': int, 'month': int,
+      'date': String, 'id': String, 'note': String,
+    },
+    'delete_work_entry' || 'delete_home_expense' || 'delete_work_home_transfer' =>
+      const {'id': String},
+    'delete_debt' => const {
+      'id': String, 'debtId': String, 'counterparty': String, 'direction': String,
+    },
+    'delete_home_category' => const {'id': String, 'name': String},
+    'save_home_expense' => const {
+      'amountMinorUnits': int, 'categoryId': String, 'categoryName': String,
+      'date': String, 'year': int, 'month': int, 'id': String, 'note': String,
+    },
     'save_home_category' => const {'name': String, 'id': String},
-    'save_home_bill' => const {'title': String, 'kind': String, 'amountMinorUnits': int, 'year': int, 'month': int, 'date': String, 'id': String, 'note': String},
+    'save_home_bill' => const {
+      'title': String, 'kind': String, 'amountMinorUnits': int,
+      'year': int, 'month': int, 'date': String, 'id': String, 'note': String,
+    },
     'delete_home_bill' => const {'id': String, 'billId': String, 'billTitle': String},
-    'record_home_bill_payment' => const {'billId': String, 'billTitle': String, 'amountMinorUnits': int, 'date': String, 'note': String},
-    'read_home_bills' || 'read_work_records' || 'read_home_expenses' || 'read_debts' || 'read_work_transfers' => const {'year': int, 'month': int, 'allRecords': bool},
+    'record_home_bill_payment' => const {
+      'billId': String, 'billTitle': String, 'amountMinorUnits': int,
+      'date': String, 'note': String,
+    },
+    'read_home_bills' || 'read_work_records' || 'read_home_expenses' ||
+    'read_debts' || 'read_work_transfers' => const {
+      'year': int, 'month': int, 'allRecords': bool,
+    },
     'read_home_categories' => const {},
-    'read_debt_payments' => const {'debtId': String, 'id': String, 'counterparty': String, 'direction': String},
-    'read_home_bill_payments' => const {'billId': String, 'id': String, 'billTitle': String},
-    'save_work_home_transfer' => const {'amountMinorUnits': int, 'id': String, 'date': String, 'note': String},
-    'save_debt' => const {'amountMinorUnits': int, 'direction': String, 'counterparty': String, 'year': int, 'month': int, 'date': String, 'id': String, 'note': String},
-    'record_debt_payment' => const {'debtId': String, 'counterparty': String, 'direction': String, 'amountMinorUnits': int, 'date': String, 'note': String},
-    'read_work_remaining' || 'read_month_total' || 'read_dashboard_summary' || 'navigate_to_section' => const {'section': String, 'year': int, 'month': int},
+    'read_debt_payments' => const {
+      'debtId': String, 'id': String, 'counterparty': String, 'direction': String,
+    },
+    'read_home_bill_payments' => const {
+      'billId': String, 'id': String, 'billTitle': String,
+    },
+    'save_work_home_transfer' => const {
+      'amountMinorUnits': int, 'id': String, 'date': String, 'note': String,
+    },
+    'save_debt' => const {
+      'amountMinorUnits': int, 'direction': String, 'counterparty': String,
+      'year': int, 'month': int, 'date': String, 'id': String, 'note': String,
+    },
+    'record_debt_payment' => const {
+      'debtId': String, 'counterparty': String, 'direction': String,
+      'amountMinorUnits': int, 'date': String, 'note': String,
+    },
+    'read_work_remaining' || 'read_month_total' || 'read_dashboard_summary' ||
+    'navigate_to_section' => const {'section': String, 'year': int, 'month': int},
     _ => const {},
   };
   MonthKey? _listMonthFilter(Map<String, Object?> parameters) {
