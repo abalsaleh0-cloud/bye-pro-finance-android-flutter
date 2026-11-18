@@ -1,62 +1,99 @@
 import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:material_ui/material_ui.dart';
 
-/// One fixed BYE PRO design system with two coordinated appearances.
-/// Colour changes never alter component geometry or interaction behaviour.
+/// Telegram Android Blue (light) and Dark Blue (dark) color system.
+///
+/// Values are aligned with Telegram Android's official ThemeColors defaults
+/// and its Dark Blue theme asset. Geometry remains controlled independently
+/// by AppDesignTokens.
 class AppTheme {
   AppTheme._();
+
+  static const telegramBlue = Color(0xFF229AF0);
+  static const telegramDarkBlue = Color(0xFF64B5EF);
 
   static ThemeData get light => _buildTheme(isDark: false);
   static ThemeData get dark => _buildTheme(isDark: true);
 
   static ColorScheme colorSchemeFor({required Brightness brightness}) {
     final isDark = brightness == Brightness.dark;
-    final seed = isDark
-        ? const Color(0xFF8BB8F4)
-        : const Color(0xFF245FAE);
-    final generated = ColorScheme.fromSeed(
-      seedColor: seed,
-      brightness: brightness,
-    );
 
-    return generated.copyWith(
-      primary: isDark ? const Color(0xFF8BB8F4) : const Color(0xFF245FAE),
-      onPrimary: isDark ? const Color(0xFF10233D) : Colors.white,
-      primaryContainer:
-          isDark ? const Color(0xFF203F66) : const Color(0xFFDCE9F8),
-      onPrimaryContainer:
-          isDark ? const Color(0xFFE1EEFF) : const Color(0xFF17385F),
-      secondary: isDark ? const Color(0xFFE0BD69) : const Color(0xFF946D1B),
-      onSecondary: isDark ? const Color(0xFF2B210C) : Colors.white,
-      secondaryContainer:
-          isDark ? const Color(0xFF493919) : const Color(0xFFF3E8CB),
-      onSecondaryContainer:
-          isDark ? const Color(0xFFFFE8AE) : const Color(0xFF4D3910),
-      surface: isDark ? const Color(0xFF101720) : const Color(0xFFF6F8FB),
-      onSurface: isDark ? const Color(0xFFF1F4F8) : const Color(0xFF1B2735),
-      onSurfaceVariant:
-          isDark ? const Color(0xFFB6C1CF) : const Color(0xFF566476),
-      surfaceDim: isDark ? const Color(0xFF0B1118) : const Color(0xFFE9EEF4),
-      surfaceBright:
-          isDark ? const Color(0xFF26313E) : const Color(0xFFFFFFFF),
-      surfaceContainerLowest:
-          isDark ? const Color(0xFF0D131B) : const Color(0xFFFFFFFF),
-      surfaceContainerLow:
-          isDark ? const Color(0xFF151E29) : const Color(0xFFFFFFFF),
-      surfaceContainer:
-          isDark ? const Color(0xFF1A2430) : const Color(0xFFF0F3F7),
-      surfaceContainerHigh:
-          isDark ? const Color(0xFF222E3B) : const Color(0xFFE8EDF3),
-      surfaceContainerHighest:
-          isDark ? const Color(0xFF2A3745) : const Color(0xFFDDE4EC),
-      outline: isDark ? const Color(0xFF627184) : const Color(0xFF7D8997),
-      outlineVariant:
-          isDark ? const Color(0xFF354353) : const Color(0xFFD8DFE7),
+    if (isDark) {
+      return const ColorScheme(
+        brightness: Brightness.dark,
+        primary: Color(0xFF64B5EF),
+        onPrimary: Color(0xFF102A3D),
+        primaryContainer: Color(0xFF314A61),
+        onPrimaryContainer: Color(0xFFEAF5FF),
+        secondary: Color(0xFF9AA8B6),
+        onSecondary: Color(0xFF15202B),
+        secondaryContainer: Color(0xFF2A3745),
+        onSecondaryContainer: Color(0xFFE6EDF4),
+        tertiary: Color(0xFF78FF7B),
+        onTertiary: Color(0xFF102A16),
+        tertiaryContainer: Color(0xFF3E618A),
+        onTertiaryContainer: Colors.white,
+        error: Color(0xFFFF6D6D),
+        onError: Color(0xFF2B1010),
+        errorContainer: Color(0xFF6E2B2B),
+        onErrorContainer: Color(0xFFFFE9E9),
+        surface: Color(0xFF1D2733),
+        onSurface: Color(0xFFFAFAFA),
+        onSurfaceVariant: Color(0xFF9AA8B6),
+        surfaceDim: Color(0xFF151E27),
+        surfaceBright: Color(0xFF354352),
+        surfaceContainerLowest: Color(0xFF151E27),
+        surfaceContainerLow: Color(0xFF212D3B),
+        surfaceContainer: Color(0xFF242D39),
+        surfaceContainerHigh: Color(0xFF232E3B),
+        surfaceContainerHighest: Color(0xFF2A3745),
+        outline: Color(0xFF5D7484),
+        outlineVariant: Color(0xFF3B4B5B),
+        shadow: Colors.black,
+        scrim: Colors.black,
+        inverseSurface: Color(0xFFFAFAFA),
+        onInverseSurface: Color(0xFF1D2733),
+        inversePrimary: Color(0xFF1779B8),
+        surfaceTint: Color(0xFF64B5EF),
+      );
+    }
+
+    return const ColorScheme(
+      brightness: Brightness.light,
+      primary: Color(0xFF229AF0),
+      onPrimary: Colors.white,
+      primaryContainer: Color(0xFFECF7FD),
+      onPrimaryContainer: Color(0xFF174F78),
+      secondary: Color(0xFF757575),
+      onSecondary: Colors.white,
+      secondaryContainer: Color(0xFFF1F1F3),
+      onSecondaryContainer: Color(0xFF1A1D21),
+      tertiary: Color(0xFF26972C),
+      onTertiary: Colors.white,
+      tertiaryContainer: Color(0xFFEFFFDE),
+      onTertiaryContainer: Color(0xFF1A1D21),
+      error: Color(0xFFCC4747),
+      onError: Colors.white,
+      errorContainer: Color(0xFFFCE8E6),
+      onErrorContainer: Color(0xFF7F1D1D),
+      surface: Colors.white,
+      onSurface: Color(0xFF1A1D21),
+      onSurfaceVariant: Color(0xFF757575),
+      surfaceDim: Color(0xFFF1F1F3),
+      surfaceBright: Colors.white,
+      surfaceContainerLowest: Colors.white,
+      surfaceContainerLow: Colors.white,
+      surfaceContainer: Color(0xFFF7F7F7),
+      surfaceContainerHigh: Colors.white,
+      surfaceContainerHighest: Color(0xFFF1F1F3),
+      outline: Color(0xFFB8BEC4),
+      outlineVariant: Color(0xFFD9D9D9),
       shadow: Colors.black,
       scrim: Colors.black,
-      surfaceTint: isDark
-          ? const Color(0xFF8BB8F4)
-          : const Color(0xFF245FAE),
+      inverseSurface: Color(0xFF1A1D21),
+      onInverseSurface: Colors.white,
+      inversePrimary: Color(0xFF1677B8),
+      surfaceTint: Color(0xFF229AF0),
     );
   }
 
@@ -84,7 +121,7 @@ class AppTheme {
         displayColor: scheme.onSurface,
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: scheme.surface,
+        backgroundColor: scheme.surfaceContainer,
         foregroundColor: scheme.onSurface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
@@ -102,9 +139,7 @@ class AppTheme {
         elevation: 0,
         margin: EdgeInsets.zero,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: radius,
-        ),
+        shape: RoundedRectangleBorder(borderRadius: radius),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -181,13 +216,13 @@ class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         height: tokens.navigationBarHeight,
-        backgroundColor: scheme.surface,
+        backgroundColor: scheme.surfaceContainer,
         indicatorColor: scheme.secondaryContainer,
         indicatorShape: const StadiumBorder(),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
       ),
       dialogTheme: DialogThemeData(
-        backgroundColor: scheme.surface,
+        backgroundColor: scheme.surfaceContainer,
         surfaceTintColor: Colors.transparent,
         elevation: 4,
         shape: RoundedRectangleBorder(
@@ -201,7 +236,7 @@ class AppTheme {
         ),
       ),
       datePickerTheme: DatePickerThemeData(
-        backgroundColor: scheme.surface,
+        backgroundColor: scheme.surfaceContainer,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: dialogRadius,
@@ -209,14 +244,14 @@ class AppTheme {
         ),
       ),
       timePickerTheme: TimePickerThemeData(
-        backgroundColor: scheme.surface,
+        backgroundColor: scheme.surfaceContainer,
         shape: RoundedRectangleBorder(
           borderRadius: dialogRadius,
           side: border,
         ),
       ),
       popupMenuTheme: PopupMenuThemeData(
-        color: scheme.surface,
+        color: scheme.surfaceContainer,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: dialogRadius,
@@ -224,7 +259,7 @@ class AppTheme {
         ),
       ),
       bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: scheme.surface,
+        backgroundColor: scheme.surfaceContainer,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(
