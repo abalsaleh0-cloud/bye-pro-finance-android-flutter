@@ -7,6 +7,8 @@ import 'package:expense_app/features/work/data/work_repository.dart';
 import 'package:expense_app/features/work/domain/work_entry.dart';
 import 'package:expense_app/features/work/domain/work_home_transfer.dart';
 import 'package:expense_app/features/home/data/home_expense_repository.dart';
+import 'package:expense_app/features/home/data/home_expense_category_repository.dart';
+import 'package:expense_app/features/home/domain/home_expense_category.dart';
 import 'package:expense_app/features/home/data/home_bill_repository.dart';
 import 'package:expense_app/features/home/domain/home_bill.dart';
 import 'package:expense_app/features/home/domain/home_expense.dart';
@@ -49,21 +51,25 @@ final class ActionDescriptor {
   final bool readOnly;
 }
 final class ActionRegistry {
-  ActionRegistry({required WorkRepository work, required HomeExpenseRepository home, required HomeBillRepository bills, required DebtRepository debts, MonthKey? selectedMonth})
-      : _work = work, _home = home, _bills = bills, _debts = debts, _selectedMonth = selectedMonth;
+  ActionRegistry({required WorkRepository work, required HomeExpenseRepository home, required HomeBillRepository bills, required DebtRepository debts, required HomeExpenseCategoryRepository categories, MonthKey? selectedMonth})
+      : _work = work, _home = home, _bills = bills, _debts = debts, _categories = categories, _selectedMonth = selectedMonth;
   final WorkRepository _work;
   final HomeExpenseRepository _home;
   final HomeBillRepository _bills;
   final DebtRepository _debts;
+  final HomeExpenseCategoryRepository _categories;
   final MonthKey? _selectedMonth;
   static const descriptors = <ActionDescriptor>[
     ActionDescriptor('save_work_entry', {'kind','amountMinorUnits','year','month'}),
     ActionDescriptor('delete_work_entry', {'id'}),
-    ActionDescriptor('save_home_expense', {'amountMinorUnits','categoryId','date','year','month'}),
+    ActionDescriptor('save_home_expense', {'amountMinorUnits','date','year','month'}),
+    ActionDescriptor('read_home_categories', {}, readOnly: true),
+    ActionDescriptor('save_home_category', {'name'}),
+    ActionDescriptor('delete_home_category', {'id'}),
     ActionDescriptor('delete_home_expense', {'id'}),
     ActionDescriptor('save_home_bill', {'title','kind','amountMinorUnits','year','month'}),
     ActionDescriptor('delete_home_bill', {'id'}),
-    ActionDescriptor('record_home_bill_payment', {'billId','amountMinorUnits'}),
+    ActionDescriptor('record_home_bill_payment', {'amountMinorUnits'}),
     ActionDescriptor('read_home_bills', {}, readOnly: true),
     ActionDescriptor('read_work_records', {}, readOnly: true),
     ActionDescriptor('read_home_expenses', {}, readOnly: true),
@@ -75,7 +81,7 @@ final class ActionRegistry {
     ActionDescriptor('delete_work_home_transfer', {'id'}),
     ActionDescriptor('save_debt', {'amountMinorUnits','direction','counterparty','year','month'}),
     ActionDescriptor('delete_debt', {'id'}),
-    ActionDescriptor('record_debt_payment', {'debtId','amountMinorUnits'}),
+    ActionDescriptor('record_debt_payment', {'amountMinorUnits'}),
     ActionDescriptor('read_work_remaining', {}, readOnly: true),
     ActionDescriptor('read_month_total', {'section','year','month'}, readOnly: true),
     ActionDescriptor('read_dashboard_summary', {}, readOnly: true),
@@ -108,17 +114,25 @@ final class ActionRegistry {
     if (name == 'save_debt' && !{'creditor','debtor'}.contains(p['direction'])) return 'invalid direction';
     if (name == 'save_home_bill' && !{'monthly','rent'}.contains(p['kind'])) return 'invalid bill kind';
     if (name == 'save_home_bill' && (p['title']! as String).trim().isEmpty) return 'missing bill title';
-    if (name == 'record_home_bill_payment' && (p['billId']! as String).trim().isEmpty) return 'missing bill';
+    if (name == 'record_home_bill_payment' &&
+        (p['billId'] == null && p['billTitle'] == null)) return 'missing bill';
+    if (name == 'record_home_bill_payment' &&
+        p['billTitle'] is String && (p['billTitle']! as String).trim().isEmpty) return 'missing bill';
     if (name == 'read_month_total' && !{'work','home','debts'}.contains(p['section'])) return 'invalid section';
     if (name == 'navigate_to_section' &&
         !{'dashboard','work','home','debts','ai','settings'}.contains(p['section'])) {
       return 'invalid navigation section';
     }
-    if (name == 'save_home_expense' && (p['categoryId']! as String).trim().isEmpty) return 'missing category';
-    if (name == 'save_home_expense' && DateTime.tryParse(p['date']! as String) == null) return 'invalid date';
+    if (name == 'save_home_expense' && p['categoryId'] == null && p['categoryName'] == null) return 'missing category';
+    if (name == 'save_home_expense' && p['categoryName'] is String && (p['categoryName']! as String).trim().isEmpty) return 'missing category';
+    if (name == 'save_home_category' && (p['name']! as String).trim().isEmpty) return 'missing category name';
+    if ((name == 'save_home_expense' || name == 'save_home_bill' || name == 'save_debt' || name == 'save_work_entry' || name == 'record_home_bill_payment' || name == 'record_debt_payment' || name == 'save_work_home_transfer') && p['date'] is String && DateTime.tryParse(p['date']! as String) == null) return 'invalid date';
+    if (name == 'save_home_expense' && p['date'] is String && (year != DateTime.parse(p['date']! as String).year || month != DateTime.parse(p['date']! as String).month)) return 'expense date and due month differ';
     if (name == 'save_work_home_transfer' && p['date'] is String && DateTime.tryParse(p['date']! as String) == null) return 'invalid date';
     if (name == 'save_debt' && (p['counterparty']! as String).trim().isEmpty) return 'missing counterparty';
-    if (name == 'record_debt_payment' && (p['debtId']! as String).trim().isEmpty) return 'missing debt';
+    if (name == 'record_debt_payment' && p['debtId'] == null && p['counterparty'] == null) return 'missing debt';
+    if (name == 'record_debt_payment' && p['counterparty'] is String && (p['counterparty']! as String).trim().isEmpty) return 'missing debt';
+    if (name == 'record_debt_payment' && p['direction'] != null && !{'creditor','debtor'}.contains(p['direction'])) return 'invalid debt direction';
     return null;
   }
   Future<ActionExecution> execute(String name, Map<String,Object?> p) async {
