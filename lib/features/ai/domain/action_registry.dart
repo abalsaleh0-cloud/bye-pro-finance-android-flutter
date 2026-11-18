@@ -65,22 +65,22 @@ final class ActionRegistry {
     ActionDescriptor('save_home_expense', {'amountMinorUnits','date','year','month'}),
     ActionDescriptor('read_home_categories', {}, readOnly: true),
     ActionDescriptor('save_home_category', {'name'}),
-    ActionDescriptor('delete_home_category', {'id'}),
+    ActionDescriptor('delete_home_category', {}),
     ActionDescriptor('delete_home_expense', {'id'}),
     ActionDescriptor('save_home_bill', {'title','kind','amountMinorUnits','year','month'}),
-    ActionDescriptor('delete_home_bill', {'id'}),
+    ActionDescriptor('delete_home_bill', {}),
     ActionDescriptor('record_home_bill_payment', {'amountMinorUnits'}),
     ActionDescriptor('read_home_bills', {}, readOnly: true),
     ActionDescriptor('read_work_records', {}, readOnly: true),
     ActionDescriptor('read_home_expenses', {}, readOnly: true),
     ActionDescriptor('read_debts', {}, readOnly: true),
     ActionDescriptor('read_work_transfers', {}, readOnly: true),
-    ActionDescriptor('read_debt_payments', {'debtId'}, readOnly: true),
-    ActionDescriptor('read_home_bill_payments', {'billId'}, readOnly: true),
+    ActionDescriptor('read_debt_payments', {}, readOnly: true),
+    ActionDescriptor('read_home_bill_payments', {}, readOnly: true),
     ActionDescriptor('save_work_home_transfer', {'amountMinorUnits'}),
     ActionDescriptor('delete_work_home_transfer', {'id'}),
     ActionDescriptor('save_debt', {'amountMinorUnits','direction','counterparty','year','month'}),
-    ActionDescriptor('delete_debt', {'id'}),
+    ActionDescriptor('delete_debt', {}),
     ActionDescriptor('record_debt_payment', {'amountMinorUnits'}),
     ActionDescriptor('read_work_remaining', {}, readOnly: true),
     ActionDescriptor('read_month_total', {'section','year','month'}, readOnly: true),
@@ -110,12 +110,37 @@ final class ActionRegistry {
     if (name == 'read_dashboard_summary' && (year == null) != (month == null)) {
       return 'dashboard month requires both year and month';
     }
+    if (const {
+      'read_work_records',
+      'read_home_expenses',
+      'read_debts',
+      'read_work_transfers',
+      'read_home_bills',
+    }.contains(name) && (year == null) != (month == null)) {
+      return 'list month requires both year and month';
+    }
     if (name == 'save_work_entry' && !{'salary','advance','payment','salaryPayment'}.contains(p['kind'])) return 'invalid kind';
     if (name == 'save_debt' && !{'creditor','debtor'}.contains(p['direction'])) return 'invalid direction';
     if (name == 'save_home_bill' && !{'monthly','rent'}.contains(p['kind'])) return 'invalid bill kind';
     if (name == 'save_home_bill' && (p['title']! as String).trim().isEmpty) return 'missing bill title';
     if (name == 'record_home_bill_payment' &&
         (p['billId'] == null && p['billTitle'] == null)) return 'missing bill';
+    if ((name == 'read_home_bill_payments' || name == 'delete_home_bill') &&
+        p['billId'] == null && p['billTitle'] == null && p['id'] == null) {
+      return 'missing bill';
+    }
+    if ((name == 'read_debt_payments' || name == 'delete_debt') &&
+        p['debtId'] == null && p['counterparty'] == null && p['id'] == null) {
+      return 'missing debt';
+    }
+    if (name == 'read_home_bill_payments' &&
+        p['billTitle'] is String && (p['billTitle']! as String).trim().isEmpty) {
+      return 'missing bill';
+    }
+    if (name == 'read_debt_payments' &&
+        p['counterparty'] is String && (p['counterparty']! as String).trim().isEmpty) {
+      return 'missing debt';
+    }
     if (name == 'record_home_bill_payment' &&
         p['billTitle'] is String && (p['billTitle']! as String).trim().isEmpty) return 'missing bill';
     if (name == 'read_month_total' && !{'work','home','debts'}.contains(p['section'])) return 'invalid section';
@@ -126,6 +151,8 @@ final class ActionRegistry {
     if (name == 'save_home_expense' && p['categoryId'] == null && p['categoryName'] == null) return 'missing category';
     if (name == 'save_home_expense' && p['categoryName'] is String && (p['categoryName']! as String).trim().isEmpty) return 'missing category';
     if (name == 'save_home_category' && (p['name']! as String).trim().isEmpty) return 'missing category name';
+    if (name == 'delete_home_category' && p['id'] == null && p['name'] == null) return 'missing category';
+    if (name == 'delete_home_category' && p['name'] is String && (p['name']! as String).trim().isEmpty) return 'missing category';
     if ((name == 'save_home_expense' || name == 'save_home_bill' || name == 'save_debt' || name == 'save_work_entry' || name == 'record_home_bill_payment' || name == 'record_debt_payment' || name == 'save_work_home_transfer') && p['date'] is String && DateTime.tryParse(p['date']! as String) == null) return 'invalid date';
     if (name == 'save_home_expense' && p['date'] is String && (year != DateTime.parse(p['date']! as String).year || month != DateTime.parse(p['date']! as String).month)) return 'expense date and due month differ';
     if (name == 'save_work_home_transfer' && p['date'] is String && DateTime.tryParse(p['date']! as String) == null) return 'invalid date';
@@ -166,10 +193,16 @@ final class ActionRegistry {
           },
         );
       case 'delete_home_category':
-        final id = p['id']! as String;
-        final existing = (await _categories.getAll())
-            .where((category) => category.id == id)
-            .firstOrNull;
+        final allCategories = await _categories.getAll();
+        final requestedId = p['id'] as String?;
+        final requestedName = p['name'] as String?;
+        final matches = allCategories.where((category) =>
+          requestedId != null ? category.id == requestedId :
+          _normalizeCategoryText(_categoryLabel(category)) == _normalizeCategoryText(requestedName ?? '')
+        ).toList(growable: false);
+        if (matches.length != 1) throw StateError(matches.isEmpty ? 'Category not found' : 'Category name is ambiguous');
+        final existing = matches.single;
+        final id = existing.id;
         if (existing == null) throw StateError('Category not found');
         await _categories.removeCustom(id);
         return ActionExecution(
@@ -235,8 +268,14 @@ final class ActionRegistry {
           },
         );
       case 'delete_home_bill':
-        final existing = (await _bills.getBills()).where((bill) => bill.id == p['id']).firstOrNull;
-        if (existing == null) throw StateError('Home bill not found');
+        final requestedId = (p['id'] ?? p['billId']) as String?;
+        final requestedTitle = p['billTitle'] as String?;
+        final matchingBills = (await _bills.getBills()).where((bill) =>
+          requestedId != null ? bill.id == requestedId :
+          _normalizeCategoryText(bill.title) == _normalizeCategoryText(requestedTitle ?? '')
+        ).toList(growable: false);
+        if (matchingBills.length != 1) throw StateError(matchingBills.isEmpty ? 'Home bill not found' : 'Bill title is ambiguous');
+        final existing = matchingBills.single;
         final payments = await _bills.paymentsFor(existing.id);
         if (payments.isNotEmpty) {
           throw StateError('A bill with payment history cannot be deleted');
@@ -273,98 +312,116 @@ final class ActionRegistry {
           message: 'تم تسجيل دفعة الفاتورة',
           undo: () => _bills.undoPayment(payment.id),
         );
-      case 'read_work_records':
-        final now = DateTime.now();
-        final month = p['year'] == null
-            ? (_selectedMonth ?? MonthKey(year: now.year, month: now.month))
-            : MonthKey(year: p['year']! as int, month: p['month']! as int);
-        final workEntries = (await _work.watchEntries().first)
-            .where((entry) => entry.dueMonth == month)
-            .toList(growable: false);
-        if (workEntries.isEmpty) {
-          return ActionExecution(message: 'لا توجد سجلات عمل لشهر $month.');
+      case 'read_work_records': {
+        final month = _listMonthFilter(p);
+        final entries = (await _work.watchEntries().first).where((entry) =>
+          month == null || entry.dueMonth == month
+        ).toList(growable: false);
+        if (entries.isEmpty) {
+          return ActionExecution(message: month == null
+              ? 'لا توجد سجلات عمل.'
+              : 'لا توجد سجلات عمل لشهر $month.');
         }
-        return ActionExecution(
-          message: workEntries.map((entry) =>
-            '${entry.id}: ${entry.kind.name}، ${entry.amount.minorUnits}، ${entry.dueMonth}'
-          ).join('؛ '),
-        );
-      case 'read_home_expenses':
-        final now = DateTime.now();
-        final month = _selectedMonth ?? MonthKey(year: now.year, month: now.month);
-        final expenses = (await _home.watchAll().first)
-            .where((expense) => expense.dueMonth == month)
-            .toList(growable: false);
+        return ActionExecution(message: entries.map((entry) =>
+          '${entry.id}: ${entry.kind.name}، ${entry.amount.minorUnits}، ${entry.dueMonth}، ${entry.recordedAt.toLocal().toIso8601String().split('T').first}${entry.note == null ? '' : '، ملاحظة: ${entry.note}'}'
+        ).join('؛ '));
+      }
+      case 'read_home_expenses': {
+        final month = _listMonthFilter(p);
+        final labels = {for (final c in await _categories.getAll()) c.id: _categoryLabel(c)};
+        final expenses = (await _home.watchAll().first).where((expense) =>
+          month == null || expense.dueMonth == month
+        ).toList(growable: false);
         if (expenses.isEmpty) {
-          return ActionExecution(message: 'لا توجد مصروفات منزلية لشهر $month.');
+          return ActionExecution(message: month == null
+              ? 'لا توجد مصروفات منزلية.'
+              : 'لا توجد مصروفات منزلية لشهر $month.');
         }
-        return ActionExecution(
-          message: expenses.map((expense) =>
-            '${expense.id}: ${expense.categoryId}، ${expense.amount.minorUnits}، ${expense.expenseDate.toLocal().toIso8601String().split('T').first}'
-          ).join('؛ '),
-        );
-      case 'read_debts':
-        final now = DateTime.now();
-        final month = _selectedMonth ?? MonthKey(year: now.year, month: now.month);
-        final debts = (await _debts.watchAll().first)
-            .where((debt) => debt.dueMonth == month)
-            .toList(growable: false);
+        return ActionExecution(message: expenses.map((expense) =>
+          '${expense.id}: ${labels[expense.categoryId] ?? expense.categoryId}، ${expense.amount.minorUnits}، ${expense.expenseDate.toLocal().toIso8601String().split('T').first}${expense.note == null ? '' : '، ملاحظة: ${expense.note}'}'
+        ).join('؛ '));
+      }
+      case 'read_debts': {
+        final month = _listMonthFilter(p);
+        final debts = (await _debts.watchAll().first).where((debt) =>
+          month == null || debt.dueMonth == month
+        ).toList(growable: false);
         if (debts.isEmpty) {
-          return ActionExecution(message: 'لا توجد ديون مسجلة لشهر $month.');
+          return ActionExecution(message: month == null
+              ? 'لا توجد ديون مسجلة.'
+              : 'لا توجد ديون مسجلة لشهر $month.');
         }
-        return ActionExecution(
-          message: debts.map((debt) =>
-            '${debt.id}: ${debt.direction.name}، ${debt.counterparty}، المتبقي ${debt.outstandingAmount.minorUnits}'
-          ).join('؛ '),
-        );
-      case 'read_work_transfers':
-        final now = DateTime.now();
-        final month = _selectedMonth ?? MonthKey(year: now.year, month: now.month);
+        return ActionExecution(message: debts.map((debt) =>
+          '${debt.id}: ${debt.direction.name}، ${debt.counterparty}، الأصل ${debt.originalAmount.minorUnits}، المتبقي ${debt.outstandingAmount.minorUnits}، ${debt.dueMonth}${debt.note == null ? '' : '، ملاحظة: ${debt.note}'}'
+        ).join('؛ '));
+      }
+      case 'read_work_transfers': {
+        final month = _listMonthFilter(p);
         final transfers = (await _work.watchTransfers().first).where((item) {
+          if (month == null) return true;
           final date = item.transferredAt.toLocal();
           return date.year == month.year && date.month == month.month;
         }).toList(growable: false);
         if (transfers.isEmpty) {
-          return ActionExecution(message: 'لا توجد تحويلات إلى المنزل لشهر $month.');
+          return ActionExecution(message: month == null
+              ? 'لا توجد تحويلات إلى المنزل.'
+              : 'لا توجد تحويلات إلى المنزل لشهر $month.');
         }
-        return ActionExecution(
-          message: transfers.map((item) =>
-            '${item.id}: ${item.amount.minorUnits}، ${item.transferredAt.toLocal().toIso8601String().split('T').first}'
-          ).join('؛ '),
-        );
-      case 'read_debt_payments':
-        final payments = await _debts.watchPayments(p['debtId']! as String).first;
-        if (payments.isEmpty) {
-          return const ActionExecution(message: 'لا توجد دفعات مسجلة لهذا الدين.');
+        return ActionExecution(message: transfers.map((item) =>
+          '${item.id}: ${item.amount.minorUnits}، ${item.transferredAt.toLocal().toIso8601String().split('T').first}${item.note == null ? '' : '، ملاحظة: ${item.note}'}'
+        ).join('؛ '));
+      }
+      case 'read_debt_payments': {
+        final all = await _debts.watchAll().first;
+        final id = (p['debtId'] ?? p['id']) as String?;
+        final counterparty = p['counterparty'] as String?;
+        final direction = p['direction'] as String?;
+        final matching = all.where((debt) =>
+          id != null ? debt.id == id :
+          _normalizeCategoryText(debt.counterparty) == _normalizeCategoryText(counterparty ?? '') &&
+          (direction == null || debt.direction.name == direction)
+        ).toList(growable: false);
+        if (matching.length != 1) {
+          throw StateError(matching.isEmpty ? 'Debt not found.' : 'More than one debt matches this party.');
         }
-        return ActionExecution(
-          message: payments.map((payment) =>
-            '${payment.id}: ${payment.amount.minorUnits}، ${payment.paidAt.toLocal().toIso8601String().split('T').first}'
-          ).join('؛ '),
-        );
-      case 'read_home_bill_payments':
-        final payments = await _bills.paymentsFor(p['billId']! as String);
-        if (payments.isEmpty) {
-          return const ActionExecution(message: 'لا توجد دفعات مسجلة لهذه الفاتورة.');
+        final payments = await _debts.watchPayments(matching.single.id).first;
+        if (payments.isEmpty) return const ActionExecution(message: 'لا توجد دفعات مسجلة لهذا الدين.');
+        return ActionExecution(message: payments.map((payment) =>
+          '${payment.id}: ${payment.amount.minorUnits}، ${payment.paidAt.toLocal().toIso8601String().split('T').first}${payment.note == null ? '' : '، ملاحظة: ${payment.note}'}'
+        ).join('؛ '));
+      }
+      case 'read_home_bill_payments': {
+        final bills = await _bills.getBills();
+        final id = (p['billId'] ?? p['id']) as String?;
+        final title = p['billTitle'] as String?;
+        final matching = bills.where((bill) =>
+          id != null ? bill.id == id :
+          _normalizeCategoryText(bill.title) == _normalizeCategoryText(title ?? '')
+        ).toList(growable: false);
+        if (matching.length != 1) {
+          throw StateError(matching.isEmpty ? 'Bill not found.' : 'More than one bill matches this title.');
         }
-        return ActionExecution(
-          message: payments.map((payment) =>
-            '${payment.id}: ${payment.amount.minorUnits}، ${payment.paidAt.toLocal().toIso8601String().split('T').first}'
-          ).join('؛ '),
-        );
-      case 'read_home_bills':
-        final now = DateTime.now();
-        final month = _selectedMonth ?? MonthKey(year: now.year, month: now.month);
-        final bills = (await _bills.getBills())
-            .where((bill) => bill.dueMonth == month)
-            .toList(growable: false);
+        final payments = await _bills.paymentsFor(matching.single.id);
+        if (payments.isEmpty) return const ActionExecution(message: 'لا توجد دفعات مسجلة لهذه الفاتورة.');
+        return ActionExecution(message: payments.map((payment) =>
+          '${payment.id}: ${payment.amount.minorUnits}، ${payment.paidAt.toLocal().toIso8601String().split('T').first}${payment.note == null ? '' : '، ملاحظة: ${payment.note}'}'
+        ).join('؛ '));
+      }
+      case 'read_home_bills': {
+        final month = _listMonthFilter(p);
+        final bills = (await _bills.getBills()).where((bill) =>
+          month == null || bill.dueMonth == month
+        ).toList(growable: false);
         if (bills.isEmpty) {
-          return ActionExecution(message: 'لا توجد فواتير أو إيجارات مسجلة لشهر $month.');
+          return ActionExecution(message: month == null
+              ? 'لا توجد فواتير أو إيجارات مسجلة.'
+              : 'لا توجد فواتير أو إيجارات مسجلة لشهر $month.');
         }
         final summary = bills.map((bill) =>
-          '${bill.id}: ${bill.title} (${bill.dueMonth}): المتبقي ${bill.remainingMinorUnits}'
+          '${bill.id}: ${bill.title} (${bill.kind.name}) (${bill.dueMonth}): الأصل ${bill.amount.minorUnits}، المدفوع ${bill.paidMinorUnits}، المتبقي ${bill.remainingMinorUnits}${bill.note == null ? '' : '، ملاحظة: ${bill.note}'}'
         ).join('؛ ');
         return ActionExecution(message: summary);
+      }
       case 'save_work_home_transfer':
         final id=p['id'] as String? ?? _id(); final all=await _work.watchTransfers().first; WorkHomeTransfer? old; for(final e in all) { if(e.id==id) old=e; }
         final previous = old;
@@ -392,8 +449,17 @@ final class ActionRegistry {
         final item=DebtEntry(id:id,direction:DebtDirection.values.byName(p['direction']! as String),originalAmount:amount,outstandingAmount:Money.fromMinorUnits(amount.minorUnits - paidTotal),dueMonth:MonthKey(year:p['year']! as int,month:p['month']! as int),createdAt:p['date'] is String ? DateTime.parse(p['date']! as String) : previous?.createdAt ?? DateTime.now(),counterparty:p['counterparty']! as String,note:p['note'] as String?);
         await _debts.save(item); return ActionExecution(message:'تم حفظ الدين',undo:() async { if(previous==null) { await _debts.delete(id); } else { await _debts.save(previous); } });
       case 'delete_debt':
-        final all=await _debts.watchAll().first; DebtEntry? old; for(final e in all) { if(e.id==p['id']) old=e; }
-        if(old==null) throw StateError('Debt not found'); final deleted = old; final payments=await _debts.watchPayments(deleted.id).first; await _debts.delete(deleted.id);
+        final all=await _debts.watchAll().first;
+        final requestedId = (p['id'] ?? p['debtId']) as String?;
+        final counterparty = p['counterparty'] as String?;
+        final direction = p['direction'] as String?;
+        final matches = all.where((debt) =>
+          requestedId != null ? debt.id == requestedId :
+          _normalizeCategoryText(debt.counterparty) == _normalizeCategoryText(counterparty ?? '') &&
+          (direction == null || debt.direction.name == direction)
+        ).toList(growable: false);
+        if(matches.length != 1) throw StateError(matches.isEmpty ? 'Debt not found' : 'Debt party is ambiguous');
+        final deleted = matches.single; final payments=await _debts.watchPayments(deleted.id).first; await _debts.delete(deleted.id);
         return ActionExecution(message:'تم حذف الدين',undo:() async { await _debts.restoreDebt(deleted,payments); });
       case 'record_debt_payment':
         final allDebts = await _debts.watchAll().first;
@@ -484,29 +550,41 @@ final class ActionRegistry {
   }
   Map<String, Type> _typesFor(String name) => switch (name) {
     'save_work_entry' => const {'kind': String, 'amountMinorUnits': int, 'year': int, 'month': int, 'date': String, 'id': String, 'note': String},
-    'delete_work_entry' || 'delete_home_expense' || 'delete_work_home_transfer' || 'delete_debt' || 'delete_home_category' => const {'id': String},
+    'delete_work_entry' || 'delete_home_expense' || 'delete_work_home_transfer' || 'delete_debt' || 'delete_home_category' => const {'id': String, 'name': String},
     'save_home_expense' => const {'amountMinorUnits': int, 'categoryId': String, 'categoryName': String, 'date': String, 'year': int, 'month': int, 'id': String, 'note': String},
     'save_home_category' => const {'name': String, 'id': String},
     'save_home_bill' => const {'title': String, 'kind': String, 'amountMinorUnits': int, 'year': int, 'month': int, 'date': String, 'id': String, 'note': String},
-    'delete_home_bill' => const {'id': String},
+    'delete_home_bill' => const {'id': String, 'billId': String, 'billTitle': String},
     'record_home_bill_payment' => const {'billId': String, 'billTitle': String, 'amountMinorUnits': int, 'date': String, 'note': String},
     'read_home_bills' || 'read_work_records' || 'read_home_expenses' || 'read_debts' || 'read_work_transfers' => const {'year': int, 'month': int, 'allRecords': bool},
     'read_home_categories' => const {},
-    'read_debt_payments' => const {'debtId': String},
-    'read_home_bill_payments' => const {'billId': String},
+    'read_debt_payments' => const {'debtId': String, 'id': String, 'counterparty': String, 'direction': String},
+    'read_home_bill_payments' => const {'billId': String, 'id': String, 'billTitle': String},
     'save_work_home_transfer' => const {'amountMinorUnits': int, 'id': String, 'date': String, 'note': String},
     'save_debt' => const {'amountMinorUnits': int, 'direction': String, 'counterparty': String, 'year': int, 'month': int, 'date': String, 'id': String, 'note': String},
     'record_debt_payment' => const {'debtId': String, 'counterparty': String, 'direction': String, 'amountMinorUnits': int, 'date': String, 'note': String},
     'read_work_remaining' || 'read_month_total' || 'read_dashboard_summary' || 'navigate_to_section' => const {'section': String, 'year': int, 'month': int},
     _ => const {},
   };
+  MonthKey? _listMonthFilter(Map<String, Object?> parameters) {
+    if (parameters['year'] is int && parameters['month'] is int) {
+      return MonthKey(
+        year: parameters['year']! as int,
+        month: parameters['month']! as int,
+      );
+    }
+    if (parameters['allRecords'] == true) return null;
+    final now = DateTime.now();
+    return _selectedMonth ?? MonthKey(year: now.year, month: now.month);
+  }
+
   static String _categoryLabel(HomeExpenseCategory category) =>
       category.name.trim().isEmpty ? category.id : category.name.trim();
 
   static String _normalizeCategoryText(String value) => value
       .trim()
       .toLowerCase()
-      .replaceAll(RegExp(r'\\s+'), ' ');
+      .replaceAll(RegExp(r'\s+'), ' ');
 
   static String _id()=>DateTime.now().microsecondsSinceEpoch.toString();
 }
