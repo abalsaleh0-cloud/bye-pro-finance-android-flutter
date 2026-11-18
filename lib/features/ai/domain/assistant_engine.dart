@@ -404,7 +404,7 @@ final class FakeAssistantEngine implements AssistantEngine {
 
     if (isWriteIntent && isCategoryIntent && !isDeleteIntent && !isEditIntent) {
       final nameMatch = RegExp(
-        r'(?:تصنيف|فئة)\\s+(.+?)(?=\\s+(?:ملاحظة|note)|$)',
+        r'(?:تصنيف|فئة)\s+(.+?)(?=\s+(?:ملاحظة|note)|$)',
         caseSensitive: false,
         unicode: true,
       ).firstMatch(effectiveInput);
@@ -1079,8 +1079,8 @@ final class FakeAssistantEngine implements AssistantEngine {
 
   static String? _counterparty(String text) {
     final patterns = <RegExp>[
-      RegExp(r'(?:مع|لدى|عند|لصالح|من)\s+([\p{L}][\p{L} ]{0,35}?)(?=\s+(?:بمبلغ|بقيمة|مبلغ|دين|دينا|اليوم|امس|بتاريخ|ملاحظة)|$)', unicode: true),
-      RegExp(r'(?:دين|الدين)\s+(?:لدى|على|ل|لـ)?\s*([\p{L}][\p{L} ]{0,35}?)(?=\s+(?:بمبلغ|بقيمة|مبلغ|بقيمة|اليوم|امس|بتاريخ|ملاحظة)|$)', unicode: true),
+      RegExp(r'(?:من\s+)?(?:دين|الدين)\s+(?:(?:عند|لدى|على|ل)\s+)?([\p{L}][\p{L} ]{0,35}?)(?=\s+(?:بمبلغ|بقيمة|مبلغ|اليوم|امس|بتاريخ|ملاحظة|note)|$)', unicode: true),
+      RegExp(r'(?:مع|لدى|عند|لصالح|ل)\s+([\p{L}][\p{L} ]{0,35}?)(?=\s+(?:بمبلغ|بقيمة|مبلغ|دين|دينا|اليوم|امس|بتاريخ|ملاحظة|note)|$)', unicode: true),
     ];
     for (final pattern in patterns) {
       final value = pattern.firstMatch(text)?.group(1)?.trim();
@@ -1091,5 +1091,4 @@ final class FakeAssistantEngine implements AssistantEngine {
       }
     }
     return null;
-  }
-}
+  }}
