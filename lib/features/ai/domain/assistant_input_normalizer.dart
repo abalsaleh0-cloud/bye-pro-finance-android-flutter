@@ -199,6 +199,41 @@ final class AssistantInputNormalizer {
     return best;
   }
 
+  /// Extracts an explicit calendar date without confusing it with an amount.
+  /// Supports ISO (YYYY-MM-DD) and day-first (DD/MM/YYYY) forms.
+  DateTime? extractDate(String input) {
+    final raw = _numbers.normalizeDigits(input);
+    final iso = RegExp(
+      r'(?<!\\d)(20\\d{2})[-/.](0?[1-9]|1[0-2])[-/.](0?[1-9]|[12]\\d|3[01])(?!\\d)',
+    ).firstMatch(raw);
+    if (iso != null) {
+      return _validDate(
+        int.parse(iso.group(1)!),
+        int.parse(iso.group(2)!),
+        int.parse(iso.group(3)!),
+      );
+    }
+    final dayFirst = RegExp(
+      r'(?<!\\d)(0?[1-9]|[12]\\d|3[01])[-/.](0?[1-9]|1[0-2])[-/.](20\\d{2})(?!\\d)',
+    ).firstMatch(raw);
+    if (dayFirst != null) {
+      return _validDate(
+        int.parse(dayFirst.group(3)!),
+        int.parse(dayFirst.group(2)!),
+        int.parse(dayFirst.group(1)!),
+      );
+    }
+    return null;
+  }
+
+  DateTime? _validDate(int year, int month, int day) {
+    final date = DateTime(year, month, day);
+    if (date.year != year || date.month != month || date.day != day) {
+      return null;
+    }
+    return date;
+  }
+
   (int, int)? extractMonth(
     String input, {
     DateTime? referenceDate,
