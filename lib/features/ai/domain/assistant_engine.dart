@@ -866,7 +866,12 @@ final class FakeAssistantEngine implements AssistantEngine {
       (phrases) => normalizer.containsAny(normalizedAnswer, phrases),
       normalizedAnswer,
       const {},
-    ) != null;
+    ) != null ||
+        (currentInput.trim().isNotEmpty &&
+            currentInput.trim().length <= 48 &&
+            !normalizer.containsAny(normalizedAnswer, const [
+              'اضف', 'سجل', 'احذف', 'عدل', 'add', 'delete', 'update',
+            ]));
     final answerHasDate = DateTime.tryParse(currentInput.trim()) != null ||
         RegExp(r'\b\d{1,2}[-/.]\d{1,2}[-/.]20\d{2}\b')
             .hasMatch(_numbersForClarification.normalizeDigits(currentInput));
