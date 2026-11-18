@@ -60,6 +60,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   UndoOperation? _undo;
   String? _lastUndoAction;
   bool _busy = false;
+  bool _preparing = false;
   final ImagePicker _imagePicker = ImagePicker();
   final AndroidAssistantVoiceService _voiceService = const AndroidAssistantVoiceService();
   bool _recognizing = false;
@@ -111,7 +112,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   }
 
   Future<void> _chooseAttachment() async {
-    if (_busy || _recognizing) return;
+    if (_busy || _recognizing || _preparing) return;
     final strings = AppLocalizations.of(context)!;
     final choice = await showModalBottomSheet<_AssistantAttachmentChoice>(
       context: context,
@@ -191,7 +192,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
 
   Future<void> _pickDocumentOrMedia() async {
     final strings = AppLocalizations.of(context)!;
-    if (_busy || _recognizing) return;
+    if (_busy || _recognizing || _preparing) return;
     try {
       final file = await FilePicker.pickFile(type: FileType.any);
       if (file == null) return;
@@ -575,7 +576,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   }
 
   Future<void> _recognizeArabicSpeech() async {
-    if (_busy || _recognizing) return;
+    if (_busy || _recognizing || _preparing) return;
     setState(() => _recognizing = true);
     final strings = AppLocalizations.of(context)!;
     try {
@@ -704,7 +705,29 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     final text = _input.text.trim().isEmpty && mediaBytes != null
         ? (image ? strings.aiDefaultImagePrompt : strings.aiDefaultAudioPrompt)
         : _input.text.trim();
-    if ((text.isEmpty && mediaBytes == null) || _busy || _recognizing) return;
+    if ((text.isEmpty && mediaBytes == null) ||
+        _busy ||
+        _recognizing ||
+        _preparing) {
+      return;
+    }
+
+    // Restore the user's persisted engine selection and complete the model
+    // file check before selecting an engine. Otherwise the first request after
+    // startup can silently fall through to the deterministic local parser.
+    setState(() => _preparing = true);
+    try {
+      await ref.read(appSettingsProvider.notifier).waitUntilRestored();
+      final restoredSettings = ref.read(appSettingsProvider);
+      if (restoredSettings.useGemma &&
+          ref.read(gemmaModelManagerProvider).status !=
+              GemmaModelStatus.ready) {
+        await ref.read(gemmaModelManagerProvider.notifier).refresh();
+      }
+    } finally {
+      if (mounted) setState(() => _preparing = false);
+    }
+
     final media = mediaBytes == null
         ? null
         : AssistantMedia(
@@ -1451,7 +1474,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                         height: 40,
                         child: IconButton(
                           key: const Key('ai-attachment-button'),
-                          onPressed: _busy || _recognizing
+                          onPressed: _busy || _recognizing || _preparing
                               ? null
                               : _chooseAttachment,
                           icon: const Icon(Icons.attach_file_rounded, size: 24),
@@ -1498,7 +1521,8 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                           valueListenable: _input,
                           builder: (context, value, child) {
                             final hasText = value.text.trim().isNotEmpty;
-                            final canInteract = !_busy && !_recognizing;
+                            final canInteract =
+                                !_busy && !_recognizing && !_preparing;
                             return IconButton.filled(
                               key: const Key('ai-contextual-input-action'),
                               onPressed: !canInteract
@@ -1516,7 +1540,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                                 foregroundColor: Colors.white,
                                 shape: const CircleBorder(),
                               ),
-                              icon: _busy || _recognizing
+                              icon: _busy || _recognizing || _preparing
                                   ? const SizedBox(
                                       width: 18,
                                       height: 18,
