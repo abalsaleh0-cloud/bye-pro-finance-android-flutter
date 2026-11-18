@@ -653,6 +653,58 @@ void main() {
       expect(result.command!.parameters.containsKey('direction'), isFalse);
       expect(result.command!.parameters.containsKey('counterparty'), isFalse);
     });
+    test('changes only an expense category when the user requests a category edit', () async {
+      final result = await engine.interpret(
+        'عدل مصروف رقم السجل expense_1 إلى الكهرباء',
+        actions,
+        expenseCategories: const {'utilities': 'الكهرباء'},
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'save_home_expense');
+      expect(result.command!.parameters['id'], 'expense_1');
+      expect(result.command!.parameters['categoryId'], 'utilities');
+      expect(result.command!.parameters.containsKey('amountMinorUnits'), isFalse);
+    });
+
+    test('changes only a debt direction when the user requests creditor status', () async {
+      final result = await engine.interpret(
+        'عدل دين رقم الدين debt_1 واجعله دائن',
+        actions,
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'save_debt');
+      expect(result.command!.parameters['id'], 'debt_1');
+      expect(result.command!.parameters['direction'], 'creditor');
+      expect(result.command!.parameters.containsKey('amountMinorUnits'), isFalse);
+    });
+
+    test('changes only a transfer date when the user provides a date', () async {
+      final result = await engine.interpret(
+        'عدل تحويل للبيت رقم التحويل transfer_1 بتاريخ 2026-12-08',
+        actions,
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'save_work_home_transfer');
+      expect(result.command!.parameters['id'], 'transfer_1');
+      expect(result.command!.parameters['date'], '2026-12-08');
+      expect(result.command!.parameters.containsKey('amountMinorUnits'), isFalse);
+    });
+
+    test('changes only a bill title when the user provides its new name', () async {
+      final result = await engine.interpret(
+        'عدل فاتورة رقم الفاتورة bill_1 اسمها المياه',
+        actions,
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'save_home_bill');
+      expect(result.command!.parameters['id'], 'bill_1');
+      expect(result.command!.parameters['title'], 'المياه');
+      expect(result.command!.parameters.containsKey('amountMinorUnits'), isFalse);
+    });
   });
 
   });
