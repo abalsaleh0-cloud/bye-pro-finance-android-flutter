@@ -135,13 +135,11 @@ class GemmaModelSettingsSection extends ConsumerWidget {
                 else ...[
                   FilledButton(
                     onPressed: () => _confirmDownload(context, ref, strings),
-                    child: Text(
-                      model.cancelled || model.status == GemmaModelStatus.error
-                          ? strings.gemmaResumeDownload
-                          : strings.gemmaDownloadModel,
-                    ),
+                    // This control always starts the model download action.
+                    // An error does not mean a previous download was completed.
+                    child: Text(strings.gemmaDownloadModel),
                   ),
-                  if (model.status == GemmaModelStatus.error)
+                  if (model.status == GemmaModelStatus.error && model.installed)
                     OutlinedButton(
                       onPressed: () => _confirmDelete(context, ref, strings),
                       child: Text(strings.gemmaDeleteModel),
