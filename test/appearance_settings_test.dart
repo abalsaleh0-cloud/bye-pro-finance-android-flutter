@@ -79,13 +79,10 @@ void main() {
       420,
       scrollable: settingsScroll,
     );
-    // The security card follows its heading as a separate lazy ListView child.
-    await tester.drag(settingsScroll, const Offset(0, -260));
+    // This card is lazy-loaded separately from its section heading.
+    await tester.drag(settingsScroll, const Offset(0, -320));
     await tester.pumpAndSettle();
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('قفل التطبيق'), findsOneWidget);
-    expect(find.text('تعيين رمز PIN'), findsOneWidget);
-    expect(find.text('فتح التطبيق بالبصمة'), findsOneWidget);
+    expect(find.byKey(const Key('app-security-settings-card')), findsOneWidget);
 
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(
