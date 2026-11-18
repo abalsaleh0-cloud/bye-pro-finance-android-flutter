@@ -58,6 +58,16 @@ void main() {
     await tester.tap(find.byKey(const Key('open-settings')));
     await tester.pumpAndSettle();
 
+    // Backup/restore and app-lock controls must be visible in the real
+    // Settings screen, not merely implemented as unused widgets.
+    expect(find.text('النسخ الاحتياطي والاستعادة'), findsOneWidget);
+    expect(find.text('قفل التطبيق'), findsOneWidget);
+    await tester.ensureVisible(find.text('إنشاء نسخة احتياطية'));
+    expect(find.text('إنشاء نسخة احتياطية'), findsOneWidget);
+    await tester.ensureVisible(find.text('تعيين رمز PIN'));
+    expect(find.text('تعيين رمز PIN'), findsOneWidget);
+    expect(find.text('فتح التطبيق بالبصمة'), findsOneWidget);
+
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(
       tester.widget<NavigationBar>(find.byType(NavigationBar)).destinations,
