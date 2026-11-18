@@ -420,7 +420,7 @@ class MainActivity : FlutterFragmentActivity() {
             error == SpeechRecognizer.ERROR_SERVER_DISCONNECTED ||
             error == SpeechRecognizer.ERROR_NETWORK ||
             error == SpeechRecognizer.ERROR_NETWORK_TIMEOUT ||
-            error == SpeechRecognizer.ERROR_SERVER_RECOGNITION
+            error == SpeechRecognizer.ERROR_CANNOT_LISTEN_TO_DOWNLOAD_EVENTS
     }
 
     private fun fallbackToDefaultArabicRecognition() {
