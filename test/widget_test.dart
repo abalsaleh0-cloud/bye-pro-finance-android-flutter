@@ -63,6 +63,11 @@ void main() {
         child: const MyApp(),
       ),
     );
+    // A returning user must see only the neutral startup gate while the saved
+    // first-launch flag is read, never a flash of the onboarding welcome page.
+    await tester.pump();
+    expect(find.text('مرحباً بك في مساحتك المالية'), findsNothing);
+    expect(find.text('ابدأ الآن'), findsNothing);
     await tester.pumpAndSettle();
 
     expect(find.text('الرئيسية'), findsWidgets);
