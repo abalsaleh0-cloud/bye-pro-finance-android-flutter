@@ -551,7 +551,16 @@ class GemmaModelManager extends Notifier<GemmaModelState>
     final supportAudio = media?.hasAudio ?? false;
     if (_model != null && !_model!.isClosed &&
         (_modelSupportsImage != supportImage || _modelSupportsAudio != supportAudio)) {
-      await releaseModel();
+      try {
+        await releaseModel();
+      } catch (error) {
+        state = state.copyWith(status: GemmaModelStatus.ready);
+        await _saveInferenceResult(
+          GemmaInferenceStatus.failed,
+          'تعذر تهيئة جلسة Gemma: ${_describeError(error)}. ملف النموذج محفوظ ويمكن إعادة المحاولة.',
+        );
+        rethrow;
+      }
     }
     _releaseCoordinator.beginOperation();
     try {
