@@ -162,7 +162,8 @@ class GemmaModelManager extends Notifier<GemmaModelState>
 
   Future<void> refresh() async {
     try {
-      await _ensureNativeInitialized();
+      // Installation state and file metadata can be checked without loading
+      // the multi-platform inference runtime into memory.
       final installed = await FlutterEdgeAi.isModelInstalled(modelFileName);
       if (!installed) {
         state = const GemmaModelState();
@@ -196,6 +197,7 @@ class GemmaModelManager extends Notifier<GemmaModelState>
       progress: 0,
     );
     try {
+      await _ensureNativeInitialized();
       await FlutterEdgeAi.installModel(
         modelType: ModelType.gemma4,
         fileType: ModelFileType.litertlm,
@@ -283,6 +285,7 @@ class GemmaModelManager extends Notifier<GemmaModelState>
   }) async {
     _idleTimer?.cancel();
     if (_model == null || _model!.isClosed) {
+      await _ensureNativeInitialized();
       _model = await FlutterEdgeAi.getActiveModel(
         // 512 tokens is too small for the system prompt plus the finance tool schemas.
         // Keep a bounded 2K window to avoid the repeated ContextLimitException
