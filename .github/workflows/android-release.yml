@@ -94,8 +94,9 @@ jobs:
         run: flutter test
 
       - name: Validate Android launcher PNG resources
-        shell: python
+        shell: bash
         run: |
+          python3 - <<'PY'
           from pathlib import Path
           import struct
           import zlib
@@ -107,7 +108,7 @@ jobs:
 
           for path in png_files:
               data = path.read_bytes()
-              if data[:8] != b"\\x89PNG\\r\\n\\x1a\\n":
+              if data[:8] != b"\x89PNG\r\n\x1a\n":
                   raise SystemExit(f"Invalid PNG signature: {path}")
 
               chunks = []
@@ -135,7 +136,8 @@ jobs:
                   raise SystemExit(f"Invalid PNG chunk structure: {path}")
 
           print(f"Validated {len(png_files)} Android PNG resources and all chunk CRCs.")
-          
+          PY
+
       - name: Build signed production ARM64 APK
         shell: bash
         env:
