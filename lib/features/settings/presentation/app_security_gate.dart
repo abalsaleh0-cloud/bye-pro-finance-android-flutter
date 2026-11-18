@@ -128,7 +128,15 @@ class _AppSecurityGateState extends State<AppSecurityGate> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_ready || !_locked || !_pinEnabled) return widget.child;
+    if (!_ready) {
+      return Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        body: const SafeArea(
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+    if (!_locked || !_pinEnabled) return widget.child;
 
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;

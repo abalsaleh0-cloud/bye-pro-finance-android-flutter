@@ -77,6 +77,11 @@ class AppBackupService {
     }
 
     final rawTables = decoded['tables'] as Map<String, dynamic>;
+    if (_tables.any((table) => !rawTables.containsKey(table))) {
+      throw const FormatException(
+        'ملف النسخة الاحتياطية لا يحتوي على جميع جداول البيانات المطلوبة.',
+      );
+    }
     final restoredRows = <String, List<Map<String, Object?>>>{};
     var totalRows = 0;
 

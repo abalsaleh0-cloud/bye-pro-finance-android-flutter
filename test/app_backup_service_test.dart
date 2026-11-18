@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:expense_app/core/database/app_database.dart';
 import 'package:expense_app/features/settings/data/app_backup_service.dart';

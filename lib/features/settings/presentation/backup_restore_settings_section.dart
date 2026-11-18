@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:expense_app/core/database/database_providers.dart';
+import 'package:expense_app/core/providers/app_settings_provider.dart';
 import 'package:expense_app/features/settings/data/app_backup_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
