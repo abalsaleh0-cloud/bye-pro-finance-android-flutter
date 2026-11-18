@@ -240,8 +240,13 @@ final class ActionRegistry {
             month != DateTime.parse(p['date']! as String).month)) {
       return 'expense date and due month differ';
     }
-    if (const {'save_work_entry', 'save_home_bill', 'save_debt'}.contains(name) &&
-        (year == null) != (month == null)) {
+    if (const {
+      'save_work_entry',
+      'save_home_expense',
+      'save_home_bill',
+      'save_debt',
+      'save_work_home_transfer',
+    }.contains(name) && (year == null) != (month == null)) {
       return 'operation month requires both year and month';
     }
     if (const {'save_work_entry', 'save_home_bill', 'save_debt'}.contains(name) &&
@@ -346,8 +351,13 @@ final class ActionRegistry {
     final month = parameters['month'];
     if (year is int && month is int && parameters['date'] == null &&
         hydrated['date'] is String &&
-        const {'save_work_entry', 'save_home_expense', 'save_home_bill', 'save_debt'}
-            .contains(name)) {
+        const {
+          'save_work_entry',
+          'save_home_expense',
+          'save_home_bill',
+          'save_debt',
+          'save_work_home_transfer',
+        }.contains(name)) {
       final previousDate = DateTime.parse(hydrated['date']! as String);
       final lastDay = DateTime(year, month + 1, 0).day;
       final day = previousDate.day > lastDay ? lastDay : previousDate.day;
@@ -1011,6 +1021,7 @@ final class ActionRegistry {
     },
     'save_work_home_transfer' => const {
       'amountMinorUnits': int, 'id': String, 'date': String, 'note': String,
+      'year': int, 'month': int,
     },
     'save_debt' => const {
       'amountMinorUnits': int, 'direction': String, 'counterparty': String,
