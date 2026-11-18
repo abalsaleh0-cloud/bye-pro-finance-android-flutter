@@ -83,15 +83,6 @@ jobs:
             exit 1
           fi
           printf 'flutter.sdk=%s\nsdk.dir=%s\n' "$FLUTTER_ROOT" "$ANDROID_SDK" > android/local.properties
-          SDKMANAGER="$ANDROID_SDK/cmdline-tools/latest/bin/sdkmanager"
-          if [[ ! -x "$SDKMANAGER" ]]; then
-            SDKMANAGER="$(command -v sdkmanager || true)"
-          fi
-          if [[ -z "$SDKMANAGER" || ! -x "$SDKMANAGER" ]]; then
-            echo "::error::Android sdkmanager was not found; cannot install Android API 37."
-            exit 1
-          fi
-          yes | "$SDKMANAGER" --install "platforms;android-37"
       - name: Compile Android Kotlin sources (all debug variants)
         shell: bash
         run: |
