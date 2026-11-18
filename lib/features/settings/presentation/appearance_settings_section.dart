@@ -57,9 +57,9 @@ class AppearanceSettingsSection extends ConsumerWidget {
                 ),
               ],
               selected: {settings.themeMode},
-              onSelectionChanged: (selection) {
+              onSelectionChanged: (selection) async {
                 if (selection.isNotEmpty) {
-                  controller.setThemeMode(selection.first);
+                  await controller.setThemeMode(selection.first);
                 }
               },
             ),

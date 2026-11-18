@@ -12,6 +12,11 @@ void main() {
       expect(formatCalendarDate(DateTime(2024, 2, 29)), '2024-02-29');
     });
 
+    test('converts Arabic and Persian digits to ASCII digits', () {
+      expect(toAsciiDigits('٢٠٢٦-٠١-٠٥'), '2026-01-05');
+      expect(toAsciiDigits('۲۰۲۶-۰۱-۰۵'), '2026-01-05');
+    });
+
     test('does not include time components', () {
       expect(
         formatCalendarDate(DateTime(2026, 7, 9, 23, 59, 58)),

@@ -14,12 +14,13 @@ import 'package:expense_app/features/home/domain/home_expense.dart';
 import 'package:expense_app/features/home/domain/home_expense_category.dart';
 import 'package:expense_app/features/home/domain/home_bill.dart';
 import 'package:expense_app/features/home/presentation/home_bills_section.dart';
+import 'package:expense_app/features/home/presentation/home_add_request_provider.dart';
 import 'package:expense_app/features/work/domain/work_home_transfer.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
-enum HomeScreenMode { overview, transfers, dailyExpenses, monthlyBills }
+enum HomeScreenMode { overview, transfers, monthlyBills, rent, dailyExpenses, history }
 
 enum _HomeAddAction { dailyExpense, monthlyBill, rent }
 
@@ -52,7 +53,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (widget.openManualEntry && !_manualEntryOpened) {
       _manualEntryOpened = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _editExpense(context, ref, AppLocalizations.of(context)!);
+        if (mounted) {
+          _editExpense(context, ref, AppLocalizations.of(context)!);
+        }
       });
     }
   }
@@ -69,6 +72,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       'personal' => strings.homeCategoryPersonal,
       'health' => strings.homeCategoryHealth,
       'other' => strings.homeCategoryOther,
+      'children' => strings.homeCategoryChildren,
+      'education' => strings.homeCategoryEducation,
+      'entertainment' => strings.homeCategoryEntertainment,
+      'communication' => strings.homeCategoryCommunication,
+      'subscriptions' => strings.homeCategorySubscriptions,
+      'gifts' => strings.homeCategoryGifts,
       _ => category.id,
     };
   }
@@ -217,6 +226,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  IconData _categoryIcon(HomeExpenseCategory category) => switch (category.id) {
+    'groceries' => Icons.shopping_basket_outlined,
+    'utilities' => Icons.electrical_services_outlined,
+    'housing' => Icons.home_outlined,
+    'cleaning' => Icons.cleaning_services_outlined,
+    'maintenance' => Icons.build_outlined,
+    'transport' => Icons.directions_car_outlined,
+    'personal' => Icons.person_outline,
+    'health' => Icons.local_hospital_outlined,
+    'children' => Icons.child_care_outlined,
+    'education' => Icons.school_outlined,
+    'entertainment' => Icons.movie_outlined,
+    'communication' => Icons.smartphone_outlined,
+    'subscriptions' => Icons.subscriptions_outlined,
+    'gifts' => Icons.card_giftcard_outlined,
+    _ => Icons.category_outlined,
+  };
+
+  DateTime _defaultSelectedDate() {
+    final month = ref.read(selectedMonthProvider);
+    final now = DateTime.now();
+    final lastDay = DateTime(month.year, month.month + 1, 0).day;
+    return DateTime(month.year, month.month, now.day > lastDay ? lastDay : now.day);
+  }
+
   Future<void> _showHomeAddOptions(
     BuildContext context,
     WidgetRef ref,
@@ -256,7 +290,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ListTile(
                 key: const Key('home-add-rent'),
                 leading: const Icon(Icons.home_work_outlined),
-                title: Text(strings.addRent),
+                title: Text(strings.addMonthlyRent),
                 onTap: () => Navigator.pop(
                   sheetContext,
                   _HomeAddAction.rent,
@@ -312,11 +346,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
     String selectedCategoryId = existing?.categoryId ?? categories.first.id;
     final date = TextEditingController(
-      text: formatCalendarDate(existing?.expenseDate ?? DateTime.now()),
-    );
-    final due = TextEditingController(
-      text:
-          existing?.dueMonth.toString() ?? ref.read(selectedMonthProvider).toString(),
+      text: formatCalendarDate(existing?.expenseDate ?? _defaultSelectedDate()),
     );
     final note = TextEditingController(text: existing?.note ?? '');
     String? error;
@@ -332,15 +362,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  TextField(
-                    controller: amount,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: strings.amountMinorUnits,
-                      suffixIcon: calculatorSuffix(context, amount, strings),
-                    ),
-                  ),
                   DropdownButtonFormField<String>(
+                    key: const Key('home-expense-category'),
                     initialValue: selectedCategoryId,
                     decoration: InputDecoration(
                       labelText: strings.category,
@@ -367,7 +390,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                     items: categories.map((item) => DropdownMenuItem(
                       value: item.id,
-                      child: Text(_categoryLabel(strings, item)),
+                      child: Row(children: [Icon(_categoryIcon(item), size: 20), const SizedBox(width: 8), Text(_categoryLabel(strings, item))]),
                     )).toList(),
                     onChanged: (value) {
                       if (value != null) {
@@ -376,21 +399,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     },
                   ),
                   TextField(
-                    controller: date,
-                    readOnly: true,
+                    controller: amount,
+                    keyboardType: TextInputType.number,
                     decoration: InputDecoration(
-                      labelText: strings.expenseDate,
-                      hintText: 'YYYY-MM-DD',
-                      suffixIcon: calendarSuffix(context, date, strings, monthOnly: false),
+                      labelText: strings.calculatorAmount,
+                      suffixIcon: calculatorSuffix(context, amount, strings),
                     ),
                   ),
                   TextField(
-                    controller: due,
+                    controller: date,
                     readOnly: true,
+                    key: const Key('home-expense-date'),
                     decoration: InputDecoration(
-                      labelText: strings.dueMonth,
-                      hintText: 'YYYY-MM',
-                      suffixIcon: calendarSuffix(context, due, strings, monthOnly: true),
+                      labelText: strings.recordedAt,
+                      hintText: 'YYYY-MM-DD',
+                      suffixIcon: calendarSuffix(context, date, strings, monthOnly: false),
                     ),
                   ),
                   TextField(
@@ -419,22 +442,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 onPressed: () async {
                   final parsedAmount = int.tryParse(amount.text.trim());
                   final parsedDate = DateTime.tryParse(date.text.trim());
-                  final dueParts = due.text.trim().split('-');
-                  final year = dueParts.length == 2
-                      ? int.tryParse(dueParts[0])
-                      : null;
-                  final month = dueParts.length == 2
-                      ? int.tryParse(dueParts[1])
-                      : null;
                   if (parsedAmount == null ||
                       parsedAmount <= 0 ||
                       selectedCategoryId.trim().isEmpty ||
-                      parsedDate == null ||
-                      year == null ||
-                      month == null ||
-                      month < 1 ||
-                      month > 12 ||
-                      year < 1) {
+                      parsedDate == null) {
                     setDialogState(() => error = strings.invalidRecord);
                     return;
                   }
@@ -446,7 +457,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       amount: Money.fromMinorUnits(parsedAmount),
                       categoryId: selectedCategoryId,
                       expenseDate: parsedDate,
-                      dueMonth: MonthKey(year: year, month: month),
+                      dueMonth: MonthKey(year: parsedDate.year, month: parsedDate.month),
                       note: note.text.trim().isEmpty ? null : note.text.trim(),
                     );
                     await ref.read(homeExpenseRepositoryProvider).save(expense);
@@ -471,7 +482,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     } finally {
       amount.dispose();
       date.dispose();
-      due.dispose();
       note.dispose();
     }
   }
@@ -539,7 +549,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               icon: Icons.shopping_cart_outlined,
             ),
             SummaryMetricData(
-              title: strings.receivedFromWork,
+              title: strings.homeIncomingFromWork,
               value: transferTotal.toString(),
               icon: Icons.swap_horiz,
             ),
@@ -575,14 +585,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final pages = <HomeScreenMode>[
       HomeScreenMode.overview,
       HomeScreenMode.transfers,
-      HomeScreenMode.dailyExpenses,
       HomeScreenMode.monthlyBills,
+      HomeScreenMode.rent,
+      HomeScreenMode.dailyExpenses,
+      HomeScreenMode.history,
     ];
     final labels = [
       strings.homeSection,
-      strings.receivedFromWork,
-      strings.dailyExpenses,
+      strings.homeIncomingFromWork,
       strings.monthlyBills,
+      strings.homeMonthlyRent,
+      strings.homeExpenses,
+      strings.homeHistory,
     ];
 
     return Column(
@@ -620,6 +634,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
+    ref.listen<int>(homeAddRequestProvider, (previous, next) {
+      if (widget.swipePage || widget.mode != HomeScreenMode.overview || next <= (previous ?? 0)) {
+        return;
+      }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _showHomeAddOptions(context, ref, strings);
+        }
+      });
+    });
     final tokens = AppDesignTokens.of(context);
     if (!widget.swipePage && widget.mode == HomeScreenMode.overview) {
       return _buildSwipeShell(strings);
@@ -628,10 +652,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final expenseCategories = ref.watch(homeExpenseCategoriesProvider);
     final transfers = ref.watch(workTransfersProvider);
     final bills = ref.watch(homeBillsProvider);
+    final billPayments = ref.watch(allHomeBillPaymentsProvider);
     final now = DateTime.now();
     final currentMonth = MonthKey(year: now.year, month: now.month);
     final selectedMonth = ref.watch(selectedMonthProvider);
-    final billPayments = ref.watch(homeBillPaymentsForMonthProvider(selectedMonth));
+    final billPaymentsForMonth = ref.watch(homeBillPaymentsForMonthProvider(selectedMonth));
     final billOutstandingAtMonthEnd =
         ref.watch(homeBillOutstandingAsOfMonthProvider(selectedMonth));
     final availableMonths = <MonthKey>{
@@ -652,34 +677,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final transferPage = widget.mode == HomeScreenMode.transfers;
     final expensePage = widget.mode == HomeScreenMode.dailyExpenses;
     final billsPage = widget.mode == HomeScreenMode.monthlyBills;
+    final rentPage = widget.mode == HomeScreenMode.rent;
+    final historyPage = widget.mode == HomeScreenMode.history;
     final pageTitle = transferPage ? strings.receivedFromWork : expensePage ? strings.dailyExpenses : strings.monthlyBills;
     return Scaffold(
       appBar: overview || widget.swipePage ? null : AppBar(title: Text(pageTitle)),
-      floatingActionButton: switch (widget.mode) {
-        HomeScreenMode.overview => FloatingActionButton(
-            key: const Key('home-add-action'),
-            onPressed: () => _showHomeAddOptions(context, ref, strings),
-            tooltip: strings.addHomeItem,
-            child: const Icon(Icons.add_rounded),
-          ),
-        HomeScreenMode.dailyExpenses => FloatingActionButton(
-            key: const Key('home-expense-add-fab'),
-            onPressed: () => _editExpense(context, ref, strings),
-            tooltip: strings.addExpense,
-            child: const Icon(Icons.add_rounded),
-          ),
-        HomeScreenMode.monthlyBills => FloatingActionButton(
-            key: const Key('home-bills-add-fab'),
-            onPressed: () => HomeBillsSection(
-              selectedMonth: selectedMonth,
-            ).showAddBill(context, ref, strings, HomeBillKind.monthly),
-            tooltip: strings.addMonthlyBill,
-            child: const Icon(Icons.add_rounded),
-          ),
-        HomeScreenMode.transfers => null,
-      },
+
       body: ListView(padding: tokens.pageInsets(), children: [
-        MonthSelector(
+        if (!historyPage) MonthSelector(
           pickerKey: const Key('home-selected-month-picker'),
           selectedMonth: selectedMonth,
           availableMonths: availableMonths,
@@ -688,9 +693,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         SizedBox(height: tokens.sectionSpacing * 0.67),
         if (overview) ...[
-          if (billPayments.isLoading || billOutstandingAtMonthEnd.isLoading)
+          if (billPaymentsForMonth.isLoading || billOutstandingAtMonthEnd.isLoading)
             Text(strings.loading)
-          else if (billPayments.hasError || billOutstandingAtMonthEnd.hasError)
+          else if (billPaymentsForMonth.hasError || billOutstandingAtMonthEnd.hasError)
             Text(strings.dataError)
           else
             _homeSummaryCard(
@@ -700,7 +705,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               transfers.value ?? const [],
               selectedMonth,
               billOutstandingAtMonthEnd.value ?? 0,
-              billPayments.value ?? 0,
+              billPaymentsForMonth.value ?? 0,
             ),
           const SizedBox(height: 16),
         ],
@@ -727,10 +732,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       padding: const EdgeInsets.only(bottom: 10),
                       child: FinancialRecordCard(
                         icon: Icons.swap_horiz,
-                        title: strings.receivedFromWork,
+                        title: strings.homeIncomingFromWork,
                         amount: transfer.amount.minorUnits.toString(),
                         details: [
-                          formatCalendarDate(transfer.transferredAt),
+                          toAsciiDigits(MaterialLocalizations.of(context).formatFullDate(transfer.transferredAt)),
                           if (transfer.note != null && transfer.note!.isNotEmpty)
                             transfer.note!,
                         ],
@@ -763,18 +768,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     Padding(
                       padding: const EdgeInsets.only(bottom: 10),
                       child: FinancialRecordCard(
-                        icon: Icons.receipt_long_outlined,
+                        icon: _categoryIcon(_categoryForExpense(expenseCategories.value ?? const <HomeExpenseCategory>[], expense.categoryId)),
                         title: _categoryLabel(
                           strings,
                           _categoryForExpense(
-                            expenseCategories.value ??
-                                const <HomeExpenseCategory>[],
+                            expenseCategories.value ?? const <HomeExpenseCategory>[],
                             expense.categoryId,
                           ),
                         ),
                         amount: expense.amount.minorUnits.toString(),
                         details: [
-                          '${strings.expenseDate}: ${formatCalendarDate(expense.expenseDate)}',
+                          toAsciiDigits(MaterialLocalizations.of(context).formatFullDate(expense.expenseDate)),
                           if (expense.note != null && expense.note!.isNotEmpty)
                             expense.note!,
                         ],
@@ -807,8 +811,63 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             },
           ),
         ],
-        if (billsPage) HomeBillsSection(selectedMonth: selectedMonth),
+        if (historyPage) ...[
+          if (expenses.isLoading || transfers.isLoading || bills.isLoading || billPayments.isLoading || expenseCategories.isLoading)
+            Text(strings.loading)
+          else if (expenses.hasError || transfers.hasError || bills.hasError || billPayments.hasError || expenseCategories.hasError)
+            Text(strings.dataError)
+          else
+            Builder(builder: (context) {
+              final allBills = bills.value ?? const <HomeBill>[];
+              final allExpenses = expenses.value ?? const <HomeExpense>[];
+              final allTransfers = transfers.value ?? const <WorkHomeTransfer>[];
+              final allPayments = billPayments.value ?? const <HomeBillPayment>[];
+              final categories = expenseCategories.value ?? const <HomeExpenseCategory>[];
+              final logItems = <_HomeLogItem>[
+                for (final item in allExpenses)
+                  _HomeLogItem(date: item.expenseDate, title: _categoryLabel(strings, _categoryForExpense(categories, item.categoryId)), amount: item.amount.minorUnits, icon: _categoryIcon(_categoryForExpense(categories, item.categoryId)), note: item.note),
+                for (final item in allBills)
+                  _HomeLogItem(date: item.calendarDate, title: item.kind == HomeBillKind.rent ? strings.addMonthlyRent : strings.addMonthlyBill, subtitle: item.title, amount: item.amount.minorUnits, icon: item.kind == HomeBillKind.rent ? Icons.home_work_outlined : Icons.receipt_long_outlined, note: item.note),
+                for (final item in allTransfers)
+                  _HomeLogItem(date: item.transferredAt, title: strings.homeIncomingFromWork, amount: item.amount.minorUnits, icon: Icons.swap_horiz, note: item.note),
+                for (final item in allPayments)
+                  _HomeLogItem(date: item.paidAt, title: strings.addBillPayment, subtitle: allBills.where((bill) => bill.id == item.billId).firstOrNull?.title, amount: item.amount.minorUnits, icon: Icons.payments_outlined, note: item.note),
+              ]..sort((a, b) => b.date.compareTo(a.date));
+              if (logItems.isEmpty) {
+                return Center(child: Text(strings.noRecords));
+              }
+              return Column(children: [
+                for (final item in logItems)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: FinancialRecordCard(
+                      icon: item.icon,
+                      title: item.title,
+                      amount: item.amount.toString(),
+                      details: [
+                        if (item.subtitle != null && item.subtitle!.isNotEmpty) item.subtitle!,
+                        toAsciiDigits(MaterialLocalizations.of(context).formatFullDate(item.date)),
+                        if (item.note != null && item.note!.isNotEmpty) item.note!,
+                      ],
+                    ),
+                  ),
+              ]);
+            }),
+        ],
+        if (billsPage) HomeBillsSection(selectedMonth: selectedMonth, kind: HomeBillKind.monthly),
+        if (rentPage) HomeBillsSection(selectedMonth: selectedMonth, kind: HomeBillKind.rent),
       ]),
     );
   }
+}
+
+
+class _HomeLogItem {
+  const _HomeLogItem({required this.date, required this.title, required this.amount, required this.icon, this.subtitle, this.note});
+  final DateTime date;
+  final String title;
+  final String? subtitle;
+  final int amount;
+  final IconData icon;
+  final String? note;
 }

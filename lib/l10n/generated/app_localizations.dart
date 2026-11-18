@@ -121,6 +121,22 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'المنزل'**
   String get homeSection;
+  String get personName;
+  String get workTransfersTab;
+  String get homeIncomingFromWork;
+  String get homeMonthlyRent;
+  String get homeExpenses;
+  String get homeHistory;
+  String get addMonthlyRent;
+  String get billOrRentName;
+  String get addCreditorDebt;
+  String get addDebtorDebt;
+  String get homeCategoryChildren;
+  String get homeCategoryEducation;
+  String get homeCategoryEntertainment;
+  String get homeCategoryCommunication;
+  String get homeCategorySubscriptions;
+  String get homeCategoryGifts;
 
   /// No description provided for @debts.
   ///
@@ -233,7 +249,7 @@ abstract class AppLocalizations {
   /// No description provided for @recordedAt.
   ///
   /// In ar, this message translates to:
-  /// **'تاريخ التسجيل'**
+  /// **'التاريخ'**
   String get recordedAt;
 
   /// No description provided for @salary.
@@ -338,6 +354,15 @@ abstract class AppLocalizations {
   /// **'إضافة سجل عمل'**
   String get addEntry;
 
+  /// No description provided for @addSalary.
+  String get addSalary;
+
+  /// No description provided for @addPayment.
+  String get addPayment;
+
+  /// No description provided for @addAdvance.
+  String get addAdvance;
+
   /// No description provided for @addDebt.
   ///
   /// In ar, this message translates to:
@@ -428,7 +453,7 @@ abstract class AppLocalizations {
   /// No description provided for @invalidRecord.
   ///
   /// In ar, this message translates to:
-  /// **'تحقق من البيانات المدخلة والمبالغ والشهر المستحق'**
+  /// **'تحقق من صحة المبلغ والتاريخ'**
   String get invalidRecord;
 
   /// No description provided for @monthlyOverview.

@@ -1,6 +1,7 @@
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
+import 'package:expense_app/core/time/calendar_date.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
 import 'package:expense_app/features/dashboard/presentation/dashboard_screen.dart';
 import 'package:expense_app/features/debts/domain/debt_entry.dart';
@@ -107,9 +108,11 @@ void main() {
     expect(find.byKey(const Key('dashboard-content')), findsOneWidget);
     final monthPicker = find.byKey(const Key('dashboard-month-picker'));
     expect(monthPicker, findsOneWidget);
-    final monthLabel = MaterialLocalizations.of(
-      tester.element(monthPicker),
-    ).formatMonthYear(DateTime(month.year, month.month, 1));
+    final monthLabel = toAsciiDigits(
+      MaterialLocalizations.of(tester.element(monthPicker)).formatMonthYear(
+        DateTime(month.year, month.month, 1),
+      ),
+    );
     expect(
       find.descendant(of: monthPicker, matching: find.text(monthLabel)),
       findsOneWidget,

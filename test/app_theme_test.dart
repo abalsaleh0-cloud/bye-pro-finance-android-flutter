@@ -4,86 +4,86 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
 void main() {
-  test('the fixed BYE PRO light and dark themes have readable contrast', () {
-    final light = AppTheme.light;
-    final dark = AppTheme.dark;
+  test('Telegram Blue light and Dark Blue palettes are fixed', () {
+    final light = AppTheme.light.colorScheme;
+    final dark = AppTheme.dark.colorScheme;
 
-    expect(light.useMaterial3, isTrue);
-    expect(dark.useMaterial3, isTrue);
-    expect(light.brightness, Brightness.light);
-    expect(dark.brightness, Brightness.dark);
+    expect(light.primary, const Color(0xFF229AF0));
+    expect(light.onPrimary, const Color(0xFF102A3D));
+    expect(light.surface, Colors.white);
+    expect(light.onSurface, const Color(0xFF1A1D21));
+    expect(light.onSurfaceVariant, const Color(0xFF757575));
+    expect(light.surfaceDim, const Color(0xFFF1F1F3));
+    expect(light.tertiaryContainer, const Color(0xFFEFFFDE));
+    expect(light.outlineVariant, const Color(0xFFD9D9D9));
 
-    for (final theme in [light, dark]) {
-      expect(theme.extension<AppDesignTokens>(), isNotNull);
+    expect(dark.primary, const Color(0xFF64B5EF));
+    expect(dark.surface, const Color(0xFF1D2733));
+    expect(dark.surfaceContainer, const Color(0xFF242D39));
+    expect(dark.onSurface, const Color(0xFFFAFAFA));
+    expect(dark.onSurfaceVariant, const Color(0xFF9AA8B6));
+    expect(dark.surfaceDim, const Color(0xFF151E27));
+    expect(dark.surfaceContainerHigh, const Color(0xFF232E3B));
+    expect(dark.tertiaryContainer, const Color(0xFF3E618A));
+  });
+
+  test('light and dark themes retain readable text contrast', () {
+    for (final theme in [AppTheme.light, AppTheme.dark]) {
+      final scheme = theme.colorScheme;
       expect(
-        AppTheme.contrastRatio(
-          theme.colorScheme.onSurface,
-          theme.colorScheme.surface,
-        ),
+        AppTheme.contrastRatio(scheme.onSurface, scheme.surface),
+        greaterThanOrEqualTo(4.5),
+      );
+      expect(
+        AppTheme.contrastRatio(scheme.onSurfaceVariant, scheme.surface),
+        greaterThanOrEqualTo(4.5),
+      );
+      expect(
+        AppTheme.contrastRatio(scheme.onPrimary, scheme.primary),
         greaterThanOrEqualTo(4.5),
       );
       expect(
         AppTheme.contrastRatio(
-          theme.colorScheme.onSurfaceVariant,
-          theme.colorScheme.surface,
-        ),
-        greaterThanOrEqualTo(4.5),
-      );
-      expect(
-        AppTheme.contrastRatio(
-          theme.colorScheme.onPrimary,
-          theme.colorScheme.primary,
+          scheme.onTertiaryContainer,
+          scheme.tertiaryContainer,
         ),
         greaterThanOrEqualTo(4.5),
       );
     }
   });
 
-  test('component geometry is fixed across light and dark modes', () {
-    final lightTokens = AppTheme.light.extension<AppDesignTokens>()!;
-    final darkTokens = AppTheme.dark.extension<AppDesignTokens>()!;
+  test('all component geometry stays identical across appearances', () {
+    final light = AppTheme.light.extension<AppDesignTokens>()!;
+    final dark = AppTheme.dark.extension<AppDesignTokens>()!;
 
-    expect(darkTokens.pageHorizontalPadding, lightTokens.pageHorizontalPadding);
-    expect(darkTokens.sectionSpacing, lightTokens.sectionSpacing);
-    expect(darkTokens.inputVerticalPadding, lightTokens.inputVerticalPadding);
-    expect(darkTokens.cardPadding, lightTokens.cardPadding);
-    expect(lightTokens.cardRadius, 16);
-    expect(lightTokens.controlRadius, 12);
-    expect(lightTokens.dialogRadius, 20);
-    expect(lightTokens.buttonHeight, 48);
-    expect(lightTokens.touchTargetSize, 44);
-    expect(lightTokens.navigationBarHeight, 68);
-    expect(lightTokens.sectionTabHeight, 48);
-    expect(lightTokens.metricTileMinHeight, 64);
-    expect(lightTokens.recordIconBoxSize, 40);
-    expect(lightTokens.standardIconSize, 20);
-    expect(darkTokens.buttonHeight, lightTokens.buttonHeight);
-    expect(darkTokens.touchTargetSize, lightTokens.touchTargetSize);
-    expect(darkTokens.navigationBarHeight, lightTokens.navigationBarHeight);
-    expect(darkTokens.sectionTabHeight, lightTokens.sectionTabHeight);
-    expect(darkTokens.metricTileMinHeight, lightTokens.metricTileMinHeight);
-    expect(darkTokens.recordIconBoxSize, lightTokens.recordIconBoxSize);
-    expect(darkTokens.standardIconSize, lightTokens.standardIconSize);
+    expect(dark.pageHorizontalPadding, light.pageHorizontalPadding);
+    expect(dark.pageVerticalPadding, light.pageVerticalPadding);
+    expect(dark.sectionSpacing, light.sectionSpacing);
+    expect(dark.cardRadius, light.cardRadius);
+    expect(dark.controlRadius, light.controlRadius);
+    expect(dark.dialogRadius, light.dialogRadius);
+    expect(dark.cardPadding, light.cardPadding);
+    expect(dark.inputVerticalPadding, light.inputVerticalPadding);
+    expect(dark.buttonHeight, light.buttonHeight);
+    expect(dark.touchTargetSize, light.touchTargetSize);
+    expect(dark.navigationBarHeight, light.navigationBarHeight);
+    expect(dark.sectionTabHeight, light.sectionTabHeight);
+    expect(dark.metricTileMinHeight, light.metricTileMinHeight);
+    expect(dark.recordIconBoxSize, light.recordIconBoxSize);
+    expect(dark.standardIconSize, light.standardIconSize);
   });
 
-  test('gold accent adapts for contrast in both appearances', () {
+  test('error and success colors are semantic states, not brand accents', () {
+    expect(AppTheme.light.colorScheme.error, const Color(0xFFCC4747));
+    expect(AppTheme.dark.colorScheme.error, const Color(0xFFFF6D6D));
+    expect(AppTheme.light.colorScheme.tertiary, const Color(0xFF26972C));
     expect(
       AppTheme.light.colorScheme.secondary,
-      isNot(AppTheme.dark.colorScheme.secondary),
+      const Color(0xFF757575),
     );
     expect(
-      AppTheme.contrastRatio(
-        AppTheme.light.colorScheme.onSecondary,
-        AppTheme.light.colorScheme.secondary,
-      ),
-      greaterThanOrEqualTo(4.5),
-    );
-    expect(
-      AppTheme.contrastRatio(
-        AppTheme.dark.colorScheme.onSecondary,
-        AppTheme.dark.colorScheme.secondary,
-      ),
-      greaterThanOrEqualTo(4.5),
+      AppTheme.dark.colorScheme.secondary,
+      const Color(0xFF9AA8B6),
     );
   });
 }

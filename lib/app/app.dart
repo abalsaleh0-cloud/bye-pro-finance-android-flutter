@@ -3,17 +3,25 @@ import 'dart:async';
 import 'package:expense_app/core/providers/app_settings_provider.dart';
 import 'package:expense_app/core/router/app_router.dart';
 import 'package:expense_app/core/theme/app_theme.dart';
+import 'package:expense_app/features/settings/presentation/app_security_gate.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
-class MyApp extends ConsumerWidget {
+class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends ConsumerState<MyApp> {
+  String? _lastScheduledIconMode;
+
+  @override
+  Widget build(BuildContext context) {
     final settings = ref.watch(appSettingsProvider);
     final router = ref.watch(appRouterProvider);
 
@@ -35,14 +43,23 @@ class MyApp extends ConsumerWidget {
           ThemeMode.light => Brightness.light,
           ThemeMode.system => MediaQuery.platformBrightnessOf(context),
         };
-        if (defaultTargetPlatform == TargetPlatform.android) {
-          unawaited(_LauncherIconSync.update(
-            brightness == Brightness.dark ? 'dark' : 'light',
-          ));
+        final iconMode = brightness == Brightness.dark ? 'dark' : 'light';
+
+        // PackageManager updates are Android side effects. Run them after the
+        // current frame, never in the middle of MaterialApp's build.
+        if (defaultTargetPlatform == TargetPlatform.android &&
+            _lastScheduledIconMode != iconMode) {
+          _lastScheduledIconMode = iconMode;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) unawaited(_LauncherIconSync.update(iconMode));
+          });
         }
+
         return Directionality(
           textDirection: TextDirection.rtl,
-          child: child ?? const SizedBox.shrink(),
+          child: AppSecurityGate(
+            child: child ?? const SizedBox.shrink(),
+          ),
         );
       },
       routerConfig: router,
@@ -50,21 +67,23 @@ class MyApp extends ConsumerWidget {
   }
 }
 
-
 /// Keeps the Android launcher artwork in sync with the actual app appearance.
 class _LauncherIconSync {
   static const MethodChannel _channel =
       MethodChannel('com.byepro.finance/app_icon');
-  static String? _lastApplied;
+  static String? _lastQueued;
+  static Future<void> _pending = Future<void>.value();
 
-  static Future<void> update(String mode) async {
-    if (_lastApplied == mode) return;
-    _lastApplied = mode;
-    try {
-      await _channel.invokeMethod<void>('setAppIcon', {'mode': mode});
-    } catch (_) {
-      _lastApplied = null;
-      // The Android bridge may be unavailable during early startup.
-    }
+  static Future<void> update(String mode) {
+    _pending = _pending.then((_) async {
+      if (_lastQueued == mode) return;
+      try {
+        await _channel.invokeMethod<void>('queueAppIcon', {'mode': mode});
+        _lastQueued = mode;
+      } catch (_) {
+        // Launcher icon support must never interrupt the finance app.
+      }
+    });
+    return _pending;
   }
 }

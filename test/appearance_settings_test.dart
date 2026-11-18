@@ -37,6 +37,7 @@ void main() {
   setUp(() async {
     await testDatabase.clearFinancialData();
     await testDatabase.customStatement('DELETE FROM app_settings');
+    await testDatabase.writeSetting('welcome_seen', 'true');
   });
 
   tearDownAll(() async {
@@ -53,8 +54,41 @@ void main() {
         child: const MyApp(),
       ),
     );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('open-settings')));
     await tester.pumpAndSettle();
+
+    // The appearance selector is in the first visible settings section.
+    expect(find.byKey(const Key('theme-mode-selector')), findsOneWidget);
+
+    // Settings uses a lazy ListView: scroll to instantiate each section
+    // before asserting that its controls are present.
+    final settingsScroll = find.byType(Scrollable).first;
+    await tester.scrollUntilVisible(
+      find.text('النسخ الاحتياطي والاستعادة'),
+      420,
+      scrollable: settingsScroll,
+    );
+    expect(find.text('النسخ الاحتياطي والاستعادة'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('إنشاء نسخة احتياطية'),
+      260,
+      scrollable: settingsScroll,
+    );
+    expect(find.text('إنشاء نسخة احتياطية'), findsOneWidget);
+    expect(find.text('استعادة نسخة احتياطية'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('قفل التطبيق'),
+      420,
+      scrollable: settingsScroll,
+    );
+    // This card is lazy-loaded separately from its section heading.
+    await tester.drag(settingsScroll, const Offset(0, -320));
+    // The security card starts an asynchronous secure-storage read and shows
+    // a continuously animating progress indicator; pump one frame instead of
+    // waiting for all animations to settle.
+    await tester.pump();
+    expect(find.byKey(const Key('app-security-settings-card')), findsOneWidget);
 
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(
@@ -64,9 +98,11 @@ void main() {
     expect(find.text('لوحات إضافية'), findsNothing);
     expect(find.byKey(const Key('create-theme-from-color')), findsNothing);
     expect(find.byKey(const Key('import-theme-json')), findsNothing);
-    expect(find.byKey(const Key('theme-mode-selector')), findsOneWidget);
 
-    await tester.ensureVisible(find.text('الوضع الداكن'));
+    // Return the lazy settings list to its top before changing the theme.
+    await tester.drag(settingsScroll, const Offset(0, 1400));
+    await tester.pump();
+    expect(find.text('الوضع الداكن'), findsOneWidget);
     await tester.tap(find.text('الوضع الداكن'));
     await tester.pumpAndSettle();
 

@@ -356,6 +356,7 @@ class DashboardScreen extends ConsumerWidget {
     Color indicatorColor,
   ) {
     final theme = Theme.of(context);
+    final tokens = AppDesignTokens.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -372,7 +373,7 @@ class DashboardScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
         ClipRRect(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(tokens.controlRadius),
           child: LinearProgressIndicator(
             value: ratio,
             minHeight: 9,

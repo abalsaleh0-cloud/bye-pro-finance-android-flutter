@@ -15,7 +15,7 @@ void main() {
 
   tearDown(() async => database.close());
 
-  test('provides the nine built-in household categories', () async {
+  test('provides all built-in household categories', () async {
     final categories = await repository.getAll();
     expect(categories.map((item) => item.id), [
       'groceries',
@@ -26,6 +26,12 @@ void main() {
       'transport',
       'personal',
       'health',
+      'children',
+      'education',
+      'entertainment',
+      'communication',
+      'subscriptions',
+      'gifts',
       'other',
     ]);
   });
@@ -39,7 +45,7 @@ void main() {
     );
 
     final categories = await repository.getAll();
-    expect(categories, hasLength(10));
+    expect(categories, hasLength(16));
     expect(
       categories.singleWhere((item) => item.id == 'groceries').name,
       'Food and groceries',

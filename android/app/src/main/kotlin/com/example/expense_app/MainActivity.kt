@@ -13,12 +13,12 @@ import android.speech.SpeechRecognizer
 import android.speech.RecognitionListener
 import android.speech.tts.TextToSpeech
 import android.speech.tts.Voice
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.util.Locale
 
-class MainActivity : FlutterActivity() {
+class MainActivity : FlutterFragmentActivity() {
     private companion object {
         const val VOICE_CHANNEL = "com.byepro.finance/assistant_voice"
         const val APP_ICON_CHANNEL = "com.byepro.finance/app_icon"
@@ -87,7 +87,7 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, APP_ICON_CHANNEL)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
-                    "setAppIcon" -> switchLauncherIcon(
+                    "queueAppIcon" -> queueLauncherIcon(
                         call.argument<String>("mode"),
                         result
                     )
@@ -96,24 +96,43 @@ class MainActivity : FlutterActivity() {
             }
     }
 
-    private fun switchLauncherIcon(mode: String?, result: MethodChannel.Result) {
+    private fun queueLauncherIcon(mode: String?, result: MethodChannel.Result) {
+        if (mode != "dark" && mode != "light") {
+            result.error(
+                "invalid_app_icon_mode",
+                "App icon mode must be either dark or light.",
+                null
+            )
+            return
+        }
+
+        // Launcher changes broadcast PACKAGE_CHANGED. Queue the requested icon
+        // and apply it only after the Activity has left the foreground.
+        getSharedPreferences("bye_pro_launcher", MODE_PRIVATE)
+            .edit()
+            .putString("pending_icon_mode", mode)
+            .apply()
+        result.success(true)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        applyPendingLauncherIcon()
+    }
+
+    private fun applyPendingLauncherIcon() {
+        val preferences = getSharedPreferences("bye_pro_launcher", MODE_PRIVATE)
+        val mode = preferences.getString("pending_icon_mode", null) ?: return
+        val lastAppliedMode = preferences.getString("active_icon_mode", null)
+        if (lastAppliedMode == mode) {
+            preferences.edit().remove("pending_icon_mode").apply()
+            return
+        }
+
         val enabledAlias = when (mode) {
-            "dark" -> ComponentName(
-                packageName,
-                "$packageName.MainActivityDarkIcon"
-            )
-            "light" -> ComponentName(
-                packageName,
-                "$packageName.MainActivityLightIcon"
-            )
-            else -> {
-                result.error(
-                    "invalid_app_icon_mode",
-                    "App icon mode must be either dark or light.",
-                    null
-                )
-                return
-            }
+            "dark" -> ComponentName(packageName, "$packageName.MainActivityDarkIcon")
+            "light" -> ComponentName(packageName, "$packageName.MainActivityLightIcon")
+            else -> return
         }
         val disabledAlias = if (mode == "dark") {
             ComponentName(packageName, "$packageName.MainActivityLightIcon")
@@ -122,23 +141,43 @@ class MainActivity : FlutterActivity() {
         }
 
         try {
-            packageManager.setComponentEnabledSetting(
-                disabledAlias,
-                PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-                PackageManager.DONT_KILL_APP
-            )
-            packageManager.setComponentEnabledSetting(
-                enabledAlias,
-                PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
-                PackageManager.DONT_KILL_APP
-            )
-            result.success(true)
+            // Apply both states atomically on Android 13+, after the app is
+            // backgrounded. Older versions enable the new alias before
+            // disabling the previous one, so a launcher entry always exists.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                packageManager.setComponentEnabledSettings(
+                    mutableListOf(
+                        PackageManager.ComponentEnabledSetting(
+                            enabledAlias,
+                            PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                            PackageManager.DONT_KILL_APP
+                        ),
+                        PackageManager.ComponentEnabledSetting(
+                            disabledAlias,
+                            PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                            PackageManager.DONT_KILL_APP
+                        )
+                    )
+                )
+            } else {
+                packageManager.setComponentEnabledSetting(
+                    enabledAlias,
+                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                    PackageManager.DONT_KILL_APP
+                )
+                packageManager.setComponentEnabledSetting(
+                    disabledAlias,
+                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                    PackageManager.DONT_KILL_APP
+                )
+            }
+            preferences.edit()
+                .putString("active_icon_mode", mode)
+                .remove("pending_icon_mode")
+                .apply()
         } catch (error: Exception) {
-            result.error(
-                "app_icon_update_failed",
-                error.message ?: "Unable to update the launcher icon.",
-                null
-            )
+            // Keep the pending choice so a later background transition can retry.
+            android.util.Log.w("MainActivity", "Deferred launcher icon update failed", error)
         }
     }
 

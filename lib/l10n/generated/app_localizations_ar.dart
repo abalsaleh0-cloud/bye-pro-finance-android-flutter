@@ -22,6 +22,54 @@ class AppLocalizationsAr extends AppLocalizations {
   String get homeSection => 'المنزل';
 
   @override
+  String get personName => 'اسم الشخص';
+
+  @override
+  String get workTransfersTab => 'تحويلات المنزل';
+
+  @override
+  String get homeIncomingFromWork => 'الوارد من العمل';
+
+  @override
+  String get homeMonthlyRent => 'الإيجارات الشهرية';
+
+  @override
+  String get homeExpenses => 'المصروفات';
+
+  @override
+  String get homeHistory => 'السجل';
+
+  @override
+  String get addMonthlyRent => 'إضافة إيجار شهري';
+
+  @override
+  String get billOrRentName => 'اسم الفاتورة أو الإيجار';
+
+  @override
+  String get addCreditorDebt => 'إضافة دين لك (دائن)';
+
+  @override
+  String get addDebtorDebt => 'إضافة دين عليك (مدين)';
+
+  @override
+  String get homeCategoryChildren => 'مستلزمات الأطفال';
+
+  @override
+  String get homeCategoryEducation => 'التعليم';
+
+  @override
+  String get homeCategoryEntertainment => 'الترفيه';
+
+  @override
+  String get homeCategoryCommunication => 'الاتصالات والإنترنت';
+
+  @override
+  String get homeCategorySubscriptions => 'الاشتراكات';
+
+  @override
+  String get homeCategoryGifts => 'الهدايا والمناسبات';
+
+  @override
   String get debts => 'الديون';
 
   @override
@@ -76,7 +124,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get dueMonth => 'الشهر المستحق';
 
   @override
-  String get recordedAt => 'تاريخ التسجيل';
+  String get recordedAt => 'التاريخ';
 
   @override
   String get salary => 'راتب';
@@ -109,13 +157,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get transferAmount => 'مبلغ التحويل';
 
   @override
-  String get transfers => 'التحويلات إلى المنزل';
+  String get transfers => 'تحويلات المنزل';
 
   @override
   String get expenses => 'المصروفات';
 
   @override
-  String get entries => 'السجلات';
+  String get entries => 'السجل';
 
   @override
   String get loading => 'جارٍ التحميل';
@@ -128,6 +176,15 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get addEntry => 'إضافة سجل عمل';
+
+  @override
+  String get addSalary => 'إضافة راتب';
+
+  @override
+  String get addPayment => 'إضافة دفعة';
+
+  @override
+  String get addAdvance => 'إضافة سلفة';
 
   @override
   String get addDebt => 'إضافة دين';
@@ -208,8 +265,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get debtDirection => 'نوع الدين';
 
   @override
-  String get invalidRecord =>
-      'تحقق من البيانات المدخلة والمبالغ والشهر المستحق';
+  String get invalidRecord => 'تحقق من صحة المبلغ والتاريخ';
 
   @override
   String get monthlyOverview => 'ملخص الشهر الحالي';

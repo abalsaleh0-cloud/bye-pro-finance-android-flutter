@@ -1,11 +1,8 @@
 // ignore_for_file: curly_braces_in_flow_control_structures, prefer_interpolation_to_compose_strings
 
 import 'dart:async';
-import 'dart:io';
-
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:record/record.dart';
 import 'package:flutter/services.dart';
 import 'package:expense_app/features/ai/data/android_assistant_voice_service.dart';
 
@@ -14,6 +11,7 @@ import 'package:expense_app/features/ai/domain/wav_audio_validator.dart';
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/providers/app_settings_provider.dart';
 import 'package:expense_app/core/theme/app_design_tokens.dart';
+import 'package:expense_app/core/widgets/chat_message_bubble.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
 import 'package:expense_app/features/ai/data/gemma_model_manager.dart';
 import 'package:expense_app/features/ai/domain/action_registry.dart';
@@ -54,15 +52,12 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   final AssistantConfirmation _confirmation = AssistantConfirmation();
   UndoOperation? _undo;
   bool _busy = false;
-  final AudioRecorder _recorder = AudioRecorder();
   final ImagePicker _imagePicker = ImagePicker();
   final AndroidAssistantVoiceService _voiceService = const AndroidAssistantVoiceService();
   bool _recognizing = false;
-  bool _speakReplies = false;
   Uint8List? _attachmentBytes;
   bool _attachmentIsImage = false;
   String? _attachmentName;
-  bool _recording = false;
 
   @override
   void initState() {
@@ -76,9 +71,6 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     if (_recognizing) {
       unawaited(_voiceService.cancelArabicSpeechRecognition());
     }
-    if (_speakReplies) unawaited(_voiceService.stopSpeaking());
-    if (_recording) unawaited(_recorder.stop());
-    unawaited(_recorder.dispose());
     unawaited(_gemmaModelManager.releaseModel());
     super.dispose();
   }
@@ -92,7 +84,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   );
 
   Future<void> _chooseAttachment() async {
-    if (_busy || _recording || _recognizing) return;
+    if (_busy || _recognizing) return;
     final strings = AppLocalizations.of(context)!;
     final choice = await showModalBottomSheet<_AssistantAttachmentChoice>(
       context: context,
@@ -172,7 +164,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
 
   Future<void> _pickDocumentOrMedia() async {
     final strings = AppLocalizations.of(context)!;
-    if (_busy || _recording) return;
+    if (_busy || _recognizing) return;
     try {
       final file = await FilePicker.pickFile(type: FileType.any);
       if (file == null) return;
@@ -243,7 +235,6 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     ref.read(aiChatMessagesProvider.notifier).add(
       AiChatMessage(text, includeInModelContext: includeInModelContext),
     );
-    if (_speakReplies) unawaited(_speakAssistantReply(text));
   }
 
   Future<void> _copyMessage(String text) async {
@@ -254,89 +245,8 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     );
   }
 
-  Future<void> _speakAssistantReply(String text) async {
-    if (text.trim().isEmpty) return;
-    try {
-      await _voiceService.speakArabic(text);
-    } on PlatformException {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.aiArabicTtsUnavailable),
-        ),
-      );
-    } catch (_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context)!.aiArabicTtsUnavailable),
-        ),
-      );
-    }
-  }
-
-  Future<void> _toggleSpokenReplies() async {
-    if (_busy || _recognizing || _recording) return;
-    if (_speakReplies) {
-      setState(() => _speakReplies = false);
-      try {
-        await _voiceService.stopSpeaking();
-      } catch (_) {}
-      return;
-    }
-
-    final strings = AppLocalizations.of(context)!;
-    try {
-      final available = await _voiceService.hasOfflineArabicTts();
-      if (!mounted) return;
-      if (!available) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(strings.aiArabicTtsUnavailable)),
-        );
-        return;
-      }
-      setState(() => _speakReplies = true);
-    } on PlatformException {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(strings.aiArabicTtsUnavailable)),
-      );
-    }
-  }
-
-  Future<void> _showVoiceOptions() async {
-    if (_busy || _recognizing || _recording) return;
-    final strings = AppLocalizations.of(context)!;
-    final option = await showModalBottomSheet<String>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.mic_none_rounded),
-              title: Text(strings.aiVoiceInput),
-              onTap: () => Navigator.pop(context, 'dictate'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.graphic_eq_rounded),
-              title: Text(strings.aiRecordAudio),
-              onTap: () => Navigator.pop(context, 'record'),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (!mounted || option == null) return;
-    if (option == 'dictate') {
-      await _recognizeArabicSpeech();
-    } else if (option == 'record') {
-      await _toggleRecording();
-    }
-  }
-
   Future<void> _recognizeArabicSpeech() async {
-    if (_busy || _recording || _recognizing) return;
+    if (_busy || _recognizing) return;
     setState(() => _recognizing = true);
     final strings = AppLocalizations.of(context)!;
     try {
@@ -352,7 +262,6 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         text: transcript,
         selection: TextSelection.collapsed(offset: transcript.length),
       );
-      await _send();
     } on PlatformException catch (error) {
       if (!mounted || error.code == 'speech_cancelled') return;
       final message = switch (error.code) {
@@ -377,45 +286,6 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   }
 
 
-
-  Future<void> _toggleRecording() async {
-    final strings = AppLocalizations.of(context)!;
-    if (_busy) return;
-    try {
-      if (!_recording) {
-        if (!await _recorder.hasPermission()) {
-          throw StateError(strings.aiMicrophonePermission);
-        }
-        final directory = await Directory.systemTemp.createTemp('bye-pro-audio-');
-        final path = '${directory.path}/voice.wav';
-        await _recorder.start(
-          const RecordConfig(encoder: AudioEncoder.wav, sampleRate: 16000, numChannels: 1),
-          path: path,
-        );
-        if (mounted) setState(() { _recording = true; });
-      } else {
-        final path = await _recorder.stop();
-        if (path == null) throw StateError(strings.aiRecordingSaveFailed);
-        final recordingFile = File(path);
-        final bytes = await recordingFile.readAsBytes();
-        await recordingFile.delete();
-        try { await recordingFile.parent.delete(); } catch (_) {}
-        if (!_isValidWav(bytes)) throw StateError(strings.aiInvalidRecording);
-        if (bytes.length > 20 * 1024 * 1024) throw StateError(strings.aiAudioTooLarge);
-        if (mounted) setState(() {
-          _recording = false;
-          _attachmentBytes = bytes;
-          _attachmentIsImage = false;
-          _attachmentName = 'voice.wav';
-        });
-      }
-    } catch (error) {
-      if (mounted) {
-        setState(() { _recording = false; });
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString().replaceFirst('Bad state: ', ''))));
-      }
-    }
-  }
 
   void _removeAttachment() {
     setState(() {
@@ -484,7 +354,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     final text = _input.text.trim().isEmpty && mediaBytes != null
         ? (image ? strings.aiDefaultImagePrompt : strings.aiDefaultAudioPrompt)
         : _input.text.trim();
-    if ((text.isEmpty && mediaBytes == null) || _busy || _recording) return;
+    if ((text.isEmpty && mediaBytes == null) || _busy || _recognizing) return;
     final media = mediaBytes == null
         ? null
         : AssistantMedia(
@@ -901,63 +771,37 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                       child: ConstrainedBox(
                         constraints: BoxConstraints(maxWidth: maxBubbleWidth),
                         child: Column(
-                          crossAxisAlignment: message.fromUser
-                              ? CrossAxisAlignment.end
-                              : CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             AnimatedSize(
                               duration: tokens.motionDuration,
                               curve: Curves.easeOut,
-                              child: Card(
-                                margin: EdgeInsets.zero,
-                                color: message.fromUser
-                                    ? scheme.secondaryContainer
-                                    : scheme.surfaceContainerHigh,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(tokens.cardRadius),
-                                ),
-                                child: Padding(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: tokens.cardPadding + 1,
-                                    vertical: tokens.cardPadding - 2,
-                                  ),
-                                  child: Text(
-                                    message.text,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: message.fromUser
-                                          ? scheme.onSecondaryContainer
-                                          : scheme.onSurface,
-                                      height: 1.4,
-                                    ),
-                                  ),
-                                ),
+                              child: ChatMessageBubble(
+                                text: message.text,
+                                isOutgoing: message.fromUser,
                               ),
                             ),
-                            Padding(
-                              padding: const EdgeInsetsDirectional.only(
-                                start: 4,
-                                end: 4,
-                                top: 2,
-                              ),
-                              child: Wrap(
-                                spacing: 4,
-                                children: [
+                            Align(
+                              alignment: message.fromUser
+                                  ? Alignment.centerRight
+                                  : Alignment.centerLeft,
+                              child: Padding(
+                                padding: const EdgeInsetsDirectional.only(
+                                  start: 4,
+                                  end: 4,
+                                  top: 2,
+                                ),
+                                child: Wrap(
+                                  spacing: 4,
+                                  children: [
                                   TextButton.icon(
                                     onPressed: () => _copyMessage(message.text),
                                     icon: const Icon(Icons.copy_rounded, size: 16),
                                     label: Text(strings.aiCopy),
                                   ),
-                                  TextButton.icon(
-                                    onPressed: _busy
-                                        ? null
-                                        : () => _speakAssistantReply(message.text),
-                                    icon: const Icon(
-                                      Icons.volume_up_outlined,
-                                      size: 16,
-                                    ),
-                                    label: Text(strings.aiListen),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
                           ],
@@ -1060,7 +904,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
               ],
             ),
           ),
-          if (_attachmentName != null || _recording || _recognizing)
+          if (_attachmentName != null || _recognizing)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: Card(
@@ -1072,7 +916,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                   child: Row(
                     children: [
                       Icon(
-                        (_recording || _recognizing)
+                        _recognizing
                             ? Icons.mic
                             : (_attachmentIsImage
                                   ? Icons.image_outlined
@@ -1081,12 +925,12 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          _recognizing ? strings.aiVoiceListening : (_recording ? strings.aiRecording : _attachmentName!),
+                          _recognizing ? strings.aiVoiceListening : _attachmentName!,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (!_recording && !_recognizing && _attachmentName != null)
+                      if (!_recognizing && _attachmentName != null)
                         IconButton(
                           onPressed: _busy ? null : _removeAttachment,
                           icon: const Icon(Icons.close),
@@ -1100,115 +944,121 @@ class _AiScreenState extends ConsumerState<AiScreen> {
           SafeArea(
             top: false,
             child: Padding(
-              padding: EdgeInsetsDirectional.fromSTEB(
-                tokens.pageHorizontalPadding / 2,
-                tokens.pageVerticalPadding / 2,
-                tokens.pageHorizontalPadding / 2,
-                tokens.pageVerticalPadding,
-              ),
-              child: Row(
-                children: [
-                  IconButton.filledTonal(
-                    key: const Key('ai-attach-button'),
-                    onPressed: _busy || _recording || _recognizing
-                        ? null
-                        : _chooseAttachment,
-                    icon: const Icon(Icons.attach_file_rounded),
-                    tooltip: strings.aiFiles,
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Container(
-                      constraints: const BoxConstraints(minHeight: 52),
-                      decoration: BoxDecoration(
-                        color: scheme.surfaceContainerLow,
-                        border: Border.all(color: scheme.outlineVariant),
-                        borderRadius: BorderRadius.circular(tokens.controlRadius),
+              padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
+              child: Container(
+                key: const Key('ai-chat-composer'),
+                constraints: const BoxConstraints(minHeight: 44),
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerLow,
+                  border: Border.all(color: scheme.outlineVariant),
+                  borderRadius: BorderRadius.circular(28),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                child: Directionality(
+                  textDirection: TextDirection.ltr,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      SizedBox(
+                        width: 40,
+                        height: 40,
+                        child: IconButton(
+                          key: const Key('ai-attachment-button'),
+                          onPressed: _busy || _recognizing
+                              ? null
+                              : _chooseAttachment,
+                          icon: const Icon(Icons.attach_file_rounded, size: 24),
+                          color: scheme.onSurfaceVariant,
+                          tooltip: strings.aiFiles,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints.tightFor(
+                            width: 40,
+                            height: 40,
+                          ),
+                          visualDensity: VisualDensity.compact,
+                        ),
                       ),
-                      padding: const EdgeInsetsDirectional.fromSTEB(12, 4, 4, 4),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              key: const Key('ai-message-input'),
-                              controller: _input,
-                              minLines: 1,
-                              maxLines: 4,
-                              textInputAction: TextInputAction.send,
-                              onSubmitted: (_) => _send(),
-                              decoration: InputDecoration(
-                                hintText: strings.assistantHint,
-                                filled: false,
-                                isDense: true,
-                                contentPadding: const EdgeInsetsDirectional.fromSTEB(
-                                  4, 12, 4, 12,
-                                ),
-                                border: InputBorder.none,
-                                enabledBorder: InputBorder.none,
-                                focusedBorder: InputBorder.none,
-                              ),
+                      Expanded(
+                        child: TextField(
+                          key: const Key('ai-message-input'),
+                          controller: _input,
+                          textDirection: TextDirection.ltr,
+                          textAlign: TextAlign.start,
+                          minLines: 1,
+                          maxLines: 4,
+                          keyboardType: TextInputType.multiline,
+                          textInputAction: TextInputAction.send,
+                          onSubmitted: (_) => _send(),
+                          decoration: InputDecoration(
+                            hintText: strings.assistantHint,
+                            filled: false,
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 8,
                             ),
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
                           ),
-                          ValueListenableBuilder<TextEditingValue>(
-                            valueListenable: _input,
-                            builder: (context, value, child) {
-                              final hasText = value.text.trim().isNotEmpty;
-                              final canInteract =
-                                  !_busy && !_recording && !_recognizing;
-                              return IconButton.filled(
-                                key: const Key('ai-contextual-input-action'),
-                                onPressed: !canInteract
-                                    ? (_recording ? _toggleRecording : null)
-                                    : hasText
-                                        ? _send
-                                        : _showVoiceOptions,
-                                tooltip: _recording
-                                    ? strings.aiStopRecording
-                                    : hasText
-                                        ? strings.assistantSend
-                                        : strings.aiVoiceOptions,
-                                icon: _busy
-                                    ? const SizedBox(
-                                        width: 18,
-                                        height: 18,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : Icon(
-                                        _recording
-                                            ? Icons.stop_rounded
-                                            : hasText
-                                                ? Icons.send_rounded
-                                                : Icons.mic_none_rounded,
-                                      ),
-                              );
-                            },
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 2),
+                      SizedBox(
+                        width: 40,
+                        height: 40,
+                        child: ValueListenableBuilder<TextEditingValue>(
+                          valueListenable: _input,
+                          builder: (context, value, child) {
+                            final hasText = value.text.trim().isNotEmpty;
+                            final canInteract = !_busy && !_recognizing;
+                            return IconButton.filled(
+                              key: const Key('ai-contextual-input-action'),
+                              onPressed: !canInteract
+                                  ? null
+                                  : hasText
+                                      ? _send
+                                      : _recognizeArabicSpeech,
+                              tooltip: _recognizing
+                                  ? strings.aiVoiceListening
+                                  : hasText
+                                      ? strings.assistantSend
+                                      : strings.aiVoiceInput,
+                              style: IconButton.styleFrom(
+                                backgroundColor: const Color(0xFF229ED9),
+                                foregroundColor: Colors.white,
+                                shape: const CircleBorder(),
+                              ),
+                              icon: _busy || _recognizing
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Icon(
+                                      hasText
+                                          ? Icons.send_rounded
+                                          : Icons.mic_none_rounded,
+                                      size: 23,
+                                    ),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints.tightFor(
+                                width: 40,
+                                height: 40,
+                              ),
+                              visualDensity: VisualDensity.compact,
+                            );
+                          },
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 2),
-                  IconButton.filledTonal(
-                    key: const Key('ai-spoken-replies-toggle'),
-                    onPressed: _busy || _recording || _recognizing
-                        ? null
-                        : _toggleSpokenReplies,
-                    icon: Icon(
-                      _speakReplies
-                          ? Icons.volume_up_rounded
-                          : Icons.volume_off_outlined,
-                    ),
-                    tooltip: _speakReplies
-                        ? strings.aiVoiceRepliesOn
-                        : strings.aiVoiceRepliesOff,
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
+          )
         ],
       ),
     );

@@ -8,7 +8,7 @@ import 'package:material_ui/material_ui.dart';
 /// User preferences shared by the complete application.
 class AppSettings {
   const AppSettings({
-    this.themeMode = ThemeMode.system,
+    this.themeMode = ThemeMode.dark,
     this.locale = const Locale('ar'),
     this.useGemma = false,
   });
@@ -60,11 +60,16 @@ class AppSettingsController extends Notifier<AppSettings> {
         // Theme cleanup must never prevent restoring language or app mode.
       }
 
+      // The cleanup above is asynchronous. A user may change appearance while
+      // it runs, so re-check the revision before applying the older snapshot.
+      if (_revision != 0) return;
+
       state = AppSettings(
         themeMode: switch (values[0]) {
           'dark' => ThemeMode.dark,
           'light' => ThemeMode.light,
-          _ => ThemeMode.system,
+          'system' => ThemeMode.system,
+          _ => ThemeMode.dark,
         },
         locale: Locale(values[1] == 'en' ? 'en' : 'ar'),
         useGemma: values[2] == 'gemma',
@@ -74,14 +79,15 @@ class AppSettingsController extends Notifier<AppSettings> {
     }
   }
 
-  void setThemeMode(ThemeMode mode) {
+  /// Applies the selection immediately and completes only after it is saved.
+  Future<void> setThemeMode(ThemeMode mode) async {
     _revision++;
     state = state.copyWith(themeMode: mode);
-    unawaited(_write('theme_mode', switch (mode) {
+    await _write('theme_mode', switch (mode) {
       ThemeMode.dark => 'dark',
       ThemeMode.light => 'light',
       ThemeMode.system => 'system',
-    }));
+    });
   }
 
   void setLocale(Locale locale) {

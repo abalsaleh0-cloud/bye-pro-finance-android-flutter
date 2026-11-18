@@ -9,6 +9,8 @@ import 'package:expense_app/core/widgets/financial_record_card.dart';
 import 'package:expense_app/core/widgets/month_selector.dart';
 import 'package:expense_app/features/debts/domain/debt_entry.dart';
 import 'package:expense_app/features/debts/domain/debt_payment.dart';
+import 'package:expense_app/features/debts/presentation/debt_add_request_provider.dart';
+import 'package:expense_app/core/widgets/section_pill_tabs.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
@@ -24,6 +26,7 @@ class DebtsScreen extends ConsumerStatefulWidget {
 
 class _DebtsScreenState extends ConsumerState<DebtsScreen> {
   bool _manualEntryOpened = false;
+  int _activeTab = 0;
 
   @override
   void didChangeDependencies() {
@@ -36,105 +39,99 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
     }
   }
 
+  Future<void> _showDebtAddOptions(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations strings,
+  ) async {
+    final selected = await showModalBottomSheet<DebtDirection>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+            key: const Key('debt-add-creditor'),
+            leading: const Icon(Icons.call_received_outlined),
+            title: Text(strings.addCreditorDebt),
+            onTap: () => Navigator.pop(sheetContext, DebtDirection.creditor),
+          ),
+          ListTile(
+            key: const Key('debt-add-debtor'),
+            leading: const Icon(Icons.call_made_outlined),
+            title: Text(strings.addDebtorDebt),
+            onTap: () => Navigator.pop(sheetContext, DebtDirection.debtor),
+          ),
+        ]),
+      ),
+    );
+    if (!context.mounted || selected == null) return;
+    await _editDebt(context, ref, strings, direction: selected);
+  }
+
   Future<void> _editDebt(
     BuildContext context,
     WidgetRef ref,
     AppLocalizations strings, {
     DebtEntry? existing,
+    DebtDirection? direction,
   }) async {
-    final counterparty = TextEditingController(
-      text: existing?.counterparty ?? '',
-    );
-    final original = TextEditingController(
-      text: existing?.originalAmount.minorUnits.toString() ?? '',
-    );
-    final outstanding = TextEditingController(
-      text: existing?.outstandingAmount.minorUnits.toString() ?? '',
-    );
-    final due = TextEditingController(
-      text:
-          existing?.dueMonth.toString() ?? ref.read(selectedMonthProvider).toString(),
-    );
+    final counterparty = TextEditingController(text: existing?.counterparty ?? '');
+    final amount = TextEditingController(text: existing?.originalAmount.minorUnits.toString() ?? '');
+    final currentMonth = ref.read(selectedMonthProvider);
+    final now = DateTime.now();
+    final lastDay = DateTime(currentMonth.year, currentMonth.month + 1, 0).day;
+    final defaultDate = DateTime(currentMonth.year, currentMonth.month, now.day > lastDay ? lastDay : now.day);
+    final date = TextEditingController(text: formatCalendarDate(existing?.createdAt ?? defaultDate));
     final note = TextEditingController(text: existing?.note ?? '');
-    var direction = existing?.direction ?? DebtDirection.debtor;
+    final selectedDirection = existing?.direction ?? direction ?? DebtDirection.debtor;
+    final previouslyPaid = existing == null
+        ? 0
+        : existing.originalAmount.minorUnits - existing.outstandingAmount.minorUnits;
     String? error;
     try {
       await showDialog<void>(
         context: context,
         builder: (dialogContext) => StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
-            title: Text(
-              existing == null ? strings.addDebt : strings.editRecord,
-            ),
+            title: Text(existing != null
+                ? strings.editRecord
+                : selectedDirection == DebtDirection.creditor
+                    ? strings.addCreditorDebt
+                    : strings.addDebtorDebt),
             content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  DropdownButtonFormField<DebtDirection>(
-                    initialValue: direction,
-                    decoration: InputDecoration(
-                      labelText: strings.debtDirection,
-                    ),
-                    items: [
-                      DropdownMenuItem(
-                        value: DebtDirection.creditor,
-                        child: Text(strings.creditor),
-                      ),
-                      DropdownMenuItem(
-                        value: DebtDirection.debtor,
-                        child: Text(strings.debtor),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      if (value != null) {
-                        setDialogState(() => direction = value);
-                      }
-                    },
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                TextField(
+                  key: const Key('debt-person'),
+                  controller: counterparty,
+                  decoration: InputDecoration(labelText: strings.personName),
+                ),
+                TextField(
+                  key: const Key('debt-amount'),
+                  controller: amount,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: strings.calculatorAmount,
+                    suffixIcon: calculatorSuffix(context, amount, strings),
                   ),
-                  TextField(
-                    controller: counterparty,
-                    decoration: InputDecoration(
-                      labelText: strings.counterparty,
-                    ),
+                ),
+                TextField(
+                  key: const Key('debt-date'),
+                  controller: date,
+                  readOnly: true,
+                  decoration: InputDecoration(
+                    labelText: strings.recordedAt,
+                    hintText: 'YYYY-MM-DD',
+                    suffixIcon: calendarSuffix(context, date, strings, monthOnly: false),
                   ),
-                  TextField(
-                    controller: original,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: strings.originalAmount,
-                      suffixIcon: calculatorSuffix(context, original, strings),
-                    ),
-                  ),
-                  TextField(
-                    controller: outstanding,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: strings.outstandingAmount,
-                      suffixIcon: calculatorSuffix(context, outstanding, strings),
-                    ),
-                  ),
-                  TextField(
-                    controller: due,
-                    readOnly: true,
-                    decoration: InputDecoration(
-                      labelText: strings.dueMonth,
-                      hintText: 'YYYY-MM',
-                      suffixIcon: calendarSuffix(context, due, strings, monthOnly: true),
-                    ),
-                  ),
-                  TextField(
-                    controller: note,
-                    decoration: InputDecoration(labelText: strings.note),
-                  ),
-                  if (error != null)
-                    Text(
-                      error!,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
-                      ),
-                    ),
-                ],
-              ),
+                ),
+                TextField(
+                  key: const Key('debt-note'),
+                  controller: note,
+                  decoration: InputDecoration(labelText: strings.note),
+                ),
+                if (error != null)
+                  Text(error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              ]),
             ),
             actions: [
               TextButton(
@@ -143,53 +140,29 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
               ),
               FilledButton(
                 onPressed: () async {
-                  final originalValue = int.tryParse(original.text.trim());
-                  final outstandingValue = int.tryParse(
-                    outstanding.text.trim(),
-                  );
-                  final parts = due.text.trim().split('-');
-                  final year = parts.length == 2
-                      ? int.tryParse(parts[0])
-                      : null;
-                  final month = parts.length == 2
-                      ? int.tryParse(parts[1])
-                      : null;
+                  final value = int.tryParse(amount.text.trim());
+                  final selectedDate = DateTime.tryParse(date.text.trim());
                   if (counterparty.text.trim().isEmpty ||
-                      originalValue == null ||
-                      originalValue <= 0 ||
-                      outstandingValue == null ||
-                      outstandingValue < 0 ||
-                      outstandingValue > originalValue ||
-                      year == null ||
-                      year < 1 ||
-                      month == null ||
-                      month < 1 ||
-                      month > 12) {
+                      value == null ||
+                      value <= 0 ||
+                      value < previouslyPaid ||
+                      selectedDate == null) {
                     setDialogState(() => error = strings.invalidRecord);
                     return;
                   }
                   try {
-                    await ref
-                        .read(debtRepositoryProvider)
-                        .save(
-                          DebtEntry(
-                            id:
-                                existing?.id ??
-                                DateTime.now().microsecondsSinceEpoch
-                                    .toString(),
-                            direction: direction,
-                            originalAmount: Money.fromMinorUnits(originalValue),
-                            outstandingAmount: Money.fromMinorUnits(
-                              outstandingValue,
-                            ),
-                            dueMonth: MonthKey(year: year, month: month),
-                            createdAt: existing?.createdAt ?? DateTime.now(),
-                            counterparty: counterparty.text.trim(),
-                            note: note.text.trim().isEmpty
-                                ? null
-                                : note.text.trim(),
-                          ),
-                        );
+                    await ref.read(debtRepositoryProvider).save(
+                      DebtEntry(
+                        id: existing?.id ?? DateTime.now().microsecondsSinceEpoch.toString(),
+                        direction: selectedDirection,
+                        originalAmount: Money.fromMinorUnits(value),
+                        outstandingAmount: Money.fromMinorUnits(value - previouslyPaid),
+                        dueMonth: MonthKey(year: selectedDate.year, month: selectedDate.month),
+                        createdAt: selectedDate,
+                        counterparty: counterparty.text.trim(),
+                        note: note.text.trim().isEmpty ? null : note.text.trim(),
+                      ),
+                    );
                     if (dialogContext.mounted) Navigator.pop(dialogContext);
                   } catch (_) {
                     setDialogState(() => error = strings.invalidRecord);
@@ -202,10 +175,10 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
         ),
       );
     } finally {
+      await WidgetsBinding.instance.endOfFrame;
       counterparty.dispose();
-      original.dispose();
-      outstanding.dispose();
-      due.dispose();
+      amount.dispose();
+      date.dispose();
       note.dispose();
     }
   }
@@ -375,17 +348,24 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
   @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
+    ref.listen<int>(debtAddRequestProvider, (previous, next) {
+      if (next <= (previous ?? 0)) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _showDebtAddOptions(context, ref, strings);
+      });
+    });
     final tokens = AppDesignTokens.of(context);
     final debts = ref.watch(debtsProvider);
     final selectedMonth = ref.watch(selectedMonthProvider);
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _editDebt(context, ref, strings),
-        tooltip: strings.addDebt,
-        child: const Icon(Icons.add),
-      ),
       body: Column(
         children: [
+          SectionPillTabs(
+            keyPrefix: 'debts-tab',
+            labels: ['دين لك (${strings.creditor})', 'دين عليك (${strings.debtor})'],
+            selectedIndex: _activeTab,
+            onSelected: (index) => setState(() => _activeTab = index),
+          ),
           Padding(
             padding: tokens.pageInsets(bottom: 8),
             child: MonthSelector(
@@ -411,8 +391,9 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
         loading: () => Center(child: Text(strings.loading)),
         error: (error, stackTrace) => Center(child: Text(strings.dataError)),
         data: (items) {
+          final selectedDirection = _activeTab == 0 ? DebtDirection.creditor : DebtDirection.debtor;
           final visibleItems = items
-              .where((debt) => debt.dueMonth == selectedMonth)
+              .where((debt) => debt.direction == selectedDirection && debt.dueMonth == selectedMonth)
               .toList();
           return visibleItems.isEmpty
               ? Center(child: Text(strings.noRecords))
@@ -467,7 +448,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                       amount: debt.outstandingAmount.minorUnits.toString(),
                       amountLabel: strings.outstandingAmount,
                       details: [
-                        '${strings.dueMonth}: ${debt.dueMonth}',
+                        toAsciiDigits(MaterialLocalizations.of(context).formatFullDate(debt.createdAt)),
                         '${strings.originalAmount}: ${debt.originalAmount.minorUnits}',
                       ],
                       badge: badge,
@@ -475,7 +456,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(tokens.controlRadius),
                             child: LinearProgressIndicator(
                               value: progress,
                               minHeight: 7,
@@ -580,7 +561,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                                                               ),
                                                         ),
                                                         subtitle: Text(
-                                                          '${strings.paidAt}: ${formatCalendarDate(payment.paidAt)}'
+                                                          '${strings.paidAt}: ${toAsciiDigits(MaterialLocalizations.of(context).formatFullDate(payment.paidAt))}'
                                                           '\n${strings.time}: ${TimeOfDay.fromDateTime(payment.paidAt).format(context)}'
                                                           '${payment.note == null ? '' : '\n${payment.note}'}',
                                                         ),

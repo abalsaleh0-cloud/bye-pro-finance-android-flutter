@@ -31,13 +31,39 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+      - name: Restore stable preview signing key
+        id: preview-key-cache
+        uses: actions/cache/restore@v5
+        with:
+          path: ~/.android/debug.keystore
+          key: bye-pro-finance-preview-debug-keystore-v1
+      - name: Ensure stable preview signing key
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.android"
+          if [[ ! -f "$HOME/.android/debug.keystore" ]]; then
+            keytool -genkeypair -v \
+              -keystore "$HOME/.android/debug.keystore" \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+      - name: Save stable preview signing key
+        if: steps.preview-key-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v5
+        with:
+          path: ~/.android/debug.keystore
+          key: bye-pro-finance-preview-debug-keystore-v1
       - uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: '9.5.0'
           cache-provider: basic
       - uses: subosito/flutter-action@v2
-        env:
-          FLUTTER_STORAGE_BASE_URL: https://storage.flutter-io.cn
         with:
           channel: stable
           flutter-version: 3.50.0
@@ -57,21 +83,6 @@ jobs:
             exit 1
           fi
           printf 'flutter.sdk=%s\nsdk.dir=%s\n' "$FLUTTER_ROOT" "$ANDROID_SDK" > android/local.properties
-      - name: Compile Android Kotlin sources (all debug variants)
-        shell: bash
-        run: |
-          set -euo pipefail
-          TASK_OUTPUT="$(gradle -p android :app:tasks --all --console=plain)"
-          mapfile -t KOTLIN_TASKS < <(
-            printf '%s\n' "$TASK_OUTPUT" |
-              awk '$1 ~ /^compile[A-Za-z0-9]*DebugKotlin$/ { print ":app:" $1 }'
-          )
-          if (( ${#KOTLIN_TASKS[@]} == 0 )); then
-            echo "::error::No Android debug Kotlin compilation task was found."
-            exit 1
-          fi
-          printf 'Compiling Android Kotlin tasks: %s\n' "${KOTLIN_TASKS[*]}"
-          gradle -p android "${KOTLIN_TASKS[@]}" --no-daemon
       - name: Generate localization sources
         run: flutter gen-l10n
       - name: Generate Drift database code
@@ -80,6 +91,36 @@ jobs:
         run: dart format .
       - run: flutter analyze
       - run: flutter test
+      - name: Build ARM64 profile preview APK
+        run: flutter build apk --profile --flavor preview --target-platform android-arm64
+      - name: Verify ARM64 preview signature and package
+        shell: bash
+        run: |
+          set -euo pipefail
+          APK="build/app/outputs/flutter-apk/app-preview-profile.apk"
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          BUILD_TOOLS_DIR="$(find "$SDK_ROOT/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n1)"
+          APKSIGNER="$BUILD_TOOLS_DIR/apksigner"
+          AAPT="$BUILD_TOOLS_DIR/aapt"
+          SIGNER_OUTPUT="$("$APKSIGNER" verify --verbose --print-certs "$APK")"
+          printf '%s\n' "$SIGNER_OUTPUT"
+          APK_FINGERPRINT="$(printf '%s\n' "$SIGNER_OUTPUT" | awk -F': ' '/certificate SHA-256 digest:/ {print $NF; exit}' | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+          KEY_FINGERPRINT="$(keytool -exportcert -alias androiddebugkey -keystore "$HOME/.android/debug.keystore" -storepass android | openssl dgst -sha256 | awk '{print $NF}' | tr '[:upper:]' '[:lower:]')"
+          echo "APK certificate SHA-256: $APK_FINGERPRINT"
+          echo "Stable preview key SHA-256: $KEY_FINGERPRINT"
+          if [[ -z "$APK_FINGERPRINT" || "$APK_FINGERPRINT" != "$KEY_FINGERPRINT" ]]; then
+            echo "::error::Preview APK was not signed with the stable preview key."
+            exit 1
+          fi
+          "$AAPT" dump badging "$APK" | sed -n '1p'
+          du -h "$APK"
+      - name: Upload preview APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: bye-pro-finance-preview-${{ github.run_number }}
+          path: build/app/outputs/flutter-apk/app-preview-profile.apk
+          if-no-files-found: error
+          retention-days: 14
       - name: Commit generated and formatted sources
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/feature/task-')
         run: |

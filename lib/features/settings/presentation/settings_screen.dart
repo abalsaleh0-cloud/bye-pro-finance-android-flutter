@@ -3,6 +3,8 @@ import 'package:expense_app/core/providers/app_settings_provider.dart';
 import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:expense_app/core/widgets/app_bottom_navigation_bar.dart';
 import 'package:expense_app/features/settings/presentation/appearance_settings_section.dart';
+import 'package:expense_app/features/settings/presentation/app_security_settings_section.dart';
+import 'package:expense_app/features/settings/presentation/backup_restore_settings_section.dart';
 import 'package:expense_app/features/settings/presentation/gemma_model_settings_section.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -55,15 +57,43 @@ class SettingsScreen extends ConsumerWidget {
     }
   }
 
-  Widget _sectionTitle(BuildContext context, String title) {
+  Widget _sectionHeader(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+  }) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
     return Padding(
       padding: const EdgeInsetsDirectional.fromSTEB(4, 8, 4, 10),
-      child: Text(
-        title,
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-          color: Theme.of(context).colorScheme.secondary,
-          fontWeight: FontWeight.w800,
-        ),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: scheme.primaryContainer,
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              icon,
+              color: scheme.onPrimaryContainer,
+              size: 18,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              title,
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: scheme.onSurface,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -92,17 +122,43 @@ class SettingsScreen extends ConsumerWidget {
         },
       ),
       body: ListView(
-        padding: tokens.pageInsets(bottom: tokens.pageVerticalPadding * 2),
+        key: const Key('settings-list'),
+        padding: tokens.pageInsets(
+          bottom: tokens.pageVerticalPadding * 2,
+        ),
         children: [
-          _sectionTitle(context, strings.settingsAppearance),
+          _sectionHeader(
+            context,
+            title: strings.settingsAppearance,
+            icon: Icons.palette_outlined,
+          ),
           Card(
             child: ListTile(
-              leading: const Icon(Icons.language_outlined),
-              title: Text(strings.language),
+              key: const Key('settings-language-tile'),
+              minLeadingWidth: 40,
+              leading: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  Icons.language_rounded,
+                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  size: 19,
+                ),
+              ),
+              title: Text(
+                strings.language,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
               trailing: DropdownButton<Locale>(
                 key: const Key('language-selector'),
                 value: settings.locale,
                 underline: const SizedBox.shrink(),
+                borderRadius: BorderRadius.circular(tokens.dialogRadius),
                 items: [
                   DropdownMenuItem(
                     value: const Locale('ar'),
@@ -119,31 +175,92 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
           ),
+          const SizedBox(height: 8),
           const AppearanceSettingsSection(),
-          SizedBox(height: tokens.sectionSpacing),
-          _sectionTitle(context, strings.settingsAssistant),
+          SizedBox(height: tokens.sectionSpacing + 4),
+          _sectionHeader(
+            context,
+            title: strings.settingsAssistant,
+            icon: Icons.auto_awesome_rounded,
+          ),
           Card(
             child: SwitchListTile(
               key: const Key('gemma-engine-switch'),
-              secondary: const Icon(Icons.auto_awesome_outlined),
-              title: Text(strings.gemmaEngine),
+              contentPadding: const EdgeInsetsDirectional.symmetric(
+                horizontal: 16,
+              ),
+              secondary: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  Icons.auto_awesome_outlined,
+                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  size: 19,
+                ),
+              ),
+              title: Text(
+                strings.gemmaEngine,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
               subtitle: Text(strings.gemmaEngineDescription),
               value: settings.useGemma,
               onChanged: controller.setGemmaEnabled,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           const GemmaModelSettingsSection(),
-          SizedBox(height: tokens.sectionSpacing),
-          _sectionTitle(context, strings.settingsData),
+          SizedBox(height: tokens.sectionSpacing + 4),
+          _sectionHeader(
+            context,
+            title: strings.settingsData,
+            icon: Icons.storage_rounded,
+          ),
+          const BackupRestoreSettingsSection(),
+          SizedBox(height: tokens.sectionSpacing + 4),
+          _sectionHeader(
+            context,
+            title: Localizations.localeOf(context).languageCode == 'en'
+                ? 'Security'
+                : 'الأمان',
+            icon: Icons.shield_outlined,
+          ),
+          const AppSecuritySettingsSection(),
+          SizedBox(height: tokens.sectionSpacing + 4),
           Card(
             child: ListTile(
-              leading: Icon(
-                Icons.delete_forever_outlined,
-                color: Theme.of(context).colorScheme.error,
+              key: const Key('settings-clear-financial-data'),
+              minLeadingWidth: 40,
+              leading: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.errorContainer,
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  Icons.delete_forever_outlined,
+                  color: Theme.of(context).colorScheme.error,
+                  size: 19,
+                ),
               ),
-              title: Text(strings.clearFinancialData),
+              title: Text(
+                strings.clearFinancialData,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               subtitle: Text(strings.clearFinancialDataWarning),
+              trailing: Icon(
+                Icons.chevron_right_rounded,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
               onTap: () => _clearFinancialData(context, ref, strings),
             ),
           ),

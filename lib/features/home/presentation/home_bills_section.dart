@@ -11,24 +11,32 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 class HomeBillsSection extends ConsumerWidget {
-  const HomeBillsSection({super.key, this.selectedMonth});
+  const HomeBillsSection({super.key, this.selectedMonth, this.kind});
 
   final MonthKey? selectedMonth;
+  final HomeBillKind? kind;
+
+  DateTime _defaultSelectedDate() {
+    final month = selectedMonth ?? MonthKey(year: DateTime.now().year, month: DateTime.now().month);
+    final now = DateTime.now();
+    final lastDay = DateTime(month.year, month.month + 1, 0).day;
+    return DateTime(month.year, month.month, now.day > lastDay ? lastDay : now.day);
+  }
 
   Future<void> _addBill(BuildContext context, WidgetRef ref, AppLocalizations strings, HomeBillKind kind, {HomeBill? existing}) async {
     final title = TextEditingController(text: existing?.title ?? '');
     final amount = TextEditingController(text: existing?.amount.minorUnits.toString() ?? '');
-    final month = TextEditingController(text: existing?.dueMonth.toString() ?? (selectedMonth ?? MonthKey(year: DateTime.now().year, month: DateTime.now().month)).toString());
+    final date = TextEditingController(text: formatCalendarDate(existing?.calendarDate ?? _defaultSelectedDate()));
     final note = TextEditingController(text: existing?.note ?? '');
     String? error;
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => StatefulBuilder(builder: (context, setState) => EntryFormDialog(
-        title: Text(existing != null ? strings.editRecord : kind == HomeBillKind.rent ? strings.addRent : strings.addMonthlyBill),
+        title: Text(existing != null ? strings.editRecord : kind == HomeBillKind.rent ? strings.addMonthlyRent : strings.addMonthlyBill),
         content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: title, decoration: InputDecoration(labelText: strings.billName)),
-          TextField(controller: amount, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: strings.billAmount, suffixIcon: calculatorSuffix(context, amount, strings))),
-          TextField(controller: month, readOnly: true, decoration: InputDecoration(labelText: strings.dueMonth, hintText: 'YYYY-MM', suffixIcon: calendarSuffix(context, month, strings, monthOnly: true))),
+          TextField(key: const Key('home-bill-name'), controller: title, decoration: InputDecoration(labelText: kind == HomeBillKind.rent ? strings.billOrRentName : strings.billName)),
+          TextField(controller: amount, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: strings.calculatorAmount, suffixIcon: calculatorSuffix(context, amount, strings))),
+          TextField(key: const Key('home-bill-date'), controller: date, readOnly: true, decoration: InputDecoration(labelText: strings.recordedAt, hintText: 'YYYY-MM-DD', suffixIcon: calendarSuffix(context, date, strings, monthOnly: false))),
           TextField(controller: note, decoration: InputDecoration(labelText: strings.note)),
           if (error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(error!, style: TextStyle(color: Theme.of(context).colorScheme.error))),
         ])),
@@ -36,10 +44,8 @@ class HomeBillsSection extends ConsumerWidget {
           TextButton(onPressed: () => Navigator.pop(dialogContext), child: Text(strings.cancel)),
           FilledButton(onPressed: () async {
             final value = int.tryParse(amount.text.trim());
-            final parts = month.text.trim().split('-');
-            final year = parts.length == 2 ? int.tryParse(parts[0]) : null;
-            final monthValue = parts.length == 2 ? int.tryParse(parts[1]) : null;
-            if (title.text.trim().isEmpty || value == null || value <= 0 || year == null || year < 1 || monthValue == null || monthValue < 1 || monthValue > 12) {
+            final selectedDate = DateTime.tryParse(date.text.trim());
+            if (title.text.trim().isEmpty || value == null || value <= 0 || selectedDate == null) {
               setState(() => error = strings.invalidRecord);
               return;
             }
@@ -49,7 +55,8 @@ class HomeBillsSection extends ConsumerWidget {
                 title: title.text.trim(),
                 kind: existing?.kind ?? kind,
                 amount: Money.fromMinorUnits(value),
-                dueMonth: MonthKey(year: year, month: monthValue),
+                dueMonth: MonthKey(year: selectedDate.year, month: selectedDate.month),
+                dueDate: selectedDate,
                 note: note.text.trim().isEmpty ? null : note.text.trim(),
               ));
               ref.invalidate(homeBillsProvider);
@@ -63,7 +70,7 @@ class HomeBillsSection extends ConsumerWidget {
         ],
       )),
     );
-    title.dispose(); amount.dispose(); month.dispose(); note.dispose();
+    title.dispose(); amount.dispose(); date.dispose(); note.dispose();
   }
 
   Future<void> showAddBill(
@@ -170,7 +177,7 @@ class HomeBillsSection extends ConsumerWidget {
           ? Text(strings.noRecords)
           : ListView(shrinkWrap: true, children: payments.map((payment) => ListTile(
               title: Text(payment.amount.minorUnits.toString()),
-              subtitle: Text(formatCalendarDate(payment.paidAt)),
+              subtitle: Text('${toAsciiDigits(MaterialLocalizations.of(context).formatFullDate(payment.paidAt))}${payment.note == null ? '' : '\n${payment.note}'}'),
             )).toList())),
         actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(strings.cancel))],
       ),
@@ -183,16 +190,17 @@ class HomeBillsSection extends ConsumerWidget {
     final bills = ref.watch(homeBillsProvider);
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(
-        strings.monthlyBills,
+        kind == HomeBillKind.rent ? strings.homeMonthlyRent : strings.monthlyBills,
         style: Theme.of(context).textTheme.titleMedium,
       ),
       bills.when(
         loading: () => Text(strings.loading),
         error: (error, stack) => Text(strings.dataError),
         data: (items) {
-          final monthItems = selectedMonth == null
-              ? items
-              : items.where((bill) => bill.dueMonth == selectedMonth).toList();
+          final monthItems = items.where((bill) =>
+            (selectedMonth == null || bill.dueMonth == selectedMonth) &&
+            (kind == null || bill.kind == kind)
+          ).toList();
           return monthItems.isEmpty
           ? Text(strings.noBills)
           : Column(children: monthItems.map((bill) {
@@ -201,7 +209,7 @@ class HomeBillsSection extends ConsumerWidget {
                 leading: Icon(bill.kind == HomeBillKind.rent ? Icons.home_outlined : Icons.receipt_long_outlined),
                 title: Text(bill.title),
                 subtitle: Text([
-                  '${bill.kind == HomeBillKind.rent ? strings.rent : strings.monthlyBills} • ${bill.dueMonth} • $status',
+                  '${toAsciiDigits(MaterialLocalizations.of(context).formatFullDate(bill.calendarDate))} • $status',
                   '${strings.billPaid}: ${bill.paidMinorUnits} / ${bill.amount.minorUnits} • ${strings.billRemaining}: ${bill.remainingMinorUnits}',
                   if (bill.note != null && bill.note!.trim().isNotEmpty) bill.note!.trim(),
                 ].join('\n')),

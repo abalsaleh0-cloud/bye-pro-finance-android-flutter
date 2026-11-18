@@ -4,12 +4,14 @@ import 'package:expense_app/core/time/month_key.dart';
 enum HomeBillKind { monthly, rent }
 
 final class HomeBill {
-  const HomeBill({required this.id, required this.title, required this.kind, required this.amount, required this.dueMonth, this.note, this.paidMinorUnits = 0});
+  const HomeBill({required this.id, required this.title, required this.kind, required this.amount, required this.dueMonth, this.note, this.paidMinorUnits = 0, this.dueDate});
   final String id;
   final String title;
   final HomeBillKind kind;
   final Money amount;
   final MonthKey dueMonth;
+  final DateTime? dueDate;
+  DateTime get calendarDate => dueDate ?? DateTime(dueMonth.year, dueMonth.month, 1);
   final String? note;
   final int paidMinorUnits;
   int get remainingMinorUnits => amount.minorUnits - paidMinorUnits;

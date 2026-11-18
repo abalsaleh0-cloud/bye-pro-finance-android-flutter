@@ -22,6 +22,54 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeSection => 'Household';
 
   @override
+  String get personName => 'Person name';
+
+  @override
+  String get workTransfersTab => 'Home transfers';
+
+  @override
+  String get homeIncomingFromWork => 'Incoming from work';
+
+  @override
+  String get homeMonthlyRent => 'Monthly rent';
+
+  @override
+  String get homeExpenses => 'Expenses';
+
+  @override
+  String get homeHistory => 'History';
+
+  @override
+  String get addMonthlyRent => 'Add monthly rent';
+
+  @override
+  String get billOrRentName => 'Bill or rent name';
+
+  @override
+  String get addCreditorDebt => 'Add debt owed to you (creditor)';
+
+  @override
+  String get addDebtorDebt => 'Add debt you owe (debtor)';
+
+  @override
+  String get homeCategoryChildren => 'Children\'s needs';
+
+  @override
+  String get homeCategoryEducation => 'Education';
+
+  @override
+  String get homeCategoryEntertainment => 'Entertainment';
+
+  @override
+  String get homeCategoryCommunication => 'Communications and internet';
+
+  @override
+  String get homeCategorySubscriptions => 'Subscriptions';
+
+  @override
+  String get homeCategoryGifts => 'Gifts and occasions';
+
+  @override
   String get debts => 'Debts';
 
   @override
@@ -76,7 +124,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dueMonth => 'Due month';
 
   @override
-  String get recordedAt => 'Recorded';
+  String get recordedAt => 'Date';
 
   @override
   String get salary => 'Salary';
@@ -109,13 +157,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transferAmount => 'Transfer amount';
 
   @override
-  String get transfers => 'Transfers to household';
+  String get transfers => 'Household transfers';
 
   @override
   String get expenses => 'Expenses';
 
   @override
-  String get entries => 'Entries';
+  String get entries => 'Log';
 
   @override
   String get loading => 'Loading';
@@ -128,6 +176,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get addEntry => 'Add work entry';
+
+  @override
+  String get addSalary => 'Add salary';
+
+  @override
+  String get addPayment => 'Add payment';
+
+  @override
+  String get addAdvance => 'Add advance';
 
   @override
   String get addDebt => 'Add debt';
@@ -208,8 +265,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get debtDirection => 'Debt direction';
 
   @override
-  String get invalidRecord =>
-      'Check the entered values, amounts, and due month';
+  String get invalidRecord => 'Check the amount and date';
 
   @override
   String get monthlyOverview => 'Current month overview';
