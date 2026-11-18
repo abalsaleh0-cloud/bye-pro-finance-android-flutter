@@ -2,14 +2,14 @@ name: Android Release
 
 on:
   workflow_dispatch:
-  # One-time automatic production build when the corrected release workflow
-  # is merged to main. The path filter avoids building a production APK on
-  # every subsequent application commit.
+  # Build a signed production APK when the release workflow changes or
+  # the app version is bumped. Other application commits do not trigger a release.
   push:
     branches:
       - main
     paths:
       - .github/workflows/android-release.yml
+      - pubspec.yaml
 
 permissions:
   contents: read
