@@ -76,7 +76,7 @@ class GemmaModelState {
   final String? error;
   final bool cancelled;
   /// True only when the model registry reports an installed model file.
-  /// This prevents showing a destructive delete action after a plain download error. 
+  /// This prevents showing a destructive delete action after a plain download error.
   final bool installed;
 
   GemmaModelState copyWith({
@@ -182,7 +182,7 @@ class GemmaModelManager extends Notifier<GemmaModelState>
   }
 
   String _describeError(Object error) {
-    final detail = error.toString().replaceAll(RegExp(r'\\s+'), ' ').trim();
+    final detail = error.toString().replaceAll(RegExp(r'\s+'), ' ').trim();
     if (detail.isEmpty) return error.runtimeType.toString();
     final bounded = detail.length > 220 ? '${detail.substring(0, 220)}…' : detail;
     return '${error.runtimeType}: $bounded';
