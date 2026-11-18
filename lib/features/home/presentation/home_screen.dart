@@ -53,7 +53,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (widget.openManualEntry && !_manualEntryOpened) {
       _manualEntryOpened = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _editExpense(context, ref, AppLocalizations.of(context)!);
+        if (mounted) {
+          _editExpense(context, ref, AppLocalizations.of(context)!);
+        }
       });
     }
   }
@@ -635,7 +637,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ref.listen<int>(homeAddRequestProvider, (previous, next) {
       if (widget.swipePage || widget.mode != HomeScreenMode.overview || next <= (previous ?? 0)) return;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _showHomeAddOptions(context, ref, strings);
+        if (mounted) {
+          _showHomeAddOptions(context, ref, strings);
+        }
       });
     });
     final tokens = AppDesignTokens.of(context);
