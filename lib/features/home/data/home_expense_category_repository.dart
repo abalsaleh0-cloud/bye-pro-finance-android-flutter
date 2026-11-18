@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:drift/drift.dart';
+
 import 'package:expense_app/core/database/app_database.dart';
 import 'package:expense_app/features/home/domain/home_expense_category.dart';
 
@@ -61,4 +63,26 @@ final class HomeExpenseCategoryRepository {
       jsonEncode(updated.values.map((item) => item.toJson()).toList()),
     );
   }
+  /// Removes a user-created category only when no saved expense references it.
+  /// Built-in categories are permanent so historical records keep their meaning.
+  Future<void> removeCustom(String id) async {
+    if (HomeExpenseCategory.defaults.any((category) => category.id == id)) {
+      throw StateError('Built-in categories cannot be removed.');
+    }
+    final rows = await _database.customSelect(
+      'SELECT COUNT(*) AS total FROM home_expenses WHERE category_id = ?',
+      variables: [Variable.withString(id)],
+    ).get();
+    if (rows.single.read<int>('total') > 0) {
+      throw StateError('A category used by saved expenses cannot be removed.');
+    }
+    final remaining = (await getAll())
+        .where((category) => category.id != id)
+        .toList(growable: false);
+    await _database.writeSetting(
+      _settingKey,
+      jsonEncode(remaining.map((category) => category.toJson()).toList()),
+    );
+  }
+
 }

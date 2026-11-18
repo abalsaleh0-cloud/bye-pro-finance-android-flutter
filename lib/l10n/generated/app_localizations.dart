@@ -560,6 +560,7 @@ abstract class AppLocalizations {
   String get gemmaCancelDownload;
   String get gemmaDeleteModel;
   String get gemmaDownloadResumeNote;
+  String get gemmaNotificationPermissionDenied;
 
   String get gemmaWifiTitle;
   String get gemmaWifiWarning;

@@ -1,8 +1,9 @@
 import 'package:flutter/services.dart';
 
-/// Thin Flutter bridge to Android's on-device Arabic speech APIs.
+/// Thin Flutter bridge to Android Arabic speech recognition.
 ///
-/// This channel deliberately exposes no online recognition fallback.
+/// Android prefers its on-device Arabic recognizer when available and falls
+/// back to the system recognizer when the local Arabic model is unavailable.
 class AndroidAssistantVoiceService {
   const AndroidAssistantVoiceService();
 

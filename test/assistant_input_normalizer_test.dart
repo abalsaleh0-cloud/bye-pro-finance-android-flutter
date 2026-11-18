@@ -20,6 +20,19 @@ void main() {
     });
   });
 
+  group('Explicit calendar date parsing', () {
+    test('parses ISO and day-first dates using Arabic digits too', () {
+      expect(input.extractDate('2026-11-18'), DateTime(2026, 11, 18));
+      expect(input.extractDate('18/11/2026'), DateTime(2026, 11, 18));
+      expect(input.extractDate('١٨-١١-٢٠٢٦'), DateTime(2026, 11, 18));
+    });
+
+    test('rejects impossible calendar dates instead of normalizing them', () {
+      expect(input.extractDate('31/11/2026'), isNull);
+      expect(input.extractDate('2026-02-30'), isNull);
+    });
+  });
+
   group('Arabic and colloquial amount formats', () {
     test('parses Eastern Arabic and Persian digits', () {
       expect(numbers.parseInteger('١٥٠٠'), 1500);
@@ -50,6 +63,21 @@ void main() {
       expect(input.extractAmount('سجل راتب 1.500'), 1500);
       expect(input.extractAmount('سجل راتب 1.50'), isNull);
       expect(input.extractAmount('سجل راتب 1500 لشهر نوفمبر 2026'), 1500);
+    });
+
+    test('ignores numeric suffixes in record IDs when extracting amounts', () {
+      expect(
+        input.extractAmount(
+          'عدل فاتورة الكهرباء رقم الفاتورة bill_1 بمبلغ 175 لشهر 2026-11',
+        ),
+        175,
+      );
+      expect(
+        input.extractAmount(
+          'عدل الدين رقم الدين debt_1 بمبلغ 225 لشهر 2026-11',
+        ),
+        225,
+      );
     });
 
     test('does not guess an unknown amount phrase', () {

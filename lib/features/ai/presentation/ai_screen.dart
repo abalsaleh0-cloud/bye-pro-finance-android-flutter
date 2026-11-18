@@ -13,11 +13,14 @@ import 'package:expense_app/core/providers/app_settings_provider.dart';
 import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:expense_app/core/widgets/chat_message_bubble.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
-import 'package:expense_app/features/ai/data/gemma_model_manager.dart';
+import 'package:expense_app/core/time/calendar_date.dart';
+import 'package:expense_app/core/widgets/financial_record_card.dart';
 import 'package:expense_app/features/ai/domain/action_registry.dart';
 import 'package:expense_app/features/ai/domain/assistant_confirmation.dart';
 import 'package:expense_app/features/ai/domain/assistant_engine.dart';
+import 'package:expense_app/features/ai/domain/assistant_engine_selector.dart';
 import 'package:expense_app/features/ai/domain/gemma_assistant_engine.dart';
+import 'package:expense_app/features/ai/data/gemma_model_manager.dart';
 import 'package:expense_app/features/ai/presentation/ai_chat_state.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,16 +31,20 @@ enum _AssistantAttachmentChoice { camera, gallery, files }
 
 final assistantEngineProvider = Provider<AssistantEngine>((ref) {
   final settings = ref.watch(appSettingsProvider);
+  const localEngine = LocalRuleAssistantEngine();
+
+  // Keep Gemma fully opt-in. The local engine remains active if disabled
+  // or if the verified model is not ready.
+  if (!settings.useGemma) return localEngine;
+
   final modelState = ref.watch(gemmaModelManagerProvider);
-  final manager = ref.watch(gemmaModelManagerProvider.notifier);
-  const fallback = FakeAssistantEngine();
-  if (settings.useGemma && modelState.status == GemmaModelStatus.ready) {
-    return FallbackAssistantEngine(
-      primary: GemmaAssistantEngine(manager),
-      fallback: fallback,
-    );
-  }
-  return fallback;
+  final manager = ref.read(gemmaModelManagerProvider.notifier);
+  return selectAssistantEngine(
+    gemmaEnabled: true,
+    gemmaReady: modelState.status == GemmaModelStatus.ready,
+    gemmaEngine: GemmaAssistantEngine(manager),
+    localEngine: localEngine,
+  );
 });
 
 class AiScreen extends ConsumerStatefulWidget {
@@ -47,7 +54,6 @@ class AiScreen extends ConsumerStatefulWidget {
 }
 
 class _AiScreenState extends ConsumerState<AiScreen> {
-  late final GemmaModelManager _gemmaModelManager;
   final _input = TextEditingController();
   final AssistantConfirmation _confirmation = AssistantConfirmation();
   UndoOperation? _undo;
@@ -62,7 +68,6 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   @override
   void initState() {
     super.initState();
-    _gemmaModelManager = ref.read(gemmaModelManagerProvider.notifier);
   }
 
   @override
@@ -71,7 +76,6 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     if (_recognizing) {
       unawaited(_voiceService.cancelArabicSpeechRecognition());
     }
-    unawaited(_gemmaModelManager.releaseModel());
     super.dispose();
   }
 
@@ -80,6 +84,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     home: ref.read(homeExpenseRepositoryProvider),
     bills: ref.read(homeBillRepositoryProvider),
     debts: ref.read(debtRepositoryProvider),
+    categories: ref.read(homeExpenseCategoryRepositoryProvider),
     selectedMonth: ref.read(selectedMonthProvider),
   );
 
@@ -337,6 +342,27 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         _ => section,
       };
 
+  String _assistantActionErrorMessage(String code, AppLocalizations strings) =>
+      switch (code) {
+        'debt_has_payments' => strings.assistantDebtDeleteHasPayments,
+        'bill_has_payments' => strings.assistantBillDeleteHasPayments,
+        'record_not_found' || 'bill_not_found' || 'debt_not_found' =>
+          strings.assistantRecordNotFound,
+        'record_ambiguous' => strings.assistantRecordAmbiguous,
+        'bill_ambiguous' => strings.assistantBillAmbiguous,
+        'debt_ambiguous' => strings.assistantDebtAmbiguous,
+        'bill_payment_not_available' =>
+          strings.assistantBillPaymentNotAvailable,
+        'debt_payment_exceeds_balance' =>
+          strings.assistantDebtPaymentExceedsBalance,
+        'debt_amount_below_paid' => strings.assistantDebtAmountBelowPaid,
+        'work_balance_insufficient' => strings.assistantWorkBalanceInsufficient,
+        'home_balance_insufficient' => strings.assistantHomeBalanceInsufficient,
+        'bill_commitment_not_available' => strings.assistantBillCommitmentNotAvailable,
+        'home_commitment_not_covered' => strings.assistantHomeCommitmentNotCovered,
+        _ => strings.assistantNotUnderstood,
+      };
+
   String? _sectionRoute(String section) => switch (section) {
         'dashboard' => '/dashboard',
         'work' => '/work',
@@ -363,8 +389,11 @@ class _AiScreenState extends ConsumerState<AiScreen> {
           );
     if (media != null) {
       final settings = ref.read(appSettingsProvider);
-      final modelState = ref.read(gemmaModelManagerProvider);
-      if (!settings.useGemma || modelState.status != GemmaModelStatus.ready) {
+      final modelState = settings.useGemma
+          ? ref.read(gemmaModelManagerProvider)
+          : null;
+      if (!settings.useGemma ||
+          modelState?.status != GemmaModelStatus.ready) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(strings.aiGemmaRequired)),
         );
@@ -396,12 +425,47 @@ class _AiScreenState extends ConsumerState<AiScreen> {
 
     final registry = _registry();
     try {
-      final result = await ref.read(assistantEngineProvider).interpret(
+      final categoryItems =
+          await ref.read(homeExpenseCategoryRepositoryProvider).getAll();
+      final availableCategories = <String, String>{
+        for (final category in categoryItems)
+          category.id: (_categoryName(category.id, strings) ?? category.name.trim()).isEmpty
+              ? category.id
+              : (_categoryName(category.id, strings) ?? category.name.trim()),
+      };
+      var result = await ref.read(assistantEngineProvider).interpret(
         text,
         registry.actionNames,
         media: media,
         conversationContext: conversationContext,
+        expenseCategories: availableCategories,
       );
+
+      // Validate all model-generated tools against the same contract as the
+      // deterministic engine. Retry invalid text commands locally.
+      if (media == null &&
+          ref.read(appSettingsProvider).useGemma &&
+          result.command != null &&
+          registry.validate(
+                result.command!.name,
+                result.command!.parameters,
+              ) !=
+              null) {
+        final localResult = await const LocalRuleAssistantEngine().interpret(
+          text,
+          registry.actionNames,
+          conversationContext: conversationContext,
+          expenseCategories: availableCategories,
+        );
+        result = localResult.command != null &&
+                registry.validate(
+                      localResult.command!.name,
+                      localResult.command!.parameters,
+                    ) ==
+                    null
+            ? localResult
+            : const AssistantResult.notUnderstood();
+      }
       if (!mounted) return;
 
       if (result.kind == AssistantResultKind.clarification ||
@@ -415,7 +479,15 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         _addAssistantMessage(strings.assistantNotUnderstood);
         await _openManual();
       } else {
-        final command = result.command!;
+        final originalCommand = result.command!;
+        final preparedParameters = await registry.prepareUpdateParameters(
+          originalCommand.name,
+          originalCommand.parameters,
+        );
+        final command = AssistantCommand(
+          name: originalCommand.name,
+          parameters: preparedParameters,
+        );
         final error = registry.validate(command.name, command.parameters);
         if (error != null) {
           _addAssistantMessage(strings.assistantNotUnderstood);
@@ -439,16 +511,23 @@ class _AiScreenState extends ConsumerState<AiScreen> {
           );
           if (mounted) {
             final summary = execution.dashboardSummary;
-            _addAssistantMessage(
-              summary == null
-                  ? execution.message
-                  : _dashboardSummaryMessage(summary, strings),
-            );
+            final message = command.name == 'read_home_categories'
+                ? '${strings.category}: ${availableCategories.values.join('، ')}'
+                : summary == null
+                    ? execution.message
+                    : _dashboardSummaryMessage(summary, strings);
+            _addAssistantMessage(message);
           }
         } else {
           setState(() => _confirmation.request(command));
           _addAssistantMessage(strings.assistantReview);
         }
+      }
+    } on AssistantActionException catch (error) {
+      if (mounted) {
+        _addAssistantMessage(
+          _assistantActionErrorMessage(error.code, strings),
+        );
       }
     } catch (_) {
       if (mounted) {
@@ -465,12 +544,26 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     final strings = AppLocalizations.of(context)!;
     setState(() => _busy = true);
     try {
+      final pendingCommand = _confirmation.pending;
       final execution = await _confirmation.approve(
         (command) => _registry().execute(command.name, command.parameters),
       );
       if (execution == null || !mounted) return;
+      if (pendingCommand?.name == 'save_home_category' ||
+          pendingCommand?.name == 'delete_home_category') {
+        ref.invalidate(homeExpenseCategoriesProvider);
+      }
       setState(() => _undo = execution.undo);
       _addAssistantMessage(execution.message);
+    } on AssistantActionException catch (error) {
+      if (mounted) {
+        setState(_confirmation.cancel);
+        final message = _assistantActionErrorMessage(error.code, strings);
+        _addAssistantMessage(message);
+        if (message == strings.assistantNotUnderstood) {
+          await _openManual();
+        }
+      }
     } catch (_) {
       if (mounted) {
         setState(_confirmation.cancel);
@@ -489,6 +582,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     try {
       await undo();
       if (mounted) {
+        ref.invalidate(homeExpenseCategoriesProvider);
         setState(() => _undo = null);
         _addAssistantMessage(
           AppLocalizations.of(context)!.assistantUndone,
@@ -519,37 +613,6 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     if (section != null && mounted) context.go(section, extra: true);
   }
 
-  String _sectionName(String action, AppLocalizations s) {
-    if (action.contains('work')) return s.work;
-    if (action.contains('home') || action.contains('transfer')) return s.homeSection;
-    if (action.contains('debt')) return s.debts;
-    return s.ai;
-  }
-
-  String _operationName(String action, AppLocalizations s) {
-    if (action.startsWith('read_')) return s.assistantRead;
-    if (action.startsWith('delete_')) return s.deleteRecord;
-    if (action == 'record_debt_payment') return s.recordDebtPayment;
-    if (action == 'record_home_bill_payment') return s.addBillPayment;
-    return s.save;
-  }
-
-  String? _displayMonth(AssistantCommand command) {
-    final year = command.parameters['year'];
-    final month = command.parameters['month'];
-    if (year is int && month is int) {
-      return year.toString() + '-' + month.toString().padLeft(2, '0');
-    }
-    return null;
-  }
-
-  String? _displayDate(Object? rawDate) {
-    if (rawDate is! String) return null;
-    final date = DateTime.tryParse(rawDate);
-    if (date == null) return null;
-    return MaterialLocalizations.of(context).formatMediumDate(date);
-  }
-
   String? _kindName(Object? rawKind, AppLocalizations strings) {
     if (rawKind is! String) return null;
     return switch (rawKind) {
@@ -573,142 +636,195 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       'transport' => strings.homeCategoryTransport,
       'personal' => strings.homeCategoryPersonal,
       'health' => strings.homeCategoryHealth,
+      'children' => strings.homeCategoryChildren,
+      'education' => strings.homeCategoryEducation,
+      'entertainment' => strings.homeCategoryEntertainment,
+      'communication' => strings.homeCategoryCommunication,
+      'subscriptions' => strings.homeCategorySubscriptions,
+      'gifts' => strings.homeCategoryGifts,
       'other' => strings.homeCategoryOther,
       _ => null,
     };
   }
 
-  Widget _confirmationDetailRow(
-    String label,
-    String value,
-    IconData icon,
-  ) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
-          const SizedBox(width: 10),
-          SizedBox(
-            width: 88,
-            child: Text(
-              label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              value,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  List<Widget> _confirmationDetails(
+  Widget _confirmationRecordCard(
     AssistantCommand command,
     AppLocalizations strings,
   ) {
     final parameters = command.parameters;
-    final details = <Widget>[
-      _confirmationDetailRow(
-        strings.assistantSection,
-        _sectionName(command.name, strings),
-        Icons.folder_outlined,
-      ),
-      _confirmationDetailRow(
-        strings.assistantOperation,
-        _operationName(command.name, strings),
-        Icons.playlist_add_check_circle_outlined,
-      ),
+    final kind = parameters['kind'];
+    final categoryId = parameters['categoryId'];
+    final categoryName = parameters['categoryName'] is String
+        ? (parameters['categoryName']! as String).trim()
+        : _categoryName(categoryId, strings);
+    final note = parameters['note'] is String
+        ? (parameters['note']! as String).trim()
+        : '';
+    final rawDate = parameters['date'];
+    final parsedDate = rawDate is String ? DateTime.tryParse(rawDate) : null;
+    final formattedDate = parsedDate == null
+        ? null
+        : toAsciiDigits(
+            MaterialLocalizations.of(context).formatFullDate(parsedDate),
+          );
+    final rawAmount = parameters['amountMinorUnits'];
+    final amount = rawAmount is int ? rawAmount.toString() : '—';
+    final billPaid = parameters['paidMinorUnits'] is int
+        ? parameters['paidMinorUnits']! as int
+        : 0;
+    final billRemaining = parameters['remainingMinorUnits'] is int
+        ? (parameters['remainingMinorUnits']! as int).toString()
+        : amount;
+    final isDebt = command.name == 'save_debt';
+    final isCreditor = parameters['direction'] == 'creditor';
+    final isDebtor = parameters['direction'] == 'debtor';
+    final debtDirectionLabel = isCreditor
+        ? strings.creditor
+        : isDebtor
+            ? strings.debtor
+            : null;
+
+    final details = <String>[
+      if (command.name == 'record_home_bill_payment' &&
+          parameters['billTitle'] is String)
+        parameters['billTitle']! as String,
+      ?formattedDate,
+      if (command.name == 'delete_home_expense' &&
+          parameters['year'] is int && parameters['month'] is int)
+        '${strings.assistantMonth}: ${(parameters['month']! as int).toString().padLeft(2, '0')}/${parameters['year']}',
+      if ((command.name == 'delete_work_entry' ||
+              command.name == 'delete_work_home_transfer') &&
+          parameters['year'] is int && parameters['month'] is int)
+        '${strings.assistantMonth}: ${(parameters['month']! as int).toString().padLeft(2, '0')}/${parameters['year']}',
+      if (kind is String && _kindName(kind, strings) != null)
+        _kindName(kind, strings)!,
+      if (isDebt) '${strings.originalAmount}: $amount',
+      if (debtDirectionLabel != null && !isDebt) debtDirectionLabel,
+      if (parameters['id'] is String) 'ID: ${parameters['id']}',
+      if (note.isNotEmpty) note,
     ];
 
-    final amount = parameters['amountMinorUnits'];
-    if (amount is int) {
-      details.add(
-        _confirmationDetailRow(
-          strings.assistantAmount,
-          amount.toString(),
-          Icons.payments_outlined,
+    final title = switch (command.name) {
+      'save_work_entry' || 'delete_work_entry' =>
+        _kindName(kind, strings) ?? strings.work,
+      'delete_work_home_transfer' => strings.transferredToHome,
+      'save_work_home_transfer' => strings.transferredToHome,
+      'save_home_expense' || 'delete_home_expense' =>
+        categoryName ?? strings.homeSection,
+      'save_home_bill' =>
+        (parameters['title'] as String?) ?? strings.monthlyBills,
+      'record_home_bill_payment' => strings.addBillPayment,
+      'save_debt' || 'record_debt_payment' =>
+        (parameters['counterparty'] as String?) ?? strings.debts,
+      'save_home_category' || 'delete_home_category' =>
+        (parameters['name'] as String?) ?? strings.category,
+      'delete_home_bill' =>
+        (parameters['billTitle'] as String?) ?? strings.monthlyBills,
+      'delete_debt' =>
+        (parameters['counterparty'] as String?) ?? strings.debts,
+      _ => strings.assistantOperation,
+    };
+
+    final icon = switch (command.name) {
+      'save_work_entry' || 'delete_work_entry' => kind == 'advance'
+          ? Icons.request_quote_outlined
+          : kind == 'payment'
+              ? Icons.receipt_long_outlined
+              : Icons.payments_outlined,
+      'save_work_home_transfer' || 'delete_work_home_transfer' => Icons.swap_horiz,
+      'save_home_expense' || 'delete_home_expense' =>
+        _categoryIconForAssistant(categoryId),
+      'save_home_bill' || 'delete_home_bill' =>
+        kind == 'rent' ? Icons.home_outlined : Icons.receipt_long_outlined,
+      'record_home_bill_payment' => Icons.payments_outlined,
+      'save_debt' || 'record_debt_payment' || 'delete_debt' =>
+        isCreditor
+            ? Icons.call_received_outlined
+            : Icons.call_made_outlined,
+      'save_home_category' || 'delete_home_category' => Icons.sell_outlined,
+      _ => Icons.receipt_long_outlined,
+    };
+
+    if (command.name == 'save_home_bill') {
+      return FinancialRecordCard(
+        icon: kind == 'rent'
+            ? Icons.home_outlined
+            : Icons.receipt_long_outlined,
+        title: title,
+        amount: amount,
+        details: [
+          ?formattedDate,
+          '${strings.billPaid}: $billPaid / $amount',
+          '${strings.billRemaining}: $billRemaining',
+          if (note.isNotEmpty) note,
+        ],
+      );
+    }
+
+    Widget? badge;
+    Widget? footer;
+    if (isDebt) {
+      final scheme = Theme.of(context).colorScheme;
+      final tokens = AppDesignTokens.of(context);
+      badge = Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isCreditor ? scheme.tertiaryContainer : scheme.secondaryContainer,
+          borderRadius: BorderRadius.circular(tokens.controlRadius),
+        ),
+        child: Text(
+          debtDirectionLabel ?? '',
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: isCreditor
+                    ? scheme.onTertiaryContainer
+                    : scheme.onSecondaryContainer,
+              ),
+        ),
+      );
+      footer = ClipRRect(
+        borderRadius: BorderRadius.circular(tokens.controlRadius),
+        child: LinearProgressIndicator(
+          value: 0,
+          minHeight: 7,
+          backgroundColor: scheme.surfaceContainerHighest,
+          color: scheme.tertiary,
         ),
       );
     }
 
-    final kind = _kindName(parameters['kind'], strings);
-    if (kind != null) {
-      details.add(_confirmationDetailRow(strings.entryType, kind, Icons.category_outlined));
-    }
-
-    final direction = parameters['direction'];
-    if (direction == 'creditor' || direction == 'debtor') {
-      details.add(
-        _confirmationDetailRow(
-          strings.debtDirection,
-          direction == 'creditor' ? strings.creditor : strings.debtor,
-          Icons.swap_horiz_rounded,
-        ),
-      );
-    }
-
-    final title = parameters['title'];
-    if (title is String && title.trim().isNotEmpty) {
-      details.add(_confirmationDetailRow(strings.billName, title, Icons.receipt_long_outlined));
-    }
-
-    final counterparty = parameters['counterparty'];
-    if (counterparty is String && counterparty.trim().isNotEmpty) {
-      details.add(
-        _confirmationDetailRow(
-          strings.counterparty,
-          counterparty,
-          Icons.person_outline_rounded,
-        ),
-      );
-    }
-
-    final category = _categoryName(parameters['categoryId'], strings);
-    if (category != null) {
-      details.add(_confirmationDetailRow(strings.category, category, Icons.sell_outlined));
-    }
-
-    final note = parameters['note'];
-    if (note is String && note.trim().isNotEmpty) {
-      details.add(_confirmationDetailRow(strings.note, note, Icons.notes_rounded));
-    }
-
-    final month = _displayMonth(command);
-    if (month != null) {
-      details.add(
-        _confirmationDetailRow(
-          strings.assistantMonth,
-          month,
-          Icons.calendar_month_outlined,
-        ),
-      );
-    }
-
-    final date = _displayDate(parameters['date']);
-    if (date != null) {
-      details.add(
-        _confirmationDetailRow(
-          strings.assistantDate,
-          date,
-          Icons.event_outlined,
-        ),
-      );
-    }
-    return details;
+    return FinancialRecordCard(
+      icon: icon,
+      title: title,
+      amount: amount,
+      amountLabel: isDebt
+          ? strings.outstandingAmount
+          : command.name == 'record_debt_payment'
+              ? strings.recordDebtPayment
+              : null,
+      details: details,
+      badge: badge,
+      footer: footer,
+    );
   }
+
+  IconData _categoryIconForAssistant(Object? id) => switch (id) {
+    'groceries' => Icons.shopping_basket_outlined,
+    'utilities' => Icons.electrical_services_outlined,
+    'housing' => Icons.home_outlined,
+    'cleaning' => Icons.cleaning_services_outlined,
+    'maintenance' => Icons.build_outlined,
+    'transport' => Icons.directions_car_outlined,
+    'personal' => Icons.person_outline,
+    'health' => Icons.health_and_safety_outlined,
+    'children' => Icons.child_care_outlined,
+    'education' => Icons.school_outlined,
+    'entertainment' => Icons.movie_outlined,
+    'communication' => Icons.phone_outlined,
+    'subscriptions' => Icons.subscriptions_outlined,
+    'gifts' => Icons.card_giftcard_outlined,
+    _ => Icons.shopping_cart_outlined,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -869,7 +985,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                               ],
                             ),
                             const SizedBox(height: 10),
-                            ..._confirmationDetails(pending, strings),
+                            _confirmationRecordCard(pending, strings),
                             const SizedBox(height: 14),
                             Wrap(
                               spacing: 8,

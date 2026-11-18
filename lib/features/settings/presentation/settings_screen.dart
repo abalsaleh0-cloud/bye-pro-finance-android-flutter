@@ -6,6 +6,7 @@ import 'package:expense_app/features/settings/presentation/appearance_settings_s
 import 'package:expense_app/features/settings/presentation/app_security_settings_section.dart';
 import 'package:expense_app/features/settings/presentation/backup_restore_settings_section.dart';
 import 'package:expense_app/features/settings/presentation/gemma_model_settings_section.dart';
+import 'package:expense_app/features/ai/data/gemma_model_manager.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -185,7 +186,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
           Card(
             child: SwitchListTile(
-              key: const Key('gemma-engine-switch'),
+              key: const Key('settings-gemma-toggle'),
               contentPadding: const EdgeInsetsDirectional.symmetric(
                 horizontal: 16,
               ),
@@ -209,7 +210,15 @@ class SettingsScreen extends ConsumerWidget {
               ),
               subtitle: Text(strings.gemmaEngineDescription),
               value: settings.useGemma,
-              onChanged: controller.setGemmaEnabled,
+              onChanged: (enabled) async {
+                await controller.setGemmaEnabled(enabled);
+                if (!enabled) {
+                  await ref
+                      .read(gemmaModelManagerProvider.notifier)
+                      .releaseModel()
+                      .catchError((_) {});
+                }
+              },
             ),
           ),
           const SizedBox(height: 8),

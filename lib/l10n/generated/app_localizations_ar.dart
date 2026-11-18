@@ -349,6 +349,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get gemmaDownloadResumeNote => 'يعمل التنزيل في الخلفية مع إشعار. إذا انقطع، فقد تبدأ إعادة المحاولة من البداية؛ خادم Hugging Face لا يدعم الاستكمال الجزئي.';
 
   @override
+  String get gemmaNotificationPermissionDenied => 'لم يتم السماح بالإشعارات. قد يستمر التنزيل في الخلفية، لكن إشعار التقدم قد لا يظهر في شريط الإشعارات.';
+
+  @override
   String get gemmaWifiTitle => 'تنبيه التنزيل';
 
   @override

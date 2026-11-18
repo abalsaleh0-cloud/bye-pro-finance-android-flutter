@@ -53,6 +53,13 @@ final class GemmaAssistantEngine implements AssistantEngine {
   final Duration timeout;
   static const _numbers = NumberNormalizer();
   static const _input = AssistantInputNormalizer();
+  static const _partialUpdateActions = <String>{
+    'save_work_entry',
+    'save_home_expense',
+    'save_home_bill',
+    'save_debt',
+    'save_work_home_transfer',
+  };
 
   @override
   Future<AssistantResult> interpret(
@@ -60,6 +67,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
     List<String> availableActions, {
     AssistantMedia? media,
     String conversationContext = '',
+    Map<String, String> expenseCategories = const {},
   }) async {
     final text = input.trim();
     if (text.isEmpty) return const AssistantResult.notUnderstood();
@@ -81,7 +89,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
         required: ['question'],
       ));
 
-      final prompt = _composePrompt(text, conversationContext);
+      final prompt = _composePrompt(text, conversationContext, expenseCategories);
       final output = await generator.generate(prompt, functions, media: media).timeout(timeout);
       if (output.parallelCalls) return const AssistantResult.notUnderstood();
 
@@ -143,11 +151,26 @@ final class GemmaAssistantEngine implements AssistantEngine {
         return const AssistantResult.notUnderstood();
       }
 
-      final missing = descriptor.requiredParameters
-          .where((key) => normalized[key] == null)
-          .toList(growable: false);
-      if (missing.isNotEmpty) {
-        return AssistantResult.clarification(_questionFor(missing.first));
+      final hasStableId = normalized['id'] is String &&
+          (normalized['id']! as String).trim().isNotEmpty;
+      final isPartialUpdate =
+          hasStableId && _partialUpdateActions.contains(output.name);
+      if (isPartialUpdate) {
+        final editableFields = _propertiesFor(output.name!)
+            .keys
+            .where((key) => key != 'id');
+        if (!editableFields.any(normalized.containsKey)) {
+          return const AssistantResult.clarification(
+            'ما التغيير المطلوب على هذا السجل؟',
+          );
+        }
+      } else {
+        final missing = descriptor.requiredParameters
+            .where((key) => normalized[key] == null)
+            .toList(growable: false);
+        if (missing.isNotEmpty) {
+          return AssistantResult.clarification(_questionFor(missing.first));
+        }
       }
 
       return AssistantResult.command(
@@ -197,11 +220,23 @@ final class GemmaAssistantEngine implements AssistantEngine {
     ]);
   }
 
-  static String _composePrompt(String currentText, String conversationContext) {
+  static String _composePrompt(
+    String currentText,
+    String conversationContext,
+    Map<String, String> expenseCategories,
+  ) {
     final context = conversationContext.trim();
-    if (context.isEmpty) return currentText;
+    final categoryCatalog = expenseCategories.entries
+        .map((entry) => '${entry.key} = ${entry.value}')
+        .join('؛ ');
+    final categoryInstruction = categoryCatalog.isEmpty
+        ? ''
+        : '\nالتصنيفات الفعلية المتاحة في هذا التطبيق (المعرّف = الاسم): $categoryCatalog. عند تسجيل مصروف اختر التصنيف المطابق من هذه القائمة، ولا تخترع تصنيفاً أو معرّفاً.';
+    if (context.isEmpty) {
+      return categoryCatalog.isEmpty ? currentText : '$categoryInstruction\n$currentText';
+    }
     return 'سياق المحادثة السابق للرجوع إليه لفهم الإحالات واستكمال الحوار فقط:\n'
-        '$context\n\n'
+        '$context$categoryInstruction\n\n'
         'رسالة المستخدم الحالية:\n$currentText';
   }
 
@@ -210,34 +245,42 @@ final class GemmaAssistantEngine implements AssistantEngine {
       name: descriptor.name,
       description: _descriptionFor(descriptor.name),
       properties: _propertiesFor(descriptor.name),
-      required: descriptor.requiredParameters.toList()..sort(),
+      // Save tools can represent both creation and record-ID edits. The
+      // engine validates create requirements after the model returns, while
+      // ID edits may supply only the fields the user asked to change.
+      required: _partialUpdateActions.contains(descriptor.name)
+          ? const <String>[]
+          : (descriptor.requiredParameters.toList()..sort()),
     );
   }
 
   static String _descriptionFor(String name) => switch (name) {
         'save_work_entry' => 'Create a work income record for a due month.',
-        'delete_work_entry' => 'Delete a work record by its identifier.',
+        'delete_work_entry' => 'Delete one work record by identifier or by a unique kind, amount and date/month match.',
         'save_home_expense' => 'Create a household expense record.',
-        'delete_home_expense' => 'Delete a household expense by its identifier.',
+        'delete_home_expense' => 'Delete one household expense by identifier or a unique category, amount and date/month match.',
         'save_home_bill' => 'Create or update a monthly household bill or home rent. kind is monthly or rent.',
-        'delete_home_bill' => 'Delete a household bill or rent by its identifier.',
+        'delete_home_bill' => 'Delete a household bill or rent by identifier or exact unique bill title.',
         'record_home_bill_payment' => 'Record a payment or partial payment for an existing household bill or rent.',
         'read_home_bills' => 'List household bills and rent with their remaining unpaid amounts.',
         'read_work_records' => 'List saved work salary, advance, and payment records with identifiers.',
         'read_home_expenses' => 'List household daily expenses with identifiers.',
         'read_debts' => 'List debts, counterparties, outstanding amounts, and identifiers.',
         'read_work_transfers' => 'List work-to-home transfers with amounts and dates.',
-        'read_debt_payments' => 'List payment history for the specified debt identifier.',
-        'read_home_bill_payments' => 'List payment history for the specified household bill identifier.',
-        'save_work_home_transfer' => 'Transfer money from work to household.',
-        'delete_work_home_transfer' => 'Delete a work-to-household transfer.',
+        'read_debt_payments' => 'List payment history for one debt selected by debt ID or an exact unique counterparty name and optional direction.',
+        'read_home_bill_payments' => 'List payment history for one household bill selected by bill ID or an exact unique bill title.',
+        'save_work_home_transfer' => 'Transfer money from work to household. Use date for an exact day or year and month for a month-only date; preserve the original day when editing an existing transfer.',
+        'delete_work_home_transfer' => 'Delete one work-to-household transfer by identifier or a unique amount and date/month match.',
         'save_debt' => 'Create a debt record.',
-        'delete_debt' => 'Delete a debt by its identifier.',
+        'delete_debt' => 'Delete one debt by identifier or exact unique counterparty and optional direction.',
         'record_debt_payment' => 'Record a payment against an existing debt.',
         'read_work_remaining' => 'Request the remaining work balance from the app.',
         'read_month_total' => 'Request a section total for a specified month from the app.',
         'read_dashboard_summary' => 'Read the selected-month financial dashboard summary. All figures must be calculated by the app from its stored records; do not estimate or invent values.',
         'navigate_to_section' => 'Open one app section selected by the user without changing financial data.',
+        'read_home_categories' => 'List all existing household expense categories available for selection.',
+        'save_home_category' => 'Create a custom household expense category or rename an existing custom category by ID.',
+        'delete_home_category' => 'Delete an unused custom expense category by ID or exact name; built-in categories are protected.',
         _ => 'Perform an allowed application action.',
       };
 
@@ -261,34 +304,81 @@ final class GemmaAssistantEngine implements AssistantEngine {
           'amountMinorUnits': integer,
           'year': integer,
           'month': integer,
+          'date': date,
           'id': string,
           'note': note,
         },
-      'delete_work_entry' ||
-      'delete_home_expense' ||
-      'delete_work_home_transfer' ||
-      'delete_debt' => {'id': string},
+      'delete_work_entry' => {
+          'id': string,
+          'kind': {'type': 'string', 'enum': ['salary', 'advance', 'payment', 'salaryPayment']},
+          'amountMinorUnits': integer,
+          'year': integer,
+          'month': integer,
+          'date': date,
+        },
+      'delete_home_expense' => {
+          'id': string,
+          'categoryId': string,
+          'categoryName': string,
+          'amountMinorUnits': integer,
+          'year': integer,
+          'month': integer,
+          'date': date,
+        },
+      'delete_work_home_transfer' => {
+          'id': string,
+          'amountMinorUnits': integer,
+          'year': integer,
+          'month': integer,
+          'date': date,
+        },
+      'delete_debt' => {
+          'id': string,
+          'debtId': string,
+          'counterparty': string,
+          'direction': {'type': 'string', 'enum': ['creditor', 'debtor']},
+        },
       'save_home_bill' => {
           'title': string,
           'kind': {'type': 'string', 'enum': ['monthly', 'rent']},
           'amountMinorUnits': integer,
           'year': integer,
           'month': integer,
+          'date': date,
           'id': string,
           'note': note,
         },
-      'delete_home_bill' => {'id': string},
+      'delete_home_bill' => {'id': string, 'billId': string, 'billTitle': string},
       'record_home_bill_payment' => {
           'billId': string,
+          'billTitle': string,
           'amountMinorUnits': integer,
+          'date': date,
           'note': note,
         },
-      'read_home_bills' || 'read_work_records' || 'read_home_expenses' || 'read_debts' || 'read_work_transfers' => <String, Map<String, Object>>{},
-      'read_debt_payments' => {'debtId': string},
-      'read_home_bill_payments' => {'billId': string},
+      'read_home_bills' || 'read_work_records' || 'read_home_expenses' || 'read_debts' || 'read_work_transfers' => {
+          'year': integer,
+          'month': integer,
+          'allRecords': {'type': 'boolean'},
+        },
+      'read_home_categories' => <String, Map<String, Object>>{},
+      'save_home_category' => {'name': string, 'id': string},
+      'delete_home_category' => {'id': string, 'name': string},
+      'read_debt_payments' => {
+          'debtId': string,
+          'id': string,
+          'counterparty': string,
+          'direction': {'type': 'string', 'enum': ['creditor', 'debtor']},
+        },
+      'read_home_bill_payments' => {
+          'billId': string,
+          'id': string,
+          'billTitle': string,
+        },
       'save_home_expense' => {
           'amountMinorUnits': integer,
           'categoryId': string,
+          'categoryName': string,
           'date': date,
           'year': integer,
           'month': integer,
@@ -299,6 +389,8 @@ final class GemmaAssistantEngine implements AssistantEngine {
           'amountMinorUnits': integer,
           'id': string,
           'date': date,
+          'year': integer,
+          'month': integer,
           'note': note,
         },
       'save_debt' => {
@@ -310,12 +402,16 @@ final class GemmaAssistantEngine implements AssistantEngine {
           'counterparty': string,
           'year': integer,
           'month': integer,
+          'date': date,
           'id': string,
           'note': note,
         },
       'record_debt_payment' => {
           'debtId': string,
+          'counterparty': string,
+          'direction': {'type': 'string', 'enum': ['creditor', 'debtor']},
           'amountMinorUnits': integer,
+          'date': date,
           'note': note,
         },
       'read_work_remaining' => <String, Map<String, Object>>{},
@@ -382,7 +478,8 @@ final class GemmaAssistantEngine implements AssistantEngine {
         'kind' => 'هل تقصد راتباً أم سلفة أم دفعة أم فاتورة شهرية أم إيجاراً؟',
         'direction' => 'هل الدين دائن أم مدين؟',
         'counterparty' => 'ما اسم الطرف المعني بالدين؟',
-        'categoryId' => 'ما تصنيف المصروف؟',
+        'categoryId' || 'categoryName' => 'ما تصنيف المصروف؟',
+        'name' => 'ما اسم التصنيف الذي تريد إضافته؟',
         'title' => 'ما اسم الفاتورة أو الإيجار؟',
         'billId' => 'أي فاتورة تريد تسجيل الدفعة عليها؟',
         'date' => 'ما تاريخ المصروف؟',
