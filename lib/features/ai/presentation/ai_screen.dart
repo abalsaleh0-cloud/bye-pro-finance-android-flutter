@@ -963,7 +963,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                         width: 40,
                         height: 40,
                         child: IconButton(
-                          key: const Key('ai-emoji-button'),
+                          key: const Key('ai-attachment-button'),
                           onPressed: _busy || _recognizing
                               ? null
                               : _chooseAttachment,
@@ -1003,7 +1003,8 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 2),                      SizedBox(
+                      const SizedBox(width: 2),
+                      SizedBox(
                         width: 40,
                         height: 40,
                         child: ValueListenableBuilder<TextEditingValue>(
