@@ -35,7 +35,7 @@ class GemmaModelSettingsSection extends ConsumerWidget {
       if (ref.read(gemmaModelManagerProvider).status ==
           GemmaModelStatus.ready) {
         // Download acceptance is an explicit opt-in to use the on-device model.
-        ref.read(appSettingsProvider.notifier).setGemmaEnabled(true);
+        await ref.read(appSettingsProvider.notifier).setGemmaEnabled(true);
       }
     }
   }
@@ -64,7 +64,7 @@ class GemmaModelSettingsSection extends ConsumerWidget {
     );
     if (accepted == true) {
       await ref.read(gemmaModelManagerProvider.notifier).deleteModel();
-      ref.read(appSettingsProvider.notifier).setGemmaEnabled(false);
+      await ref.read(appSettingsProvider.notifier).setGemmaEnabled(false);
     }
   }
 
