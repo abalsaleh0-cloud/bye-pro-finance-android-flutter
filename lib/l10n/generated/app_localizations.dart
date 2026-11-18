@@ -121,6 +121,21 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'المنزل'**
   String get homeSection;
+  String get workTransfersTab;
+  String get homeIncomingFromWork;
+  String get homeMonthlyRent;
+  String get homeExpenses;
+  String get homeHistory;
+  String get addMonthlyRent;
+  String get billOrRentName;
+  String get addCreditorDebt;
+  String get addDebtorDebt;
+  String get homeCategoryChildren;
+  String get homeCategoryEducation;
+  String get homeCategoryEntertainment;
+  String get homeCategoryCommunication;
+  String get homeCategorySubscriptions;
+  String get homeCategoryGifts;
 
   /// No description provided for @debts.
   ///
