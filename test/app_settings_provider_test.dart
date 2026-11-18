@@ -29,11 +29,11 @@ void main() {
   test('persists explicit Gemma opt-in and opt-out', () async {
     final controller = container.read(appSettingsProvider.notifier);
 
-    controller.setGemmaEnabled(true);
+    await controller.setGemmaEnabled(true);
     expect(container.read(appSettingsProvider).useGemma, isTrue);
     expect(await database.readSetting('ai_engine'), 'gemma');
 
-    controller.setGemmaEnabled(false);
+    await controller.setGemmaEnabled(false);
     expect(container.read(appSettingsProvider).useGemma, isFalse);
     expect(await database.readSetting('ai_engine'), 'fake');
   });
