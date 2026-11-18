@@ -10,6 +10,9 @@ import 'package:flutter_edge_ai/flutter_edge_ai.dart';
 import 'package:flutter_edge_ai_litertlm/flutter_edge_ai_litertlm.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+int physicalRamMegabytesFromBytes(int physicalRamBytes) =>
+    physicalRamBytes ~/ (1024 * 1024);
+
 bool supportsGemmaMultimodalMemory(int physicalRamMegabytes) =>
     physicalRamMegabytes >= 6 * 1024;
 
@@ -268,7 +271,8 @@ class GemmaModelManager extends Notifier<GemmaModelState>
       return;
     }
     final info = await DeviceInfoPlugin().androidInfo;
-    if (!supportsGemmaMultimodalMemory(info.physicalRamSize)) {
+    final ramMegabytes = physicalRamMegabytesFromBytes(info.physicalRamSize);
+    if (!supportsGemmaMultimodalMemory(ramMegabytes)) {
       throw const AssistantInputException('تحليل الصور والصوت يحتاج هاتفاً بذاكرة RAM لا تقل عن 6GB. يمكنك متابعة المحادثة النصية.');
     }
   }
