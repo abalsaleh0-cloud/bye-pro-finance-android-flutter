@@ -15,6 +15,7 @@ class _StubAssistantEngine implements AssistantEngine {
     List<String> availableActions, {
     AssistantMedia? media,
     String conversationContext = '',
+    Map<String, String> expenseCategories = const {},
   }) async {
     calls++;
     return result;
