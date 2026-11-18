@@ -2,6 +2,7 @@ import 'package:expense_app/core/providers/app_settings_provider.dart';
 import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:expense_app/features/ai/data/gemma_model_manager.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -31,6 +32,17 @@ class GemmaModelSettingsSection extends ConsumerWidget {
       ),
     );
     if (accepted == true) {
+      final notifications = FlutterLocalNotificationsPlugin();
+      final androidNotifications = notifications
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+      final notificationPermission =
+          await androidNotifications?.requestNotificationsPermission();
+      if (notificationPermission == false && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(strings.gemmaNotificationPermissionDenied)),
+        );
+      }
       await ref.read(gemmaModelManagerProvider.notifier).download();
       if (ref.read(gemmaModelManagerProvider).status ==
           GemmaModelStatus.ready) {
@@ -99,6 +111,10 @@ class GemmaModelSettingsSection extends ConsumerWidget {
               SizedBox(height: tokens.sectionSpacing / 2),
               LinearProgressIndicator(value: model.progress / 100),
               Text('${model.progress.toStringAsFixed(0)}%'),
+              Text(
+                '~${(GemmaModelManager.expectedSize * model.progress / 100 / 1000000).round()} MB'
+                ' / ${(GemmaModelManager.expectedSize / 1000000).round()} MB',
+              ),
             ],
             if (model.error != null) Text(model.error!),
             SizedBox(height: tokens.sectionSpacing / 2),
