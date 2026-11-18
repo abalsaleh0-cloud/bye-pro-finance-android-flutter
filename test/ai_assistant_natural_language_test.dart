@@ -321,5 +321,66 @@ void main() {
       expect(withId.command!.parameters['id'], 'exp_123');
     });
 
+  group('Local clarification continuation and date parsing', () {
+    test('continues a debt-payment request when the amount is supplied later', () async {
+      const context = 'المستخدم: سددت دفعة من دين سامر\n'
+          'المساعد: كم مبلغ الدفعة التي سددتها؟';
+      final result = await engine.interpret(
+        '100',
+        actions,
+        conversationContext: context,
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'record_debt_payment');
+      expect(result.command!.parameters['counterparty'], 'سامر');
+      expect(result.command!.parameters['amountMinorUnits'], 100);
+    });
+
+    test('continues custom-category creation when its name is supplied later', () async {
+      const context = 'المستخدم: أضف تصنيف\n'
+          'المساعد: ما اسم التصنيف الجديد؟';
+      final result = await engine.interpret(
+        'لوازم المكتب',
+        actions,
+        conversationContext: context,
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'save_home_category');
+      expect(result.command!.parameters['name'], 'لوازم المكتب');
+    });
+
+    test('continues a bill-payment request when the amount is supplied later', () async {
+      const context = 'المستخدم: دفعت من فاتورة الكهرباء\n'
+          'المساعد: كم مبلغ الدفعة؟';
+      final result = await engine.interpret(
+        '75',
+        actions,
+        conversationContext: context,
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'record_home_bill_payment');
+      expect(result.command!.parameters['billTitle'], 'الكهرباء');
+      expect(result.command!.parameters['amountMinorUnits'], 75);
+    });
+
+    test('uses yesterday and preserves the operation note without a model', () async {
+      final result = await engine.interpret(
+        'سجل مصروف 30 على البقالة أمس ملاحظة مشتريات البيت',
+        actions,
+      );
+
+      final yesterday = DateTime.now().subtract(const Duration(days: 1));
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'save_home_expense');
+      expect(result.command!.parameters['date'],
+          DateTime(yesterday.year, yesterday.month, yesterday.day)
+              .toIso8601String().split('T').first);
+      expect(result.command!.parameters['note'], 'مشتريات البيت');
+    });
+  });
+
   });
 }
