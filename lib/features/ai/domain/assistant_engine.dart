@@ -1327,6 +1327,14 @@ final class FakeAssistantEngine implements AssistantEngine {
   }
 
   static String? _counterparty(String text) {
+    final paymentDebtParty = RegExp(
+      r'(?:دفعة|دفعه|سداد|تسديد)\\s+من\\s+(?:دين|الدين)\\s+([\\p{L}]+)',
+      unicode: true,
+    ).firstMatch(text)?.group(1)?.trim();
+    if (paymentDebtParty != null && paymentDebtParty.isNotEmpty) {
+      return paymentDebtParty;
+    }
+
     const stop = r'(?:بمبلغ|بقيمة|مبلغ|اليوم|امس|بتاريخ|ملاحظة|note|من\s+الدين|رقم|معرف|معرّف|id|يناير|كانون\s+(?:الثاني|الاول|الأول)|فبراير|شباط|مارس|اذار|آذار|ابريل|نيسان|مايو|ايار|أيار|يونيو|حزيران|يوليو|تموز|اغسطس|أغسطس|سبتمبر|ايلول|أيلول|اكتوبر|أكتوبر|تشرين\s+(?:الاول|الأول|الثاني)|نوفمبر|ديسمبر|كانون\s+(?:الاول|الأول)|january|february|march|april|may|june|july|august|september|october|november|december|20\d{2}|[0-9]|الف|ألف|مئة|مية)';
     final patterns = <RegExp>[
       RegExp(
