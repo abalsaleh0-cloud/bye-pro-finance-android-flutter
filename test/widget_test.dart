@@ -419,6 +419,72 @@ void main() {
     await tester.pumpAndSettle();
   });
 
+  _testWidgetsWithDriftCleanup('home top add opens bill, rent and categorized expense forms', (tester) async {
+    final now = DateTime.now();
+    final month = MonthKey(year: now.year, month: now.month);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appDatabaseProvider.overrideWithValue(testDatabase),
+          homeBillOutstandingAsOfMonthProvider.overrideWith((ref, selected) async => 0),
+          allHomeBillPaymentsProvider.overrideWith((ref) async => []),
+          allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
+          workEntriesProvider.overrideWith((ref) => Stream.value([])),
+          workTransfersProvider.overrideWith((ref) => Stream.value([])),
+          homeExpensesProvider.overrideWith((ref) => Stream.value([])),
+          homeExpenseCategoriesProvider.overrideWith((ref) async => HomeExpenseCategory.defaults),
+          homeBillsProvider.overrideWith((ref) async => []),
+          homeBillPaymentsForMonthProvider.overrideWith((ref, selected) async => 0),
+          debtsProvider.overrideWith((ref) => Stream.value([])),
+          selectedMonthProvider.overrideWith(() => _FixedSelectedMonthNotifier(month)),
+        ],
+        child: const MyApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('المنزل').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('open-home-add')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('home-add-monthly-bill')), findsOneWidget);
+    expect(find.byKey(const Key('home-add-rent')), findsOneWidget);
+    expect(find.byKey(const Key('home-add-daily-expense')), findsOneWidget);
+    expect(find.byIcon(Icons.receipt_long_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.home_work_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.shopping_bag_outlined), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('home-add-monthly-bill')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('home-bill-name')), findsOneWidget);
+    expect(find.byKey(const Key('home-bill-date')), findsOneWidget);
+    expect(find.text('المبلغ'), findsOneWidget);
+    expect(find.text('ملاحظة'), findsOneWidget);
+    await tester.tap(find.text('إلغاء'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('open-home-add')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('home-add-rent')));
+    await tester.pumpAndSettle();
+    expect(find.text('إضافة إيجار شهري'), findsOneWidget);
+    expect(find.byKey(const Key('home-bill-name')), findsOneWidget);
+    expect(find.byKey(const Key('home-bill-date')), findsOneWidget);
+    await tester.tap(find.text('إلغاء'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('open-home-add')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('home-add-daily-expense')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('home-expense-category')), findsOneWidget);
+    expect(find.byKey(const Key('home-expense-date')), findsOneWidget);
+    expect(find.byIcon(Icons.shopping_basket_outlined), findsOneWidget);
+    expect(find.text('ملاحظة'), findsOneWidget);
+    await tester.tap(find.text('إلغاء'));
+    await tester.pumpAndSettle();
+  });
+
   _testWidgetsWithDriftCleanup('debt add menu opens the selected creditor form', (tester) async {
     final now = DateTime.now();
     final currentMonth = MonthKey(year: now.year, month: now.month);
