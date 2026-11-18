@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:drift/drift.dart';
+
 import 'package:expense_app/core/database/app_database.dart';
 import 'package:expense_app/features/home/domain/home_expense_category.dart';
 
