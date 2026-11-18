@@ -164,7 +164,10 @@ class GemmaModelManager extends Notifier<GemmaModelState>
 
   @override
   GemmaModelState build() {
-    unawaited(refresh());
+    // Wait until Riverpod has committed the initial state before refresh reads
+    // notifier.state; invoking it directly inside build reads an uninitialized
+    // provider and breaks screens that eagerly watch model status.
+    unawaited(Future<void>.microtask(refresh));
     ref.onDispose(() {
       _idleTimer?.cancel();
       unawaited(releaseModel());
