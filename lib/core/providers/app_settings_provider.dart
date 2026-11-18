@@ -32,12 +32,21 @@ class AppSettings {
 
 class AppSettingsController extends Notifier<AppSettings> {
   int _revision = 0;
+  Future<void>? _restoreFuture;
 
   @override
   AppSettings build() {
     final database = ref.watch(appDatabaseProvider);
-    unawaited(_restore(database));
+    _restoreFuture ??= _restore(database);
+    unawaited(_restoreFuture);
     return const AppSettings();
+  }
+
+  /// Ensures persisted preferences are loaded before a feature chooses an
+  /// engine or performs work whose behavior depends on those preferences.
+  Future<void> waitUntilRestored() async {
+    final restore = _restoreFuture;
+    if (restore != null) await restore;
   }
 
   Future<void> _restore(AppDatabase database) async {
