@@ -824,27 +824,27 @@ final class ActionRegistry {
         if (suppliedId != null && previous == null) {
           throw const AssistantActionException('record_not_found');
         }
+        final originalDate = previous?.transferredAt ?? DateTime.now();
+        final requestedYear = p['year'];
+        final requestedMonth = p['month'];
+        final lastDayOfRequestedMonth =
+            requestedYear is int && requestedMonth is int
+                ? DateTime(requestedYear, requestedMonth + 1, 0).day
+                : originalDate.day;
+        final preservedDay = originalDate.day > lastDayOfRequestedMonth
+            ? lastDayOfRequestedMonth
+            : originalDate.day;
+        final transferDate = p['date'] is String
+            ? DateTime.parse(p['date']! as String)
+            : requestedYear is int && requestedMonth is int
+                ? DateTime(requestedYear, requestedMonth, preservedDay)
+                : originalDate;
         final item = WorkHomeTransfer(
           id: id,
           amount: p['amountMinorUnits'] is int
               ? Money.fromMinorUnits(p['amountMinorUnits']! as int)
               : previous!.amount,
-          transferredAt: p['date'] is String
-              ? DateTime.parse(p['date']! as String)
-              : p['year'] is int && p['month'] is int
-                  ? DateTime(
-                      p['year']! as int,
-                      p['month']! as int,
-                      DateTime(
-                        p['year']! as int,
-                        p['month']! as int + 1,
-                        0,
-                      ).day.clamp(
-                        1,
-                        previous?.transferredAt.day ?? DateTime.now().day,
-                      ),
-                    )
-                  : previous?.transferredAt ?? DateTime.now(),
+          transferredAt: transferDate,
           note: p.containsKey('note') ? p['note'] as String? : previous?.note,
         );
         try {
