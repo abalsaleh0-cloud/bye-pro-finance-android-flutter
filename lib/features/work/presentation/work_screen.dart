@@ -515,86 +515,13 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
 
 
 
-  Widget _workActionCard({
-    required Key key,
-    required String title,
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        key: key,
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              Icon(icon, size: 28),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _workActionGrid(
-    BuildContext context,
-    WidgetRef ref,
-    AppLocalizations strings,
-  ) {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      mainAxisSpacing: 10,
-      crossAxisSpacing: 10,
-      childAspectRatio: 2.05,
-      children: [
-        _workActionCard(
-          key: const Key('work-add-salary'),
-          title: strings.addSalary,
-          icon: Icons.payments_outlined,
-          onTap: () => _editEntry(context, ref, strings, kind: WorkEntryKind.salary),
-        ),
-        _workActionCard(
-          key: const Key('work-add-payment'),
-          title: strings.addPayment,
-          icon: Icons.receipt_long_outlined,
-          onTap: () => _editEntry(context, ref, strings, kind: WorkEntryKind.salaryPayment),
-        ),
-        _workActionCard(
-          key: const Key('work-add-advance'),
-          title: strings.addAdvance,
-          icon: Icons.request_quote_outlined,
-          onTap: () => _editEntry(context, ref, strings, kind: WorkEntryKind.advance),
-        ),
-        _workActionCard(
-          key: const Key('work-add-transfer'),
-          title: strings.transferredToHome,
-          icon: Icons.swap_horiz,
-          onTap: () => _editTransfer(context, ref, strings),
-        ),
-      ],
-    );
-  }
-
   Widget _buildSwipeShell(AppLocalizations strings) {
     final pages = <WorkScreenMode>[
       WorkScreenMode.overview,
       WorkScreenMode.transfers,
       WorkScreenMode.records,
     ];
-    final labels = [strings.work, strings.transfers, strings.entries];
+    final labels = [strings.work, strings.workTransfersTab, strings.entries];
 
     return Column(
       children: [
@@ -675,9 +602,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
           ),
         SizedBox(height: tokens.sectionSpacing * 0.67),
         if (overview) ...[
-          _workActionGrid(context, ref, strings),
-          const SizedBox(height: 16),
-          _workSummaryCard(
+                    _workSummaryCard(
             context,
             strings,
             entries.value ?? const [],
@@ -736,7 +661,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                           title: item.title,
                           amount: item.amount.toString(),
                           details: [
-                            MaterialLocalizations.of(context).formatFullDate(item.date),
+                            toAsciiDigits(MaterialLocalizations.of(context).formatFullDate(item.date)),
                             if (item.note != null && item.note!.isNotEmpty) item.note!,
                           ],
                           actions: [
@@ -806,7 +731,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                         title: strings.transferredToHome,
                         amount: transfer.amount.minorUnits.toString(),
                         details: [
-                          MaterialLocalizations.of(context).formatFullDate(transfer.transferredAt),
+                          toAsciiDigits(MaterialLocalizations.of(context).formatFullDate(transfer.transferredAt)),
                           if (transfer.note != null && transfer.note!.isNotEmpty)
                             transfer.note!,
                         ],
