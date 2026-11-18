@@ -593,6 +593,10 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       if (command.name == 'delete_home_expense' &&
           parameters['year'] is int && parameters['month'] is int)
         '${strings.assistantMonth}: ${(parameters['month']! as int).toString().padLeft(2, '0')}/${parameters['year']}',
+      if ((command.name == 'delete_work_entry' ||
+              command.name == 'delete_work_home_transfer') &&
+          parameters['year'] is int && parameters['month'] is int)
+        '${strings.assistantMonth}: ${(parameters['month']! as int).toString().padLeft(2, '0')}/${parameters['year']}',
       if (kind is String && _kindName(kind, strings) != null)
         _kindName(kind, strings)!,
       if (isDebt) '${strings.originalAmount}: $amount',
@@ -602,7 +606,9 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     ];
 
     final title = switch (command.name) {
-      'save_work_entry' => _kindName(kind, strings) ?? strings.work,
+      'save_work_entry' || 'delete_work_entry' =>
+        _kindName(kind, strings) ?? strings.work,
+      'delete_work_home_transfer' => strings.transferredToHome,
       'save_work_home_transfer' => strings.transferredToHome,
       'save_home_expense' || 'delete_home_expense' =>
         categoryName ?? strings.homeSection,
@@ -621,12 +627,12 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     };
 
     final icon = switch (command.name) {
-      'save_work_entry' => kind == 'advance'
+      'save_work_entry' || 'delete_work_entry' => kind == 'advance'
           ? Icons.request_quote_outlined
           : kind == 'payment'
               ? Icons.receipt_long_outlined
               : Icons.payments_outlined,
-      'save_work_home_transfer' => Icons.swap_horiz,
+      'save_work_home_transfer' || 'delete_work_home_transfer' => Icons.swap_horiz,
       'save_home_expense' || 'delete_home_expense' =>
         _categoryIconForAssistant(categoryId),
       'save_home_bill' || 'delete_home_bill' =>
