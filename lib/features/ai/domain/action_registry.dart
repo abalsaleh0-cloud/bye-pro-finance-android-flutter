@@ -75,8 +75,8 @@ final class ActionRegistry {
     ActionDescriptor('read_home_expenses', {}, readOnly: true),
     ActionDescriptor('read_debts', {}, readOnly: true),
     ActionDescriptor('read_work_transfers', {}, readOnly: true),
-    ActionDescriptor('read_debt_payments', {}, readOnly: true),
-    ActionDescriptor('read_home_bill_payments', {}, readOnly: true),
+    ActionDescriptor('read_debt_payments', {'debtId'}, readOnly: true),
+    ActionDescriptor('read_home_bill_payments', {'billId'}, readOnly: true),
     ActionDescriptor('save_work_home_transfer', {'amountMinorUnits'}),
     ActionDescriptor('delete_work_home_transfer', {'id'}),
     ActionDescriptor('save_debt', {'amountMinorUnits','direction','counterparty','year','month'}),
@@ -101,7 +101,20 @@ final class ActionRegistry {
       if (expected == null) return 'unexpected parameter: ' + entry.key;
       if (entry.value != null && entry.value.runtimeType != expected) return 'invalid parameter type: ' + entry.key;
     }
-    for (final key in d.requiredParameters) { if (p[key] == null) return 'missing parameter: ' + key; }
+    for (final key in d.requiredParameters) {
+      if (p[key] != null) continue;
+      // The local Arabic engine may resolve a named bill/debt to one exact
+      // record. Gemma's tool schema keeps the stable identifier required.
+      if (name == 'read_home_bill_payments' &&
+          key == 'billId' && (p['billTitle'] != null || p['id'] != null)) {
+        continue;
+      }
+      if (name == 'read_debt_payments' &&
+          key == 'debtId' && (p['counterparty'] != null || p['id'] != null)) {
+        continue;
+      }
+      return 'missing parameter: ' + key;
+    }
     final amount = p['amountMinorUnits'];
     if (amount != null && (amount is! int || amount <= 0)) return 'invalid amount';
     final year = p['year']; final month = p['month'];
