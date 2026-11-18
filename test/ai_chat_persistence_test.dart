@@ -111,6 +111,21 @@ void main() {
     expect(workspace.conversations.single.id, keptId);
     expect(workspace.activeConversationId, keptId);
     expect(workspace.messages.single.text, 'احتفظ بهذه المحادثة');
+
+    final restoredContainer = ProviderContainer(
+      overrides: [appDatabaseProvider.overrideWithValue(database)],
+    );
+    try {
+      final restoredController =
+          restoredContainer.read(aiChatWorkspaceProvider.notifier);
+      await restoredController.flush();
+      final restored = restoredContainer.read(aiChatWorkspaceProvider);
+      expect(restored.conversations, hasLength(1));
+      expect(restored.conversations.single.id, keptId);
+      expect(restored.conversations.any((item) => item.id == deletedId), isFalse);
+    } finally {
+      restoredContainer.dispose();
+    }
   });
 
   test('migrates the previous single-chat storage without losing messages',
@@ -135,6 +150,7 @@ void main() {
     expect(workspace.messages.first.text, 'سؤال سابق');
     expect(workspace.activeConversation?.title, 'سؤال سابق');
     expect(await database.readSetting('ai_chat_conversations_v2'), isNotNull);
+    expect(await database.readSetting('ai_chat_messages_v1'), '[]');
   });
 
   test('restores whether assistant dialogue can be used as model context',
