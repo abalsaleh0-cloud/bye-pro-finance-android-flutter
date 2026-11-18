@@ -659,7 +659,7 @@ final class FakeAssistantEngine implements AssistantEngine {
       if (has(const ['فاتورة', 'فاتوره', 'اشتراك', 'ايجار', 'اجار', 'rent', 'bill'])) {
         final title = _billTitle(effectiveInput);
         if (explicitId == null && (title == null || requestedMonth == null)) {
-          return const AssistantResult.clarification(
+          return AssistantResult.clarification(
             title == null
                 ? 'ما اسم الفاتورة أو الإيجار الجديد؟'
                 : 'ما شهر الاستحقاق الجديد؟',
