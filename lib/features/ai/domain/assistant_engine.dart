@@ -1289,7 +1289,7 @@ final class LocalRuleAssistantEngine implements AssistantEngine {
 
   static String? _updatedBillTitle(String text) {
     final match = RegExp(
-      r'(?:اسمها|عنوانها|تسمى|اسم الفاتورة الجديد|الى|إلى)\\s+([\\p{L}][\\p{L}0-9 _-]{0,50}?)(?=\\s+(?:بمبلغ|بقيمة|مبلغ|لشهر|شهر|بتاريخ|ملاحظة|note|رقم|id|20\\d{2}|[0-9])|$)',
+      r'(?:اسمها|عنوانها|تسمى|اسم الفاتورة الجديد|الى|إلى)\s+([\p{L}][\p{L}0-9 _-]{0,50}?)(?=\s+(?:بمبلغ|بقيمة|مبلغ|لشهر|شهر|بتاريخ|ملاحظة|note|رقم|id|20\d{2}|[0-9])|$)',
       caseSensitive: false,
       unicode: true,
     ).firstMatch(text);
