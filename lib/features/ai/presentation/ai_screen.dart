@@ -28,7 +28,7 @@ enum _AssistantAttachmentChoice { camera, gallery, files }
 // Phase 1: the offline deterministic engine is the only active engine.
 // Gemma is intentionally kept out of this path until the dedicated Phase 2.
 final assistantEngineProvider = Provider<AssistantEngine>(
-  (ref) => const FakeAssistantEngine(),
+  (ref) => const LocalRuleAssistantEngine(),
 );
 
 class AiScreen extends ConsumerStatefulWidget {
