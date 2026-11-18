@@ -1132,6 +1132,7 @@ final class FakeAssistantEngine implements AssistantEngine {
           'سوي',
           'انشئ',
           'سدد',
+          'سددت',
           'سداد',
           'تسديد',
           'دفعت',
@@ -1326,9 +1327,20 @@ final class FakeAssistantEngine implements AssistantEngine {
   }
 
   static String? _counterparty(String text) {
+    const stop = r'(?:بمبلغ|بقيمة|مبلغ|اليوم|امس|بتاريخ|ملاحظة|note|من\s+الدين|رقم|معرف|معرّف|id|يناير|كانون\s+(?:الثاني|الاول|الأول)|فبراير|شباط|مارس|اذار|آذار|ابريل|نيسان|مايو|ايار|أيار|يونيو|حزيران|يوليو|تموز|اغسطس|أغسطس|سبتمبر|ايلول|أيلول|اكتوبر|أكتوبر|تشرين\s+(?:الاول|الأول|الثاني)|نوفمبر|ديسمبر|كانون\s+(?:الاول|الأول)|january|february|march|april|may|june|july|august|september|october|november|december|20\d{2}|[0-9]|الف|ألف|مئة|مية)';
     final patterns = <RegExp>[
-      RegExp(r'(?:من\s+)?(?:دين|الدين)\s+(?:(?:عند|لدى|على|ل)\s+)?([\p{L}][\p{L} ]{0,35}?)(?=\s+(?:بمبلغ|بقيمة|مبلغ|اليوم|امس|بتاريخ|ملاحظة|note|من\s+الدين|رقم|معرف|معرّف|id|[0-9]|الف|ألف|مئة|مية)|$)', unicode: true),
-      RegExp(r'(?:مع|لدى|عند|لصالح|ل)\s+([\p{L}][\p{L} ]{0,35}?)(?=\s+(?:بمبلغ|بقيمة|مبلغ|دين|دينا|اليوم|امس|بتاريخ|ملاحظة|note|رقم|معرف|معرّف|id|[0-9]|الف|ألف|مئة|مية)|$)', unicode: true),
+      RegExp(
+        r'(?:^|\s)(?:لي\s+عند|الي\s+عند|إلي\s+عند)\s+([\p{L}][\p{L} ]{0,35}?)(?=\s+' + stop + r'|$)',
+        unicode: true,
+      ),
+      RegExp(
+        r'(?:^|\s)(?:من\s+)?(?:دين|الدين)\s+(?:(?:عند|لدى|على|ل)\s+)?([\p{L}][\p{L} ]{0,35}?)(?=\s+' + stop + r'|$)',
+        unicode: true,
+      ),
+      RegExp(
+        r'(?:^|\s)(?:مع|لدى|عند|لصالح|ل)\s+([\p{L}][\p{L} ]{0,35}?)(?=\s+' + stop + r'|$)',
+        unicode: true,
+      ),
     ];
     for (final pattern in patterns) {
       final value = pattern.firstMatch(text)?.group(1)?.trim();
