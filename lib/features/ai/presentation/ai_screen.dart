@@ -13,6 +13,8 @@ import 'package:expense_app/core/providers/app_settings_provider.dart';
 import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:expense_app/core/widgets/chat_message_bubble.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
+import 'package:expense_app/core/time/calendar_date.dart';
+import 'package:expense_app/core/widgets/financial_record_card.dart';
 import 'package:expense_app/features/ai/data/gemma_model_manager.dart';
 import 'package:expense_app/features/ai/domain/action_registry.dart';
 import 'package:expense_app/features/ai/domain/assistant_confirmation.dart';
@@ -80,6 +82,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     home: ref.read(homeExpenseRepositoryProvider),
     bills: ref.read(homeBillRepositoryProvider),
     debts: ref.read(debtRepositoryProvider),
+    categories: ref.read(homeExpenseCategoryRepositoryProvider),
     selectedMonth: ref.read(selectedMonthProvider),
   );
 
@@ -396,11 +399,21 @@ class _AiScreenState extends ConsumerState<AiScreen> {
 
     final registry = _registry();
     try {
+      final categoryItems =
+          await ref.read(homeExpenseCategoryRepositoryProvider).getAll();
+      final strings = AppLocalizations.of(context)!;
+      final availableCategories = <String, String>{
+        for (final category in categoryItems)
+          category.id: (_categoryName(category.id, strings) ?? category.name.trim()).isEmpty
+              ? category.id
+              : (_categoryName(category.id, strings) ?? category.name.trim()),
+      };
       final result = await ref.read(assistantEngineProvider).interpret(
         text,
         registry.actionNames,
         media: media,
         conversationContext: conversationContext,
+        expenseCategories: availableCategories,
       );
       if (!mounted) return;
 
@@ -573,10 +586,104 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       'transport' => strings.homeCategoryTransport,
       'personal' => strings.homeCategoryPersonal,
       'health' => strings.homeCategoryHealth,
+      'children' => strings.homeCategoryChildren,
+      'education' => strings.homeCategoryEducation,
+      'entertainment' => strings.homeCategoryEntertainment,
+      'communication' => strings.homeCategoryCommunication,
+      'subscriptions' => strings.homeCategorySubscriptions,
+      'gifts' => strings.homeCategoryGifts,
       'other' => strings.homeCategoryOther,
       _ => null,
     };
   }
+
+  Widget _confirmationRecordCard(
+    AssistantCommand command,
+    AppLocalizations strings,
+  ) {
+    final parameters = command.parameters;
+    final kind = parameters['kind'];
+    final categoryId = parameters['categoryId'];
+    final categoryName = parameters['categoryName'] is String
+        ? parameters['categoryName']! as String
+        : _categoryName(categoryId, strings);
+    final note = parameters['note'] is String
+        ? (parameters['note']! as String).trim()
+        : '';
+    final date = _displayDate(parameters['date']);
+    final details = <String>[
+      if (date != null) toAsciiDigits(
+        MaterialLocalizations.of(context).formatFullDate(
+          DateTime.parse(parameters['date']! as String),
+        ),
+      ),
+      if (kind is String && _kindName(kind, strings) != null)
+        _kindName(kind, strings)!,
+      if (parameters['direction'] == 'creditor') strings.creditor,
+      if (parameters['direction'] == 'debtor') strings.debtor,
+      if (note.isNotEmpty) note,
+    ];
+    final rawAmount = parameters['amountMinorUnits'];
+    final amount = rawAmount is int ? rawAmount.toString() : '—';
+    final debtAction = command.name == 'save_debt';
+    final title = switch (command.name) {
+      'save_work_entry' => _kindName(kind, strings) ?? strings.work,
+      'save_work_home_transfer' => strings.transferredToHome,
+      'save_home_expense' => categoryName ?? strings.homeSection,
+      'save_home_bill' => (parameters['title'] as String?) ?? strings.monthlyBills,
+      'record_home_bill_payment' =>
+        (parameters['billTitle'] as String?) ?? strings.addBillPayment,
+      'save_debt' || 'record_debt_payment' =>
+        (parameters['counterparty'] as String?) ?? strings.debts,
+      'save_home_category' => (parameters['name'] as String?) ?? strings.category,
+      'delete_home_category' => (parameters['name'] as String?) ?? strings.category,
+      'delete_home_bill' => (parameters['billTitle'] as String?) ?? strings.monthlyBills,
+      'delete_debt' => (parameters['counterparty'] as String?) ?? strings.debts,
+      _ => strings.assistantOperation,
+    };
+    final icon = switch (command.name) {
+      'save_work_entry' => kind == 'advance'
+          ? Icons.request_quote_outlined
+          : kind == 'payment'
+              ? Icons.receipt_long_outlined
+              : Icons.payments_outlined,
+      'save_work_home_transfer' => Icons.swap_horiz,
+      'save_home_expense' => _categoryIconForAssistant(categoryId),
+      'save_home_bill' || 'record_home_bill_payment' || 'delete_home_bill' =>
+        Icons.receipt_long_outlined,
+      'save_debt' || 'record_debt_payment' || 'delete_debt' =>
+        parameters['direction'] == 'creditor'
+            ? Icons.call_received_outlined
+            : Icons.call_made_outlined,
+      'save_home_category' || 'delete_home_category' => Icons.sell_outlined,
+      _ => Icons.receipt_long_outlined,
+    };
+    return FinancialRecordCard(
+      icon: icon,
+      title: title,
+      amount: amount,
+      amountLabel: debtAction ? strings.outstandingAmount : null,
+      details: details,
+    );
+  }
+
+  IconData _categoryIconForAssistant(Object? id) => switch (id) {
+    'groceries' => Icons.shopping_basket_outlined,
+    'utilities' => Icons.electrical_services_outlined,
+    'housing' => Icons.home_outlined,
+    'cleaning' => Icons.cleaning_services_outlined,
+    'maintenance' => Icons.build_outlined,
+    'transport' => Icons.directions_car_outlined,
+    'personal' => Icons.person_outline,
+    'health' => Icons.health_and_safety_outlined,
+    'children' => Icons.child_care_outlined,
+    'education' => Icons.school_outlined,
+    'entertainment' => Icons.movie_outlined,
+    'communication' => Icons.phone_outlined,
+    'subscriptions' => Icons.subscriptions_outlined,
+    'gifts' => Icons.card_giftcard_outlined,
+    _ => Icons.shopping_cart_outlined,
+  };
 
   Widget _confirmationDetailRow(
     String label,
@@ -869,7 +976,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                               ],
                             ),
                             const SizedBox(height: 10),
-                            ..._confirmationDetails(pending, strings),
+                            _confirmationRecordCard(pending, strings),
                             const SizedBox(height: 14),
                             Wrap(
                               spacing: 8,
