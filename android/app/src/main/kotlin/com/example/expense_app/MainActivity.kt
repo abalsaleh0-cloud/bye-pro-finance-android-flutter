@@ -123,6 +123,11 @@ class MainActivity : FlutterFragmentActivity() {
     private fun applyPendingLauncherIcon() {
         val preferences = getSharedPreferences("bye_pro_launcher", MODE_PRIVATE)
         val mode = preferences.getString("pending_icon_mode", null) ?: return
+        val lastAppliedMode = preferences.getString("active_icon_mode", null)
+        if (lastAppliedMode == mode) {
+            preferences.edit().remove("pending_icon_mode").apply()
+            return
+        }
 
         val enabledAlias = when (mode) {
             "dark" -> ComponentName(packageName, "$packageName.MainActivityDarkIcon")
@@ -166,7 +171,10 @@ class MainActivity : FlutterFragmentActivity() {
                     PackageManager.DONT_KILL_APP
                 )
             }
-            preferences.edit().remove("pending_icon_mode").apply()
+            preferences.edit()
+                .putString("active_icon_mode", mode)
+                .remove("pending_icon_mode")
+                .apply()
         } catch (error: Exception) {
             // Keep the pending choice so a later background transition can retry.
             android.util.Log.w("MainActivity", "Deferred launcher icon update failed", error)
