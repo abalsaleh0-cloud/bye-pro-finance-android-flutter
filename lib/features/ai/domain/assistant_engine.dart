@@ -561,7 +561,7 @@ final class FakeAssistantEngine implements AssistantEngine {
         final categoryId = _category(has, text, expenseCategories);
         if (categoryId == null || amount == null) {
           return const AssistantResult.clarification(
-            'اذكر تصنيف المصروف ومبلغه، أو معرّف السجل.',
+            'اذكر تصنيف المصروف ومبلغه، أو معرّفه أو رقم السجل.',
           );
         }
         if (requestedMonth == null && explicitDate == null) {
