@@ -235,7 +235,6 @@
   "aiGallery": "Gallery",
   "aiFiles": "Files",
   "aiCopy": "Copy",
-  "aiListen": "Listen",
   "aiCopied": "Message copied",
   "aiUnsupportedAttachment": "Only images and WAV audio files can be attached.",
   "aiAttachmentFallback": "Attachment",
