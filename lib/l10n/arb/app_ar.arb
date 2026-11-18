@@ -161,6 +161,7 @@
   "gemmaResumeDownload": "إعادة المحاولة",
   "gemmaCancelDownload": "إلغاء التنزيل",
   "gemmaDeleteModel": "حذف النموذج",
+  "gemmaRecheckModel": "إعادة فحص ملف النموذج",
   "gemmaDownloadResumeNote": "يعمل التنزيل في الخلفية مع إشعار. إذا انقطع، فقد تبدأ إعادة المحاولة من البداية؛ خادم Hugging Face لا يدعم الاستكمال الجزئي.",
   "clearFinancialData": "مسح البيانات المالية",
   "clearFinancialDataWarning": "سيتم حذف جميع سجلات العمل والمنزل والتحويلات والديون والفواتير ودفعاتها نهائياً. لن تُحذف إعدادات التطبيق أو نموذج Gemma، ولا يمكن التراجع عن المسح.",
