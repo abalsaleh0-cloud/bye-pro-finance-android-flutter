@@ -799,10 +799,12 @@ void main() {
 
     final dashboardMonthPicker =
         find.byKey(const Key('dashboard-month-picker'));
-    final dashboardMonthLabel = MaterialLocalizations.of(
-      tester.element(dashboardMonthPicker),
-    ).formatMonthYear(
-      DateTime(previousMonth.year, previousMonth.month, 1),
+    final dashboardMonthLabel = toAsciiDigits(
+      MaterialLocalizations.of(
+        tester.element(dashboardMonthPicker),
+      ).formatMonthYear(
+        DateTime(previousMonth.year, previousMonth.month, 1),
+      ),
     );
     expect(
       find.descendant(
