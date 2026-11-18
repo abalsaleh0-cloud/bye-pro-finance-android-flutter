@@ -287,6 +287,52 @@ class _AiScreenState extends ConsumerState<AiScreen> {
 
 
 
+  Future<void> _showEmojiPicker() async {
+    const emojis = [
+      '😀', '😃', '😄', '😁', '😆', '😂', '🤣', '😊',
+      '😍', '🥰', '😘', '😎', '🤔', '🤗', '😴', '😭',
+      '😡', '👍', '👎', '🙏', '👏', '💪', '❤️', '🔥',
+    ];
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: emojis
+                .map(
+                  (emoji) => InkWell(
+                    borderRadius: BorderRadius.circular(22),
+                    onTap: () => Navigator.pop(sheetContext, emoji),
+                    child: SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: Center(
+                        child: Text(emoji, style: const TextStyle(fontSize: 25)),
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+        ),
+      ),
+    );
+    if (selected == null || !mounted) return;
+
+    final current = _input.value;
+    final selection = current.selection;
+    final start = selection.isValid ? selection.start : current.text.length;
+    final end = selection.isValid ? selection.end : current.text.length;
+    final updated = current.text.replaceRange(start, end, selected);
+    _input.value = TextEditingValue(
+      text: updated,
+      selection: TextSelection.collapsed(offset: start + selected.length),
+    );
+  }
+
   void _removeAttachment() {
     setState(() {
       _attachmentBytes = null;
@@ -944,75 +990,95 @@ class _AiScreenState extends ConsumerState<AiScreen> {
           SafeArea(
             top: false,
             child: Padding(
-              padding: EdgeInsetsDirectional.fromSTEB(
-                tokens.pageHorizontalPadding / 2,
-                6,
-                tokens.pageHorizontalPadding / 2,
-                tokens.pageVerticalPadding,
-              ),
+              padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
               child: Container(
                 key: const Key('ai-chat-composer'),
-                constraints: const BoxConstraints(minHeight: 56),
+                constraints: const BoxConstraints(minHeight: 44),
                 decoration: BoxDecoration(
                   color: scheme.surfaceContainerLow,
                   border: Border.all(color: scheme.outlineVariant),
-                  borderRadius: BorderRadius.circular(tokens.controlRadius),
+                  borderRadius: BorderRadius.circular(28),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 child: Directionality(
                   textDirection: TextDirection.ltr,
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
+                      SizedBox(
+                        width: 40,
+                        height: 40,
+                        child: IconButton(
+                          key: const Key('ai-emoji-button'),
+                          onPressed: _showEmojiPicker,
+                          icon: const Icon(
+                            Icons.sentiment_satisfied_alt_outlined,
+                            size: 24,
+                          ),
+                          color: scheme.onSurfaceVariant,
+                          tooltip: strings.aiEmojiPicker,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints.tightFor(
+                            width: 40,
+                            height: 40,
+                          ),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
                       Expanded(
-                        child: Directionality(
-                          textDirection: Directionality.of(context),
-                          child: TextField(
-                            key: const Key('ai-message-input'),
-                            controller: _input,
-                            minLines: 1,
-                            maxLines: 4,
-                            textInputAction: TextInputAction.send,
-                            onSubmitted: (_) => _send(),
-                            decoration: InputDecoration(
-                              hintText: strings.assistantHint,
-                              filled: false,
-                              isDense: true,
-                              contentPadding: const EdgeInsetsDirectional.fromSTEB(
-                                4, 8, 4, 8,
-                              ),
-                              border: InputBorder.none,
-                              enabledBorder: InputBorder.none,
-                              focusedBorder: InputBorder.none,
+                        child: TextField(
+                          key: const Key('ai-message-input'),
+                          controller: _input,
+                          textDirection: TextDirection.ltr,
+                          textAlign: TextAlign.start,
+                          minLines: 1,
+                          maxLines: 4,
+                          keyboardType: TextInputType.multiline,
+                          textInputAction: TextInputAction.send,
+                          onSubmitted: (_) => _send(),
+                          decoration: InputDecoration(
+                            hintText: strings.assistantHint,
+                            filled: false,
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 8,
                             ),
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
                           ),
                         ),
                       ),
                       SizedBox(
-                        width: 44,
-                        height: 44,
-                        child: IconButton.filledTonal(
+                        width: 40,
+                        height: 40,
+                        child: IconButton(
                           key: const Key('ai-attach-button'),
                           onPressed: _busy || _recognizing
                               ? null
                               : _chooseAttachment,
-                          icon: const Icon(Icons.attach_file_rounded),
+                          icon: const Icon(Icons.attach_file_rounded, size: 24),
+                          color: scheme.onSurfaceVariant,
                           tooltip: strings.aiFiles,
                           padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints.tightFor(
+                            width: 40,
+                            height: 40,
+                          ),
                           visualDensity: VisualDensity.compact,
                         ),
                       ),
-                      const SizedBox(width: 4),
-                      ValueListenableBuilder<TextEditingValue>(
-                        valueListenable: _input,
-                        builder: (context, value, child) {
-                          final hasText = value.text.trim().isNotEmpty;
-                          final canInteract =
-                              !_busy && !_recognizing;
-                          return SizedBox(
-                            width: 44,
-                            height: 44,
-                            child: IconButton.filled(
+                      const SizedBox(width: 2),
+                      SizedBox(
+                        width: 40,
+                        height: 40,
+                        child: ValueListenableBuilder<TextEditingValue>(
+                          valueListenable: _input,
+                          builder: (context, value, child) {
+                            final hasText = value.text.trim().isNotEmpty;
+                            final canInteract = !_busy && !_recognizing;
+                            return IconButton.filled(
                               key: const Key('ai-contextual-input-action'),
                               onPressed: !canInteract
                                   ? null
@@ -1024,6 +1090,11 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                                   : hasText
                                       ? strings.assistantSend
                                       : strings.aiVoiceInput,
+                              style: IconButton.styleFrom(
+                                backgroundColor: const Color(0xFF229ED9),
+                                foregroundColor: Colors.white,
+                                shape: const CircleBorder(),
+                              ),
                               icon: _busy || _recognizing
                                   ? const SizedBox(
                                       width: 18,
@@ -1036,19 +1107,24 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                                       hasText
                                           ? Icons.send_rounded
                                           : Icons.mic_none_rounded,
+                                      size: 23,
                                     ),
                               padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints.tightFor(
+                                width: 40,
+                                height: 40,
+                              ),
                               visualDensity: VisualDensity.compact,
-                            ),
-                          );
-                        },
+                            );
+                          },
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
             ),
-          ),
+          )
         ],
       ),
     );
