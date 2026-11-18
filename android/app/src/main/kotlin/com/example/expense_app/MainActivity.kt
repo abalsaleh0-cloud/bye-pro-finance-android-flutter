@@ -13,12 +13,12 @@ import android.speech.SpeechRecognizer
 import android.speech.RecognitionListener
 import android.speech.tts.TextToSpeech
 import android.speech.tts.Voice
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.util.Locale
 
-class MainActivity : FlutterActivity() {
+class MainActivity : FlutterFragmentActivity() {
     private companion object {
         const val VOICE_CHANNEL = "com.byepro.finance/assistant_voice"
         const val APP_ICON_CHANNEL = "com.byepro.finance/app_icon"
@@ -122,18 +122,35 @@ class MainActivity : FlutterActivity() {
         }
 
         try {
-            // Enable the new launcher entry first so the app never has a
-            // moment with no enabled MAIN/LAUNCHER activity.
-            packageManager.setComponentEnabledSetting(
-                enabledAlias,
-                PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
-                PackageManager.DONT_KILL_APP
-            )
-            packageManager.setComponentEnabledSetting(
-                disabledAlias,
-                PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
-                PackageManager.DONT_KILL_APP
-            )
+            // Switch both launcher aliases in one PackageManager transaction.
+            // This avoids an intermediate state with zero or two launcher entries.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                packageManager.setComponentEnabledSettings(
+                    mutableListOf(
+                        PackageManager.ComponentEnabledSetting(
+                            enabledAlias,
+                            PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                            PackageManager.DONT_KILL_APP
+                        ),
+                        PackageManager.ComponentEnabledSetting(
+                            disabledAlias,
+                            PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                            PackageManager.DONT_KILL_APP
+                        )
+                    )
+                )
+            } else {
+                packageManager.setComponentEnabledSetting(
+                    enabledAlias,
+                    PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                    PackageManager.DONT_KILL_APP
+                )
+                packageManager.setComponentEnabledSetting(
+                    disabledAlias,
+                    PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                    PackageManager.DONT_KILL_APP
+                )
+            }
             result.success(true)
         } catch (error: Exception) {
             result.error(
