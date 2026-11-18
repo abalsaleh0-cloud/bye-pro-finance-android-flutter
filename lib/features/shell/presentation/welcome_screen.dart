@@ -50,6 +50,21 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
     final scheme = Theme.of(context).colorScheme;
     final isEnglish = Localizations.localeOf(context).languageCode == 'en';
 
+    // The welcome route is also the lightweight startup gate on later launches.
+    // Show an adaptive loader while the saved first-launch flag is restored,
+    // rather than presenting an inactive welcome button during database startup.
+    if (_checking) {
+      return Scaffold(
+        backgroundColor: scheme.surface,
+        body: Center(
+          child: CircularProgressIndicator(
+            color: scheme.primary,
+            semanticsLabel: isEnglish ? 'Loading' : 'جارٍ التحميل',
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       body: SafeArea(
         child: LayoutBuilder(
