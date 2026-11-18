@@ -121,6 +121,7 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'المنزل'**
   String get homeSection;
+  String get personName;
   String get workTransfersTab;
   String get homeIncomingFromWork;
   String get homeMonthlyRent;
