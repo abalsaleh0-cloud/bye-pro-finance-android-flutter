@@ -24,6 +24,12 @@ class HomeExpenseCategory {
     HomeExpenseCategory(id: 'transport'),
     HomeExpenseCategory(id: 'personal'),
     HomeExpenseCategory(id: 'health'),
+    HomeExpenseCategory(id: 'children'),
+    HomeExpenseCategory(id: 'education'),
+    HomeExpenseCategory(id: 'entertainment'),
+    HomeExpenseCategory(id: 'communication'),
+    HomeExpenseCategory(id: 'subscriptions'),
+    HomeExpenseCategory(id: 'gifts'),
     HomeExpenseCategory(id: 'other'),
   ];
 }
