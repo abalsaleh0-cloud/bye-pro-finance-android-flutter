@@ -884,25 +884,4 @@ final class FakeAssistantEngine implements AssistantEngine {
     }
     return null;
   }
-},
-      caseSensitive: false,
-      unicode: true,
-    ).firstMatch(text);
-    final value = match?.group(1)?.trim();
-    return value == null || value.isEmpty ? null : value;
-  }
-
-  static String? _counterparty(String text) {
-    final match = RegExp(
-      r'(?:مع|لدى|عند|لصالح|من)\s+([\p{L}]+)',
-      unicode: true,
-    ).firstMatch(text);
-    final name = match?.group(1)?.trim();
-    if (name == null ||
-        name.isEmpty ||
-        const {'شخص', 'احد', 'طرف', 'البيت', 'المنزل'}.contains(name)) {
-      return null;
-    }
-    return name;
-  }
 }
