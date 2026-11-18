@@ -276,6 +276,11 @@ final class FakeAssistantEngine implements AssistantEngine {
       'انشئ',
       'اضافة',
       'تسجيل',
+      'سدد',
+      'سداد',
+      'تسديد',
+      'دفعت',
+      'ادفع',
       'add',
       'create',
       'record',
@@ -652,6 +657,7 @@ final class FakeAssistantEngine implements AssistantEngine {
     final answerHasCategory = _category(
       (phrases) => normalizer.containsAny(normalizedAnswer, phrases),
       normalizedAnswer,
+      const {},
     ) != null;
     final answerHasDate = DateTime.tryParse(currentInput.trim()) != null ||
         RegExp(r'\b\d{1,2}[-/.]\d{1,2}[-/.]20\d{2}\b')
@@ -746,6 +752,15 @@ final class FakeAssistantEngine implements AssistantEngine {
   }
 
   static String? _readAction(bool Function(Iterable<String>) has) {
+    if (has(const ['سجل دفعات الفاتورة', 'دفعات الفاتورة', 'دفعات فاتورة', 'تاريخ دفعات الفاتورة', 'bill payment history'])) {
+      return 'read_home_bill_payments';
+    }
+    if (has(const ['سجل دفعات الدين', 'دفعات الدين', 'دفعات ديون', 'تاريخ دفعات الدين', 'debt payment history'])) {
+      return 'read_debt_payments';
+    }
+    if (has(const ['التصنيفات', 'تصنيفات المصروف', 'تصنيفات المنزل', 'expense categories'])) {
+      return 'read_home_categories';
+    }
     if (has(const ['تحويلات', 'التحويلات', 'التحويلات للبيت', 'transfers'])) {
       return 'read_work_transfers';
     }
@@ -836,18 +851,38 @@ final class FakeAssistantEngine implements AssistantEngine {
 
   static String? _extractNote(String text) {
     final match = RegExp(
-      r'(?:ملاحظة|ملاحظات|note|notes)\\s*(?::|هي|أنها|انه)?\\s*(.+)
-    final match = RegExp(
-      r'(?:مع|لدى|عند|لصالح|من)\s+([\p{L}]+)',
+      r'(?:ملاحظة|ملاحظات|note|notes)\s*(?::|هي|أنها|انه)?\s*(.+)$',
+      caseSensitive: false,
       unicode: true,
     ).firstMatch(text);
-    final name = match?.group(1)?.trim();
-    if (name == null ||
-        name.isEmpty ||
-        const {'شخص', 'احد', 'طرف', 'البيت', 'المنزل'}.contains(name)) {
-      return null;
+    final value = match?.group(1)?.trim();
+    return value == null || value.isEmpty ? null : value;
+  }
+
+  static String? _extractIdentifier(String text) {
+    final match = RegExp(
+      r'(?:معرّف|معرف|رقم\s+(?:السجل|الفاتورة|الدين|المصروف|التحويل|التصنيف)|id)\s*[:#：]?\s*([A-Za-z0-9_-]{2,64})',
+      caseSensitive: false,
+      unicode: true,
+    ).firstMatch(text);
+    final value = match?.group(1)?.trim();
+    return value == null || value.isEmpty ? null : value;
+  }
+
+  static String? _counterparty(String text) {
+    final patterns = <RegExp>[
+      RegExp(r'(?:مع|لدى|عند|لصالح|من)\s+([\p{L}][\p{L} ]{0,35}?)(?=\s+(?:بمبلغ|بقيمة|مبلغ|دين|دينا|اليوم|امس|بتاريخ|ملاحظة)|$)', unicode: true),
+      RegExp(r'(?:دين|الدين)\s+(?:لدى|على|ل|لـ)?\s*([\p{L}][\p{L} ]{0,35}?)(?=\s+(?:بمبلغ|بقيمة|مبلغ|بقيمة|اليوم|امس|بتاريخ|ملاحظة)|$)', unicode: true),
+    ];
+    for (final pattern in patterns) {
+      final value = pattern.firstMatch(text)?.group(1)?.trim();
+      if (value != null &&
+          value.isNotEmpty &&
+          !const {'شخص', 'احد', 'طرف', 'البيت', 'المنزل'}.contains(value)) {
+        return value;
+      }
     }
-    return name;
+    return null;
   }
 },
       caseSensitive: false,
