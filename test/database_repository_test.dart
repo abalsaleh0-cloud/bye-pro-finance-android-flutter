@@ -1712,4 +1712,47 @@ void main() {
     expect(await repository.getBills(), isEmpty);
   });
 
+  test('persists the full bill and rent calendar date', () async {
+    final repository = HomeBillRepository(database);
+    final selectedDate = DateTime(2026, 11, 18);
+    await repository.saveBill(
+      HomeBill(
+        id: 'bill-full-date',
+        title: 'November electricity',
+        kind: HomeBillKind.monthly,
+        amount: Money.fromMinorUnits(450),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        dueDate: selectedDate,
+        note: 'Read meter',
+      ),
+    );
+
+    final saved = (await repository.getBills()).single;
+    expect(saved.calendarDate.year, 2026);
+    expect(saved.calendarDate.month, 11);
+    expect(saved.calendarDate.day, 18);
+    expect(saved.note, 'Read meter');
+  });
+
+  test('migrates legacy home bills to the first day of their stored month', () async {
+    await database.customStatement('DROP TABLE home_bills');
+    await database.customStatement(
+      'CREATE TABLE home_bills ('
+      'id TEXT PRIMARY KEY NOT NULL, title TEXT NOT NULL, '
+      "kind TEXT NOT NULL CHECK (kind IN ('monthly', 'rent')), "
+      'amount_minor_units INTEGER NOT NULL CHECK (amount_minor_units > 0), '
+      'due_year INTEGER NOT NULL, due_month INTEGER NOT NULL, note TEXT)',
+    );
+    await database.customStatement(
+      'INSERT INTO home_bills '
+      '(id, title, kind, amount_minor_units, due_year, due_month, note) '
+      'VALUES (?, ?, ?, ?, ?, ?, ?)',
+      ['legacy-home-bill', 'Legacy bill', 'monthly', 300, 2026, 11, 'Keep me'],
+    );
+
+    final migrated = (await HomeBillRepository(database).getBills()).single;
+    expect(migrated.calendarDate, DateTime(2026, 11, 1));
+    expect(migrated.note, 'Keep me');
+  });
+
 }
