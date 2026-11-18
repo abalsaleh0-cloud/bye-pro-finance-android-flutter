@@ -383,7 +383,6 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     try {
       final categoryItems =
           await ref.read(homeExpenseCategoryRepositoryProvider).getAll();
-      final strings = AppLocalizations.of(context)!;
       final availableCategories = <String, String>{
         for (final category in categoryItems)
           category.id: (_categoryName(category.id, strings) ?? category.name.trim()).isEmpty
@@ -513,30 +512,6 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       ])),
     );
     if (section != null && mounted) context.go(section, extra: true);
-  }
-
-  String _sectionName(String action, AppLocalizations s) {
-    if (action.contains('work')) return s.work;
-    if (action.contains('home') || action.contains('transfer')) return s.homeSection;
-    if (action.contains('debt')) return s.debts;
-    return s.ai;
-  }
-
-  String _operationName(String action, AppLocalizations s) {
-    if (action.startsWith('read_')) return s.assistantRead;
-    if (action.startsWith('delete_')) return s.deleteRecord;
-    if (action == 'record_debt_payment') return s.recordDebtPayment;
-    if (action == 'record_home_bill_payment') return s.addBillPayment;
-    return s.save;
-  }
-
-  String? _displayMonth(AssistantCommand command) {
-    final year = command.parameters['year'];
-    final month = command.parameters['month'];
-    if (year is int && month is int) {
-      return year.toString() + '-' + month.toString().padLeft(2, '0');
-    }
-    return null;
   }
 
   String? _displayDate(Object? rawDate) {
@@ -670,139 +645,6 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     _ => Icons.shopping_cart_outlined,
   };
 
-  Widget _confirmationDetailRow(
-    String label,
-    String value,
-    IconData icon,
-  ) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
-          const SizedBox(width: 10),
-          SizedBox(
-            width: 88,
-            child: Text(
-              label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              value,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  List<Widget> _confirmationDetails(
-    AssistantCommand command,
-    AppLocalizations strings,
-  ) {
-    final parameters = command.parameters;
-    final details = <Widget>[
-      _confirmationDetailRow(
-        strings.assistantSection,
-        _sectionName(command.name, strings),
-        Icons.folder_outlined,
-      ),
-      _confirmationDetailRow(
-        strings.assistantOperation,
-        _operationName(command.name, strings),
-        Icons.playlist_add_check_circle_outlined,
-      ),
-    ];
-
-    final amount = parameters['amountMinorUnits'];
-    if (amount is int) {
-      details.add(
-        _confirmationDetailRow(
-          strings.assistantAmount,
-          amount.toString(),
-          Icons.payments_outlined,
-        ),
-      );
-    }
-
-    final kind = _kindName(parameters['kind'], strings);
-    if (kind != null) {
-      details.add(_confirmationDetailRow(strings.entryType, kind, Icons.category_outlined));
-    }
-
-    final direction = parameters['direction'];
-    if (direction == 'creditor' || direction == 'debtor') {
-      details.add(
-        _confirmationDetailRow(
-          strings.debtDirection,
-          direction == 'creditor' ? strings.creditor : strings.debtor,
-          Icons.swap_horiz_rounded,
-        ),
-      );
-    }
-
-    final title = parameters['title'];
-    if (title is String && title.trim().isNotEmpty) {
-      details.add(_confirmationDetailRow(strings.billName, title, Icons.receipt_long_outlined));
-    }
-
-    final counterparty = parameters['counterparty'];
-    if (counterparty is String && counterparty.trim().isNotEmpty) {
-      details.add(
-        _confirmationDetailRow(
-          strings.counterparty,
-          counterparty,
-          Icons.person_outline_rounded,
-        ),
-      );
-    }
-
-    final category = _categoryName(parameters['categoryId'], strings);
-    if (category != null) {
-      details.add(_confirmationDetailRow(strings.category, category, Icons.sell_outlined));
-    }
-
-    final note = parameters['note'];
-    if (note is String && note.trim().isNotEmpty) {
-      details.add(_confirmationDetailRow(strings.note, note, Icons.notes_rounded));
-    }
-
-    final month = _displayMonth(command);
-    if (month != null) {
-      details.add(
-        _confirmationDetailRow(
-          strings.assistantMonth,
-          month,
-          Icons.calendar_month_outlined,
-        ),
-      );
-    }
-
-    final date = _displayDate(parameters['date']);
-    if (date != null) {
-      details.add(
-        _confirmationDetailRow(
-          strings.assistantDate,
-          date,
-          Icons.event_outlined,
-        ),
-      );
-    }
-    return details;
-  }
-
-  @override
   Widget build(BuildContext context) {
     final strings = AppLocalizations.of(context)!;
     final pending = _confirmation.pending;
