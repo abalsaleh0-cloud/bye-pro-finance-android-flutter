@@ -793,7 +793,10 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                 AssistantResultSource.local,
                 usedGemmaFallback: true,
               )
-            : const AssistantResult.notUnderstood();
+            : AssistantResult.notUnderstood().withSource(
+                AssistantResultSource.local,
+                usedGemmaFallback: true,
+              );
       }
       replySource = result.usedGemmaFallback
           ? 'localAfterGemma'
