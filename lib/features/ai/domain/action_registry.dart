@@ -397,22 +397,21 @@ final class ActionRegistry {
     }
   }
   Map<String, Type> _typesFor(String name) => switch (name) {
-    'save_work_entry' => const {'kind': String, 'amountMinorUnits': int, 'year': int, 'month': int, 'id': String, 'note': String},
-    'delete_work_entry' || 'delete_home_expense' || 'delete_work_home_transfer' || 'delete_debt' => const {'id': String},
-    'save_home_expense' => const {'amountMinorUnits': int, 'categoryId': String, 'date': String, 'year': int, 'month': int, 'id': String, 'note': String},
-    'save_home_bill' => const {'title': String, 'kind': String, 'amountMinorUnits': int, 'year': int, 'month': int, 'id': String, 'note': String},
+    'save_work_entry' => const {'kind': String, 'amountMinorUnits': int, 'year': int, 'month': int, 'date': String, 'id': String, 'note': String},
+    'delete_work_entry' || 'delete_home_expense' || 'delete_work_home_transfer' || 'delete_debt' || 'delete_home_category' => const {'id': String},
+    'save_home_expense' => const {'amountMinorUnits': int, 'categoryId': String, 'categoryName': String, 'date': String, 'year': int, 'month': int, 'id': String, 'note': String},
+    'save_home_category' => const {'name': String, 'id': String},
+    'save_home_bill' => const {'title': String, 'kind': String, 'amountMinorUnits': int, 'year': int, 'month': int, 'date': String, 'id': String, 'note': String},
     'delete_home_bill' => const {'id': String},
-    'record_home_bill_payment' => const {'billId': String, 'amountMinorUnits': int, 'note': String},
-    'read_home_bills' || 'read_work_records' || 'read_home_expenses' || 'read_debts' || 'read_work_transfers' => const {},
+    'record_home_bill_payment' => const {'billId': String, 'billTitle': String, 'amountMinorUnits': int, 'date': String, 'note': String},
+    'read_home_bills' || 'read_work_records' || 'read_home_expenses' || 'read_debts' || 'read_work_transfers' => const {'year': int, 'month': int, 'allRecords': bool},
+    'read_home_categories' => const {},
     'read_debt_payments' => const {'debtId': String},
     'read_home_bill_payments' => const {'billId': String},
     'save_work_home_transfer' => const {'amountMinorUnits': int, 'id': String, 'date': String, 'note': String},
-    'save_debt' => const {'amountMinorUnits': int, 'direction': String, 'counterparty': String, 'year': int, 'month': int, 'id': String, 'note': String},
-    'record_debt_payment' => const {'debtId': String, 'amountMinorUnits': int, 'note': String},
-    'read_work_remaining' => const {},
-    'read_month_total' => const {'section': String, 'year': int, 'month': int},
-    'read_dashboard_summary' => const {'year': int, 'month': int},
-    'navigate_to_section' => const {'section': String},
+    'save_debt' => const {'amountMinorUnits': int, 'direction': String, 'counterparty': String, 'year': int, 'month': int, 'date': String, 'id': String, 'note': String},
+    'record_debt_payment' => const {'debtId': String, 'counterparty': String, 'direction': String, 'amountMinorUnits': int, 'date': String, 'note': String},
+    'read_work_remaining' || 'read_month_total' || 'read_dashboard_summary' || 'navigate_to_section' => const {'section': String, 'year': int, 'month': int},
     _ => const {},
   };
   static String _id()=>DateTime.now().microsecondsSinceEpoch.toString();
