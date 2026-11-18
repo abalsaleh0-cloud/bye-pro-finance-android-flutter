@@ -61,7 +61,7 @@ final class ActionRegistry {
   final MonthKey? _selectedMonth;
   static const descriptors = <ActionDescriptor>[
     ActionDescriptor('save_work_entry', {'kind','amountMinorUnits','year','month'}),
-    ActionDescriptor('delete_work_entry', {'id'}),
+    ActionDescriptor('delete_work_entry', {}),
     ActionDescriptor('save_home_expense', {'amountMinorUnits','date','year','month'}),
     ActionDescriptor('read_home_categories', {}, readOnly: true),
     ActionDescriptor('save_home_category', {'name'}),
@@ -78,7 +78,7 @@ final class ActionRegistry {
     ActionDescriptor('read_debt_payments', {'debtId'}, readOnly: true),
     ActionDescriptor('read_home_bill_payments', {'billId'}, readOnly: true),
     ActionDescriptor('save_work_home_transfer', {'amountMinorUnits'}),
-    ActionDescriptor('delete_work_home_transfer', {'id'}),
+    ActionDescriptor('delete_work_home_transfer', {}),
     ActionDescriptor('save_debt', {'amountMinorUnits','direction','counterparty','year','month'}),
     ActionDescriptor('delete_debt', {}),
     ActionDescriptor('record_debt_payment', {'amountMinorUnits'}),
@@ -151,6 +151,20 @@ final class ActionRegistry {
         ((p['categoryId'] == null && p['categoryName'] == null) ||
             p['amountMinorUnits'] == null)) {
       return 'expense deletion needs an ID or a unique category and amount';
+    }
+    if (name == 'delete_work_entry' && p['id'] == null &&
+        (p['kind'] == null || p['amountMinorUnits'] == null ||
+            (year == null && p['date'] == null))) {
+      return 'work record deletion needs an ID or unique kind, amount and date/month';
+    }
+    if (name == 'delete_work_home_transfer' && p['id'] == null &&
+        (p['amountMinorUnits'] == null || p['date'] == null)) {
+      return 'transfer deletion needs an ID or a unique amount and date';
+    }
+    if (name == 'delete_work_entry' &&
+        p['kind'] != null &&
+        !{'salary', 'advance', 'payment', 'salaryPayment'}.contains(p['kind'])) {
+      return 'invalid work record kind';
     }
     if ((name == 'read_home_bill_payments' || name == 'delete_home_bill') &&
         p['billId'] == null && p['billTitle'] == null && p['id'] == null) {
@@ -253,10 +267,42 @@ final class ActionRegistry {
             : WorkEntryKind.values.byName(p['kind']! as String)), amount:Money.fromMinorUnits(p['amountMinorUnits']! as int), dueMonth:MonthKey(year:p['year']! as int,month:p['month']! as int), recordedAt:p['date'] is String ? DateTime.parse(p['date']! as String) : previous?.recordedAt ?? DateTime.now(),note:p.containsKey('note') ? p['note'] as String? : previous?.note);
         await _work.saveEntry(item);
         return ActionExecution(message:'تم حفظ سجل العمل',undo:() async { if(previous==null) { await _work.deleteEntry(id); } else { await _work.saveEntry(previous); } });
-      case 'delete_work_entry':
-        final all=await _work.watchEntries().first; WorkEntry? old; for(final e in all) { if(e.id==p['id']) old=e; }
-        if(old==null) throw StateError('Work entry not found'); final deleted = old; await _work.deleteEntry(deleted.id);
-        return ActionExecution(message:'تم حذف سجل العمل',undo:()=>_work.saveEntry(deleted));
+      case 'delete_work_entry': {
+        final requestedId = p['id'] as String?;
+        final date = p['date'] is String ? DateTime.parse(p['date']! as String) : null;
+        final month = p['year'] is int && p['month'] is int
+            ? MonthKey(year: p['year']! as int, month: p['month']! as int)
+            : null;
+        final matches = (await _work.watchEntries().first).where((entry) {
+          if (requestedId != null) return entry.id == requestedId;
+          final requestedKind = p['kind'] as String?;
+          final kindMatches = requestedKind == 'payment'
+              ? entry.kind == WorkEntryKind.salaryPayment
+              : entry.kind.name == requestedKind;
+          if (!kindMatches) return false;
+          if (p['amountMinorUnits'] is int &&
+              entry.amount.minorUnits != p['amountMinorUnits']) return false;
+          if (month != null && entry.dueMonth != month) return false;
+          if (date != null) {
+            final savedDate = entry.recordedAt.toLocal();
+            if (savedDate.year != date.year ||
+                savedDate.month != date.month ||
+                savedDate.day != date.day) return false;
+          }
+          return true;
+        }).toList(growable: false);
+        if (matches.length != 1) {
+          throw StateError(matches.isEmpty
+              ? 'Work record not found'
+              : 'More than one work record matches; specify the exact date or ID.');
+        }
+        final deleted = matches.single;
+        await _work.deleteEntry(deleted.id);
+        return ActionExecution(
+          message: 'تم حذف سجل العمل',
+          undo: () => _work.saveEntry(deleted),
+        );
+      }
       case 'save_home_expense':
         final id=p['id'] as String? ?? _id(); final all=await _home.watchAll().first; HomeExpense? old; for(final e in all) { if(e.id==id) old=e; }
         final previous = old;
@@ -504,9 +550,38 @@ final class ActionRegistry {
         final previous = old;
         final item=WorkHomeTransfer(id:id,amount:Money.fromMinorUnits(p['amountMinorUnits']! as int),transferredAt:p['date'] is String ? DateTime.parse(p['date']! as String) : DateTime.now(),note:p.containsKey('note') ? p['note'] as String? : previous?.note);
         await _work.saveTransfer(item); return ActionExecution(message:'تم تسجيل التحويل إلى المنزل',undo:() async { if(previous==null) { await _work.deleteTransfer(id); } else { await _work.saveTransfer(previous); } });
-      case 'delete_work_home_transfer':
-        final all=await _work.watchTransfers().first; WorkHomeTransfer? old; for(final e in all) { if(e.id==p['id']) old=e; }
-        if(old==null) throw StateError('Transfer not found'); final deleted = old; await _work.deleteTransfer(deleted.id); return ActionExecution(message:'تم حذف التحويل',undo:()=>_work.saveTransfer(deleted));
+      case 'delete_work_home_transfer': {
+        final requestedId = p['id'] as String?;
+        final date = p['date'] is String ? DateTime.parse(p['date']! as String) : null;
+        final month = p['year'] is int && p['month'] is int
+            ? MonthKey(year: p['year']! as int, month: p['month']! as int)
+            : null;
+        final matches = (await _work.watchTransfers().first).where((item) {
+          if (requestedId != null) return item.id == requestedId;
+          if (item.amount.minorUnits != p['amountMinorUnits']) return false;
+          final savedDate = item.transferredAt.toLocal();
+          if (date != null &&
+              (savedDate.year != date.year ||
+                  savedDate.month != date.month ||
+                  savedDate.day != date.day)) return false;
+          if (month != null &&
+              (savedDate.year != month.year || savedDate.month != month.month)) {
+            return false;
+          }
+          return true;
+        }).toList(growable: false);
+        if (matches.length != 1) {
+          throw StateError(matches.isEmpty
+              ? 'Transfer not found'
+              : 'More than one transfer matches; specify the exact date or ID.');
+        }
+        final deleted = matches.single;
+        await _work.deleteTransfer(deleted.id);
+        return ActionExecution(
+          message: 'تم حذف التحويل',
+          undo: () => _work.saveTransfer(deleted),
+        );
+      }
       case 'save_debt':
         final id=p['id'] as String? ?? _id(); final all=await _debts.watchAll().first; DebtEntry? old; for(final e in all) { if(e.id==id) old=e; }
         final previous = old;
@@ -630,8 +705,14 @@ final class ActionRegistry {
       'kind': String, 'amountMinorUnits': int, 'year': int, 'month': int,
       'date': String, 'id': String, 'note': String,
     },
-    'delete_work_entry' || 'delete_work_home_transfer' =>
-      const {'id': String},
+    'delete_work_entry' => const {
+      'id': String, 'kind': String, 'amountMinorUnits': int,
+      'year': int, 'month': int, 'date': String,
+    },
+    'delete_work_home_transfer' => const {
+      'id': String, 'amountMinorUnits': int, 'date': String,
+      'year': int, 'month': int,
+    },
     'delete_home_expense' => const {
       'id': String, 'categoryId': String, 'categoryName': String,
       'amountMinorUnits': int, 'date': String, 'year': int, 'month': int,
