@@ -103,6 +103,15 @@ void main() {
     await tester.drag(settingsScroll, const Offset(0, 1400));
     await tester.pump();
     expect(find.text('الوضع الداكن'), findsOneWidget);
+    final initialContext = tester.element(find.byType(MyApp));
+    final initialSettings = ProviderScope.containerOf(
+      initialContext,
+      listen: false,
+    ).read(appSettingsProvider);
+    final initialApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(initialSettings.themeMode, ThemeMode.system);
+    expect(initialApp.themeMode, ThemeMode.system);
+
     await tester.tap(find.text('الوضع الداكن'));
     await tester.pump();
 
