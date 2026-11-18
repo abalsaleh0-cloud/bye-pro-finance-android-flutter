@@ -122,8 +122,8 @@ final class FakeAssistantEngine implements AssistantEngine {
         AssistantCommand(
           name: 'read_dashboard_summary',
           parameters: {
-            if (requestedMonth != null) 'year': requestedMonth.$1,
-            if (requestedMonth != null) 'month': requestedMonth.$2,
+            'year': ?requestedMonth?.$1,
+            'month': ?requestedMonth?.$2,
           },
         ),
       );
@@ -249,8 +249,8 @@ final class FakeAssistantEngine implements AssistantEngine {
         final requestedMonth = _input.extractMonth(effectiveInput);
         final allRecords = has(const ['كل', 'جميع', 'كافة', 'من البداية', 'all records', 'everything']);
         final parameters = <String, Object?>{
-          if (requestedMonth != null) 'year': requestedMonth.$1,
-          if (requestedMonth != null) 'month': requestedMonth.$2,
+          'year': ?requestedMonth?.$1,
+          'month': ?requestedMonth?.$2,
           if (allRecords) 'allRecords': true,
         };
         if (readAction == 'read_home_bill_payments') {
@@ -397,7 +397,7 @@ final class FakeAssistantEngine implements AssistantEngine {
       return AssistantResult.command(AssistantCommand(
         name: 'delete_home_category',
         parameters: {
-          if (explicitId != null) 'id': explicitId,
+          'id': ?explicitId,
           if (explicitId == null) 'name': expenseCategories[categoryName] ?? categoryName!,
         },
       ));
@@ -452,7 +452,7 @@ final class FakeAssistantEngine implements AssistantEngine {
           name: action,
           parameters: {
             'counterparty': counterparty,
-            if (direction != null) 'direction': direction,
+            'direction': ?direction,
           },
         ));
       }
@@ -488,7 +488,7 @@ final class FakeAssistantEngine implements AssistantEngine {
             'id': explicitId, 'kind': kind, 'amountMinorUnits': amount,
             'year': requestedMonth.$1, 'month': requestedMonth.$2,
             'date': (operationDate ?? _defaultDateForMonth(requestedMonth.$1, requestedMonth.$2)).toIso8601String().split('T').first,
-            if (note != null) 'note': note,
+            'note': ?note,
           },
         ));
       }
@@ -505,7 +505,7 @@ final class FakeAssistantEngine implements AssistantEngine {
             'id': explicitId, 'amountMinorUnits': amount, 'categoryId': categoryId,
             'categoryName': expenseCategories[categoryId] ?? categoryId,
             'date': date, 'year': requestedMonth.$1, 'month': requestedMonth.$2,
-            if (note != null) 'note': note,
+            'note': ?note,
           },
         ));
       }
@@ -516,7 +516,7 @@ final class FakeAssistantEngine implements AssistantEngine {
           parameters: {
             'id': explicitId, 'amountMinorUnits': amount,
             'date': (operationDate ?? DateTime.now()).toIso8601String().split('T').first,
-            if (note != null) 'note': note,
+            'note': ?note,
           },
         ));
       }
@@ -548,7 +548,7 @@ final class FakeAssistantEngine implements AssistantEngine {
           parameters: {
             'amountMinorUnits': amount,
             'date': (operationDate ?? DateTime.now()).toIso8601String().split('T').first,
-            if (note != null) 'note': note,
+            'note': ?note,
           },
         ),
       );
@@ -611,7 +611,7 @@ final class FakeAssistantEngine implements AssistantEngine {
             'year': requestedMonth.$1,
             'month': requestedMonth.$2,
             'date': (operationDate ?? DateTime.now()).toIso8601String().split('T').first,
-            if (note != null) 'note': note,
+            'note': ?note,
           },
         ),
       );
@@ -631,7 +631,7 @@ final class FakeAssistantEngine implements AssistantEngine {
           'billTitle': billTitle,
           'amountMinorUnits': amount,
           'date': (operationDate ?? DateTime.now()).toIso8601String().split('T').first,
-          if (note != null) 'note': note,
+          'note': ?note,
         },
       ));
     }
@@ -679,7 +679,7 @@ final class FakeAssistantEngine implements AssistantEngine {
             'year': requestedMonth.$1,
             'month': requestedMonth.$2,
             'date': (operationDate ?? DateTime.now()).toIso8601String().split('T').first,
-            if (note != null) 'note': note,
+            'note': ?note,
           },
         ),
       );
@@ -727,7 +727,7 @@ final class FakeAssistantEngine implements AssistantEngine {
             'date': date,
             'year': requestedMonth.$1,
             'month': requestedMonth.$2,
-            if (note != null) 'note': note,
+            'note': ?note,
           },
         ),
       );
@@ -752,10 +752,10 @@ final class FakeAssistantEngine implements AssistantEngine {
         name: 'record_debt_payment',
         parameters: {
           'counterparty': counterparty,
-          if (direction != null) 'direction': direction,
+          'direction': ?direction,
           'amountMinorUnits': amount,
           'date': (operationDate ?? DateTime.now()).toIso8601String().split('T').first,
-          if (note != null) 'note': note,
+          'note': ?note,
         },
       ));
     }
@@ -788,7 +788,7 @@ final class FakeAssistantEngine implements AssistantEngine {
             'year': requestedMonth.$1,
             'month': requestedMonth.$2,
             'date': (operationDate ?? DateTime.now()).toIso8601String().split('T').first,
-            if (note != null) 'note': note,
+            'note': ?note,
           },
         ),
       );
