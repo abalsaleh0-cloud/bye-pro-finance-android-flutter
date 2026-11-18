@@ -22,6 +22,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get homeSection => 'المنزل';
 
   @override
+  String get personName => 'اسم الشخص';
+
+  @override
   String get workTransfersTab => 'تحويلات المنزل';
 
   @override
