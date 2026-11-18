@@ -9,7 +9,6 @@ import 'package:expense_app/features/ai/data/android_assistant_voice_service.dar
 import 'package:expense_app/features/ai/domain/wav_audio_validator.dart';
 
 import 'package:expense_app/core/database/database_providers.dart';
-import 'package:expense_app/core/providers/app_settings_provider.dart';
 import 'package:expense_app/core/theme/app_design_tokens.dart';
 import 'package:expense_app/core/widgets/chat_message_bubble.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
@@ -357,14 +356,10 @@ class _AiScreenState extends ConsumerState<AiScreen> {
             audioBytes: image ? null : mediaBytes,
           );
     if (media != null) {
-      final settings = ref.read(appSettingsProvider);
-      final modelState = ref.read(gemmaModelManagerProvider);
-      if (!settings.useGemma || modelState.status != GemmaModelStatus.ready) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(strings.aiGemmaRequired)),
-        );
-        return;
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(strings.aiGemmaRequired)),
+      );
+      return;
     }
 
     final attachmentLabel = image
