@@ -649,10 +649,10 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     if (command.name == 'save_home_bill') {
       final billSubtitle = <String>[
         if (formattedDate != null)
-          '${formattedDate} • ${strings.billStatusUnpaid}',
+          '$formattedDate • ${strings.billStatusUnpaid}',
         '${strings.billPaid}: 0 / $amount • ${strings.billRemaining}: $amount',
         if (note.isNotEmpty) note,
-      ].join('\\n');
+      ].join('\n');
       return Card(
         child: ListTile(
           leading: Icon(
