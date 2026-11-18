@@ -104,7 +104,7 @@ void main() {
     await tester.pump();
     expect(find.text('الوضع الداكن'), findsOneWidget);
     await tester.tap(find.text('الوضع الداكن'));
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     final context = tester.element(find.byType(MyApp));
     final settings = ProviderScope.containerOf(context, listen: false)
@@ -115,7 +115,7 @@ void main() {
 
     await tester.ensureVisible(find.text('الوضع الفاتح'));
     await tester.tap(find.text('الوضع الفاتح'));
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     final updatedApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
     expect(updatedApp.themeMode, ThemeMode.light);
