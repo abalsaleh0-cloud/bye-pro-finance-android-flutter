@@ -65,6 +65,21 @@ void main() {
       expect(input.extractAmount('سجل راتب 1500 لشهر نوفمبر 2026'), 1500);
     });
 
+    test('ignores numeric suffixes in record IDs when extracting amounts', () {
+      expect(
+        input.extractAmount(
+          'عدل فاتورة الكهرباء رقم الفاتورة bill_1 بمبلغ 175 لشهر 2026-11',
+        ),
+        175,
+      );
+      expect(
+        input.extractAmount(
+          'عدل الدين رقم الدين debt_1 بمبلغ 225 لشهر 2026-11',
+        ),
+        225,
+      );
+    });
+
     test('does not guess an unknown amount phrase', () {
       expect(input.extractAmount('أضف راتب مبلغ كبير'), isNull);
     });
