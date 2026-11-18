@@ -114,7 +114,7 @@ final class AiChatWorkspaceState {
 String buildAiConversationContext(
   List<AiChatMessage> messages, {
   int maxMessages = 12,
-  int maxCharacters = 2400,
+  int maxCharacters = 1800,
 }) {
   if (maxMessages <= 0 || maxCharacters <= 0) return '';
 
@@ -278,6 +278,14 @@ class AiChatController extends Notifier<AiChatWorkspaceState> {
                   conversations: [migrated],
                   activeConversationId: migrated.id,
                 );
+                // The new format now owns the migrated history. Empty the
+                // legacy cache so a later corrupt v2 value cannot resurrect
+                // a conversation that the user has deleted.
+                try {
+                  await database.writeSetting(_legacyStorageKey, '[]');
+                } catch (_) {
+                  // Migration remains usable; the new store is persisted below.
+                }
               }
             }
           } catch (_) {
