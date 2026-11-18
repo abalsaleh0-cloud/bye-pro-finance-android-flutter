@@ -8,7 +8,7 @@ import 'package:material_ui/material_ui.dart';
 /// User preferences shared by the complete application.
 class AppSettings {
   const AppSettings({
-    this.themeMode = ThemeMode.dark,
+    this.themeMode = ThemeMode.system,
     this.locale = const Locale('ar'),
     this.useGemma = false,
   });
@@ -69,7 +69,7 @@ class AppSettingsController extends Notifier<AppSettings> {
           'dark' => ThemeMode.dark,
           'light' => ThemeMode.light,
           'system' => ThemeMode.system,
-          _ => ThemeMode.dark,
+          _ => ThemeMode.system,
         },
         locale: Locale(values[1] == 'en' ? 'en' : 'ar'),
         useGemma: values[2] == 'gemma',
