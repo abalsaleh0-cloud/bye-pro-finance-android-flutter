@@ -227,11 +227,11 @@ final class GemmaAssistantEngine implements AssistantEngine {
 
   static String _descriptionFor(String name) => switch (name) {
         'save_work_entry' => 'Create a work income record for a due month.',
-        'delete_work_entry' => 'Delete a work record by its identifier.',
+        'delete_work_entry' => 'Delete one work record by identifier or by a unique kind, amount and date/month match.',
         'save_home_expense' => 'Create a household expense record.',
-        'delete_home_expense' => 'Delete a household expense by its identifier.',
+        'delete_home_expense' => 'Delete one household expense by identifier or a unique category, amount and date/month match.',
         'save_home_bill' => 'Create or update a monthly household bill or home rent. kind is monthly or rent.',
-        'delete_home_bill' => 'Delete a household bill or rent by its identifier.',
+        'delete_home_bill' => 'Delete a household bill or rent by identifier or exact unique bill title.',
         'record_home_bill_payment' => 'Record a payment or partial payment for an existing household bill or rent.',
         'read_home_bills' => 'List household bills and rent with their remaining unpaid amounts.',
         'read_work_records' => 'List saved work salary, advance, and payment records with identifiers.',
@@ -241,9 +241,9 @@ final class GemmaAssistantEngine implements AssistantEngine {
         'read_debt_payments' => 'List payment history for the specified debt identifier.',
         'read_home_bill_payments' => 'List payment history for the specified household bill identifier.',
         'save_work_home_transfer' => 'Transfer money from work to household.',
-        'delete_work_home_transfer' => 'Delete a work-to-household transfer.',
+        'delete_work_home_transfer' => 'Delete one work-to-household transfer by identifier or a unique amount and date/month match.',
         'save_debt' => 'Create a debt record.',
-        'delete_debt' => 'Delete a debt by its identifier.',
+        'delete_debt' => 'Delete one debt by identifier or exact unique counterparty and optional direction.',
         'record_debt_payment' => 'Record a payment against an existing debt.',
         'read_work_remaining' => 'Request the remaining work balance from the app.',
         'read_month_total' => 'Request a section total for a specified month from the app.',
@@ -276,10 +276,36 @@ final class GemmaAssistantEngine implements AssistantEngine {
           'id': string,
           'note': note,
         },
-      'delete_work_entry' ||
-      'delete_home_expense' ||
-      'delete_work_home_transfer' ||
-      'delete_debt' => {'id': string},
+      'delete_work_entry' => {
+          'id': string,
+          'kind': {'type': 'string', 'enum': ['salary', 'advance', 'payment', 'salaryPayment']},
+          'amountMinorUnits': integer,
+          'year': integer,
+          'month': integer,
+          'date': date,
+        },
+      'delete_home_expense' => {
+          'id': string,
+          'categoryId': string,
+          'categoryName': string,
+          'amountMinorUnits': integer,
+          'year': integer,
+          'month': integer,
+          'date': date,
+        },
+      'delete_work_home_transfer' => {
+          'id': string,
+          'amountMinorUnits': integer,
+          'year': integer,
+          'month': integer,
+          'date': date,
+        },
+      'delete_debt' => {
+          'id': string,
+          'debtId': string,
+          'counterparty': string,
+          'direction': {'type': 'string', 'enum': ['creditor', 'debtor']},
+        },
       'save_home_bill' => {
           'title': string,
           'kind': {'type': 'string', 'enum': ['monthly', 'rent']},
@@ -290,7 +316,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
           'id': string,
           'note': note,
         },
-      'delete_home_bill' => {'id': string},
+      'delete_home_bill' => {'id': string, 'billId': string, 'billTitle': string},
       'record_home_bill_payment' => {
           'billId': string,
           'billTitle': string,
@@ -305,7 +331,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
         },
       'read_home_categories' => <String, Map<String, Object>>{},
       'save_home_category' => {'name': string, 'id': string},
-      'delete_home_category' => {'id': string},
+      'delete_home_category' => {'id': string, 'name': string},
       'read_debt_payments' => {'debtId': string},
       'read_home_bill_payments' => {'billId': string},
       'save_home_expense' => {
