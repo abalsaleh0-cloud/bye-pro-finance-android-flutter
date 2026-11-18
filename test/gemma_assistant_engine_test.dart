@@ -132,6 +132,39 @@ void main() {
       expect(bill.required, contains('billId'));
     });
 
+    test('keeps Gemma deletion tool schemas aligned with local safe match fields', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.text(''),
+      );
+      const names = [
+        'delete_work_entry',
+        'delete_home_expense',
+        'delete_work_home_transfer',
+        'delete_home_bill',
+        'delete_debt',
+        'delete_home_category',
+      ];
+      await GemmaAssistantEngine(generator).interpret(
+        'احذف السجل المحدد',
+        names,
+      );
+
+      final functions = generator.receivedFunctions!;
+      final work = functions.singleWhere((item) => item.name == 'delete_work_entry');
+      final expense = functions.singleWhere((item) => item.name == 'delete_home_expense');
+      final transfer = functions.singleWhere((item) => item.name == 'delete_work_home_transfer');
+      final bill = functions.singleWhere((item) => item.name == 'delete_home_bill');
+      final debt = functions.singleWhere((item) => item.name == 'delete_debt');
+      final category = functions.singleWhere((item) => item.name == 'delete_home_category');
+
+      expect(work.properties.keys, containsAll(['id', 'kind', 'amountMinorUnits', 'year', 'month', 'date']));
+      expect(expense.properties.keys, containsAll(['id', 'categoryId', 'categoryName', 'amountMinorUnits', 'year', 'month', 'date']));
+      expect(transfer.properties.keys, containsAll(['id', 'amountMinorUnits', 'year', 'month', 'date']));
+      expect(bill.properties.keys, containsAll(['id', 'billId', 'billTitle']));
+      expect(debt.properties.keys, containsAll(['id', 'debtId', 'counterparty', 'direction']));
+      expect(category.properties.keys, containsAll(['id', 'name']));
+    });
+
     test('exposes dashboard summary and safe navigation tool schemas', () async {
       final generator = _FakeGemmaGenerator(
         const GemmaModelOutput.text(''),
