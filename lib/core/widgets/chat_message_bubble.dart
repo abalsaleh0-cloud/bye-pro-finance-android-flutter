@@ -19,7 +19,6 @@ class ChatMessageBubble extends StatelessWidget {
     final radius = AppDesignTokens.of(context).cardRadius;
 
     return Container(
-      key: key,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         color: isOutgoing ? scheme.tertiaryContainer : scheme.surfaceContainerHigh,
