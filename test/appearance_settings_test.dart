@@ -58,13 +58,28 @@ void main() {
     await tester.tap(find.byKey(const Key('open-settings')));
     await tester.pumpAndSettle();
 
-    // Backup/restore and app-lock controls must be visible in the real
-    // Settings screen, not merely implemented as unused widgets.
+    // Settings uses a lazy ListView: scroll to instantiate each section
+    // before asserting that its controls are present.
+    final settingsScroll = find.byType(Scrollable).first;
+    await tester.scrollUntilVisible(
+      find.text('النسخ الاحتياطي والاستعادة'),
+      420,
+      scrollable: settingsScroll,
+    );
     expect(find.text('النسخ الاحتياطي والاستعادة'), findsOneWidget);
-    expect(find.text('قفل التطبيق'), findsOneWidget);
-    await tester.ensureVisible(find.text('إنشاء نسخة احتياطية'));
+    await tester.scrollUntilVisible(
+      find.text('إنشاء نسخة احتياطية'),
+      260,
+      scrollable: settingsScroll,
+    );
     expect(find.text('إنشاء نسخة احتياطية'), findsOneWidget);
-    await tester.ensureVisible(find.text('تعيين رمز PIN'));
+    expect(find.text('استعادة نسخة احتياطية'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('قفل التطبيق'),
+      420,
+      scrollable: settingsScroll,
+    );
+    expect(find.text('قفل التطبيق'), findsOneWidget);
     expect(find.text('تعيين رمز PIN'), findsOneWidget);
     expect(find.text('فتح التطبيق بالبصمة'), findsOneWidget);
 
