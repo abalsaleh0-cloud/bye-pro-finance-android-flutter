@@ -457,7 +457,9 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       } else if (result.kind == AssistantResultKind.notUnderstood ||
           result.command == null) {
         _addAssistantMessage(strings.assistantNotUnderstood);
-        await _openManual();
+        // A failed multimodal turn should stay in the chat; opening the
+        // manual-entry section picker is only useful for text commands.
+        if (media == null) await _openManual();
       } else {
         final command = result.command!;
         final error = registry.validate(command.name, command.parameters);
