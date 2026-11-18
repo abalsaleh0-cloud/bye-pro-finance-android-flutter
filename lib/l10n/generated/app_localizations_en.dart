@@ -349,6 +349,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get gemmaDownloadResumeNote => 'The download runs in the background with a notification. If interrupted, retrying may start from the beginning; the Hugging Face CDN does not support partial resume.';
 
   @override
+  String get gemmaNotificationPermissionDenied => 'Notification permission was not granted. The download may continue in the background, but its progress notification may not appear in the notification shade.';
+
+  @override
   String get gemmaWifiTitle => 'Download warning';
 
   @override
