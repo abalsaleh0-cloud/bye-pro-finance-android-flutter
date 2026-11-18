@@ -246,6 +246,21 @@ void main() {
       expect(removed.command!.parameters['name'], 'لوازم المكتب');
     });
 
+    test('accepts a custom category as a clarification answer', () async {
+      const context = 'المستخدم: سجل مصروف البيت 45 هذا الشهر\\n'
+          'المساعد: ما تصنيف المصروف؟ مثل الطعام أو الكهرباء أو المواصلات.';
+      final result = await engine.interpret(
+        'مستلزمات المكتب',
+        actions,
+        conversationContext: context,
+        expenseCategories: const {'custom_office': 'مستلزمات المكتب'},
+      );
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'save_home_expense');
+      expect(result.command!.parameters['categoryId'], 'custom_office');
+      expect(result.command!.parameters['amountMinorUnits'], 45);
+    });
+
     test('records a bill payment against an exact bill title', () async {
       final result = await engine.interpret(
         'دفعت 75 فاتورة الكهرباء اليوم',
