@@ -60,6 +60,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
     List<String> availableActions, {
     AssistantMedia? media,
     String conversationContext = '',
+    Map<String, String> expenseCategories = const {},
   }) async {
     final text = input.trim();
     if (text.isEmpty) return const AssistantResult.notUnderstood();
@@ -81,7 +82,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
         required: ['question'],
       ));
 
-      final prompt = _composePrompt(text, conversationContext);
+      final prompt = _composePrompt(text, conversationContext, expenseCategories);
       final output = await generator.generate(prompt, functions, media: media).timeout(timeout);
       if (output.parallelCalls) return const AssistantResult.notUnderstood();
 
@@ -197,12 +198,22 @@ final class GemmaAssistantEngine implements AssistantEngine {
     ]);
   }
 
-  static String _composePrompt(String currentText, String conversationContext) {
+  static String _composePrompt(
+    String currentText,
+    String conversationContext,
+    Map<String, String> expenseCategories,
+  ) {
     final context = conversationContext.trim();
-    if (context.isEmpty) return currentText;
-    return 'سياق المحادثة السابق للرجوع إليه لفهم الإحالات واستكمال الحوار فقط:\n'
-        '$context\n\n'
-        'رسالة المستخدم الحالية:\n$currentText';
+    final categoryCatalog = expenseCategories.entries
+        .map((entry) => '${entry.key} = ${entry.value}')
+        .join('؛ ');
+    final categoryInstruction = categoryCatalog.isEmpty
+        ? ''
+        : '\\nالتصنيفات الفعلية المتاحة في هذا التطبيق (المعرّف = الاسم): $categoryCatalog. عند تسجيل مصروف اختر التصنيف المطابق من هذه القائمة، ولا تخترع تصنيفاً أو معرّفاً.';
+    if (context.isEmpty) return '$categoryInstruction\\n$currentText';
+    return 'سياق المحادثة السابق للرجوع إليه لفهم الإحالات واستكمال الحوار فقط:\\n'
+        '$context$categoryInstruction\\n\\n'
+        'رسالة المستخدم الحالية:\\n$currentText';
   }
 
   GemmaFunctionSpec _functionFor(ActionDescriptor descriptor) {
@@ -261,6 +272,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
           'amountMinorUnits': integer,
           'year': integer,
           'month': integer,
+          'date': date,
           'id': string,
           'note': note,
         },
@@ -274,21 +286,32 @@ final class GemmaAssistantEngine implements AssistantEngine {
           'amountMinorUnits': integer,
           'year': integer,
           'month': integer,
+          'date': date,
           'id': string,
           'note': note,
         },
       'delete_home_bill' => {'id': string},
       'record_home_bill_payment' => {
           'billId': string,
+          'billTitle': string,
           'amountMinorUnits': integer,
+          'date': date,
           'note': note,
         },
-      'read_home_bills' || 'read_work_records' || 'read_home_expenses' || 'read_debts' || 'read_work_transfers' => <String, Map<String, Object>>{},
+      'read_home_bills' || 'read_work_records' || 'read_home_expenses' || 'read_debts' || 'read_work_transfers' => {
+          'year': integer,
+          'month': integer,
+          'allRecords': {'type': 'boolean'},
+        },
+      'read_home_categories' => <String, Map<String, Object>>{},
+      'save_home_category' => {'name': string, 'id': string},
+      'delete_home_category' => {'id': string},
       'read_debt_payments' => {'debtId': string},
       'read_home_bill_payments' => {'billId': string},
       'save_home_expense' => {
           'amountMinorUnits': integer,
           'categoryId': string,
+          'categoryName': string,
           'date': date,
           'year': integer,
           'month': integer,
@@ -310,12 +333,16 @@ final class GemmaAssistantEngine implements AssistantEngine {
           'counterparty': string,
           'year': integer,
           'month': integer,
+          'date': date,
           'id': string,
           'note': note,
         },
       'record_debt_payment' => {
           'debtId': string,
+          'counterparty': string,
+          'direction': {'type': 'string', 'enum': ['creditor', 'debtor']},
           'amountMinorUnits': integer,
+          'date': date,
           'note': note,
         },
       'read_work_remaining' => <String, Map<String, Object>>{},
@@ -382,7 +409,9 @@ final class GemmaAssistantEngine implements AssistantEngine {
         'kind' => 'هل تقصد راتباً أم سلفة أم دفعة أم فاتورة شهرية أم إيجاراً؟',
         'direction' => 'هل الدين دائن أم مدين؟',
         'counterparty' => 'ما اسم الطرف المعني بالدين؟',
-        'categoryId' => 'ما تصنيف المصروف؟',
+        'categoryId' || 'categoryName' => 'ما تصنيف المصروف؟',
+        'name' => 'ما اسم التصنيف الذي تريد إضافته؟',
+        'counterparty' => 'ما اسم صاحب الدين؟',
         'title' => 'ما اسم الفاتورة أو الإيجار؟',
         'billId' => 'أي فاتورة تريد تسجيل الدفعة عليها؟',
         'date' => 'ما تاريخ المصروف؟',
