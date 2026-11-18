@@ -523,6 +523,59 @@ final class FakeAssistantEngine implements AssistantEngine {
           },
         ));
       }
+      if (has(const ['فاتورة', 'فاتوره', 'اشتراك', 'ايجار', 'اجار', 'rent', 'bill'])) {
+        final title = _billTitle(effectiveInput);
+        if (title == null) {
+          return const AssistantResult.clarification('ما اسم الفاتورة أو الإيجار الجديد؟');
+        }
+        if (requestedMonth == null) {
+          return const AssistantResult.clarification('ما شهر الاستحقاق الجديد؟');
+        }
+        if (!can('save_home_bill')) return const AssistantResult.notUnderstood();
+        final isRent = has(const ['ايجار', 'اجار', 'بدل سكن', 'rent']);
+        return AssistantResult.command(AssistantCommand(
+          name: 'save_home_bill',
+          parameters: {
+            'id': explicitId,
+            'title': title,
+            'kind': isRent ? 'rent' : 'monthly',
+            'amountMinorUnits': amount,
+            'year': requestedMonth.$1,
+            'month': requestedMonth.$2,
+            'date': (operationDate ?? _defaultDateForMonth(requestedMonth.$1, requestedMonth.$2))
+                .toIso8601String().split('T').first,
+            'note': ?note,
+          },
+        ));
+      }
+      if (has(const ['دين', 'ديون', 'debt'])) {
+        final direction = _debtDirection(has);
+        if (direction == null) {
+          return const AssistantResult.clarification('هل اتجاه الدين دائن أم مدين؟');
+        }
+        final counterparty = _counterparty(effectiveInput);
+        if (counterparty == null) {
+          return const AssistantResult.clarification('ما اسم الشخص أو الجهة في سجل الدين؟');
+        }
+        if (requestedMonth == null) {
+          return const AssistantResult.clarification('ما شهر الاستحقاق الجديد للدين؟');
+        }
+        if (!can('save_debt')) return const AssistantResult.notUnderstood();
+        return AssistantResult.command(AssistantCommand(
+          name: 'save_debt',
+          parameters: {
+            'id': explicitId,
+            'amountMinorUnits': amount,
+            'direction': direction,
+            'counterparty': counterparty,
+            'year': requestedMonth.$1,
+            'month': requestedMonth.$2,
+            'date': (operationDate ?? _defaultDateForMonth(requestedMonth.$1, requestedMonth.$2))
+                .toIso8601String().split('T').first,
+            'note': ?note,
+          },
+        ));
+      }
     }
 
     final isTransfer = has(const [
