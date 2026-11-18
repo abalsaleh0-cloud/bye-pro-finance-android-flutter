@@ -18,7 +18,6 @@ import 'package:expense_app/features/ai/data/gemma_model_manager.dart';
 import 'package:expense_app/features/ai/domain/action_registry.dart';
 import 'package:expense_app/features/ai/domain/assistant_confirmation.dart';
 import 'package:expense_app/features/ai/domain/assistant_engine.dart';
-import 'package:expense_app/features/ai/domain/gemma_assistant_engine.dart';
 import 'package:expense_app/features/ai/presentation/ai_chat_state.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
