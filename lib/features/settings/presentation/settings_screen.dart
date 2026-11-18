@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/providers/app_settings_provider.dart';
 import 'package:expense_app/core/theme/app_design_tokens.dart';
@@ -212,15 +210,13 @@ class SettingsScreen extends ConsumerWidget {
               ),
               subtitle: Text(strings.gemmaEngineDescription),
               value: settings.useGemma,
-              onChanged: (enabled) {
-                controller.setGemmaEnabled(enabled);
+              onChanged: (enabled) async {
+                await controller.setGemmaEnabled(enabled);
                 if (!enabled) {
-                  unawaited(
-                    ref
-                        .read(gemmaModelManagerProvider.notifier)
-                        .releaseModel()
-                        .catchError((_) {}),
-                  );
+                  await ref
+                      .read(gemmaModelManagerProvider.notifier)
+                      .releaseModel()
+                      .catchError((_) {});
                 }
               },
             ),
