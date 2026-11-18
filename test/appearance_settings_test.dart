@@ -99,7 +99,10 @@ void main() {
     expect(find.byKey(const Key('create-theme-from-color')), findsNothing);
     expect(find.byKey(const Key('import-theme-json')), findsNothing);
 
-    await tester.ensureVisible(find.text('الوضع الداكن'));
+    // Return the lazy settings list to its top before changing the theme.
+    await tester.drag(settingsScroll, const Offset(0, 1400));
+    await tester.pump();
+    expect(find.text('الوضع الداكن'), findsOneWidget);
     await tester.tap(find.text('الوضع الداكن'));
     await tester.pumpAndSettle();
 
