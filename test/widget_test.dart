@@ -78,6 +78,31 @@ void main() {
     expect(find.text('الذكاء الاصطناعي'), findsWidgets);
   });
 
+  _testWidgetsWithDriftCleanup(
+    'shows onboarding only on first launch and continues to the dashboard',
+    (tester) async {
+      await testDatabase.writeSetting('welcome_seen', '');
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [appDatabaseProvider.overrideWithValue(testDatabase)],
+          child: const MyApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('مرحباً بك في مساحتك المالية'), findsOneWidget);
+      expect(find.text('ابدأ الآن'), findsOneWidget);
+      expect(find.text('الرئيسية'), findsNothing);
+
+      await tester.tap(find.text('ابدأ الآن'));
+      await tester.pumpAndSettle();
+
+      expect(await testDatabase.readSetting('welcome_seen'), 'true');
+      expect(find.text('الرئيسية'), findsWidgets);
+      expect(find.text('ابدأ الآن'), findsNothing);
+    },
+  );
+
   _testWidgetsWithDriftCleanup('global calculator evaluates expressions and returns a safe result', (tester) async {
     await tester.pumpWidget(
       ProviderScope(
