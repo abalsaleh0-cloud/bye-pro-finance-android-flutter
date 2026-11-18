@@ -114,6 +114,21 @@ final class AssistantInputNormalizer {
   int? extractAmount(String input) {
     var value = _numbers.normalizeDigits(input);
 
+    // Remove alpha-prefixed record IDs before looking for money. A suffix
+    // such as the "1" in bill_1 must never beat the actual amount.
+    value = value.replaceAll(
+      RegExp(r'\b[A-Za-z][A-Za-z0-9]*[_-][A-Za-z0-9_-]+\b'),
+      ' ',
+    );
+    value = value.replaceAll(
+      RegExp(
+        r'(?:معرّف|معرف|رقم\s+(?:السجل|الفاتورة|الدين|المصروف|التحويل|التصنيف)|id)\s*[:#：]?\s*[A-Za-z0-9_-]{2,64}',
+        caseSensitive: false,
+        unicode: true,
+      ),
+      ' ',
+    );
+
     // Remove complete dates before looking for a monetary amount.
     value = value.replaceAll(
       RegExp(r'\b20\d{2}[-/.](?:0?[1-9]|1[0-2])[-/.](?:0?[1-9]|[12]\d|3[01])\b'),
