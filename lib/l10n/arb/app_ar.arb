@@ -254,5 +254,6 @@
   "homeCategoryEntertainment": "الترفيه",
   "homeCategoryCommunication": "الاتصالات والإنترنت",
   "homeCategorySubscriptions": "الاشتراكات",
-  "homeCategoryGifts": "الهدايا والمناسبات"
+  "homeCategoryGifts": "الهدايا والمناسبات",
+  "personName": "اسم الشخص"
 }
