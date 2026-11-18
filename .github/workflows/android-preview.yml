@@ -1,15 +1,6 @@
 name: Android Preview APK
 
 on:
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'android/**'
-      - 'lib/**'
-      - 'test/**'
-      - 'pubspec.yaml'
-      - '.github/workflows/android-preview.yml'
   workflow_dispatch:
 
 permissions:
@@ -17,7 +8,7 @@ permissions:
 
 jobs:
   build-preview:
-    name: Build installable ARM64 profile preview APK
+    name: Manual ARM64 profile preview APK
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -29,6 +20,12 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          gradle-version: '9.5.0'
+          cache-provider: basic
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
