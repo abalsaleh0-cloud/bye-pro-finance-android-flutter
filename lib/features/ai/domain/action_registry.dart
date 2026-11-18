@@ -123,6 +123,15 @@ final class ActionRegistry {
     if (name == 'read_dashboard_summary' && (year == null) != (month == null)) {
       return 'dashboard month requires both year and month';
     }
+    if (name == 'delete_home_expense' && (year == null) != (month == null)) {
+      return 'expense deletion month requires both year and month';
+    }
+    if (name == 'delete_home_expense' && p['date'] is String) {
+      final date = DateTime.parse(p['date']! as String);
+      if (year != null && (date.year != year || date.month != month)) {
+        return 'expense deletion date and month differ';
+      }
+    }
     if (const {
       'read_work_records',
       'read_home_expenses',
