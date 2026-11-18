@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
@@ -18,6 +19,8 @@ bool supportsGemmaMultimodalMemory(int physicalRamMegabytes) =>
     physicalRamMegabytes >= 6 * 1024;
 
 enum GemmaModelStatus { notDownloaded, downloading, ready, error }
+
+enum GemmaInferenceStatus { notTested, testing, succeeded, failed }
 
 class ModelReleaseCoordinator {
   int _activeOperations = 0;
@@ -69,12 +72,18 @@ class GemmaModelState {
     this.error,
     this.cancelled = false,
     this.installed = false,
+    this.inferenceStatus = GemmaInferenceStatus.notTested,
+    this.inferenceMessage,
+    this.inferenceAt,
   });
 
   final GemmaModelStatus status;
   final double progress;
   final String? error;
   final bool cancelled;
+  final GemmaInferenceStatus inferenceStatus;
+  final String? inferenceMessage;
+  final DateTime? inferenceAt;
   /// True only when the model registry reports an installed model file.
   /// This prevents showing a destructive delete action after a plain download error.
   final bool installed;
@@ -86,6 +95,11 @@ class GemmaModelState {
     bool clearError = false,
     bool? cancelled,
     bool? installed,
+    GemmaInferenceStatus? inferenceStatus,
+    String? inferenceMessage,
+    bool clearInferenceMessage = false,
+    DateTime? inferenceAt,
+    bool clearInferenceAt = false,
   }) {
     return GemmaModelState(
       status: status ?? this.status,
@@ -93,6 +107,11 @@ class GemmaModelState {
       error: clearError ? null : error ?? this.error,
       cancelled: cancelled ?? this.cancelled,
       installed: installed ?? this.installed,
+      inferenceStatus: inferenceStatus ?? this.inferenceStatus,
+      inferenceMessage: clearInferenceMessage
+          ? null
+          : inferenceMessage ?? this.inferenceMessage,
+      inferenceAt: clearInferenceAt ? null : inferenceAt ?? this.inferenceAt,
     );
   }
 }
@@ -116,6 +135,7 @@ class GemmaModelManager extends Notifier<GemmaModelState>
   static const expectedSha256 =
       '181938105e0eefd105961417e8da75903eacda102c4fce9ce90f50b97139a63c';
   static const _verifiedModelSetting = 'gemma_verified_model';
+  static const _inferenceResultSetting = 'gemma_last_inference_result';
   static const modelUrl =
       'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/$modelRevision/$modelFileName';
   static const systemInstruction = '''
@@ -223,11 +243,12 @@ class GemmaModelManager extends Notifier<GemmaModelState>
         );
         return;
       }
-      state = const GemmaModelState(
+      state = GemmaModelState(
         status: GemmaModelStatus.ready,
         progress: 100,
         installed: true,
       );
+      await _restoreInferenceResult();
     } catch (error) {
       state = GemmaModelState(
         status: GemmaModelStatus.error,
@@ -360,6 +381,104 @@ class GemmaModelManager extends Notifier<GemmaModelState>
     return true;
   }
 
+
+  Future<void> _restoreInferenceResult() async {
+    try {
+      final raw = await ref
+          .read(appDatabaseProvider)
+          .readSetting(_inferenceResultSetting);
+      if (raw == null || raw.trim().isEmpty) return;
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic>) return;
+      final statusName = decoded['status'];
+      final message = decoded['message'];
+      final timestamp = decoded['at'];
+      final status = switch (statusName) {
+        'succeeded' => GemmaInferenceStatus.succeeded,
+        'failed' => GemmaInferenceStatus.failed,
+        _ => GemmaInferenceStatus.notTested,
+      };
+      if (status == GemmaInferenceStatus.notTested) return;
+      state = state.copyWith(
+        inferenceStatus: status,
+        inferenceMessage: message is String ? message : null,
+        inferenceAt: timestamp is String ? DateTime.tryParse(timestamp) : null,
+      );
+    } catch (_) {
+      // Diagnostics must never affect model availability.
+    }
+  }
+
+  Future<void> _saveInferenceResult(
+    GemmaInferenceStatus status,
+    String message,
+  ) async {
+    final at = DateTime.now();
+    state = state.copyWith(
+      inferenceStatus: status,
+      inferenceMessage: message,
+      inferenceAt: at,
+      clearError: status == GemmaInferenceStatus.succeeded,
+    );
+    try {
+      await ref.read(appDatabaseProvider).writeSetting(
+        _inferenceResultSetting,
+        jsonEncode({
+          'status': status.name,
+          'message': message,
+          'at': at.toIso8601String(),
+        }),
+      );
+    } catch (_) {
+      // The current session still displays the result when persistence fails.
+    }
+  }
+
+  Future<bool> testInference() async {
+    if (state.inferenceStatus == GemmaInferenceStatus.testing) return false;
+    if (state.status != GemmaModelStatus.ready) {
+      await refresh();
+    }
+    if (state.status != GemmaModelStatus.ready) {
+      await _saveInferenceResult(
+        GemmaInferenceStatus.failed,
+        'ملف Gemma غير جاهز للتشغيل. راجع حالة الملف أعلاه.',
+      );
+      return false;
+    }
+
+    state = state.copyWith(
+      inferenceStatus: GemmaInferenceStatus.testing,
+      clearInferenceMessage: true,
+      clearInferenceAt: true,
+    );
+    try {
+      final output = await generate(
+        'أجب بجملة قصيرة تؤكد نجاح اختبار تشغيل Gemma.',
+        const <GemmaFunctionSpec>[],
+      );
+      final response = output.text?.trim() ?? '';
+      if (response.isEmpty || response.startsWith('{')) {
+        await _saveInferenceResult(
+          GemmaInferenceStatus.failed,
+          'وصل التنفيذ إلى النموذج، لكنه لم يُرجع إجابة نصية صالحة.',
+        );
+        return false;
+      }
+      await _saveInferenceResult(
+        GemmaInferenceStatus.succeeded,
+        'نجح اختبار التشغيل المحلي. أنشأ Gemma إجابة فعلية على هذا الجهاز.',
+      );
+      return true;
+    } catch (error) {
+      await _saveInferenceResult(
+        GemmaInferenceStatus.failed,
+        'فشل اختبار تشغيل Gemma (${error.runtimeType}). تم الاحتفاظ بملف النموذج كما هو.',
+      );
+      return false;
+    }
+  }
+
   Future<void> _checkMultimodalMemory(AssistantMedia? media) async {
     if (media == null || (!media.hasImage && !media.hasAudio)) {
       return;
@@ -406,6 +525,11 @@ class GemmaModelManager extends Notifier<GemmaModelState>
     }
 
     await _checkMultimodalMemory(media);
+    state = state.copyWith(
+      inferenceStatus: GemmaInferenceStatus.testing,
+      clearInferenceMessage: true,
+      clearInferenceAt: true,
+    );
     final supportImage = media?.hasImage ?? false;
     final supportAudio = media?.hasAudio ?? false;
     if (_model != null && !_model!.isClosed &&
@@ -470,12 +594,32 @@ class GemmaModelManager extends Notifier<GemmaModelState>
         }
 
         if (hasMultipleCalls) {
+          await _saveInferenceResult(
+            GemmaInferenceStatus.failed,
+            'أعاد Gemma عدة استدعاءات متزامنة، ولم يعتمد التطبيق هذه النتيجة.',
+          );
           return const GemmaModelOutput.multiple();
         }
         if (functionName != null && arguments != null) {
+          await _saveInferenceResult(
+            GemmaInferenceStatus.succeeded,
+            'نجح تشغيل Gemma محلياً وأعاد إجراءً منظماً للتطبيق.',
+          );
           return GemmaModelOutput.call(functionName, arguments);
         }
-        return GemmaModelOutput.text(text.toString());
+        final generatedText = text.toString().trim();
+        if (generatedText.isEmpty) {
+          await _saveInferenceResult(
+            GemmaInferenceStatus.failed,
+            'استُدعي Gemma لكنه لم يُنتج نصاً في هذه المحاولة.',
+          );
+          return const GemmaModelOutput.text('');
+        }
+        await _saveInferenceResult(
+          GemmaInferenceStatus.succeeded,
+          'نجح تشغيل Gemma محلياً وأنتج إجابة نصية.',
+        );
+        return GemmaModelOutput.text(generatedText);
       } finally {
         if (chat != null) {
           await chat.close();
@@ -486,15 +630,21 @@ class GemmaModelManager extends Notifier<GemmaModelState>
       if (error is ContextLimitException) {
         // The SDK rolls back the refused turn. This is an input/context-size
         // problem, not a failed model load; keep Gemma available for retry.
-        state = GemmaModelState(
+        state = state.copyWith(
           status: GemmaModelStatus.ready,
           progress: 100,
-          error: 'الطلب أطول من مساحة السياق المتاحة. اختصر الطلب وأعد المحاولة؛ النموذج ما زال جاهزاً.',
+        );
+        await _saveInferenceResult(
+          GemmaInferenceStatus.failed,
+          'تعذر إكمال الطلب لأن سياق المحادثة أطول من المساحة المتاحة. اختصر الطلب وأعد المحاولة.',
         );
       } else {
-        state = GemmaModelState(
-          status: GemmaModelStatus.error,
-          error: 'تعذر تشغيل Gemma (${error.runtimeType}). تم الاحتفاظ بالنموذج؛ أغلق التطبيقات الأخرى وأعد المحاولة.',
+        // Keep the verified 2.59 GB file installed. Runtime errors are tracked
+        // separately from file-integrity errors and can be retried in place.
+        state = state.copyWith(status: GemmaModelStatus.ready);
+        await _saveInferenceResult(
+          GemmaInferenceStatus.failed,
+          'تعذر تشغيل Gemma (${error.runtimeType}). تم الاحتفاظ بملف النموذج ويمكن إعادة الاختبار.',
         );
         try {
           unawaited(releaseModel());
