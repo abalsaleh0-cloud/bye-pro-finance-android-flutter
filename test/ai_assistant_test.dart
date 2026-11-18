@@ -499,7 +499,7 @@ void main() {
     test('records and reads bill payments by exact bill title', () async {
       await seedWorkCash();
       await registry.execute('save_work_home_transfer', {
-        'amountMinorUnits': 1000,
+        'amountMinorUnits': 500,
         'date': DateTime.now().toIso8601String(),
       });
       await registry.execute('save_home_bill', {
