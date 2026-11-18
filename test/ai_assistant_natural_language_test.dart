@@ -186,6 +186,59 @@ void main() {
       expect(result.command!.parameters['kind'], 'monthly');
       expect(result.command!.parameters['amountMinorUnits'], 90);
     });
+    test('understands a monthly invoice when the frequency follows its name', () async {
+      final now = DateTime.now();
+      final result = await engine.interpret(
+        'أضيف فاتورة الكهرباء الشهرية 90 لهذا الشهر',
+        actions,
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'save_home_bill');
+      expect(result.command!.parameters['title'], 'الكهرباء');
+      expect(result.command!.parameters['kind'], 'monthly');
+      expect(result.command!.parameters['amountMinorUnits'], 90);
+      expect(result.command!.parameters['year'], now.year);
+      expect(result.command!.parameters['month'], now.month);
+    });
+
+    test('understands a monthly invoice when the frequency precedes its name', () async {
+      final result = await engine.interpret(
+        'أضف فاتورة شهرية الإنترنت 90 لهذا الشهر',
+        actions,
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.parameters['title'], 'الإنترنت');
+      expect(result.command!.parameters['kind'], 'monthly');
+      expect(result.command!.parameters['amountMinorUnits'], 90);
+    });
+
+    test('understands monthly rent with the monthly adjective', () async {
+      final result = await engine.interpret(
+        'أضيف إيجار شهري 500 لهذا الشهر',
+        actions,
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'save_home_bill');
+      expect(result.command!.parameters['title'], 'الإيجار');
+      expect(result.command!.parameters['kind'], 'rent');
+      expect(result.command!.parameters['amountMinorUnits'], 500);
+    });
+
+    test('understands plural monthly rent wording', () async {
+      final result = await engine.interpret(
+        'أضيف الإيجارات الشهرية 500 لهذا الشهر',
+        actions,
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.parameters['title'], 'الإيجار');
+      expect(result.command!.parameters['kind'], 'rent');
+      expect(result.command!.parameters['amountMinorUnits'], 500);
+    });
+
   });
 
   group('Reading and navigation phrases', () {
