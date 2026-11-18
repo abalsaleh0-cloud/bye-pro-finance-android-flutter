@@ -39,6 +39,10 @@ void main() {
         greaterThanOrEqualTo(4.5),
       );
       expect(
+        AppTheme.contrastRatio(scheme.onPrimary, scheme.primary),
+        greaterThanOrEqualTo(4.5),
+      );
+      expect(
         AppTheme.contrastRatio(
           scheme.onTertiaryContainer,
           scheme.tertiaryContainer,
