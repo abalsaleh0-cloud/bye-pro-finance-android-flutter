@@ -418,7 +418,7 @@ class GemmaModelManager extends Notifier<GemmaModelState>
       inferenceStatus: status,
       inferenceMessage: message,
       inferenceAt: at,
-      clearError: status == GemmaInferenceStatus.succeeded,
+      clearError: true,
     );
     try {
       await ref.read(appDatabaseProvider).writeSetting(
