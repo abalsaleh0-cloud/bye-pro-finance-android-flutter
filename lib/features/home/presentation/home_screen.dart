@@ -827,7 +827,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 for (final item in allPayments)
                   _HomeLogItem(date: item.paidAt, title: strings.addBillPayment, subtitle: allBills.where((bill) => bill.id == item.billId).firstOrNull?.title, amount: item.amount.minorUnits, icon: Icons.payments_outlined, note: item.note),
               ]..sort((a, b) => b.date.compareTo(a.date));
-              if (logItems.isEmpty) return Center(child: Text(strings.noRecords));
+              if (logItems.isEmpty) {
+                return Center(child: Text(strings.noRecords));
+              }
               return Column(children: [
                 for (final item in logItems)
                   Padding(
