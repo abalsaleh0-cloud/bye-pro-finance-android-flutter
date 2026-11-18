@@ -470,7 +470,11 @@ final class ActionRegistry {
               : previous?.recordedAt ?? DateTime.now(),
           note: p.containsKey('note') ? p['note'] as String? : previous?.note,
         );
-        await _work.saveEntry(item);
+        try {
+          await _work.saveEntry(item);
+        } on InsufficientWorkBalanceException {
+          throw const AssistantActionException('work_balance_insufficient');
+        }
         return ActionExecution(message:'تم حفظ سجل العمل',undo:() async { if(previous==null) { await _work.deleteEntry(id); } else { await _work.saveEntry(previous); } });
       case 'delete_work_entry': {
         final requestedId = p['id'] as String?;
@@ -502,7 +506,11 @@ final class ActionRegistry {
           );
         }
         final deleted = matches.single;
-        await _work.deleteEntry(deleted.id);
+        try {
+          await _work.deleteEntry(deleted.id);
+        } on InsufficientWorkBalanceException {
+          throw const AssistantActionException('work_balance_insufficient');
+        }
         return ActionExecution(
           message: 'تم حذف سجل العمل',
           undo: () => _work.saveEntry(deleted),
@@ -543,7 +551,12 @@ final class ActionRegistry {
           dueMonth: MonthKey(year: expenseDate.year, month: expenseDate.month),
           note: p.containsKey('note') ? p['note'] as String? : previous?.note,
         );
-        await _home.save(item); return ActionExecution(message:'تم حفظ مصروف المنزل',undo:() async { if(previous==null) { await _home.delete(id); } else { await _home.save(previous); } });
+        try {
+          await _home.save(item);
+        } on InsufficientHomeBalanceException {
+          throw const AssistantActionException('home_balance_insufficient');
+        }
+        return ActionExecution(message:'تم حفظ مصروف المنزل',undo:() async { if(previous==null) { await _home.delete(id); } else { await _home.save(previous); } });
       case 'delete_home_expense': {
         final requestedId = p['id'] as String?;
         final categoryId = p['categoryId'] as String?;
@@ -618,7 +631,11 @@ final class ActionRegistry {
           note: p.containsKey('note') ? p['note'] as String? : existing?.note,
           paidMinorUnits: existing?.paidMinorUnits ?? 0,
         );
-        await _bills.saveBill(bill);
+        try {
+          await _bills.saveBill(bill);
+        } on InsufficientBillPaymentBalanceException {
+          throw const AssistantActionException('bill_commitment_not_available');
+        }
         return ActionExecution(
           message: 'تم حفظ الفاتورة المنزلية',
           undo: () async {
@@ -817,7 +834,14 @@ final class ActionRegistry {
               : previous?.transferredAt ?? DateTime.now(),
           note: p.containsKey('note') ? p['note'] as String? : previous?.note,
         );
-        await _work.saveTransfer(item); return ActionExecution(message:'تم تسجيل التحويل إلى المنزل',undo:() async { if(previous==null) { await _work.deleteTransfer(id); } else { await _work.saveTransfer(previous); } });
+        try {
+          await _work.saveTransfer(item);
+        } on InsufficientWorkBalanceException {
+          throw const AssistantActionException('work_balance_insufficient');
+        } on TransferWouldOverdrawHomeException {
+          throw const AssistantActionException('home_commitment_not_covered');
+        }
+        return ActionExecution(message:'تم تسجيل التحويل إلى المنزل',undo:() async { if(previous==null) { await _work.deleteTransfer(id); } else { await _work.saveTransfer(previous); } });
       case 'delete_work_home_transfer': {
         final requestedId = p['id'] as String?;
         final date = p['date'] is String ? DateTime.parse(p['date']! as String) : null;
