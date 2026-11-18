@@ -22,6 +22,51 @@ class AppLocalizationsAr extends AppLocalizations {
   String get homeSection => 'المنزل';
 
   @override
+  String get workTransfersTab => 'تحويلات المنزل';
+
+  @override
+  String get homeIncomingFromWork => 'الوارد من العمل';
+
+  @override
+  String get homeMonthlyRent => 'الإيجارات الشهرية';
+
+  @override
+  String get homeExpenses => 'المصروفات';
+
+  @override
+  String get homeHistory => 'السجل';
+
+  @override
+  String get addMonthlyRent => 'إضافة إيجار شهري';
+
+  @override
+  String get billOrRentName => 'اسم الفاتورة أو الإيجار';
+
+  @override
+  String get addCreditorDebt => 'إضافة دين لك (دائن)';
+
+  @override
+  String get addDebtorDebt => 'إضافة دين عليك (مدين)';
+
+  @override
+  String get homeCategoryChildren => 'مستلزمات الأطفال';
+
+  @override
+  String get homeCategoryEducation => 'التعليم';
+
+  @override
+  String get homeCategoryEntertainment => 'الترفيه';
+
+  @override
+  String get homeCategoryCommunication => 'الاتصالات والإنترنت';
+
+  @override
+  String get homeCategorySubscriptions => 'الاشتراكات';
+
+  @override
+  String get homeCategoryGifts => 'الهدايا والمناسبات';
+
+  @override
   String get debts => 'الديون';
 
   @override
