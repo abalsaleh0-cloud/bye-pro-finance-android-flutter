@@ -145,7 +145,7 @@ String buildAiConversationContext(
     if (remaining <= 0) break;
   }
 
-  return lines.reversed.join('\\n');
+  return lines.reversed.join('\n');
 }
 
 class AiChatController extends Notifier<AiChatWorkspaceState> {
@@ -175,9 +175,9 @@ class AiChatController extends Notifier<AiChatWorkspaceState> {
 
   String _titleFromMessage(String text) {
     final firstLine = text
-        .split('\\n')
+        .split('\n')
         .first
-        .replaceAll(RegExp(r'\\s+'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
     if (firstLine.isEmpty) return '';
     const maxTitleLength = 42;
@@ -289,11 +289,7 @@ class AiChatController extends Notifier<AiChatWorkspaceState> {
       // A damaged or unavailable chat cache must never prevent the app opening.
     } finally {
       _restored = true;
-      if (_revision != startingRevision) {
-        _queuePersist(database);
-      } else {
-        _queuePersist(database);
-      }
+      _queuePersist(database);
     }
   }
 
