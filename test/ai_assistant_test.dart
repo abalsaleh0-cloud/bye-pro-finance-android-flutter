@@ -778,6 +778,13 @@ void main() {
 
     test('deletes a transfer by unique amount and date and supports undo', () async {
       final work = WorkRepository(database);
+      await work.saveEntry(WorkEntry(
+        id: 'cash-transfer-test',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(500),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime(2026, 11, 1),
+      ));
       await work.saveTransfer(WorkHomeTransfer(
         id: 'transfer-one',
         amount: Money.fromMinorUnits(250),
@@ -803,6 +810,20 @@ void main() {
 
     test('deletes a home expense by a unique category amount and month and supports undo', () async {
       final work = WorkRepository(database);
+      await work.saveEntry(WorkEntry(
+        id: 'cash-expense-oct',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(500),
+        dueMonth: MonthKey(year: 2026, month: 10),
+        recordedAt: DateTime(2026, 10, 1),
+      ));
+      await work.saveEntry(WorkEntry(
+        id: 'cash-expense-nov',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(500),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime(2026, 11, 1),
+      ));
       await work.saveTransfer(WorkHomeTransfer(
         id: 'transfer-oct',
         amount: Money.fromMinorUnits(500),
