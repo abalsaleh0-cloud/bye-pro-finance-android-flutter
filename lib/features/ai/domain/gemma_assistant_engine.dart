@@ -269,7 +269,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
         'read_work_transfers' => 'List work-to-home transfers with amounts and dates.',
         'read_debt_payments' => 'List payment history for one debt selected by debt ID or an exact unique counterparty name and optional direction.',
         'read_home_bill_payments' => 'List payment history for one household bill selected by bill ID or an exact unique bill title.',
-        'save_work_home_transfer' => 'Transfer money from work to household.',
+        'save_work_home_transfer' => 'Transfer money from work to household. Use date for an exact day or year and month for a month-only date; preserve the original day when editing an existing transfer.',
         'delete_work_home_transfer' => 'Delete one work-to-household transfer by identifier or a unique amount and date/month match.',
         'save_debt' => 'Create a debt record.',
         'delete_debt' => 'Delete one debt by identifier or exact unique counterparty and optional direction.',
@@ -278,6 +278,9 @@ final class GemmaAssistantEngine implements AssistantEngine {
         'read_month_total' => 'Request a section total for a specified month from the app.',
         'read_dashboard_summary' => 'Read the selected-month financial dashboard summary. All figures must be calculated by the app from its stored records; do not estimate or invent values.',
         'navigate_to_section' => 'Open one app section selected by the user without changing financial data.',
+        'read_home_categories' => 'List all existing household expense categories available for selection.',
+        'save_home_category' => 'Create a custom household expense category or rename an existing custom category by ID.',
+        'delete_home_category' => 'Delete an unused custom expense category by ID or exact name; built-in categories are protected.',
         _ => 'Perform an allowed application action.',
       };
 
@@ -386,6 +389,8 @@ final class GemmaAssistantEngine implements AssistantEngine {
           'amountMinorUnits': integer,
           'id': string,
           'date': date,
+          'year': integer,
+          'month': integer,
           'note': note,
         },
       'save_debt' => {
