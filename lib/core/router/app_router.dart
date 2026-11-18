@@ -4,6 +4,7 @@ import 'package:expense_app/features/debts/presentation/debts_screen.dart';
 import 'package:expense_app/features/home/presentation/home_screen.dart';
 import 'package:expense_app/features/settings/presentation/settings_screen.dart';
 import 'package:expense_app/features/shell/presentation/app_shell.dart';
+import 'package:expense_app/features/shell/presentation/welcome_screen.dart';
 import 'package:expense_app/features/work/presentation/work_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -34,8 +35,12 @@ CustomTransitionPage<void> _sectionPage({
 
 GoRouter createAppRouter() {
   return GoRouter(
-    initialLocation: '/dashboard',
+    initialLocation: '/welcome',
     routes: [
+      GoRoute(
+        path: '/welcome',
+        builder: (context, state) => const WelcomeScreen(),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) => AppShell(
           location: state.uri.path,

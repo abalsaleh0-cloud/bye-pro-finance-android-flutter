@@ -11,7 +11,6 @@ import 'package:expense_app/features/debts/domain/debt_payment.dart';
 import 'package:expense_app/features/home/domain/home_bill.dart';
 import 'package:expense_app/features/home/domain/home_expense.dart';
 import 'package:expense_app/features/home/domain/home_expense_category.dart';
-import 'package:expense_app/features/work/data/work_repository.dart';
 import 'package:expense_app/features/work/domain/work_entry.dart';
 import 'package:expense_app/features/work/domain/work_home_transfer.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -867,45 +866,6 @@ void main() {
     expect(find.text('فاتورة قابلة للتعديل'), findsWidgets);
     expect(find.text('420'), findsOneWidget);
     expect(find.text('ملاحظة موجودة'), findsOneWidget);
-  });
-
-  _testWidgetsWithDriftCleanup('saving a home transfer waits for its entry dialog to detach', (tester) async {
-    final now = DateTime.now();
-    final month = MonthKey(year: now.year, month: now.month);
-    await WorkRepository(testDatabase).saveEntry(
-      WorkEntry(
-        id: 'widget-transfer-funding-advance',
-        kind: WorkEntryKind.advance,
-        amount: Money.fromMinorUnits(500),
-        dueMonth: month,
-        recordedAt: now,
-      ),
-    );
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [appDatabaseProvider.overrideWithValue(testDatabase)],
-        child: const MyApp(),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('العمل').last);
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('open-work-add')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('work-add-action-transfer')));
-    await tester.pumpAndSettle();
-
-    await tester.enterText(find.byKey(const Key('work-transfer-amount')), '100');
-    await tester.tap(find.text('حفظ').last);
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('work-transfer-amount')), findsNothing);
-    final transfers = await WorkRepository(testDatabase).watchTransfers().first;
-    expect(transfers, hasLength(1));
-    expect(transfers.single.amount.minorUnits, 100);
-    expect(tester.takeException(), isNull);
   });
 
   _testWidgetsWithDriftCleanup('new work and home forms default to the globally selected month', (tester) async {

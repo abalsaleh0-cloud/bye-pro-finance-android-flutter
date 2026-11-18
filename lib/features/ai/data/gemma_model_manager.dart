@@ -6,6 +6,7 @@ import 'package:expense_app/features/ai/domain/assistant_engine.dart';
 
 import 'package:expense_app/features/ai/domain/gemma_assistant_engine.dart';
 import 'package:flutter_edge_ai/flutter_edge_ai.dart';
+import 'package:flutter_edge_ai_litertlm/flutter_edge_ai_litertlm.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 bool supportsGemmaMultimodalMemory(int physicalRamMegabytes) =>
@@ -126,6 +127,22 @@ class GemmaModelManager extends Notifier<GemmaModelState>
   bool _modelSupportsImage = false;
   bool _modelSupportsAudio = false;
   final ModelReleaseCoordinator _releaseCoordinator = ModelReleaseCoordinator();
+  static Future<void>? _nativeInitialization;
+
+  Future<void> _ensureNativeInitialized() {
+    return _nativeInitialization ??= _initializeNativeEngine();
+  }
+
+  static Future<void> _initializeNativeEngine() async {
+    try {
+      await FlutterEdgeAi.initialize(
+        inferenceEngines: const [LiteRtLmEngine()],
+      );
+    } catch (_) {
+      _nativeInitialization = null;
+      rethrow;
+    }
+  }
 
   @override
   GemmaModelState build() {
@@ -139,6 +156,7 @@ class GemmaModelManager extends Notifier<GemmaModelState>
 
   Future<void> refresh() async {
     try {
+      await _ensureNativeInitialized();
       final installed = await FlutterEdgeAi.isModelInstalled(modelFileName);
       if (!installed) {
         state = const GemmaModelState();

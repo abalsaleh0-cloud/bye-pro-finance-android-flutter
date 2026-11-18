@@ -146,7 +146,7 @@ class AppTheme {
         style: FilledButton.styleFrom(
           minimumSize: Size(48, tokens.buttonHeight),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: controlRadius),
+          shape: const StadiumBorder(),
           textStyle: const TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
@@ -154,7 +154,7 @@ class AppTheme {
         style: OutlinedButton.styleFrom(
           minimumSize: Size(48, tokens.buttonHeight),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: controlRadius),
+          shape: const StadiumBorder(),
           side: border,
         ),
       ),
@@ -170,7 +170,7 @@ class AppTheme {
           minimumSize: Size(tokens.touchTargetSize, tokens.touchTargetSize),
           tapTargetSize: MaterialTapTargetSize.padded,
           foregroundColor: scheme.onSurfaceVariant,
-          shape: RoundedRectangleBorder(borderRadius: controlRadius),
+          shape: const CircleBorder(),
         ),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
@@ -183,7 +183,7 @@ class AppTheme {
         height: tokens.navigationBarHeight,
         backgroundColor: scheme.surface,
         indicatorColor: scheme.secondaryContainer,
-        indicatorShape: RoundedRectangleBorder(borderRadius: controlRadius),
+        indicatorShape: const StadiumBorder(),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
       ),
       dialogTheme: DialogThemeData(
