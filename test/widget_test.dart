@@ -224,14 +224,16 @@ void main() {
     expect(find.byKey(const Key('home-tab-0')), findsOneWidget);
     expect(find.byKey(const Key('home-tab-1')), findsOneWidget);
     expect(find.byKey(const Key('home-tab-2')), findsOneWidget);
-    expect(find.byKey(const Key('home-tab-3')), findsOneWidget);
+    for (var index = 0; index < 6; index++) {
+      expect(find.byKey(Key('home-tab-$index')), findsOneWidget);
+    }
     expect(find.byType(NavigationBar), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('home-tab-3')));
+    await tester.tap(find.byKey(const Key('home-tab-5')));
     await tester.pumpAndSettle();
     expect(
       tester.widget<PageView>(find.byKey(const Key('home-section-pages'))).controller!.page,
-      3,
+      5,
     );
   });
 
@@ -336,7 +338,7 @@ void main() {
     );
   });
 
-  _testWidgetsWithDriftCleanup('work overview exposes four category cards with dedicated forms', (tester) async {
+  _testWidgetsWithDriftCleanup('work section removes action cards and keeps actions in the top add menu', (tester) async {
     final now = DateTime.now();
     final currentMonth = MonthKey(year: now.year, month: now.month);
     await tester.pumpWidget(
@@ -375,40 +377,18 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('open-work-add')), findsOneWidget);
-    expect(find.byKey(const Key('work-add-salary')), findsOneWidget);
-    expect(find.byKey(const Key('work-add-payment')), findsOneWidget);
-    expect(find.byKey(const Key('work-add-advance')), findsOneWidget);
-    expect(find.byKey(const Key('work-add-transfer')), findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.byKey(const Key('work-add-salary')),
-        matching: find.byIcon(Icons.payments_outlined),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(
-        of: find.byKey(const Key('work-add-payment')),
-        matching: find.byIcon(Icons.receipt_long_outlined),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(
-        of: find.byKey(const Key('work-add-advance')),
-        matching: find.byIcon(Icons.request_quote_outlined),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.descendant(
-        of: find.byKey(const Key('work-add-transfer')),
-        matching: find.byIcon(Icons.swap_horiz),
-      ),
-      findsOneWidget,
-    );
+    expect(find.byKey(const Key('work-add-salary')), findsNothing);
+    expect(find.byKey(const Key('work-add-payment')), findsNothing);
+    expect(find.byKey(const Key('work-add-advance')), findsNothing);
+    expect(find.byKey(const Key('work-add-transfer')), findsNothing);
 
-    await tester.tap(find.byKey(const Key('work-add-payment')));
+    await tester.tap(find.byKey(const Key('open-work-add')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('work-add-action-salary')), findsOneWidget);
+    expect(find.byKey(const Key('work-add-action-payment')), findsOneWidget);
+    expect(find.byKey(const Key('work-add-action-advance')), findsOneWidget);
+    expect(find.byKey(const Key('work-add-action-transfer')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('work-add-action-payment')));
     await tester.pumpAndSettle();
 
     expect(
@@ -430,23 +410,16 @@ void main() {
 
     await tester.tap(find.byKey(const Key('open-work-add')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('work-add-action-salary')), findsOneWidget);
-    expect(find.byKey(const Key('work-add-action-payment')), findsOneWidget);
-    expect(find.byKey(const Key('work-add-action-advance')), findsOneWidget);
-    expect(find.byKey(const Key('work-add-action-transfer')), findsOneWidget);
     await tester.tap(find.byKey(const Key('work-add-action-transfer')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('work-transfer-amount')), findsOneWidget);
     expect(find.byKey(const Key('work-transfer-date')), findsOneWidget);
     expect(find.byKey(const Key('work-transfer-note')), findsOneWidget);
-    expect(find.text('المبلغ'), findsOneWidget);
-    expect(find.text('التاريخ'), findsOneWidget);
-    expect(find.text('ملاحظة'), findsOneWidget);
     await tester.tap(find.text('إلغاء'));
     await tester.pumpAndSettle();
   });
 
-  _testWidgetsWithDriftCleanup('debt form allows selecting creditor direction', (tester) async {
+  _testWidgetsWithDriftCleanup('debt add menu opens the selected creditor form', (tester) async {
     final now = DateTime.now();
     final currentMonth = MonthKey(year: now.year, month: now.month);
     await tester.pumpWidget(
@@ -479,21 +452,19 @@ void main() {
 
     await tester.tap(find.text('الديون').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(FloatingActionButton));
+    await tester.tap(find.byKey(const Key('open-debts-add')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('debt-add-creditor')), findsOneWidget);
+    expect(find.byKey(const Key('debt-add-debtor')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('debt-add-creditor')));
     await tester.pumpAndSettle();
 
-    final directionField = find.byType(
-      DropdownButtonFormField<DebtDirection>,
-    );
-    expect(directionField, findsOneWidget);
-    await tester.tap(directionField);
-    await tester.pumpAndSettle();
-    expect(find.text('دائن'), findsOneWidget);
-    expect(find.text('مدين'), findsWidgets);
-    await tester.tap(find.text('دائن').last);
-    await tester.pumpAndSettle();
-
-    expect(find.text('دائن'), findsOneWidget);
+    expect(find.byKey(const Key('debt-person')), findsOneWidget);
+    expect(find.byKey(const Key('debt-amount')), findsOneWidget);
+    expect(find.byKey(const Key('debt-date')), findsOneWidget);
+    expect(find.byKey(const Key('debt-note')), findsOneWidget);
+    expect(find.text('دين لك (دائن)'), findsOneWidget);
+    expect(find.byType(DropdownButtonFormField<DebtDirection>), findsNothing);
     await tester.tap(find.text('إلغاء'));
     await tester.pumpAndSettle();
   });
@@ -538,13 +509,12 @@ void main() {
 
     await tester.tap(find.text('الديون').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(FloatingActionButton));
+    await tester.tap(find.byKey(const Key('open-debts-add')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('debt-add-debtor')));
     await tester.pumpAndSettle();
 
-    final values = tester
-        .widgetList<TextField>(find.byType(TextField))
-        .map((field) => field.controller?.text ?? '');
-    expect(values, contains(previousMonth.toString()));
+    expect(tester.widget<TextField>(find.byKey(const Key('debt-date'))).controller!.text, startsWith('$previousMonth-'));
     await tester.tap(find.text('إلغاء'));
     await tester.pumpAndSettle();
   });
@@ -648,7 +618,7 @@ void main() {
 
     await tester.tap(find.text('المنزل').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('home-tab-3')));
+    await tester.tap(find.byKey(const Key('home-tab-2')));
     await tester.pumpAndSettle();
 
     expect(find.text('فاتورة اختبار'), findsOneWidget);
@@ -892,15 +862,15 @@ void main() {
     await tester.tap(find.byKey(const Key('home-tab-0')));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('home-add-action')));
+    await tester.tap(find.byKey(const Key('open-home-add')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('home-add-daily-expense')));
     await tester.pumpAndSettle();
-    expect(fieldValues(), contains(previousMonth.toString()));
+    expect(fieldValues().any((value) => value.startsWith('$previousMonth-')), isTrue);
     await tester.tap(find.text('إلغاء'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('home-add-action')));
+    await tester.tap(find.byKey(const Key('open-home-add')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('home-add-monthly-bill')));
     await tester.pumpAndSettle();
@@ -964,6 +934,8 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('الديون').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('debts-tab-1')));
     await tester.pumpAndSettle();
     expect(find.text('سجل الدفعات'), findsOneWidget);
     expect(find.textContaining('الوقت:'), findsNothing);
