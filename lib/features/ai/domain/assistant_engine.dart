@@ -616,7 +616,7 @@ final class LocalRuleAssistantEngine implements AssistantEngine {
           name: 'save_work_entry',
           parameters: {
             'id': explicitId,
-            if (kind != null) 'kind': kind,
+            'kind': ?kind,
             'amountMinorUnits': ?amount,
             'year': ?requestedMonth?.$1,
             'month': ?requestedMonth?.$2,
