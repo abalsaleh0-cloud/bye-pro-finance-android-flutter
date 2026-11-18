@@ -671,6 +671,7 @@ void main() {
         home: HomeExpenseRepository(database),
         bills: HomeBillRepository(database),
         debts: DebtRepository(database),
+        categories: HomeExpenseCategoryRepository(database),
         selectedMonth: MonthKey(year: 2026, month: 11),
       );
 
