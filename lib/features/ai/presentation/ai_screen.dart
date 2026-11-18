@@ -590,6 +590,9 @@ class _AiScreenState extends ConsumerState<AiScreen> {
           parameters['billTitle'] is String)
         parameters['billTitle']! as String,
       ?formattedDate,
+      if (command.name == 'delete_home_expense' &&
+          parameters['year'] is int && parameters['month'] is int)
+        '${strings.assistantMonth}: ${(parameters['month']! as int).toString().padLeft(2, '0')}/${parameters['year']}',
       if (kind is String && _kindName(kind, strings) != null)
         _kindName(kind, strings)!,
       if (isDebt) '${strings.originalAmount}: $amount',
