@@ -4,6 +4,11 @@ import 'package:expense_app/core/widgets/chat_message_bubble.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 
+Finder _bubbleContainer(String key) => find.descendant(
+      of: find.byKey(Key(key)),
+      matching: find.byType(Container),
+    );
+
 void main() {
   testWidgets('outgoing chat bubble uses Telegram Dark Blue palette', (tester) async {
     await tester.pumpWidget(
@@ -22,9 +27,7 @@ void main() {
       ),
     );
 
-    final bubble = tester.widget<Container>(
-      find.byKey(const Key('outgoing-chat-bubble')),
-    );
+    final bubble = tester.widget<Container>(_bubbleContainer('outgoing-chat-bubble'));
     final decoration = bubble.decoration! as BoxDecoration;
     final radius = AppDesignTokens.standard().cardRadius;
 
@@ -63,7 +66,7 @@ void main() {
     );
 
     final bubble = tester.widget<Container>(
-      find.byKey(const Key('incoming-dark-chat-bubble')),
+      _bubbleContainer('incoming-dark-chat-bubble'),
     );
     expect(
       (bubble.decoration! as BoxDecoration).color,
@@ -90,7 +93,7 @@ void main() {
     );
 
     final bubble = tester.widget<Container>(
-      find.byKey(const Key('outgoing-light-chat-bubble')),
+      _bubbleContainer('outgoing-light-chat-bubble'),
     );
     expect(
       (bubble.decoration! as BoxDecoration).color,
