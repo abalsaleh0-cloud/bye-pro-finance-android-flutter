@@ -286,6 +286,129 @@ void main() {
       );
     });
 
+    test('maps salary edits that overdraw work transfers to a localized assistant error', () async {
+      await seedWorkCashForMonth(2026, 11, 500, id: 'salary-cash');
+      await WorkRepository(database).saveTransfer(WorkHomeTransfer(
+        id: 'salary-cash-transfer',
+        amount: Money.fromMinorUnits(400),
+        transferredAt: DateTime(2026, 11, 5),
+      ));
+
+      await expectLater(
+        registry.execute('save_work_entry', {
+          'id': 'salary-cash',
+          'kind': 'salaryPayment',
+          'amountMinorUnits': 300,
+          'year': 2026,
+          'month': 11,
+        }),
+        throwsA(isA<AssistantActionException>().having(
+          (error) => error.code,
+          'code',
+          'work_balance_insufficient',
+        )),
+      );
+    });
+
+    test('maps insufficient household balance when adding an expense', () async {
+      await seedWorkCashForMonth(2026, 11, 100, id: 'expense-cash');
+      await WorkRepository(database).saveTransfer(WorkHomeTransfer(
+        id: 'expense-transfer',
+        amount: Money.fromMinorUnits(100),
+        transferredAt: DateTime(2026, 11, 5),
+      ));
+
+      await expectLater(
+        registry.execute('save_home_expense', {
+          'amountMinorUnits': 200,
+          'categoryId': 'groceries',
+          'date': '2026-11-06',
+          'year': 2026,
+          'month': 11,
+        }),
+        throwsA(isA<AssistantActionException>().having(
+          (error) => error.code,
+          'code',
+          'home_balance_insufficient',
+        )),
+      );
+    });
+
+    test('maps transfers larger than received work cash to an assistant error', () async {
+      await seedWorkCashForMonth(2026, 11, 500, id: 'transfer-limit-cash');
+
+      await expectLater(
+        registry.execute('save_work_home_transfer', {
+          'amountMinorUnits': 600,
+          'date': '2026-11-05',
+        }),
+        throwsA(isA<AssistantActionException>().having(
+          (error) => error.code,
+          'code',
+          'work_balance_insufficient',
+        )),
+      );
+    });
+
+    test('maps a bill edit that exceeds the available home balance', () async {
+      await seedWorkCashForMonth(2026, 11, 500, id: 'bill-limit-cash');
+      await WorkRepository(database).saveTransfer(WorkHomeTransfer(
+        id: 'bill-limit-transfer',
+        amount: Money.fromMinorUnits(500),
+        transferredAt: DateTime(2026, 11, 1),
+      ));
+      await registry.execute('save_home_bill', {
+        'title': 'Internet',
+        'kind': 'monthly',
+        'amountMinorUnits': 100,
+        'year': 2026,
+        'month': 11,
+      });
+      final billId = (await HomeBillRepository(database).getBills()).single.id;
+
+      await expectLater(
+        registry.execute('save_home_bill', {
+          'id': billId,
+          'amountMinorUnits': 600,
+        }),
+        throwsA(isA<AssistantActionException>().having(
+          (error) => error.code,
+          'code',
+          'bill_commitment_not_available',
+        )),
+      );
+    });
+
+    test('maps a moved transfer that leaves old-month home obligations uncovered', () async {
+      await seedWorkCashForMonth(2026, 11, 500, id: 'nov-obligation-cash');
+      await seedWorkCashForMonth(2026, 12, 500, id: 'dec-obligation-cash');
+      await WorkRepository(database).saveTransfer(WorkHomeTransfer(
+        id: 'obligation-transfer',
+        amount: Money.fromMinorUnits(300),
+        transferredAt: DateTime(2026, 11, 1),
+      ));
+      await registry.execute('save_home_expense', {
+        'amountMinorUnits': 200,
+        'categoryId': 'groceries',
+        'date': '2026-11-10',
+        'year': 2026,
+        'month': 11,
+      });
+
+      await expectLater(
+        registry.execute('save_work_home_transfer', {
+          'id': 'obligation-transfer',
+          'amountMinorUnits': 300,
+          'date': '2026-12-01',
+        }),
+        throwsA(isA<AssistantActionException>().having(
+          (error) => error.code,
+          'code',
+          'home_commitment_not_covered',
+        )),
+      );
+    });
+
     test('creates and undoes work entry', () async {
       final result = await registry.execute('save_work_entry', {
         'kind':'salary','amountMinorUnits':1000,'year':2026,'month':11,
