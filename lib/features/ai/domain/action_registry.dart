@@ -132,13 +132,15 @@ final class ActionRegistry {
     }
     if (const {'delete_work_entry', 'delete_work_home_transfer'}.contains(name) &&
         p['date'] is String && year != null) {
-      final date = DateTime.parse(p['date']! as String);
+      final date = DateTime.tryParse(p['date']! as String);
+      if (date == null) return 'invalid date';
       if (date.year != year || date.month != month) {
         return 'deletion date and month differ';
       }
     }
     if (name == 'delete_home_expense' && p['date'] is String) {
-      final date = DateTime.parse(p['date']! as String);
+      final date = DateTime.tryParse(p['date']! as String);
+      if (date == null) return 'invalid date';
       if (year != null && (date.year != year || date.month != month)) {
         return 'expense deletion date and month differ';
       }
