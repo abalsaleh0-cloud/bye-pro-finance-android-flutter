@@ -102,7 +102,7 @@ void main() {
   });
 
 
-  test('work balances do not carry payments or arrears between months', () {
+  test('monthly work balances stay separate while previous arrears remain visible', () {
     final allocation = WorkBalanceAllocation.calculate([
       WorkEntry(
         id: 'salary-nov',
@@ -131,7 +131,8 @@ void main() {
     expect(allocation.outstandingFor(MonthKey(year: 2026, month: 12)), 0);
     expect(allocation.paymentsFor(MonthKey(year: 2026, month: 11)), 0);
     expect(allocation.paymentsFor(MonthKey(year: 2026, month: 12)), 700);
-    expect(allocation.outstandingBefore(MonthKey(year: 2026, month: 12)), 0);
+    expect(allocation.outstandingBefore(MonthKey(year: 2026, month: 12)), 3000);
+    expect(allocation.outstandingThrough(MonthKey(year: 2026, month: 12)), 3000);
   });
 
   test('work-to-home transfer is represented as one record', () {

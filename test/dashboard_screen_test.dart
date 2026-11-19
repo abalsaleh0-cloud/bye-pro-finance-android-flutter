@@ -26,6 +26,13 @@ void main() {
       dueMonth: month,
       recordedAt: DateTime(2026, 10, 1),
     );
+    final previousSalary = WorkEntry(
+      id: 'dashboard-previous-salary',
+      kind: WorkEntryKind.salary,
+      amount: Money.fromMinorUnits(200),
+      dueMonth: MonthKey(year: 2026, month: 9),
+      recordedAt: DateTime(2026, 9, 1),
+    );
     final expense = HomeExpense(
       id: 'dashboard-expense',
       amount: Money.fromMinorUnits(150),
@@ -71,7 +78,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          workEntriesProvider.overrideWith((ref) => Stream.value([salary])),
+          workEntriesProvider.overrideWith(
+            (ref) => Stream.value([salary, previousSalary]),
+          ),
           homeExpensesProvider.overrideWith((ref) => Stream.value([expense])),
           workTransfersProvider.overrideWith((ref) => Stream.value([transfer])),
           debtsProvider.overrideWith((ref) => Stream.value([debt])),
@@ -122,6 +131,24 @@ void main() {
     expect(find.text('20'), findsOneWidget);
     expect(find.text('الصورة المالية'), findsOneWidget);
     expect(find.text('إجراءات سريعة'), findsNothing);
+    final previousDetails = find.byKey(
+      const Key('previous-work-outstanding-details'),
+    );
+    await tester.scrollUntilVisible(
+      previousDetails,
+      500,
+      scrollable: find.byType(Scrollable),
+    );
+    await tester.pumpAndSettle();
+    expect(previousDetails, findsOneWidget);
+    await tester.tap(previousDetails);
+    await tester.pumpAndSettle();
+    final septemberLabel =
+        MaterialLocalizations.of(tester.element(previousDetails)).formatMonthYear(
+      DateTime(2026, 9, 1),
+    );
+    expect(find.text(septemberLabel), findsOneWidget);
+    expect(find.text('200'), findsWidgets);
     await tester.drag(
       find.byKey(const Key('dashboard-content')),
       const Offset(0, -2400),

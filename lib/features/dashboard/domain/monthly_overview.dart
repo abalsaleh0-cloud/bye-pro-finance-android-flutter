@@ -20,6 +20,7 @@ final class MonthlyOverview {
     required this.creditorBalance,
     required this.debtorBalance,
     required this.previousWorkOutstandingMinorUnits,
+    required this.previousWorkOutstandingByMonth,
     required this.totalWorkOutstandingMinorUnits,
   });
 
@@ -34,6 +35,7 @@ final class MonthlyOverview {
   final Money creditorBalance;
   final Money debtorBalance;
   final int previousWorkOutstandingMinorUnits;
+  final Map<MonthKey, int> previousWorkOutstandingByMonth;
   final int totalWorkOutstandingMinorUnits;
 
   Money get workRecordsTotal => salary + advances + payments;
@@ -121,6 +123,7 @@ final class MonthlyOverview {
       creditorBalance: creditor,
       debtorBalance: debtor,
       previousWorkOutstandingMinorUnits: allocation.outstandingBefore(month),
+      previousWorkOutstandingByMonth: allocation.outstandingByMonthBefore(month),
       totalWorkOutstandingMinorUnits: allocation.outstandingThrough(month),
     );
   }

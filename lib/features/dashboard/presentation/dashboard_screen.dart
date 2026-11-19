@@ -195,6 +195,58 @@ class DashboardScreen extends ConsumerWidget {
               icon: Icons.swap_horiz,
             ),
           ]),
+          const SizedBox(height: 8),
+          Card(
+            child: ExpansionTile(
+              key: const Key('previous-work-outstanding-details'),
+              leading: const Icon(Icons.history),
+              title: Row(
+                children: [
+                  Expanded(
+                    child: Text(strings.previousWorkOutstandingDetails),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    overview.previousWorkOutstandingMinorUnits.toString(),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                ],
+              ),
+              subtitle: Text(strings.previousWorkOutstandingHint),
+              childrenPadding: const EdgeInsetsDirectional.only(
+                start: 16,
+                end: 16,
+                bottom: 12,
+              ),
+              children: [
+                if (overview.previousWorkOutstandingByMonth.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Text(strings.noPreviousWorkOutstanding),
+                  )
+                else
+                  for (final item
+                      in overview.previousWorkOutstandingByMonth.entries)
+                    ListTile(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        MaterialLocalizations.of(context).formatMonthYear(
+                          DateTime(item.key.year, item.key.month),
+                        ),
+                      ),
+                      trailing: Text(
+                        item.value.toString(),
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                    ),
+              ],
+            ),
+          ),
           SizedBox(height: tokens.sectionSpacing),
           _sectionHeading(context, strings.homeSection),
           const SizedBox(height: 8),
