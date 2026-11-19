@@ -283,5 +283,7 @@
   "assistantHomeCommitmentNotCovered": "The transfer cannot be moved because the original month would no longer have enough household balance to cover expenses and outstanding bills.",
   "personName": "Person name",
   "gemmaNotificationPermissionDenied": "Notification permission was not granted. The download may continue in the background, but its progress notification may not appear in the notification shade.",
-  "backupContentsNotice": "The backup includes work and household records, transfers, bills, debts, app preferences, custom expense categories, and assistant conversations. The file is not encrypted; keep it private. PIN and biometric credentials are excluded, and the Gemma model file is not included."
+  "backupContentsNotice": "The backup includes work and household records, transfers, bills, debts, app preferences, custom expense categories, and assistant conversations. The file is not encrypted; keep it private. PIN and biometric credentials are excluded, and the Gemma model file is not included.",
+  "assistantOpenManual": "Open manual entry",
+  "gemmaMultimodalMemoryNotice": "Image and audio analysis requires at least 6GB of RAM. Text conversations remain available on devices with less memory."
 }

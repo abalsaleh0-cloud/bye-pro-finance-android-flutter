@@ -47,6 +47,25 @@ class _FakeGemmaGenerator implements GemmaTurnGenerator {
   }
 }
 
+class _ContextLimitThenAnswerGenerator implements GemmaTurnGenerator {
+  var calls = 0;
+  final inputs = <String>[];
+
+  @override
+  Future<GemmaModelOutput> generate(
+    String userText,
+    List<GemmaFunctionSpec> functions, {
+    AssistantMedia? media,
+  }) async {
+    calls++;
+    inputs.add(userText);
+    if (calls == 1) {
+      throw StateError('ContextLimitException: prompt is too long');
+    }
+    return const GemmaModelOutput.text('هذه إجابة مختصرة.');
+  }
+}
+
 void main() {
   const actions = [
     'save_work_entry',
@@ -131,6 +150,21 @@ void main() {
       expect(result.command!.parameters['month'], previousMonth.month);
       expect(result.command!.parameters['kind'], 'salary');
       expect(result.usedGemmaFallback, isTrue);
+    });
+
+    test('retries a context-limited turn once without old conversation history', () async {
+      final generator = _ContextLimitThenAnswerGenerator();
+      final result = await GemmaAssistantEngine(generator).interpret(
+        'اكتب فقرة عن تنظيم الوقت',
+        ActionRegistry.descriptors.map((item) => item.name).toList(),
+        conversationContext: 'المستخدم: اشرح موضوعاً سابقاً\nالمساعد: هذا سياق قديم.',
+      );
+
+      expect(result.kind, AssistantResultKind.answer);
+      expect(generator.calls, 2);
+      expect(generator.inputs.first, contains('سياق المحادثة السابق'));
+      expect(generator.inputs.last, isNot(contains('سياق المحادثة السابق')));
+      expect(generator.inputs.last, contains('اكتب فقرة عن تنظيم الوقت'));
     });
 
     test('does not send any finance tools for ordinary general conversation', () async {

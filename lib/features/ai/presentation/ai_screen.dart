@@ -202,7 +202,12 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     final strings = AppLocalizations.of(context)!;
     if (_busy || _recognizing || _preparing) return;
     try {
-      final file = await FilePicker.pickFile(type: FileType.any);
+      final file = await FilePicker.pickFile(
+        type: FileType.custom,
+        allowedExtensions: const [
+          'jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'heic', 'heif', 'wav',
+        ],
+      );
       if (file == null) return;
       final extension = file.name.split('.').last.toLowerCase();
       const imageExtensions = {
@@ -850,7 +855,6 @@ class _AiScreenState extends ConsumerState<AiScreen> {
           strings.assistantNotUnderstood,
           assistantSource: replySource,
         );
-        await _openManual();
       } else {
         final originalCommand = result.command!;
         final preparedParameters = await registry.prepareUpdateParameters(
@@ -867,8 +871,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
             strings.assistantNotUnderstood,
             assistantSource: replySource,
           );
-          await _openManual();
-        } else if (command.name == 'navigate_to_section') {
+          } else if (command.name == 'navigate_to_section') {
           final section = command.parameters['section']! as String;
           final route = _sectionRoute(section);
           if (route == null) {
@@ -876,8 +879,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
               strings.assistantNotUnderstood,
               assistantSource: replySource,
             );
-            await _openManual();
-          } else {
+              } else {
             _addAssistantMessage(
               '${strings.aiSectionOpened}: ${_sectionLabel(section, strings)}',
               assistantSource: replySource,
@@ -922,7 +924,6 @@ class _AiScreenState extends ConsumerState<AiScreen> {
           strings.assistantNotUnderstood,
           assistantSource: replySource,
         );
-        await _openManual();
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -949,15 +950,13 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         final message = _assistantActionErrorMessage(error.code, strings);
         _addAssistantMessage(message);
         if (message == strings.assistantNotUnderstood) {
-          await _openManual();
-        }
+          }
       }
     } catch (_) {
       if (mounted) {
         setState(_confirmation.cancel);
         _addAssistantMessage(strings.assistantNotUnderstood);
       }
-      await _openManual();
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -1314,6 +1313,13 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                                 child: Wrap(
                                   spacing: 4,
                                   children: [
+                                  if (!message.fromUser &&
+                                      message.text == strings.assistantNotUnderstood)
+                                    TextButton.icon(
+                                      onPressed: _busy ? null : _openManual,
+                                      icon: const Icon(Icons.edit_note_rounded, size: 16),
+                                      label: Text(strings.assistantOpenManual),
+                                    ),
                                   TextButton.icon(
                                     onPressed: () => _copyMessage(message.text),
                                     icon: const Icon(Icons.copy_rounded, size: 16),

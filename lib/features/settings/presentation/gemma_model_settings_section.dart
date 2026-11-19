@@ -107,6 +107,13 @@ class GemmaModelSettingsSection extends ConsumerWidget {
             Text(strings.gemmaModelDetails),
             SizedBox(height: tokens.sectionSpacing / 2),
             Text(status),
+            SizedBox(height: tokens.sectionSpacing / 3),
+            Text(
+              strings.gemmaMultimodalMemoryNotice,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
             if (model.status == GemmaModelStatus.ready &&
                 model.installed) ...[
               SizedBox(height: tokens.sectionSpacing / 2),
