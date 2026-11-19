@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="NativeFinanceTheme" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">#17212B</item>
+        <item name="android:navigationBarColor">#17212B</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:colorAccent">#236DAB</item>
+        <item name="android:windowBackground">#17212B</item>
+    </style>
+
+    <style name="NativeFinanceDialogLightTheme" parent="@android:style/Theme.Material.Light.Dialog.Alert">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowBackground">@drawable/finance_dialog_background_light</item>
+        <item name="android:colorAccent">#236DAB</item>
+        <item name="android:textColorPrimary">#17212B</item>
+        <item name="android:textColorSecondary">#71808D</item>
+        <item name="android:windowMinWidthMajor">87%</item>
+        <item name="android:windowMinWidthMinor">87%</item>
+        <item name="android:buttonBarPositiveButtonStyle">@style/NativeFinanceDialogActionButtonLight</item>
+        <item name="android:buttonBarNegativeButtonStyle">@style/NativeFinanceDialogActionButtonLight</item>
+    </style>
+
+    <style name="NativeFinanceDialogDarkTheme" parent="@android:style/Theme.Material.Dialog.Alert">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowBackground">@drawable/finance_dialog_background_dark</item>
+        <item name="android:colorAccent">#5AA7E8</item>
+        <item name="android:textColorPrimary">#F2F5F8</item>
+        <item name="android:textColorSecondary">#91A0AE</item>
+        <item name="android:windowMinWidthMajor">87%</item>
+        <item name="android:windowMinWidthMinor">87%</item>
+        <item name="android:buttonBarPositiveButtonStyle">@style/NativeFinanceDialogActionButtonDark</item>
+        <item name="android:buttonBarNegativeButtonStyle">@style/NativeFinanceDialogActionButtonDark</item>
+    </style>
+
+    <style name="NativeFinanceDialogActionButtonLight" parent="@android:style/Widget.Material.Light.Button.Borderless.Colored">
+        <item name="android:minHeight">48dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <style name="NativeFinanceDialogActionButtonDark" parent="@android:style/Widget.Material.Button.Borderless.Colored">
+        <item name="android:minHeight">48dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+    </style>
+
+    <style name="NativeFinancePopupLightTheme" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:colorAccent">#236DAB</item>
+        <item name="android:colorBackground">#FFFFFF</item>
+        <item name="android:textColorPrimary">#17212B</item>
+        <item name="android:textColorSecondary">#71808D</item>
+    </style>
+
+    <style name="NativeFinancePopupDarkTheme" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:colorAccent">#5AA7E8</item>
+        <item name="android:colorBackground">#202B36</item>
+        <item name="android:textColorPrimary">#F2F5F8</item>
+        <item name="android:textColorSecondary">#91A0AE</item>
+    </style>
+</resources>
