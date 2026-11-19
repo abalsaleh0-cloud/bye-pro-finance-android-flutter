@@ -298,6 +298,24 @@ void main() {
       expect(result.message, 'تظهر في الصورة فاتورة بقيمة 250 ديناراً.');
     });
 
+    test('treats a question about paid bills as a read-only history lookup', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.call('read_home_bill_payments', {
+          'billTitle': 'الكهرباء',
+        }),
+      );
+      final result = await GemmaAssistantEngine(generator).interpret(
+        'كم دفعت فاتورة الكهرباء؟',
+        ActionRegistry.descriptors.map((item) => item.name).toList(),
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'read_home_bill_payments');
+      final names = generator.receivedFunctions!.map((item) => item.name);
+      expect(names, contains('read_home_bill_payments'));
+      expect(names, isNot(contains('record_home_bill_payment')));
+    });
+
     test('exposes required identifiers in payment-history tool schemas', () async {
       final generator = _FakeGemmaGenerator(
         const GemmaModelOutput.text(''),
