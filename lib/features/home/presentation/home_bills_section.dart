@@ -180,7 +180,7 @@ class HomeBillsSection extends ConsumerWidget {
         content: SizedBox(width: double.maxFinite, child: payments.isEmpty
           ? Text(strings.noRecords)
           : ListView(shrinkWrap: true, children: payments.map((payment) => ListTile(
-              title: Text(payment.amount.minorUnits.toString()),
+              title: Text(formatMinorUnits(context, payment.amount.minorUnits)),
               subtitle: Text('${toAsciiDigits(MaterialLocalizations.of(context).formatFullDate(payment.paidAt))}${payment.note == null ? '' : '\n${payment.note}'}'),
             )).toList())),
         actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(strings.cancel))],
@@ -223,7 +223,7 @@ class HomeBillsSection extends ConsumerWidget {
                 title: Text(bill.title),
                 subtitle: Text([
                   '${toAsciiDigits(MaterialLocalizations.of(context).formatFullDate(bill.calendarDate))} • $status',
-                  '${strings.billPaid}: ${bill.paidMinorUnits} / ${bill.amount.minorUnits} • ${strings.billRemaining}: ${bill.remainingMinorUnits}',
+                  '${strings.billPaid}: ${formatMinorUnits(context, bill.paidMinorUnits)} / ${formatMinorUnits(context, bill.amount.minorUnits)} • ${strings.billRemaining}: ${formatMinorUnits(context, bill.remainingMinorUnits)}',
                   if (bill.note != null && bill.note!.trim().isNotEmpty) bill.note!.trim(),
                 ].join('\n')),
                 isThreeLine: true,

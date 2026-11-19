@@ -695,7 +695,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                         child: FinancialRecordCard(
                           icon: item.icon,
                           title: item.title,
-                          amount: item.amount.toString(),
+                          amount: formatMinorUnits(context, item.amount),
                           details: [
                             toAsciiDigits(MaterialLocalizations.of(context).formatFullDate(item.date)),
                             if (item.note != null && item.note!.isNotEmpty) item.note!,
@@ -770,7 +770,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                       child: FinancialRecordCard(
                         icon: Icons.swap_horiz,
                         title: strings.transferredToHome,
-                        amount: transfer.amount.minorUnits.toString(),
+                        amount: formatMinorUnits(context, transfer.amount.minorUnits),
                         details: [
                           toAsciiDigits(MaterialLocalizations.of(context).formatFullDate(transfer.transferredAt)),
                           if (transfer.note != null && transfer.note!.isNotEmpty)

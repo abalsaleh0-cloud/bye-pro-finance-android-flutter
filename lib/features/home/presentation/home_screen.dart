@@ -687,7 +687,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final selectedMonth = ref.watch(selectedMonthProvider);
     final billPaymentsForMonth = ref.watch(homeBillPaymentsForMonthProvider(selectedMonth));
     final billOutstandingAtMonthEnd =
-        ref.watch(homeBillOutstandingAsOfMonthProvider(selectedMonth));
+        ref.watch(homeBillOutstandingThroughMonthAsOfMonthProvider(selectedMonth));
     final availableMonths = <MonthKey>{
       currentMonth,
       selectedMonth,
@@ -769,7 +769,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       child: FinancialRecordCard(
                         icon: Icons.swap_horiz,
                         title: strings.homeIncomingFromWork,
-                        amount: transfer.amount.minorUnits.toString(),
+                        amount: formatMinorUnits(context, transfer.amount.minorUnits),
                         details: [
                           toAsciiDigits(MaterialLocalizations.of(context).formatFullDate(transfer.transferredAt)),
                           if (transfer.note != null && transfer.note!.isNotEmpty)
@@ -819,7 +819,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             expense.categoryId,
                           ),
                         ),
-                        amount: expense.amount.minorUnits.toString(),
+                        amount: formatMinorUnits(context, expense.amount.minorUnits),
                         details: [
                           toAsciiDigits(MaterialLocalizations.of(context).formatFullDate(expense.expenseDate)),
                           if (expense.note != null && expense.note!.isNotEmpty)
@@ -890,7 +890,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     child: FinancialRecordCard(
                       icon: item.icon,
                       title: item.title,
-                      amount: item.amount.toString(),
+                      amount: formatMinorUnits(context, item.amount),
                       details: [
                         if (item.subtitle != null && item.subtitle!.isNotEmpty) item.subtitle!,
                         toAsciiDigits(MaterialLocalizations.of(context).formatFullDate(item.date)),

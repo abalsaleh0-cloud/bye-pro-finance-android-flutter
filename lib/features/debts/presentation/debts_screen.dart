@@ -573,8 +573,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                                                           Icons.receipt_long_outlined,
                                                         ),
                                                         title: Text(
-                                                          payment.amount.minorUnits
-                                                              .toString(),
+                                                          formatMinorUnits(context, payment.amount.minorUnits),
                                                           style: Theme.of(context)
                                                               .textTheme
                                                               .titleSmall

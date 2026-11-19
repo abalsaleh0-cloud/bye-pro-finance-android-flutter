@@ -879,7 +879,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
               strings.assistantNotUnderstood,
               assistantSource: replySource,
             );
-              } else {
+          } else {
             _addAssistantMessage(
               '${strings.aiSectionOpened}: ${_sectionLabel(section, strings)}',
               assistantSource: replySource,
@@ -949,8 +949,6 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         setState(_confirmation.cancel);
         final message = _assistantActionErrorMessage(error.code, strings);
         _addAssistantMessage(message);
-        if (message == strings.assistantNotUnderstood) {
-          }
       }
     } catch (_) {
       if (mounted) {
