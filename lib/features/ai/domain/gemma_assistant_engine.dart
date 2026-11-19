@@ -298,6 +298,8 @@ final class GemmaAssistantEngine implements AssistantEngine {
       'استلمت', 'استلم', 'قبضت', 'قبض', 'حول', 'حولت',
       'صرف', 'صرفت', 'اشتريت',
       'عدل', 'تعديل', 'غير', 'تغيير',
+      'احذف', 'حذف', 'امسح', 'ازل', 'الغ', 'ازالة',
+      'delete', 'remove',
       'تسجيل', 'اضافة', 'add', 'create', 'record',
       'save', 'pay', 'paid', 'transfer', 'edit', 'update',
     ]);
