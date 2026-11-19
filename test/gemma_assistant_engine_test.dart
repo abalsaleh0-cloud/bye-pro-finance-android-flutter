@@ -563,7 +563,7 @@ void main() {
       expect(generator.inputs.last, isNot(contains(previousContext)));
       expect(
         generator.inputs.last,
-        endsWith('رسالة المستخدم الحالية:\nتابع طلبي الحالي'),
+        'تابع طلبي الحالي',
       );
     });
 
