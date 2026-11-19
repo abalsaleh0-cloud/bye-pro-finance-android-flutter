@@ -402,7 +402,7 @@ void main() {
         'أين أضفت 1500؟',
         ActionRegistry.descriptors.map((item) => item.name).toList(),
         conversationContext:
-            'المستخدم: أضف راتب 1500 لشهر الماضي\\nالمساعد: تمت إضافة الراتب.',
+            'المستخدم: أضف راتب 1500 لشهر الماضي\nالمساعد: تمت إضافة الراتب.',
       );
 
       expect(result.kind, AssistantResultKind.command);
