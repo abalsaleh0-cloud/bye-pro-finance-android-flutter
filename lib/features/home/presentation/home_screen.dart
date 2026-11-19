@@ -39,6 +39,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _manualEntryOpened = false;
   int _activePage = 0;
+  String _searchQuery = '';
   final PageController _pageController = PageController();
 
   @override
@@ -59,6 +60,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       });
     }
   }
+
+  bool _matchesSearch({
+    required String title,
+    required int amount,
+    required DateTime date,
+    String? note,
+  }) {
+    final query = _searchQuery.trim().toLowerCase();
+    if (query.isEmpty) return true;
+    final searchable = '$title ${note ?? ''} $amount ${date.toIso8601String()}';
+    return searchable.toLowerCase().contains(query);
+  }
+
+  Widget _searchField(AppLocalizations strings) => TextField(
+        key: const Key('home-record-search'),
+        onChanged: (value) => setState(() => _searchQuery = value),
+        decoration: InputDecoration(
+          prefixIcon: const Icon(Icons.search_rounded),
+          hintText: strings.searchRecords,
+          suffixIcon: _searchQuery.isEmpty
+              ? null
+              : IconButton(
+                  tooltip: strings.clearSearch,
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () => setState(() => _searchQuery = ''),
+                ),
+        ),
+      );
 
   String _categoryLabel(AppLocalizations strings, HomeExpenseCategory category) {
     if (category.name.trim().isNotEmpty) return category.name;
@@ -692,6 +721,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ref.read(selectedMonthProvider.notifier).select(month),
         ),
         SizedBox(height: tokens.sectionSpacing * 0.67),
+        if (transferPage || expensePage || historyPage || billsPage || rentPage)
+          _searchField(strings),
         if (overview) ...[
           if (billPaymentsForMonth.isLoading || billOutstandingAtMonthEnd.isLoading)
             Text(strings.loading)
@@ -718,7 +749,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 final date = transfer.transferredAt.toLocal();
                 return date.year == selectedMonth.year &&
                     date.month == selectedMonth.month;
-              }).toList();
+              }).where((transfer) => _matchesSearch(
+                title: strings.homeIncomingFromWork,
+                amount: transfer.amount.minorUnits,
+                date: transfer.transferredAt,
+                note: transfer.note,
+              )).toList();
               if (monthItems.isEmpty) {
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 20),
@@ -755,7 +791,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 final date = expense.expenseDate.toLocal();
                 return date.year == selectedMonth.year &&
                     date.month == selectedMonth.month;
-              }).toList();
+              }).where((expense) => _matchesSearch(
+                title: _categoryLabel(strings, _categoryForExpense(
+                  expenseCategories.value ?? const <HomeExpenseCategory>[], expense.categoryId,
+                )),
+                amount: expense.amount.minorUnits,
+                date: expense.expenseDate,
+                note: expense.note,
+              )).toList();
               if (monthItems.isEmpty) {
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 20),
@@ -833,7 +876,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 for (final item in allPayments)
                   _HomeLogItem(date: item.paidAt, title: strings.addBillPayment, subtitle: allBills.where((bill) => bill.id == item.billId).firstOrNull?.title, amount: item.amount.minorUnits, icon: Icons.payments_outlined, note: item.note),
               ]..sort((a, b) => b.date.compareTo(a.date));
-              if (logItems.isEmpty) {
+              final filteredLogItems = logItems.where((item) => _matchesSearch(
+                title: item.title, amount: item.amount, date: item.date,
+                note: '${item.subtitle ?? ''} ${item.note ?? ''}',
+              )).toList();
+              if (filteredLogItems.isEmpty) {
                 return Center(child: Text(strings.noRecords));
               }
               return Column(children: [
@@ -854,8 +901,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ]);
             }),
         ],
-        if (billsPage) HomeBillsSection(selectedMonth: selectedMonth, kind: HomeBillKind.monthly),
-        if (rentPage) HomeBillsSection(selectedMonth: selectedMonth, kind: HomeBillKind.rent),
+        if (billsPage) HomeBillsSection(selectedMonth: selectedMonth, kind: HomeBillKind.monthly, searchQuery: _searchQuery),
+        if (rentPage) HomeBillsSection(selectedMonth: selectedMonth, kind: HomeBillKind.rent, searchQuery: _searchQuery),
       ]),
     );
   }

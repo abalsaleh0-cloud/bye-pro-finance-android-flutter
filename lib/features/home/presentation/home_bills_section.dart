@@ -11,10 +11,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 class HomeBillsSection extends ConsumerWidget {
-  const HomeBillsSection({super.key, this.selectedMonth, this.kind});
+  const HomeBillsSection({super.key, this.selectedMonth, this.kind, this.searchQuery = ''});
 
   final MonthKey? selectedMonth;
   final HomeBillKind? kind;
+  final String searchQuery;
 
   DateTime _defaultSelectedDate() {
     final month = selectedMonth ?? MonthKey(year: DateTime.now().year, month: DateTime.now().month);
@@ -207,7 +208,11 @@ class HomeBillsSection extends ConsumerWidget {
                 bill.dueMonth == selectedMonth || !bill.isSettled;
             return dueBySelectedMonth &&
                 isCurrentOrStillOutstanding &&
-                (kind == null || bill.kind == kind);
+                (kind == null || bill.kind == kind) &&
+                (searchQuery.trim().isEmpty ||
+                    bill.title.toLowerCase().contains(searchQuery.trim().toLowerCase()) ||
+                    (bill.note ?? '').toLowerCase().contains(searchQuery.trim().toLowerCase()) ||
+                    bill.amount.minorUnits.toString().contains(searchQuery.trim()));
           }).toList();
           return monthItems.isEmpty
           ? Text(strings.noBills)

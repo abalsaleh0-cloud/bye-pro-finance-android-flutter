@@ -27,6 +27,7 @@ class DebtsScreen extends ConsumerStatefulWidget {
 class _DebtsScreenState extends ConsumerState<DebtsScreen> {
   bool _manualEntryOpened = false;
   int _activeTab = 0;
+  String _searchQuery = '';
 
   @override
   void didChangeDependencies() {
@@ -380,6 +381,22 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                   ref.read(selectedMonthProvider.notifier).select(value),
             ),
           ),
+          Padding(
+            padding: tokens.pageInsets(bottom: 8),
+            child: TextField(
+              key: const Key('debt-record-search'),
+              onChanged: (value) => setState(() => _searchQuery = value),
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search_rounded),
+                hintText: strings.searchRecords,
+                suffixIcon: _searchQuery.isEmpty ? null : IconButton(
+                  tooltip: strings.clearSearch,
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () => setState(() => _searchQuery = ''),
+                ),
+              ),
+            ),
+          ),
           _debtSummaryCard(
             context,
             strings,
@@ -396,7 +413,10 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
               .where((debt) =>
                  debt.direction == selectedDirection &&
                  debt.dueMonth.compareTo(selectedMonth) <= 0 &&
-                 (debt.dueMonth == selectedMonth || !debt.isSettled))
+                 (debt.dueMonth == selectedMonth || !debt.isSettled) &&
+                 (debt.counterparty.toLowerCase().contains(_searchQuery.trim().toLowerCase()) ||
+                  (debt.note ?? '').toLowerCase().contains(_searchQuery.trim().toLowerCase()) ||
+                  debt.originalAmount.minorUnits.toString().contains(_searchQuery.trim())))
               .toList();
           return visibleItems.isEmpty
               ? Center(child: Text(strings.noRecords))
