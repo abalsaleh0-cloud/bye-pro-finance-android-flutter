@@ -64,7 +64,7 @@ void main() {
           .toList(growable: false);
 
       await GemmaAssistantEngine(generator).interpret(
-        'اعرض ملخص الشهر',
+        'اعرض ملخص الشهر والراتب ومصروفات المنزل والفواتير والديون والتحويلات والتصنيفات، وافتح قسم العمل',
         actionNames,
       );
 
@@ -473,6 +473,58 @@ void main() {
 
       expect(result.kind, AssistantResultKind.answer);
       expect(result.message, contains('3 خطوات'));
+    });
+
+    test('does not attach finance tools to a general writing request', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.text('تنظيم الوقت يساعد على إنجاز الأولويات بهدوء.'),
+      );
+      final result = await GemmaAssistantEngine(generator).interpret(
+        'اكتب فقرة عن أهمية تنظيم الوقت مع أمثلة عملية',
+        ActionRegistry.descriptors.map((item) => item.name).toList(),
+      );
+
+      expect(result.kind, AssistantResultKind.answer);
+      expect(generator.receivedFunctions, isEmpty);
+    });
+
+    test('sends only the relevant finance tool family for a salary request', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.text('هل تقصد الراتب لهذا الشهر؟'),
+      );
+      await GemmaAssistantEngine(generator).interpret(
+        'أضف راتب 1500',
+        ActionRegistry.descriptors.map((item) => item.name).toList(),
+      );
+
+      final names = generator.receivedFunctions!.map((item) => item.name).toSet();
+      expect(names, containsAll({
+        'save_work_entry',
+        'delete_work_entry',
+        'read_work_records',
+        'read_work_remaining',
+        'ask_clarification',
+      }));
+      expect(names, isNot(contains('save_debt')));
+      expect(names, isNot(contains('save_home_bill')));
+    });
+
+    test('bounds long conversation context and preserves the current request', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.text('سأتابع معك.'),
+      );
+      final longContext = List<String>.filled(
+        80,
+        'المستخدم: هذه رسالة سابقة طويلة لفهم سياق المحادثة.',
+      ).join('\\n');
+      await GemmaAssistantEngine(generator).interpret(
+        'تابع من فضلك',
+        actions,
+        conversationContext: longContext,
+      );
+
+      expect(generator.receivedInput!.length, lessThan(700));
+      expect(generator.receivedInput, endsWith('رسالة المستخدم الحالية:\\nتابع من فضلك'));
     });
 
     test('does not allow a free-form answer to invent personal financial figures', () async {
