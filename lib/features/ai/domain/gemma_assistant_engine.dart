@@ -258,11 +258,19 @@ final class GemmaAssistantEngine implements AssistantEngine {
     // A general conversation must not carry twenty-plus finance schemas.
     // Route finance requests to the smallest safe set of app actions instead.
     final normalizedCurrent = _input.normalize(currentText);
-    final isFollowUp = _input.containsAny(normalizedCurrent, const [
-      'هذا', 'هذه', 'لهذا', 'لذلك', 'نفسه', 'نفسها',
-      'نفس المبلغ', 'نفس الشهر', 'نعم', 'لا', 'الشهر الحالي',
-      'هالشهر', 'الشهر الماضي', 'الشهر القادم',
-    ]);
+    final normalizedHistory = _input.normalize(conversationContext);
+    final isAnswerToClarification = currentText.trim().length <= 60 &&
+        _input.containsAny(normalizedHistory, const [
+          'اي شهر تقصد', 'ما الشهر المطلوب', 'ما الشهر',
+          'ما المبلغ', 'ما الاسم', 'ما التاريخ', 'ما الاتجاه',
+          'ما نوع', 'اذكر الشهر', 'اذكر التاريخ',
+        ]);
+    final isFollowUp = isAnswerToClarification ||
+        _input.containsAny(normalizedCurrent, const [
+          'هذا', 'هذه', 'لهذا', 'لذلك', 'نفسه', 'نفسها',
+          'نفس المبلغ', 'نفس الشهر', 'نعم', 'لا', 'الشهر الحالي',
+          'هالشهر', 'الشهر الماضي', 'الشهر القادم',
+        ]);
     final routingText = _input.normalize(
       isFollowUp ? '$conversationContext\n$currentText' : currentText,
     );
@@ -271,16 +279,15 @@ final class GemmaAssistantEngine implements AssistantEngine {
 
     final work = has(const [
       'راتب', 'راتبا', 'راتبي', 'معاش', 'مرتب', 'سلفة', 'سلفه', 'تسبيق',
-      'العمل', 'الباقي', 'المتبقي', 'قبضت', 'استلمت',
-      'salary', 'advance', 'remaining',
+      'سجلات العمل', 'قسم العمل', 'الباقي', 'المتبقي',
+      'قبضت', 'استلمت', 'salary', 'advance', 'remaining',
     ]);
     final bill = has(const [
       'فاتورة', 'الفاتورة', 'فواتير', 'الفواتير', 'ايجار', 'اجار',
-      'الإيجار', 'الايجار', 'rent', 'اشتراك', 'الكهرباء', 'المياه',
-      'الإنترنت', 'انترنت',
+      'الإيجار', 'الايجار', 'rent', 'اشتراك',
     ]);
     final home = has(const [
-      'مصروف', 'مصاريف', 'المصاريف', 'مشتريات', 'المنزل', 'البيت',
+      'مصروف', 'مصاريف', 'المصاريف', 'مشتريات',
       'صرفت', 'صرف', 'انفقت', 'أنفقت', 'expenses', 'household',
     ]);
     final debt = has(const [
@@ -288,7 +295,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
       'سداد الدين', 'دين علي', 'كم علي', 'لي عند', 'debt',
     ]);
     final transfer = has(const [
-      'تحويل', 'تحويلات', 'حول', 'حولت', 'حوّل', 'نقلت',
+      'تحويل', 'تحويلات', 'حولت', 'حوّل', 'نقلت',
       'نقل للبيت', 'نقل للمنزل', 'transferred',
     ]);
     final category = has(const [
