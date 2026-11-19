@@ -536,7 +536,7 @@ void main() {
         'لهذا الشهر',
         ActionRegistry.descriptors.map((item) => item.name).toList(),
         conversationContext:
-            'المستخدم: أضف راتب 1500\\nالمساعد: ما الشهر المستحق؟',
+            'المستخدم: أضف راتب 1500\nالمساعد: ما الشهر المستحق؟',
       );
 
       final names = generator.receivedFunctions!.map((item) => item.name);
