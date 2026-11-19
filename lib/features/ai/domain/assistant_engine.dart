@@ -22,6 +22,7 @@ final class AssistantResult {
     this.message,
     this.source = AssistantResultSource.local,
     this.usedGemmaFallback = false,
+    this.sourceExplicit = false,
   });
 
   const AssistantResult.command(AssistantCommand value)
@@ -38,6 +39,10 @@ final class AssistantResult {
   final String? message;
   final AssistantResultSource source;
 
+  /// True when a producer explicitly set [source], rather than using the
+  /// default value shared by result constructors.
+  final bool sourceExplicit;
+
   /// True when Gemma was tried but the local deterministic engine produced
   /// the result shown to the user.
   final bool usedGemmaFallback;
@@ -52,6 +57,7 @@ final class AssistantResult {
         message: message,
         source: value,
         usedGemmaFallback: usedGemmaFallback,
+        sourceExplicit: true,
       );
 }
 final class AssistantInputException implements Exception {
@@ -102,6 +108,9 @@ final class FallbackAssistantEngine implements AssistantEngine {
       conversationContext: conversationContext,
       expenseCategories: expenseCategories,
     );
+    // Preserve an explicitly identified app-side result (for example, a
+    // device capability guard) instead of falsely attributing it to Gemma.
+    if (result.sourceExplicit) return result;
     if (result.kind != AssistantResultKind.notUnderstood || media != null) {
       return result.withSource(AssistantResultSource.gemma);
     }
