@@ -280,19 +280,19 @@ final class GemmaAssistantEngine implements AssistantEngine {
     final work = has(const [
       'راتب', 'راتبا', 'راتبي', 'معاش', 'مرتب', 'سلفة', 'سلفه', 'تسبيق',
       'سجلات العمل', 'قسم العمل', 'الباقي', 'المتبقي',
-      'قبضت', 'استلمت', 'salary', 'advance', 'remaining',
+      'قبضت', 'استلمت', 'salary', 'advance', 'remaining', 'paycheck',
     ]);
     final bill = has(const [
       'فاتورة', 'الفاتورة', 'فواتير', 'الفواتير', 'ايجار', 'اجار',
-      'الإيجار', 'الايجار', 'rent', 'اشتراك',
+      'الإيجار', 'الايجار', 'rent', 'اشتراك', 'bill', 'invoice',
     ]);
     final home = has(const [
       'مصروف', 'مصاريف', 'المصاريف', 'مشتريات',
-      'صرفت', 'صرف', 'انفقت', 'أنفقت', 'expenses', 'household',
+      'صرفت', 'صرف', 'انفقت', 'أنفقت', 'expenses', 'household', 'home expense',
     ]);
     final debt = has(const [
       'دين', 'الديون', 'ديون', 'دائن', 'مدين',
-      'سداد الدين', 'دين علي', 'كم علي', 'لي عند', 'debt',
+      'سداد الدين', 'دين علي', 'كم علي', 'لي عند', 'debt', 'loan',
     ]);
     final transfer = has(const [
       'تحويل', 'تحويلات', 'حولت', 'حوّل', 'نقلت',
@@ -328,7 +328,9 @@ final class GemmaAssistantEngine implements AssistantEngine {
       'اعرض', 'وريني', 'فرجيني', 'هات', 'جيب', 'طلع',
       'اعطني', 'اعطيني', 'ارني', 'كم', 'قديش', 'شكد',
       'شو عندي', 'تفاصيل', 'قائمة', 'المجموع', 'اجمالي',
-      'إجمالي', 'ما هو', 'ما هي', 'show', 'list', 'how much',
+      'إجمالي', 'ما هو', 'ما هي', 'هل استلمت', 'كم دفعت',
+      'قديش دفعت', 'كم سددت', 'قديش سددت', 'متى دفعت',
+      'هل وصلني', 'show', 'list', 'how much',
     ]);
     final write = !history && has(const [
       'اضف', 'أضف', 'ضيف', 'سجل', 'سجّل', 'اعمل',
@@ -362,7 +364,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
           include(name);
         }
       }
-    } else if (write) {
+    } else if (write && !read) {
       if (bill && payment) {
         include('record_home_bill_payment');
       } else if (debt && payment) {
