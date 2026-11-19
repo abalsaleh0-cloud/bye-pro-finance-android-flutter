@@ -257,15 +257,22 @@ final class GemmaAssistantEngine implements AssistantEngine {
   ) {
     // A general conversation must not carry twenty-plus finance schemas.
     // Route finance requests to the smallest safe set of app actions instead.
+    final normalizedCurrent = _input.normalize(currentText);
+    final isFollowUp = _input.containsAny(normalizedCurrent, const [
+      'هذا', 'هذه', 'لهذا', 'لذلك', 'نفسه', 'نفسها',
+      'نفس المبلغ', 'نفس الشهر', 'نعم', 'لا', 'الشهر الحالي',
+      'هالشهر', 'الشهر الماضي', 'الشهر القادم',
+    ]);
     final routingText = _input.normalize(
-      '$conversationContext\n$currentText',
+      isFollowUp ? '$conversationContext\n$currentText' : currentText,
     );
     bool has(Iterable<String> phrases) =>
         _input.containsAny(routingText, phrases);
 
     final work = has(const [
       'راتب', 'معاش', 'مرتب', 'سلفة', 'سلفه', 'تسبيق',
-      'العمل', 'salary', 'advance',
+      'العمل', 'الباقي', 'المتبقي', 'قبضت', 'استلمت',
+      'salary', 'advance', 'remaining',
     ]);
     final bill = has(const [
       'فاتورة', 'الفاتورة', 'فواتير', 'الفواتير', 'ايجار', 'اجار',
@@ -273,8 +280,8 @@ final class GemmaAssistantEngine implements AssistantEngine {
       'الإنترنت', 'انترنت',
     ]);
     final home = has(const [
-      'مصروف', 'مصاريف', 'مشتريات', 'المنزل', 'البيت',
-      'expenses', 'household',
+      'مصروف', 'مصاريف', 'المصاريف', 'مشتريات', 'المنزل', 'البيت',
+      'صرفت', 'صرف', 'انفقت', 'أنفقت', 'expenses', 'household',
     ]);
     final debt = has(const [
       'دين', 'الديون', 'ديون', 'دائن', 'مدين',
@@ -303,7 +310,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
     ]);
     final history = has(const [
       'سجل الدفعات', 'تاريخ الدفعات', 'الدفعات السابقة',
-      'سجل الدفع', 'payment history', 'payment history',
+      'سجل الدفع', 'payment history',
     ]);
     final payment = has(const [
       'دفعة', 'دفعات', 'دفعت', 'سدد', 'سددت',
@@ -360,7 +367,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
         if (home && !bill) include('save_home_expense');
         if (category) include('save_home_category');
       }
-    } else if (read || financeIntent) {
+    } else if (read || (financeIntent && !navigation)) {
       if (dashboard) {
         include('read_dashboard_summary');
         if (has(const ['مجموع', 'المجموع', 'اجمالي', 'إجمالي', 'total'])) {
