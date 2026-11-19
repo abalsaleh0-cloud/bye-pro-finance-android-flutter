@@ -549,7 +549,7 @@ void main() {
         }),
       );
       final result = await GemmaAssistantEngine(generator).interpret(
-        'أضف راتب 1500 لشهر 11 ملاحظة راتب شهري',
+        'أضف راتب 1500 لشهر ${now.month} ملاحظة راتب شهري',
         ActionRegistry.descriptors.map((item) => item.name).toList(),
       );
 
@@ -559,7 +559,7 @@ void main() {
       expect(result.command!.parameters['kind'], 'salary');
       expect(result.command!.parameters['amountMinorUnits'], 1500);
       expect(result.command!.parameters['year'], now.year);
-      expect(result.command!.parameters['month'], 11);
+      expect(result.command!.parameters['month'], now.month);
       expect(result.command!.parameters.containsKey('date'), isFalse);
       expect(result.command!.parameters['note'], 'راتب شهري');
     });
