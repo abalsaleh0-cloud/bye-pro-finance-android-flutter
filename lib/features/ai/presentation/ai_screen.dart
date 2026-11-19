@@ -727,6 +727,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     } finally {
       if (mounted) setState(() => _preparing = false);
     }
+    if (!mounted) return;
 
     final media = mediaBytes == null
         ? null
