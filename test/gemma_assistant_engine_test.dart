@@ -27,6 +27,25 @@ class _ThrowingGemmaGenerator implements GemmaTurnGenerator {
   }
 }
 
+class _ContextLimitThenSuccessGenerator implements GemmaTurnGenerator {
+  int calls = 0;
+  final inputs = <String>[];
+
+  @override
+  Future<GemmaModelOutput> generate(
+    String userText,
+    List<GemmaFunctionSpec> functions, {
+    AssistantMedia? media,
+  }) async {
+    calls++;
+    inputs.add(userText);
+    if (calls == 1) {
+      throw StateError('ContextLimitException: context window is full');
+    }
+    return const GemmaModelOutput.text('سأتابع معك الآن.');
+  }
+}
+
 class _FakeGemmaGenerator implements GemmaTurnGenerator {
   _FakeGemmaGenerator(this.output);
   final GemmaModelOutput output;
@@ -525,6 +544,27 @@ void main() {
 
       expect(generator.receivedInput!.length, lessThan(700));
       expect(generator.receivedInput, endsWith('رسالة المستخدم الحالية:\\nتابع من فضلك'));
+    });
+
+    test('retries once without old dialogue after a context-limit refusal', () async {
+      final generator = _ContextLimitThenSuccessGenerator();
+      const previousContext =
+          'المستخدم: سياق قديم جداً لا يلزم لإتمام الطلب الحالي.';
+
+      final result = await GemmaAssistantEngine(generator).interpret(
+        'تابع طلبي الحالي',
+        actions,
+        conversationContext: previousContext,
+      );
+
+      expect(result.kind, AssistantResultKind.answer);
+      expect(generator.calls, 2);
+      expect(generator.inputs.first, contains(previousContext));
+      expect(generator.inputs.last, isNot(contains(previousContext)));
+      expect(
+        generator.inputs.last,
+        endsWith('رسالة المستخدم الحالية:\\nتابع طلبي الحالي'),
+      );
     });
 
     test('does not allow a free-form answer to invent personal financial figures', () async {
