@@ -108,6 +108,31 @@ void main() {
       expect(result.usedGemmaFallback, isTrue);
     });
 
+    test('falls back when Gemma asks for a month already specified as last month', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.call('ask_clarification', {
+          'question': 'أي شهر تقصد؟',
+        }),
+      );
+      final now = DateTime.now();
+      final previousMonth = DateTime(now.year, now.month - 1);
+      final result = await FallbackAssistantEngine(
+        primary: GemmaAssistantEngine(generator),
+        fallback: const LocalRuleAssistantEngine(),
+      ).interpret(
+        'أضف راتب 1500 لشهر الماضي',
+        ActionRegistry.descriptors.map((item) => item.name).toList(),
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'save_work_entry');
+      expect(result.command!.parameters['amountMinorUnits'], 1500);
+      expect(result.command!.parameters['year'], previousMonth.year);
+      expect(result.command!.parameters['month'], previousMonth.month);
+      expect(result.command!.parameters['kind'], 'salary');
+      expect(result.usedGemmaFallback, isTrue);
+    });
+
     test('does not send any finance tools for ordinary general conversation', () async {
       final generator = _FakeGemmaGenerator(
         const GemmaModelOutput.text('إليك فقرة قصيرة عن تنظيم الوقت.'),
