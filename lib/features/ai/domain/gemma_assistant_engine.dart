@@ -75,8 +75,42 @@ final class GemmaAssistantEngine implements AssistantEngine {
     try {
       final functions = _functionsForRequest(text, availableActions);
 
-      final prompt = _composePrompt(text, conversationContext, expenseCategories);
-      final output = await generator.generate(prompt, functions, media: media).timeout(timeout);
+      final needsCategoryCatalog = functions.any((function) =>
+          const {
+            'save_home_expense',
+            'read_home_categories',
+            'save_home_category',
+          }.contains(function.name));
+      final promptCategories =
+          needsCategoryCatalog ? expenseCategories : const <String, String>{};
+      final prompt = _composePrompt(
+        text,
+        conversationContext,
+        promptCategories,
+      );
+      GemmaModelOutput output;
+      try {
+        output = await generator
+            .generate(prompt, functions, media: media)
+            .timeout(timeout);
+      } catch (error) {
+        // A context-limit refusal can still happen on a small handset when
+        // earlier turns plus schemas use more tokens than the model has left.
+        // Retry once with the current request only; never discard the user's
+        // actual message or remove financial safeguards/tools.
+        if (conversationContext.trim().isEmpty ||
+            !error.toString().contains('ContextLimitException')) {
+          rethrow;
+        }
+        final retryPrompt = _composePrompt(
+          text,
+          '',
+          promptCategories,
+        );
+        output = await generator
+            .generate(retryPrompt, functions, media: media)
+            .timeout(timeout);
+      }
       if (output.parallelCalls) return const AssistantResult.notUnderstood();
 
       if (output.name == null) {
@@ -268,19 +302,19 @@ final class GemmaAssistantEngine implements AssistantEngine {
 
     final selected = <String>{};
     final work = has([
-      'راتب', 'راتبي', 'معاش', 'معاشي', 'مرتب', 'سلفة', 'تسبيق',
+      'راتب', 'راتبي', 'رواتب', 'الرواتب', 'معاش', 'معاشي', 'مرتب', 'دخلي', 'سلفة', 'تسبيق',
       'دفعة راتب', 'الباقي في العمل', 'المتبقي من الراتب',
     ]);
     final homeExpenses = has([
-      'مصروف', 'مصاريف', 'نفقة', 'مشتريات', 'مصروف البيت',
+      'مصروف', 'مصروفات', 'المصروفات', 'مصاريف', 'مصاريفي', 'مصروفاتي', 'نفقة', 'مشتريات', 'صرفت', 'انفقت', 'مصروف البيت',
       'مصروف المنزل', 'مصروفات المنزل', 'مصاريف البيت', 'مصاريف المنزل',
     ]);
     final bills = has([
-      'فاتورة', 'فواتير', 'ايجار', 'ايجارات', 'كهرباء', 'ماء',
+      'فاتورة', 'فواتير', 'فواتيري', 'فاتورتي', 'الاشتراكات الشهرية', 'ايجار', 'ايجارات', 'كهرباء', 'ماء',
       'مياه', 'انترنت', 'اشتراك', 'اشتراكات', 'غاز المنزل',
     ]);
     final debts = has([
-      'دين', 'ديون', 'دائن', 'مدين', 'سداد', 'سددت', 'قرض',
+      'دين', 'ديون', 'ديوني', 'مجموع الديون', 'كم علي', 'قديش علي', 'كم لي', 'قديش لي', 'دائن', 'مدين', 'سداد', 'سددت', 'قرض',
       'اقرضت', 'استلفت', 'دفعة الدين', 'دفعات الدين',
     ]);
     final transfers = has([
