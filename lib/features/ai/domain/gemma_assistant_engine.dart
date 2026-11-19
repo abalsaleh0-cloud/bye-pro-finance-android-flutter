@@ -310,8 +310,10 @@ final class GemmaAssistantEngine implements AssistantEngine {
         work || bill || home || debt || transfer || category || dashboard;
 
     final navigation = has(const [
-      'افتح', 'انتقل', 'اذهب الى', 'روح الى', 'وديني',
-      'خذني', 'open section', 'navigate',
+      'افتح', 'وافتح', 'افتح قسم', 'وافتح قسم',
+      'انتقل', 'وانتقل', 'اذهب الى', 'واذهب الى',
+      'روح الى', 'وروح الى', 'وديني', 'خذني',
+      'open section', 'navigate',
     ]);
     final deletion = has(const [
       'احذف', 'حذف', 'امسح', 'الغ', 'إزالة', 'delete', 'remove',
