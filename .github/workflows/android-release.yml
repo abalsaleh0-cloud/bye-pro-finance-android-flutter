@@ -100,6 +100,19 @@ jobs:
           import zlib
 
           resource_root = Path("android/app/src/main/res")
+          manifest = Path("android/app/src/main/AndroidManifest.xml").read_text()
+          approved_icon = '@drawable/ic_launcher_dark'
+          application = manifest.split('<application', 1)[1].split('>', 1)[0]
+          aliases = manifest.split('<activity-alias')[1:]
+          if f'android:icon="{approved_icon}"' not in application:
+              raise SystemExit("Application icon must use the original BP bitmap.")
+          if f'android:roundIcon="{approved_icon}"' not in application:
+              raise SystemExit("Round application icon must use the original BP bitmap.")
+          if len(aliases) != 2 or any(f'android:icon="{approved_icon}"' not in alias.split('>', 1)[0] for alias in aliases):
+              raise SystemExit("Both launcher aliases must use the approved original BP bitmap.")
+          if "ic_launcher_light" in manifest or "mipmap/ic_launcher_dark" in manifest:
+              raise SystemExit("A non-approved wallet/launcher bitmap is still wired into the manifest.")
+
           png_files = sorted(resource_root.rglob("*.png"))
           if not png_files:
               raise SystemExit("No Android PNG resources were found.")
