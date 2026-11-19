@@ -535,7 +535,7 @@ void main() {
       final longContext = List<String>.filled(
         80,
         'المستخدم: هذه رسالة سابقة طويلة لفهم سياق المحادثة.',
-      ).join('\\n');
+      ).join('\n');
       await GemmaAssistantEngine(generator).interpret(
         'تابع من فضلك',
         actions,
@@ -543,7 +543,7 @@ void main() {
       );
 
       expect(generator.receivedInput!.length, lessThan(700));
-      expect(generator.receivedInput, endsWith('رسالة المستخدم الحالية:\\nتابع من فضلك'));
+      expect(generator.receivedInput, endsWith('رسالة المستخدم الحالية:\nتابع من فضلك'));
     });
 
     test('retries once without old dialogue after a context-limit refusal', () async {
@@ -563,7 +563,7 @@ void main() {
       expect(generator.inputs.last, isNot(contains(previousContext)));
       expect(
         generator.inputs.last,
-        endsWith('رسالة المستخدم الحالية:\\nتابع طلبي الحالي'),
+        endsWith('رسالة المستخدم الحالية:\nتابع طلبي الحالي'),
       );
     });
 
