@@ -298,7 +298,15 @@ final class GemmaAssistantEngine implements AssistantEngine {
     List<String> availableActions,
   ) {
     final normalized = _input.normalize(text);
-    bool has(List<String> phrases) => _input.containsAny(normalized, phrases);
+    bool has(List<String> phrases) => phrases.any((phrase) {
+      final candidate = _input.normalize(phrase);
+      // Arabic definite articles and attached conjunctions are common in
+      // real user wording. Substring matching here intentionally broadens
+      // only domain/tool selection; returned actions remain schema-validated.
+      return candidate.isNotEmpty &&
+          (normalized.contains(candidate) ||
+              _input.containsAny(normalized, [candidate]));
+    });
 
     final selected = <String>{};
     final work = has([
