@@ -1,4 +1,5 @@
 import 'package:expense_app/features/settings/data/app_security_service.dart';
+import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
@@ -24,9 +25,6 @@ class _AppSecurityGateState extends State<AppSecurityGate> with WidgetsBindingOb
   String? _error;
   DateTime? _backgroundedAt;
   static const _backgroundRelockGracePeriod = Duration(seconds: 30);
-
-  String _text(String ar, String en) =>
-      Localizations.localeOf(context).languageCode == 'en' ? en : ar;
 
   @override
   void initState() {
@@ -102,10 +100,7 @@ class _AppSecurityGateState extends State<AppSecurityGate> with WidgetsBindingOb
       if (mounted) {
         setState(() {
           _ready = true;
-          _error = _text(
-            'تعذر قراءة إعدادات الحماية. أغلق التطبيق وافتحه مجدداً.',
-            'Unable to read security settings. Restart the app.',
-          );
+          _error = AppLocalizations.of(context)!.securityReadError;
         });
       }
     }
@@ -124,17 +119,11 @@ class _AppSecurityGateState extends State<AppSecurityGate> with WidgetsBindingOb
       if (authenticated) {
         setState(() => _locked = false);
       } else {
-        setState(() => _error = _text(
-          'تعذر التحقق بالبصمة. أدخل رمز PIN للمتابعة.',
-          'Biometric verification failed. Enter your PIN to continue.',
-        ));
+        setState(() => _error = AppLocalizations.of(context)!.securityBiometricFailed);
       }
     } catch (_) {
       if (mounted) {
-        setState(() => _error = _text(
-          'استخدم رمز PIN لفتح التطبيق.',
-          'Use your PIN to unlock the app.',
-        ));
+        setState(() => _error = AppLocalizations.of(context)!.securityUsePinMessage);
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -155,14 +144,11 @@ class _AppSecurityGateState extends State<AppSecurityGate> with WidgetsBindingOb
         setState(() => _locked = false);
       } else {
         _pinController.clear();
-        setState(() => _error = _text('رمز PIN غير صحيح.', 'Incorrect PIN.'));
+        setState(() => _error = AppLocalizations.of(context)!.securityInvalidPin);
       }
     } catch (_) {
       if (mounted) {
-        setState(() => _error = _text(
-          'تعذر التحقق من الرمز. حاول مرة أخرى.',
-          'Unable to verify the PIN. Try again.',
-        ));
+        setState(() => _error = AppLocalizations.of(context)!.securityVerifyFailed);
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -174,7 +160,7 @@ class _AppSecurityGateState extends State<AppSecurityGate> with WidgetsBindingOb
     if (kDebugMode) return widget.child;
 
     if (!_ready) {
-      final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+      final strings = AppLocalizations.of(context)!;
       return Scaffold(
         backgroundColor: Theme.of(context).colorScheme.surface,
         body: SafeArea(
@@ -189,9 +175,7 @@ class _AppSecurityGateState extends State<AppSecurityGate> with WidgetsBindingOb
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  isEnglish
-                      ? 'Checking app protection…'
-                      : 'جارٍ التحقق من حماية التطبيق…',
+                  strings.securityCheckingProtection,
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ],
@@ -232,16 +216,14 @@ class _AppSecurityGateState extends State<AppSecurityGate> with WidgetsBindingOb
                   ),
                   const SizedBox(height: 22),
                   Text(
-                    isEnglish ? 'App locked' : 'التطبيق مقفل',
+                    strings.appLockedTitle,
                     style: theme.textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    isEnglish
-                        ? 'Enter your PIN to access your financial data.'
-                        : 'أدخل رمز PIN للوصول إلى بياناتك المالية.',
+                    strings.appLockedDescription,
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: scheme.onSurfaceVariant,
@@ -259,7 +241,7 @@ class _AppSecurityGateState extends State<AppSecurityGate> with WidgetsBindingOb
                     ],
                     textAlign: TextAlign.center,
                     decoration: InputDecoration(
-                      labelText: isEnglish ? 'PIN code' : 'رمز PIN',
+                      labelText: strings.pinCodeLabel,
                       counterText: '',
                       suffixIcon: const Icon(Icons.password_rounded),
                     ),
@@ -278,7 +260,7 @@ class _AppSecurityGateState extends State<AppSecurityGate> with WidgetsBindingOb
                     width: double.infinity,
                     child: FilledButton(
                       onPressed: _busy ? null : _verifyPin,
-                      child: Text(isEnglish ? 'Unlock' : 'فتح التطبيق'),
+                      child: Text(strings.unlockAction),
                     ),
                   ),
                   if (_biometricEnabled) ...[
@@ -289,7 +271,7 @@ class _AppSecurityGateState extends State<AppSecurityGate> with WidgetsBindingOb
                         onPressed: _busy ? null : _authenticateBiometrics,
                         icon: const Icon(Icons.fingerprint_rounded),
                         label: Text(
-                          isEnglish ? 'Use fingerprint' : 'استخدام البصمة',
+                          strings.useFingerprintAction,
                         ),
                       ),
                     ),

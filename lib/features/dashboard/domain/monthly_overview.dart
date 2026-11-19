@@ -104,6 +104,7 @@ final class MonthlyOverview {
     var creditor = Money.zero;
     var debtor = Money.zero;
     for (final debt in debts) {
+      if (debt.dueMonth.compareTo(month) > 0) continue;
       if (debt.direction == DebtDirection.creditor) {
         creditor += debt.outstandingAmount;
       } else {

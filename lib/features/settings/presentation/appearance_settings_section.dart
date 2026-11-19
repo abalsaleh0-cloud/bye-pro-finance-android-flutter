@@ -1,15 +1,14 @@
 import 'package:expense_app/core/providers/app_settings_provider.dart';
+import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 class AppearanceSettingsSection extends ConsumerWidget {
   const AppearanceSettingsSection({super.key});
 
-  String _text(BuildContext context, String ar, String en) =>
-      Localizations.localeOf(context).languageCode == 'en' ? en : ar;
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final strings = AppLocalizations.of(context)!;
     final settings = ref.watch(appSettingsProvider);
     final controller = ref.read(appSettingsProvider.notifier);
     final theme = Theme.of(context);
@@ -27,7 +26,7 @@ class AppearanceSettingsSection extends ConsumerWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    _text(context, 'مظهر التطبيق', 'App appearance'),
+                    strings.appearanceTitle,
                     style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -43,17 +42,17 @@ class AppearanceSettingsSection extends ConsumerWidget {
                 ButtonSegment(
                   value: ThemeMode.system,
                   icon: const Icon(Icons.settings_suggest_outlined),
-                  label: Text(_text(context, 'تلقائي', 'System')),
+                  label: Text(strings.appearanceSystem),
                 ),
                 ButtonSegment(
                   value: ThemeMode.light,
                   icon: const Icon(Icons.light_mode_outlined),
-                  label: Text(_text(context, 'الوضع الفاتح', 'Light')),
+                  label: Text(strings.appearanceLight),
                 ),
                 ButtonSegment(
                   value: ThemeMode.dark,
                   icon: const Icon(Icons.dark_mode_outlined),
-                  label: Text(_text(context, 'الوضع الداكن', 'Dark')),
+                  label: Text(strings.appearanceDark),
                 ),
               ],
               selected: {settings.themeMode},
@@ -65,11 +64,7 @@ class AppearanceSettingsSection extends ConsumerWidget {
             ),
             const SizedBox(height: 9),
             Text(
-              _text(
-                context,
-                'تتغير أيقونة التطبيق تلقائياً لتناسب المظهر المختار.',
-                'The app icon automatically matches the selected appearance.',
-              ),
+              strings.appearanceIconHint,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: scheme.onSurfaceVariant,
               ),

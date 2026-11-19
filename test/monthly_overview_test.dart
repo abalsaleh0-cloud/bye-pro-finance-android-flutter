@@ -416,6 +416,15 @@ void main() {
           createdAt: DateTime(2026, 11, 3),
           counterparty: 'C',
         ),
+        DebtEntry(
+          id: 'future-debt',
+          direction: DebtDirection.debtor,
+          originalAmount: Money.fromMinorUnits(90000),
+          outstandingAmount: Money.fromMinorUnits(90000),
+          dueMonth: MonthKey(year: 2026, month: 12),
+          createdAt: DateTime(2026, 12, 1),
+          counterparty: 'Future',
+        ),
       ],
     );
 

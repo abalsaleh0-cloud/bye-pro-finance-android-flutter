@@ -115,6 +115,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       ref.invalidate(homeBillsProvider);
       ref.invalidate(homeBillPaymentsForMonthProvider);
       ref.invalidate(homeBillOutstandingAsOfMonthProvider);
+      ref.invalidate(homeBillOutstandingThroughMonthAsOfMonthProvider);
       ref.invalidate(allHomeBillPaymentsProvider);
     }
   }
