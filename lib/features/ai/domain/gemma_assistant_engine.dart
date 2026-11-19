@@ -73,21 +73,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
     if (text.isEmpty) return const AssistantResult.notUnderstood();
 
     try {
-      final functions = ActionRegistry.descriptors
-          .where((descriptor) => availableActions.contains(descriptor.name))
-          .map(_functionFor)
-          .toList(growable: true);
-      functions.add(const GemmaFunctionSpec(
-        name: 'ask_clarification',
-        description: 'Ask one short Arabic clarification question. Do not guess.',
-        properties: {
-          'question': {
-            'type': 'string',
-            'description': 'A short question in Arabic.',
-          },
-        },
-        required: ['question'],
-      ));
+      final functions = _functionsForRequest(text, availableActions);
 
       final prompt = _composePrompt(text, conversationContext, expenseCategories);
       final output = await generator.generate(prompt, functions, media: media).timeout(timeout);
@@ -247,19 +233,153 @@ final class GemmaAssistantEngine implements AssistantEngine {
     String conversationContext,
     Map<String, String> expenseCategories,
   ) {
-    final context = conversationContext.trim();
+    // Keep only a short tail of dialogue. The model's 2K-token context also
+    // contains the system instructions, selected tool schemas, and its reply.
+    final rawContext = conversationContext.trim();
+    final context = rawContext.length <= 480
+        ? rawContext
+        : '…${rawContext.substring(rawContext.length - 479)}';
     final categoryCatalog = expenseCategories.entries
+        .take(12)
         .map((entry) => '${entry.key} = ${entry.value}')
         .join('؛ ');
-    final categoryInstruction = categoryCatalog.isEmpty
+    final boundedCatalog = categoryCatalog.length <= 300
+        ? categoryCatalog
+        : '${categoryCatalog.substring(0, 299)}…';
+    final categoryInstruction = boundedCatalog.isEmpty
         ? ''
-        : '\nالتصنيفات الفعلية المتاحة في هذا التطبيق (المعرّف = الاسم): $categoryCatalog. عند تسجيل مصروف اختر التصنيف المطابق من هذه القائمة، ولا تخترع تصنيفاً أو معرّفاً.';
+        : '\nالتصنيفات المتاحة (المعرّف = الاسم): $boundedCatalog. اختر منها فقط.';
     if (context.isEmpty) {
-      return categoryCatalog.isEmpty ? currentText : '$categoryInstruction\n$currentText';
+      return categoryInstruction.isEmpty
+          ? currentText
+          : '$categoryInstruction\n$currentText';
     }
-    return 'سياق المحادثة السابق للرجوع إليه لفهم الإحالات واستكمال الحوار فقط:\n'
+    return 'سياق حديث مختصر لفهم الإحالات فقط:\n'
         '$context$categoryInstruction\n\n'
         'رسالة المستخدم الحالية:\n$currentText';
+  }
+
+  List<GemmaFunctionSpec> _functionsForRequest(
+    String text,
+    List<String> availableActions,
+  ) {
+    final normalized = _input.normalize(text);
+    bool has(List<String> phrases) => _input.containsAny(normalized, phrases);
+
+    final selected = <String>{};
+    final work = has([
+      'راتب', 'راتبي', 'معاش', 'معاشي', 'مرتب', 'سلفة', 'تسبيق',
+      'دفعة راتب', 'الباقي في العمل', 'المتبقي من الراتب',
+    ]);
+    final homeExpenses = has([
+      'مصروف', 'مصاريف', 'نفقة', 'مشتريات', 'مصروف البيت',
+      'مصروف المنزل', 'مصاريف البيت', 'مصاريف المنزل',
+    ]);
+    final bills = has([
+      'فاتورة', 'فواتير', 'ايجار', 'ايجارات', 'كهرباء', 'ماء',
+      'مياه', 'انترنت', 'اشتراك', 'اشتراكات', 'غاز المنزل',
+    ]);
+    final debts = has([
+      'دين', 'ديون', 'دائن', 'مدين', 'سداد', 'سددت', 'قرض',
+      'اقرضت', 'استلفت', 'دفعة الدين', 'دفعات الدين',
+    ]);
+    final transfers = has([
+      'تحويل', 'حولت', 'حول', 'نقلت للبيت', 'نقلت للمنزل',
+      'من العمل للبيت', 'من العمل للمنزل',
+    ]);
+    final categories = has(['تصنيف', 'تصنيفات', 'فئة مصروف', 'فئات المصروف']);
+
+    if (work) {
+      selected.addAll({
+        'save_work_entry',
+        'delete_work_entry',
+        'read_work_records',
+        'read_work_remaining',
+      });
+    }
+    if (homeExpenses) {
+      selected.addAll({
+        'save_home_expense',
+        'delete_home_expense',
+        'read_home_expenses',
+      });
+    }
+    if (bills) {
+      selected.addAll({
+        'save_home_bill',
+        'delete_home_bill',
+        'record_home_bill_payment',
+        'read_home_bills',
+        'read_home_bill_payments',
+      });
+    }
+    if (debts) {
+      selected.addAll({
+        'save_debt',
+        'delete_debt',
+        'record_debt_payment',
+        'read_debts',
+        'read_debt_payments',
+      });
+    }
+    if (transfers) {
+      selected.addAll({
+        'save_work_home_transfer',
+        'delete_work_home_transfer',
+        'read_work_transfers',
+      });
+    }
+    if (categories) {
+      selected.addAll({
+        'read_home_categories',
+        'save_home_category',
+        'delete_home_category',
+      });
+    }
+
+    final summary = has([
+      'ملخص', 'مجموع', 'اجمالي', 'الاجمالي', 'الرصيد',
+      'رصيدي', 'كشف الحساب', 'كشف مالي',
+    ]);
+    if (summary) {
+      selected.addAll({'read_dashboard_summary', 'read_month_total'});
+    }
+    final navigation = has(['افتح', 'انتقل', 'اذهب', 'روح', 'خذني']) &&
+        has(['قسم', 'العمل', 'المنزل', 'البيت', 'الديون', 'الرئيسية']);
+    if (navigation) selected.add('navigate_to_section');
+
+    final vagueFinancialRequest = has([
+      'رصيد', 'حسابي', 'راتب', 'دين', 'فاتورة', 'مصروف',
+      'مبلغ', 'دينار', 'سجل مالي', 'بياناتي المالية',
+    ]) || (RegExp(r'\\d').hasMatch(text) &&
+        has(['اضف', 'سجل', 'احفظ', 'عدل', 'احذف', 'ادفع', 'حول']));
+    if (vagueFinancialRequest && selected.isEmpty) {
+      selected.add('read_dashboard_summary');
+    }
+    if (selected.isEmpty) {
+      // General writing, explanations, greetings, and ordinary conversation
+      // do not need the large financial tool schema in the context window.
+      return const <GemmaFunctionSpec>[];
+    }
+
+    final result = ActionRegistry.descriptors
+        .where((descriptor) =>
+            availableActions.contains(descriptor.name) &&
+            selected.contains(descriptor.name))
+        .map(_functionFor)
+        .toList(growable: true);
+    result.add(const GemmaFunctionSpec(
+      name: 'ask_clarification',
+      description: 'Ask one short Arabic clarification question. Do not guess.',
+      properties: {
+        'question': {
+          'type': 'string',
+          'description': 'A short question in Arabic.',
+        },
+      },
+      required: ['question'],
+    ));
+    return result;
   }
 
   GemmaFunctionSpec _functionFor(ActionDescriptor descriptor) {
