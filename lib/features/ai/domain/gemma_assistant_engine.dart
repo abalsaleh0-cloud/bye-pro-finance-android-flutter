@@ -91,6 +91,9 @@ final class GemmaAssistantEngine implements AssistantEngine {
       final output = await generator
           .generate(prompt, functions, media: media)
           .timeout(timeout);
+      final exposedFunctionNames = functions
+          .map((function) => function.name)
+          .toSet();
       if (output.parallelCalls) return const AssistantResult.notUnderstood();
 
       if (output.name == null) {
@@ -125,6 +128,9 @@ final class GemmaAssistantEngine implements AssistantEngine {
       final arguments = output.arguments;
       if (arguments == null) return const AssistantResult.notUnderstood();
       if (output.name == 'ask_clarification') {
+        if (!exposedFunctionNames.contains('ask_clarification')) {
+          return const AssistantResult.notUnderstood();
+        }
         final question = arguments['question'];
         if (question is String &&
             question.trim().isNotEmpty &&
@@ -139,7 +145,9 @@ final class GemmaAssistantEngine implements AssistantEngine {
       for (final item in ActionRegistry.descriptors) {
         if (item.name == output.name) descriptor = item;
       }
-      if (descriptor == null || !availableActions.contains(output.name)) {
+      if (descriptor == null ||
+          !availableActions.contains(output.name) ||
+          !exposedFunctionNames.contains(output.name)) {
         return const AssistantResult.notUnderstood();
       }
 
