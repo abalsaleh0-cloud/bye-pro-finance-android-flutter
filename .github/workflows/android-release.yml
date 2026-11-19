@@ -136,6 +136,68 @@ jobs:
           print(f"Validated {len(png_files)} Android PNG resources and all chunk CRCs.")
           PY
 
+      - name: Verify official launcher icon identity
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+
+          manifest_path = Path("android/app/src/main/AndroidManifest.xml")
+          resource_path = Path("android/app/src/main/res/drawable-nodpi/ic_launcher_dark.png")
+          android = "{http://schemas.android.com/apk/res/android}"
+          expected = "@drawable/ic_launcher_dark"
+
+          root = ET.parse(manifest_path).getroot()
+          application = root.find("application")
+          if application is None:
+              raise SystemExit("Android application element is missing.")
+
+          for attribute in ("icon", "roundIcon"):
+              actual = application.get(android + attribute)
+              if actual != expected:
+                  raise SystemExit(
+                      f"Official application {attribute} must remain {expected}; found {actual!r}."
+                  )
+
+          launcher_aliases = []
+          for alias in application.findall("activity-alias"):
+              is_launcher = any(
+                  item.get(android + "name") == "android.intent.action.MAIN"
+                  for intent_filter in alias.findall("intent-filter")
+                  for item in intent_filter.findall("action")
+              ) and any(
+                  item.get(android + "name") == "android.intent.category.LAUNCHER"
+                  for intent_filter in alias.findall("intent-filter")
+                  for item in intent_filter.findall("category")
+              )
+              if not is_launcher:
+                  continue
+              name = alias.get(android + "name", "<unnamed>")
+              launcher_aliases.append(name)
+              actual = alias.get(android + "icon")
+              if actual != expected:
+                  raise SystemExit(
+                      f"Launcher alias {name} must use {expected}; found {actual!r}."
+                  )
+
+          required_aliases = {
+              "${applicationId}.MainActivityDarkIcon",
+              "${applicationId}.MainActivityLightIcon",
+          }
+          if not required_aliases.issubset(set(launcher_aliases)):
+              raise SystemExit(
+                  "Both existing dark/light launcher aliases must remain registered."
+              )
+          if not resource_path.is_file():
+              raise SystemExit(f"Original official launcher image is missing: {resource_path}")
+
+          print(
+              "Verified: app icon, round icon, and both appearance aliases all use "
+              "the exact original official launcher artwork."
+          )
+          PY
+
       - name: Build signed production ARM64 APK
         shell: bash
         env:
