@@ -137,7 +137,7 @@ void main() {
     await tester.scrollUntilVisible(
       previousDetails,
       500,
-      scrollable: find.byKey(const Key('dashboard-content')),
+      scrollable: find.byType(Scrollable),
     );
     await tester.pumpAndSettle();
     expect(previousDetails, findsOneWidget);
