@@ -1,3 +1,5 @@
+import 'package:expense_app/core/database/app_database.dart';
+import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/features/ai/presentation/ai_screen.dart';
 import 'package:expense_app/features/dashboard/presentation/dashboard_screen.dart';
 import 'package:expense_app/features/debts/presentation/debts_screen.dart';
@@ -11,7 +13,9 @@ import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final router = createAppRouter();
+  final router = createAppRouter(
+    database: ref.read(appDatabaseProvider),
+  );
   ref.onDispose(router.dispose);
   return router;
 });
@@ -33,9 +37,30 @@ CustomTransitionPage<void> _sectionPage({
   );
 }
 
-GoRouter createAppRouter() {
+GoRouter createAppRouter({required AppDatabase database}) {
+  bool startupResolved = false;
+  Future<bool>? welcomeCheck;
+
+  Future<bool> hasSeenWelcome() {
+    return welcomeCheck ??= database
+        .readSetting('welcome_seen')
+        .then((value) => value == 'true')
+        .catchError((Object _) => false);
+  }
+
   return GoRouter(
-    initialLocation: '/welcome',
+    // Start at the dashboard and resolve onboarding before GoRouter builds a
+    // page. Returning users therefore never mount the welcome screen at all.
+    initialLocation: '/dashboard',
+    redirect: (context, state) async {
+      if (startupResolved) return null;
+      final seen = await hasSeenWelcome();
+      startupResolved = true;
+      if (seen) {
+        return state.matchedLocation == '/welcome' ? '/dashboard' : null;
+      }
+      return state.matchedLocation == '/welcome' ? null : '/welcome';
+    },
     routes: [
       GoRoute(
         path: '/welcome',

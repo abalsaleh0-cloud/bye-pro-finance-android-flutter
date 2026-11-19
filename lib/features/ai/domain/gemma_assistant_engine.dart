@@ -177,7 +177,11 @@ final class GemmaAssistantEngine implements AssistantEngine {
         AssistantCommand(name: output.name!, parameters: normalized),
       );
     } on AssistantInputException catch (error) {
-      return AssistantResult.clarification(error.message);
+      // This clarification is produced by an app-side input guard (for
+      // example, a device RAM limit), not by Gemma inference itself.
+      return AssistantResult.clarification(error.message).withSource(
+        AssistantResultSource.local,
+      );
     } catch (_) {
       return const AssistantResult.notUnderstood();
     }

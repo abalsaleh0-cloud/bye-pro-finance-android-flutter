@@ -71,6 +71,8 @@ void main() {
     expect(result.kind, AssistantResultKind.command);
     expect(result.command!.name, 'save_work_entry');
     expect(result.command!.parameters['amountMinorUnits'], 1500);
+    expect(result.source, AssistantResultSource.local);
+    expect(result.usedGemmaFallback, isTrue);
   });
 
   test('keeps a valid Gemma clarification instead of silently guessing locally', () async {
@@ -92,5 +94,7 @@ void main() {
 
     expect(result.kind, AssistantResultKind.clarification);
     expect(result.message, 'ما تاريخ العملية؟');
+    expect(result.source, AssistantResultSource.gemma);
+    expect(result.usedGemmaFallback, isFalse);
   });
 }

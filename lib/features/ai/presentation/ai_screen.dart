@@ -58,7 +58,9 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   final _scrollController = ScrollController();
   final AssistantConfirmation _confirmation = AssistantConfirmation();
   UndoOperation? _undo;
+  String? _lastUndoAction;
   bool _busy = false;
+  bool _preparing = false;
   final ImagePicker _imagePicker = ImagePicker();
   final AndroidAssistantVoiceService _voiceService = const AndroidAssistantVoiceService();
   bool _recognizing = false;
@@ -90,8 +92,27 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     selectedMonth: ref.read(selectedMonthProvider),
   );
 
+  void _refreshAfterAssistantAction(String? actionName) {
+    if (actionName == null) return;
+    if (actionName == 'save_home_category' ||
+        actionName == 'delete_home_category') {
+      ref.invalidate(homeExpenseCategoriesProvider);
+    }
+    if (actionName == 'save_home_bill' ||
+        actionName == 'delete_home_bill' ||
+        actionName == 'record_home_bill_payment') {
+      // These are FutureProviders, not database streams. Refresh every
+      // bill-related projection after an assistant write so users see it
+      // immediately without leaving or restarting the app.
+      ref.invalidate(homeBillsProvider);
+      ref.invalidate(homeBillPaymentsForMonthProvider);
+      ref.invalidate(homeBillOutstandingAsOfMonthProvider);
+      ref.invalidate(allHomeBillPaymentsProvider);
+    }
+  }
+
   Future<void> _chooseAttachment() async {
-    if (_busy || _recognizing) return;
+    if (_busy || _recognizing || _preparing) return;
     final strings = AppLocalizations.of(context)!;
     final choice = await showModalBottomSheet<_AssistantAttachmentChoice>(
       context: context,
@@ -171,7 +192,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
 
   Future<void> _pickDocumentOrMedia() async {
     final strings = AppLocalizations.of(context)!;
-    if (_busy || _recognizing) return;
+    if (_busy || _recognizing || _preparing) return;
     try {
       final file = await FilePicker.pickFile(type: FileType.any);
       if (file == null) return;
@@ -253,9 +274,14 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   void _addAssistantMessage(
     String text, {
     bool includeInModelContext = false,
+    String? assistantSource,
   }) {
     ref.read(aiChatWorkspaceProvider.notifier).add(
-      AiChatMessage(text, includeInModelContext: includeInModelContext),
+      AiChatMessage(
+        text,
+        includeInModelContext: includeInModelContext,
+        assistantSource: assistantSource,
+      ),
     );
     _scheduleScrollToBottom();
   }
@@ -490,6 +516,57 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     );
   }
 
+  Widget _assistantSourceBadge(
+    String source,
+    AppLocalizations strings,
+  ) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isGemma = source == 'gemma';
+    final label = switch (source) {
+      'gemma' => strings.aiSourceGemma,
+      'localAfterGemma' => strings.aiSourceLocalFallback,
+      _ => strings.aiSourceLocal,
+    };
+
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(start: 4, top: 6, bottom: 2),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: isGemma
+              ? scheme.primaryContainer
+              : scheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isGemma ? Icons.memory_rounded : Icons.smart_toy_outlined,
+                size: 14,
+                color: isGemma
+                    ? scheme.onPrimaryContainer
+                    : scheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: isGemma
+                      ? scheme.onPrimaryContainer
+                      : scheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _copyMessage(String text) async {
     await Clipboard.setData(ClipboardData(text: text));
     if (!mounted) return;
@@ -499,7 +576,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
   }
 
   Future<void> _recognizeArabicSpeech() async {
-    if (_busy || _recognizing) return;
+    if (_busy || _recognizing || _preparing) return;
     setState(() => _recognizing = true);
     final strings = AppLocalizations.of(context)!;
     try {
@@ -628,7 +705,30 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     final text = _input.text.trim().isEmpty && mediaBytes != null
         ? (image ? strings.aiDefaultImagePrompt : strings.aiDefaultAudioPrompt)
         : _input.text.trim();
-    if ((text.isEmpty && mediaBytes == null) || _busy || _recognizing) return;
+    if ((text.isEmpty && mediaBytes == null) ||
+        _busy ||
+        _recognizing ||
+        _preparing) {
+      return;
+    }
+
+    // Restore the user's persisted engine selection and complete the model
+    // file check before selecting an engine. Otherwise the first request after
+    // startup can silently fall through to the deterministic local parser.
+    setState(() => _preparing = true);
+    try {
+      await ref.read(appSettingsProvider.notifier).waitUntilRestored();
+      final restoredSettings = ref.read(appSettingsProvider);
+      if (restoredSettings.useGemma &&
+          ref.read(gemmaModelManagerProvider).status !=
+              GemmaModelStatus.ready) {
+        await ref.read(gemmaModelManagerProvider.notifier).refresh();
+      }
+    } finally {
+      if (mounted) setState(() => _preparing = false);
+    }
+    if (!mounted) return;
+
     final media = mediaBytes == null
         ? null
         : AssistantMedia(
@@ -672,6 +772,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     });
 
     final registry = _registry();
+    String? replySource;
     try {
       final categoryItems =
           await ref.read(homeExpenseCategoryRepositoryProvider).getAll();
@@ -681,7 +782,8 @@ class _AiScreenState extends ConsumerState<AiScreen> {
               ? category.id
               : (_categoryName(category.id, strings) ?? category.name.trim()),
       };
-      var result = await ref.read(assistantEngineProvider).interpret(
+      final selectedEngine = ref.read(assistantEngineProvider);
+      var result = await selectedEngine.interpret(
         text,
         registry.actionNames,
         media: media,
@@ -711,9 +813,20 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                       localResult.command!.parameters,
                     ) ==
                     null
-            ? localResult
-            : const AssistantResult.notUnderstood();
+            ? localResult.withSource(
+                AssistantResultSource.local,
+                usedGemmaFallback: true,
+              )
+            : AssistantResult.notUnderstood().withSource(
+                AssistantResultSource.local,
+                usedGemmaFallback: true,
+              );
       }
+      replySource = result.usedGemmaFallback
+          ? 'localAfterGemma'
+          : result.source == AssistantResultSource.gemma
+              ? 'gemma'
+              : 'local';
       if (!mounted) return;
 
       if (result.kind == AssistantResultKind.clarification ||
@@ -721,10 +834,14 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         _addAssistantMessage(
           result.message ?? strings.assistantClarificationFallback,
           includeInModelContext: true,
+          assistantSource: replySource,
         );
       } else if (result.kind == AssistantResultKind.notUnderstood ||
           result.command == null) {
-        _addAssistantMessage(strings.assistantNotUnderstood);
+        _addAssistantMessage(
+          strings.assistantNotUnderstood,
+          assistantSource: replySource,
+        );
         await _openManual();
       } else {
         final originalCommand = result.command!;
@@ -738,17 +855,24 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         );
         final error = registry.validate(command.name, command.parameters);
         if (error != null) {
-          _addAssistantMessage(strings.assistantNotUnderstood);
+          _addAssistantMessage(
+            strings.assistantNotUnderstood,
+            assistantSource: replySource,
+          );
           await _openManual();
         } else if (command.name == 'navigate_to_section') {
           final section = command.parameters['section']! as String;
           final route = _sectionRoute(section);
           if (route == null) {
-            _addAssistantMessage(strings.assistantNotUnderstood);
+            _addAssistantMessage(
+              strings.assistantNotUnderstood,
+              assistantSource: replySource,
+            );
             await _openManual();
           } else {
             _addAssistantMessage(
               '${strings.aiSectionOpened}: ${_sectionLabel(section, strings)}',
+              assistantSource: replySource,
             );
             if (mounted) context.go(route);
           }
@@ -764,22 +888,32 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                 : summary == null
                     ? execution.message
                     : _dashboardSummaryMessage(summary, strings);
-            _addAssistantMessage(message);
+            _addAssistantMessage(
+              message,
+              assistantSource: replySource,
+            );
           }
         } else {
           setState(() => _confirmation.request(command));
-          _addAssistantMessage(strings.assistantReview);
+          _addAssistantMessage(
+            strings.assistantReview,
+            assistantSource: replySource,
+          );
         }
       }
     } on AssistantActionException catch (error) {
       if (mounted) {
         _addAssistantMessage(
           _assistantActionErrorMessage(error.code, strings),
+          assistantSource: replySource,
         );
       }
     } catch (_) {
       if (mounted) {
-        _addAssistantMessage(strings.assistantNotUnderstood);
+        _addAssistantMessage(
+          strings.assistantNotUnderstood,
+          assistantSource: replySource,
+        );
         await _openManual();
       }
     } finally {
@@ -797,10 +931,8 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         (command) => _registry().execute(command.name, command.parameters),
       );
       if (execution == null || !mounted) return;
-      if (pendingCommand?.name == 'save_home_category' ||
-          pendingCommand?.name == 'delete_home_category') {
-        ref.invalidate(homeExpenseCategoriesProvider);
-      }
+      _refreshAfterAssistantAction(pendingCommand?.name);
+      _lastUndoAction = execution.undo == null ? null : pendingCommand?.name;
       setState(() => _undo = execution.undo);
       _addAssistantMessage(execution.message);
     } on AssistantActionException catch (error) {
@@ -830,7 +962,8 @@ class _AiScreenState extends ConsumerState<AiScreen> {
     try {
       await undo();
       if (mounted) {
-        ref.invalidate(homeExpenseCategoriesProvider);
+        _refreshAfterAssistantAction(_lastUndoAction);
+        _lastUndoAction = null;
         setState(() => _undo = null);
         _addAssistantMessage(
           AppLocalizations.of(context)!.assistantUndone,
@@ -1154,6 +1287,12 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                                 isOutgoing: message.fromUser,
                               ),
                             ),
+                            if (!message.fromUser &&
+                                message.assistantSource != null)
+                              _assistantSourceBadge(
+                                message.assistantSource!,
+                                strings,
+                              ),
                             Align(
                               alignment: message.fromUser
                                   ? Alignment.centerRight
@@ -1336,7 +1475,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                         height: 40,
                         child: IconButton(
                           key: const Key('ai-attachment-button'),
-                          onPressed: _busy || _recognizing
+                          onPressed: _busy || _recognizing || _preparing
                               ? null
                               : _chooseAttachment,
                           icon: const Icon(Icons.attach_file_rounded, size: 24),
@@ -1383,7 +1522,8 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                           valueListenable: _input,
                           builder: (context, value, child) {
                             final hasText = value.text.trim().isNotEmpty;
-                            final canInteract = !_busy && !_recognizing;
+                            final canInteract =
+                                !_busy && !_recognizing && !_preparing;
                             return IconButton.filled(
                               key: const Key('ai-contextual-input-action'),
                               onPressed: !canInteract
@@ -1401,7 +1541,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
                                 foregroundColor: Colors.white,
                                 shape: const CircleBorder(),
                               ),
-                              icon: _busy || _recognizing
+                              icon: _busy || _recognizing || _preparing
                                   ? const SizedBox(
                                       width: 18,
                                       height: 18,

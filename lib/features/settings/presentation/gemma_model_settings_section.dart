@@ -107,6 +107,88 @@ class GemmaModelSettingsSection extends ConsumerWidget {
             Text(strings.gemmaModelDetails),
             SizedBox(height: tokens.sectionSpacing / 2),
             Text(status),
+            if (model.status == GemmaModelStatus.ready &&
+                model.installed) ...[
+              SizedBox(height: tokens.sectionSpacing / 2),
+              Divider(color: Theme.of(context).colorScheme.outlineVariant),
+              Text(
+                strings.gemmaInferenceTitle,
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              SizedBox(height: tokens.sectionSpacing / 3),
+              Row(
+                children: [
+                  Icon(
+                    switch (model.inferenceStatus) {
+                      GemmaInferenceStatus.notTested => Icons.help_outline_rounded,
+                      GemmaInferenceStatus.testing => Icons.hourglass_top_rounded,
+                      GemmaInferenceStatus.succeeded => Icons.check_circle_outline_rounded,
+                      GemmaInferenceStatus.failed => Icons.error_outline_rounded,
+                    },
+                    color: switch (model.inferenceStatus) {
+                      GemmaInferenceStatus.succeeded =>
+                        Theme.of(context).colorScheme.primary,
+                      GemmaInferenceStatus.failed =>
+                        Theme.of(context).colorScheme.error,
+                      _ => Theme.of(context).colorScheme.onSurfaceVariant,
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      switch (model.inferenceStatus) {
+                        GemmaInferenceStatus.notTested =>
+                          strings.gemmaInferenceNotTested,
+                        GemmaInferenceStatus.testing =>
+                          strings.gemmaInferenceTesting,
+                        GemmaInferenceStatus.succeeded =>
+                          strings.gemmaInferenceSucceeded,
+                        GemmaInferenceStatus.failed =>
+                          strings.gemmaInferenceFailed,
+                      },
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                  ),
+                ],
+              ),
+              if (model.inferenceMessage != null) ...[
+                SizedBox(height: tokens.sectionSpacing / 3),
+                Text(model.inferenceMessage!),
+              ],
+              if (model.inferenceAt != null) ...[
+                SizedBox(height: tokens.sectionSpacing / 4),
+                Text(
+                  '${MaterialLocalizations.of(context).formatMediumDate(model.inferenceAt!)} · '
+                  '${MaterialLocalizations.of(context).formatTimeOfDay(TimeOfDay.fromDateTime(model.inferenceAt!))}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+              ],
+              SizedBox(height: tokens.sectionSpacing / 2),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: model.inferenceStatus == GemmaInferenceStatus.testing
+                      ? null
+                      : () => manager.testInference(),
+                  icon: model.inferenceStatus == GemmaInferenceStatus.testing
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.play_circle_outline_rounded),
+                  label: Text(strings.gemmaInferenceRunTest),
+                ),
+              ),
+              Text(
+                strings.gemmaInferenceExplanation,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
             if (model.status == GemmaModelStatus.downloading) ...[
               SizedBox(height: tokens.sectionSpacing / 2),
               LinearProgressIndicator(value: model.progress / 100),
@@ -132,19 +214,17 @@ class GemmaModelSettingsSection extends ConsumerWidget {
                     onPressed: () => _confirmDelete(context, ref, strings),
                     child: Text(strings.gemmaDeleteModel),
                   )
-                else ...[
+                else if (model.status == GemmaModelStatus.error &&
+                    model.installed)
+                  OutlinedButton(
+                    onPressed: manager.refresh,
+                    child: Text(strings.gemmaRecheckModel),
+                  )
+                else
                   FilledButton(
                     onPressed: () => _confirmDownload(context, ref, strings),
-                    // This control always starts the model download action.
-                    // An error does not mean a previous download was completed.
                     child: Text(strings.gemmaDownloadModel),
                   ),
-                  if (model.status == GemmaModelStatus.error && model.installed)
-                    OutlinedButton(
-                      onPressed: () => _confirmDelete(context, ref, strings),
-                      child: Text(strings.gemmaDeleteModel),
-                    ),
-                ],
               ],
             ),
             SizedBox(height: tokens.sectionSpacing / 3),

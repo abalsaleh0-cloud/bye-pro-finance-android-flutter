@@ -28,7 +28,11 @@ void main() {
     final controller = container.read(aiChatWorkspaceProvider.notifier);
     controller.add(const AiChatMessage('رسالة المستخدم', fromUser: true));
     controller.add(
-      const AiChatMessage('رد المساعد', includeInModelContext: true),
+      const AiChatMessage(
+        'رد Gemma',
+        includeInModelContext: true,
+        assistantSource: 'gemma',
+      ),
     );
     await controller.flush();
 
@@ -45,10 +49,41 @@ void main() {
       expect(workspace.messages, hasLength(2));
       expect(workspace.messages.first.text, 'رسالة المستخدم');
       expect(workspace.messages.first.fromUser, isTrue);
-      expect(workspace.messages.last.text, 'رد المساعد');
+      expect(workspace.messages.last.text, 'رد Gemma');
       expect(workspace.messages.last.fromUser, isFalse);
+      expect(workspace.messages.last.assistantSource, 'gemma');
       expect(workspace.activeConversation?.title, 'رسالة المستخدم');
       expect(workspace.messages.last.includeInModelContext, isTrue);
+    } finally {
+      restoredContainer.dispose();
+    }
+  });
+
+  test('persists the local-after-Gemma fallback source label', () async {
+    final controller = container.read(aiChatWorkspaceProvider.notifier);
+    controller.add(
+      const AiChatMessage(
+        'لم أفهم. لم يتم تسجيل شيء.',
+        assistantSource: 'localAfterGemma',
+      ),
+    );
+    await controller.flush();
+
+    final restoredContainer = ProviderContainer(
+      overrides: [appDatabaseProvider.overrideWithValue(database)],
+    );
+    try {
+      final restoredController =
+          restoredContainer.read(aiChatWorkspaceProvider.notifier);
+      await restoredController.flush();
+      expect(
+        restoredContainer
+            .read(aiChatWorkspaceProvider)
+            .messages
+            .single
+            .assistantSource,
+        'localAfterGemma',
+      );
     } finally {
       restoredContainer.dispose();
     }

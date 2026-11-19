@@ -26,6 +26,20 @@ void main() {
     await database.close();
   });
 
+  test('waits for the persisted Gemma preference before choosing an engine',
+      () async {
+    await database.writeSetting('ai_engine', 'gemma');
+    container.dispose();
+    container = ProviderContainer(
+      overrides: [appDatabaseProvider.overrideWithValue(database)],
+    );
+
+    final controller = container.read(appSettingsProvider.notifier);
+    await controller.waitUntilRestored();
+
+    expect(container.read(appSettingsProvider).useGemma, isTrue);
+  });
+
   test('persists explicit Gemma opt-in and opt-out', () async {
     final controller = container.read(appSettingsProvider.notifier);
 
@@ -38,8 +52,8 @@ void main() {
     expect(await database.readSetting('ai_engine'), 'fake');
   });
 
-  test('starts dark and persists light/dark selections before completing', () async {
-    expect(container.read(appSettingsProvider).themeMode, ThemeMode.dark);
+  test('defaults to automatic appearance and preserves explicit selections', () async {
+    expect(container.read(appSettingsProvider).themeMode, ThemeMode.system);
 
     final controller = container.read(appSettingsProvider.notifier);
     await controller.setThemeMode(ThemeMode.light);

@@ -11,8 +11,8 @@
     <application
         android:label="Bye Pro Finance"
         android:name="${applicationName}"
-        android:icon="@drawable/ic_launcher_dark"
-        android:roundIcon="@drawable/ic_launcher_dark">
+        android:icon="@mipmap/ic_launcher_light"
+        android:roundIcon="@mipmap/ic_launcher_light">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -31,7 +31,7 @@
             android:targetActivity="com.example.expense_app.MainActivity"
             android:enabled="true"
             android:exported="true"
-            android:icon="@drawable/ic_launcher_dark"
+            android:icon="@mipmap/ic_launcher_dark"
             android:label="Bye Pro Finance">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

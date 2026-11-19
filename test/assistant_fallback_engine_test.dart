@@ -69,6 +69,33 @@ void main() {
     expect(fallback.calls, 0);
   });
 
+  test('keeps explicitly local app-side guard replies labelled as local',
+      () async {
+    final primary = _StubAssistantEngine(
+      AssistantResult.clarification(
+        'تحليل الصور يحتاج ذاكرة كافية على الجهاز.',
+      ).withSource(AssistantResultSource.local),
+    );
+    final fallback = _StubAssistantEngine(
+      const AssistantResult.notUnderstood(),
+    );
+    final engine = FallbackAssistantEngine(
+      primary: primary,
+      fallback: fallback,
+    );
+
+    final result = await engine.interpret(
+      'حلل هذه الصورة',
+      actions,
+      media: AssistantMedia(imageBytes: Uint8List.fromList([4, 5, 6])),
+    );
+
+    expect(result.kind, AssistantResultKind.clarification);
+    expect(result.source, AssistantResultSource.local);
+    expect(result.usedGemmaFallback, isFalse);
+    expect(fallback.calls, 0);
+  });
+
   test('merges multi-turn clarification answers before falling back', () async {
     final primary = _StubAssistantEngine(
       const AssistantResult.notUnderstood(),
