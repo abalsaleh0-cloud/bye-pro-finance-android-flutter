@@ -174,8 +174,12 @@ void main() {
     expect(novemberOverview.salaryPaymentsApplied.minorUnits, 500);
     expect(octoberOverview.workRemainingMinorUnits, 1000);
     expect(novemberOverview.workRemainingMinorUnits, 500);
-    expect(novemberOverview.previousWorkOutstandingMinorUnits, 0);
-    expect(novemberOverview.totalWorkOutstandingMinorUnits, 1500);
+    expect(novemberOverview.previousWorkOutstandingMinorUnits, 2000);
+    expect(novemberOverview.totalWorkOutstandingMinorUnits, 3500);
+    expect(
+      novemberOverview.previousWorkOutstandingByMonth,
+      {october: 2000},
+    );
   });
 
   test('preserves historical payments against their original salary month', () {
@@ -248,6 +252,94 @@ void main() {
 
     expect(allocation.paymentsFor(october), 0);
     expect(allocation.paymentsFor(november), 500);
+  });
+
+  test('totals and lists unpaid balances from earlier months only', () {
+    final september = MonthKey(year: 2026, month: 9);
+    final october = MonthKey(year: 2026, month: 10);
+    final november = MonthKey(year: 2026, month: 11);
+    final december = MonthKey(year: 2026, month: 12);
+    final entries = [
+      WorkEntry(
+        id: 'september-salary',
+        kind: WorkEntryKind.salary,
+        amount: Money.fromMinorUnits(500),
+        dueMonth: september,
+        recordedAt: DateTime(2026, 9, 1),
+      ),
+      WorkEntry(
+        id: 'september-payment',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(300),
+        dueMonth: september,
+        recordedAt: DateTime(2026, 9, 15),
+      ),
+      WorkEntry(
+        id: 'october-salary',
+        kind: WorkEntryKind.salary,
+        amount: Money.fromMinorUnits(700),
+        dueMonth: october,
+        recordedAt: DateTime(2026, 10, 1),
+      ),
+      WorkEntry(
+        id: 'october-advance',
+        kind: WorkEntryKind.advance,
+        amount: Money.fromMinorUnits(100),
+        dueMonth: october,
+        recordedAt: DateTime(2026, 10, 5),
+      ),
+      WorkEntry(
+        id: 'october-payment',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(100),
+        dueMonth: october,
+        recordedAt: DateTime(2026, 10, 15),
+      ),
+      WorkEntry(
+        id: 'november-salary',
+        kind: WorkEntryKind.salary,
+        amount: Money.fromMinorUnits(1000),
+        dueMonth: november,
+        recordedAt: DateTime(2026, 11, 1),
+      ),
+      WorkEntry(
+        id: 'november-advance',
+        kind: WorkEntryKind.advance,
+        amount: Money.fromMinorUnits(200),
+        dueMonth: november,
+        recordedAt: DateTime(2026, 11, 5),
+      ),
+      WorkEntry(
+        id: 'november-payment',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(500),
+        dueMonth: november,
+        recordedAt: DateTime(2026, 11, 15),
+      ),
+      WorkEntry(
+        id: 'future-salary',
+        kind: WorkEntryKind.salary,
+        amount: Money.fromMinorUnits(800),
+        dueMonth: december,
+        recordedAt: DateTime(2026, 12, 1),
+      ),
+    ];
+
+    final overview = MonthlyOverview.calculate(
+      month: november,
+      workEntries: entries,
+      homeExpenses: const [],
+      transfers: const [],
+      debts: const [],
+    );
+
+    expect(overview.previousWorkOutstandingMinorUnits, 700);
+    expect(overview.currentSalaryOutstandingMinorUnits, 300);
+    expect(overview.totalWorkOutstandingMinorUnits, 1000);
+    expect(overview.previousWorkOutstandingByMonth, {
+      october: 500,
+      september: 200,
+    });
   });
 
   test('reports a negative balance for historical transfers above received cash', () {
