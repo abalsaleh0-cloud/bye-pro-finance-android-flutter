@@ -213,6 +213,8 @@ void main() {
       final result = await GemmaAssistantEngine(generator).interpret(
         'عدّل الراتب المحدد واجعله 1800',
         ActionRegistry.descriptors.map((descriptor) => descriptor.name).toList(),
+        conversationContext:
+            'المستخدم: عدّل سجل العمل بمعرّف salary-nov\\nالمساعد: ما التغيير المطلوب؟',
       );
 
       expect(result.kind, AssistantResultKind.command);
