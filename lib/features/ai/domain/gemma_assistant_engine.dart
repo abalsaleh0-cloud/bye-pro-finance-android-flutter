@@ -270,7 +270,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
         _input.containsAny(routingText, phrases);
 
     final work = has(const [
-      'راتب', 'معاش', 'مرتب', 'سلفة', 'سلفه', 'تسبيق',
+      'راتب', 'راتبا', 'راتبي', 'معاش', 'مرتب', 'سلفة', 'سلفه', 'تسبيق',
       'العمل', 'الباقي', 'المتبقي', 'قبضت', 'استلمت',
       'salary', 'advance', 'remaining',
     ]);
@@ -285,7 +285,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
     ]);
     final debt = has(const [
       'دين', 'الديون', 'ديون', 'دائن', 'مدين',
-      'سداد الدين', 'debt',
+      'سداد الدين', 'دين علي', 'كم علي', 'لي عند', 'debt',
     ]);
     final transfer = has(const [
       'تحويل', 'تحويلات', 'حول', 'حولت', 'حوّل', 'نقلت',
@@ -295,7 +295,8 @@ final class GemmaAssistantEngine implements AssistantEngine {
       'تصنيف', 'تصنيفات', 'فئة المصروف', 'فئات المصروف', 'category',
     ]);
     final dashboard = has(const [
-      'ملخص', 'الوضع المالي', 'الرصيد', 'الميزانية',
+      'ملخص', 'ملخصا', 'الوضع المالي', 'الرصيد', 'الميزانية',
+      'كم معي', 'قديش معي', 'كم علي', 'كم لي',
       'summary', 'balance',
     ]);
     final financeIntent =
@@ -318,9 +319,9 @@ final class GemmaAssistantEngine implements AssistantEngine {
     ]);
     final read = history || has(const [
       'اعرض', 'وريني', 'فرجيني', 'هات', 'جيب', 'طلع',
-      'كم', 'قديش', 'شكد', 'شو عندي', 'تفاصيل', 'قائمة',
-      'المجموع', 'اجمالي', 'إجمالي', 'ما هو', 'ما هي',
-      'show', 'list', 'how much',
+      'اعطني', 'اعطيني', 'ارني', 'كم', 'قديش', 'شكد',
+      'شو عندي', 'تفاصيل', 'قائمة', 'المجموع', 'اجمالي',
+      'إجمالي', 'ما هو', 'ما هي', 'show', 'list', 'how much',
     ]);
     final write = !history && has(const [
       'اضف', 'أضف', 'ضيف', 'سجل', 'سجّل', 'اعمل',
