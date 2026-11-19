@@ -566,6 +566,19 @@ void main() {
       expect(result.command!.parameters['section'], 'settings');
     });
 
+    test('does not accept plain text as proof that a work record was deleted', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.text('تم حذف الراتب بنجاح.'),
+      );
+      final result = await GemmaAssistantEngine(generator).interpret(
+        'احذف راتب 1500 لشهر 11',
+        ActionRegistry.descriptors.map((item) => item.name).toList(),
+      );
+
+      expect(result.kind, AssistantResultKind.notUnderstood);
+      expect(result.command, isNull);
+    });
+
     test('rejects a fabricated record ID for an edit without an explicit user ID', () async {
       final generator = _FakeGemmaGenerator(
         const GemmaModelOutput.call('save_work_entry', {
