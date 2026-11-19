@@ -633,7 +633,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
         'delete_home_bill' => 'Delete a household bill or rent by identifier or exact unique bill title.',
         'record_home_bill_payment' => 'Record a payment or partial payment for an existing household bill or rent.',
         'read_home_bills' => 'List household bills and rent with their remaining unpaid amounts.',
-        'read_work_records' => 'List saved work salary, advance, and payment records with identifiers.',
+        'read_work_records' => 'Search saved work salary, advance, and payment records. Optional filters: exact amount, kind, month, or all records.',
         'read_home_expenses' => 'List household daily expenses with identifiers.',
         'read_debts' => 'List debts, counterparties, outstanding amounts, and identifiers.',
         'read_work_transfers' => 'List work-to-home transfers with amounts and dates.',
@@ -726,7 +726,17 @@ final class GemmaAssistantEngine implements AssistantEngine {
           'date': date,
           'note': note,
         },
-      'read_home_bills' || 'read_work_records' || 'read_home_expenses' || 'read_debts' || 'read_work_transfers' => {
+      'read_work_records' => {
+          'year': integer,
+          'month': integer,
+          'allRecords': {'type': 'boolean'},
+          'amountMinorUnits': integer,
+          'kind': {
+            'type': 'string',
+            'enum': ['salary', 'advance', 'payment', 'salaryPayment'],
+          },
+        },
+      'read_home_bills' || 'read_home_expenses' || 'read_debts' || 'read_work_transfers' => {
           'year': integer,
           'month': integer,
           'allRecords': {'type': 'boolean'},
