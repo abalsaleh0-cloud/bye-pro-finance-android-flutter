@@ -60,6 +60,22 @@ final class GemmaAssistantEngine implements AssistantEngine {
     'save_debt',
     'save_work_home_transfer',
   };
+  static const _mutatingActions = <String>{
+    'save_work_entry',
+    'delete_work_entry',
+    'save_home_expense',
+    'delete_home_expense',
+    'save_home_bill',
+    'delete_home_bill',
+    'record_home_bill_payment',
+    'save_home_category',
+    'delete_home_category',
+    'save_debt',
+    'delete_debt',
+    'record_debt_payment',
+    'save_work_home_transfer',
+    'delete_work_home_transfer',
+  };
 
   @override
   Future<AssistantResult> interpret(
@@ -98,17 +114,35 @@ final class GemmaAssistantEngine implements AssistantEngine {
 
       if (output.name == null) {
         final response = output.text?.trim() ?? '';
-        if (media != null &&
-            response.isNotEmpty &&
-            response.length <= 4000 &&
-            !response.startsWith('{')) {
-          return AssistantResult.answer(response);
-        }
         if (response.isEmpty ||
             response.length > 1200 ||
             response.startsWith('{') ||
             response.startsWith('```')) {
           return const AssistantResult.notUnderstood();
+        }
+
+        final asksQuestion = response.length <= 180 &&
+            (response.endsWith('؟') || response.endsWith('?'));
+        if (asksQuestion) {
+          return AssistantResult.clarification(response);
+        }
+
+        // A text-only model reply is never proof that a financial mutation
+        // happened. Every write/delete must produce an exposed tool call,
+        // which the app validates and presents for confirmation.
+        final mutationToolExposed = functions.any(
+          (function) => _mutatingActions.contains(function.name),
+        );
+        if (mutationToolExposed) {
+          return const AssistantResult.clarification(
+            'لم يتم حفظ العملية بعد. لم يصلني أمر حفظ قابل للتنفيذ، لذلك لم يتغير أي سجل. أعد الطلب أو أجب عن سؤال التوضيح.',
+          );
+        }
+
+        if (media != null &&
+            response.length <= 4000 &&
+            !response.startsWith('{')) {
+          return AssistantResult.answer(response);
         }
 
         // Personal financial facts must come from an app-owned read tool.
@@ -118,10 +152,6 @@ final class GemmaAssistantEngine implements AssistantEngine {
           return const AssistantResult.notUnderstood();
         }
 
-        if (response.length <= 180 &&
-            (response.endsWith('؟') || response.endsWith('?'))) {
-          return AssistantResult.clarification(response);
-        }
         return AssistantResult.answer(response);
       }
 
@@ -154,10 +184,22 @@ final class GemmaAssistantEngine implements AssistantEngine {
       final normalized = _normalizeArguments(arguments);
       if (normalized == null) return const AssistantResult.notUnderstood();
 
-      final allowed = _propertiesFor(output.name!).keys.toSet();
+      final exposedFunction = functions.singleWhere(
+        (function) => function.name == output.name,
+      );
+      final allowed = exposedFunction.properties.keys.toSet();
       if (normalized.keys.any((key) => !allowed.contains(key))) {
         return const AssistantResult.notUnderstood();
       }
+      final completed = _completeKnownArguments(
+        output.name!,
+        normalized,
+        text,
+        conversationContext,
+      );
+      normalized
+        ..clear()
+        ..addAll(completed);
 
       final hasStableId = normalized['id'] is String &&
           (normalized['id']! as String).trim().isNotEmpty;
@@ -259,13 +301,18 @@ final class GemmaAssistantEngine implements AssistantEngine {
     // Route finance requests to the smallest safe set of app actions instead.
     final normalizedCurrent = _input.normalize(currentText);
     final normalizedHistory = _input.normalize(conversationContext);
-    final isAnswerToClarification = currentText.trim().length <= 60 &&
-        _input.containsAny(normalizedHistory, const [
-          'اي شهر تقصد', 'ما الشهر المطلوب', 'ما الشهر',
-          'ما المبلغ', 'ما الاسم', 'ما التاريخ', 'ما الاتجاه',
-          'ما نوع', 'اذكر الشهر', 'اذكر التاريخ',
+    final isAnswerToClarification = _isAnswerToClarification(
+      currentText,
+      conversationContext,
+    );
+    final isAmountRecordLookup =
+        _input.extractAmount(currentText) != null &&
+        _input.containsAny(normalizedCurrent, const [
+          'وين', 'اين', 'فين', 'باي قسم', 'في اي قسم', 'باي سجل',
+          'where did i add', 'where did i record',
         ]);
     final isFollowUp = isAnswerToClarification ||
+        isAmountRecordLookup ||
         _input.containsAny(normalizedCurrent, const [
           'هذا', 'هذه', 'لهذا', 'لذلك', 'نفسه', 'نفسها',
           'نفس المبلغ', 'نفس الشهر', 'نعم', 'لا', 'الشهر الحالي',
@@ -333,7 +380,9 @@ final class GemmaAssistantEngine implements AssistantEngine {
       'إجمالي', 'ما هو', 'ما هي', 'هل استلمت', 'كم دفعت',
       'قديش دفعت', 'كم سددت', 'قديش سددت', 'متى دفعت',
       'هل وصلني', 'هل دفعت', 'هل سددت', 'هل تم الدفع',
-      'متى سددت', 'متى دفعت', 'show', 'list', 'how much',
+      'متى سددت', 'متى دفعت', 'وين', 'اين', 'فين',
+      'باي قسم', 'في اي قسم', 'باي سجل',
+      'show', 'list', 'how much', 'where did i add', 'where did i record',
     ]);
     final write = !history && has(const [
       'اضف', 'أضف', 'إضافة', 'اضافة', 'ضيف', 'سجل', 'سجّل', 'اعمل',
@@ -341,6 +390,11 @@ final class GemmaAssistantEngine implements AssistantEngine {
       'سدد', 'سددت', 'استلمت', 'حول', 'حوّل', 'صرف',
       'اشتريت', 'عدّل', 'عدل', 'غيّر', 'غير',
       'add', 'create', 'record', 'pay', 'transfer', 'edit', 'update',
+    ]);
+
+    final isExplicitEdit = has(const [
+      'عدّل', 'عدل', 'تعديل', 'تعديل السجل', 'حدّث', 'حدث',
+      'غيّر', 'غير', 'حرر', 'edit', 'update', 'modify',
     ]);
 
     final selected = <String>{};
@@ -421,7 +475,12 @@ final class GemmaAssistantEngine implements AssistantEngine {
 
     final functions = ActionRegistry.descriptors
         .where((descriptor) => selected.contains(descriptor.name))
-        .map(_functionFor)
+        .map(
+          (descriptor) => _functionFor(
+            descriptor,
+            includeIdForUpdate: isExplicitEdit,
+          ),
+        )
         .toList(growable: true);
     if (selected.isNotEmpty && !selected.contains('ask_clarification')) {
       functions.add(const GemmaFunctionSpec(
@@ -479,11 +538,21 @@ final class GemmaAssistantEngine implements AssistantEngine {
         'رسالة المستخدم الحالية:\n$currentText';
   }
 
-  GemmaFunctionSpec _functionFor(ActionDescriptor descriptor) {
+  GemmaFunctionSpec _functionFor(
+    ActionDescriptor descriptor, {
+    bool includeIdForUpdate = false,
+  }) {
+    final properties = Map<String, Map<String, Object>>.from(
+      _propertiesFor(descriptor.name),
+    );
+    if (_partialUpdateActions.contains(descriptor.name) &&
+        !includeIdForUpdate) {
+      properties.remove('id');
+    }
     return GemmaFunctionSpec(
       name: descriptor.name,
       description: _descriptionFor(descriptor.name),
-      properties: _propertiesFor(descriptor.name),
+      properties: properties,
       // Save tools can represent both creation and record-ID edits. The
       // engine validates create requirements after the model returns, while
       // ID edits may supply only the fields the user asked to change.
@@ -502,7 +571,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
         'delete_home_bill' => 'Delete a household bill or rent by identifier or exact unique bill title.',
         'record_home_bill_payment' => 'Record a payment or partial payment for an existing household bill or rent.',
         'read_home_bills' => 'List household bills and rent with their remaining unpaid amounts.',
-        'read_work_records' => 'List saved work salary, advance, and payment records with identifiers.',
+        'read_work_records' => 'Search saved work salary, advance, and payment records. If amountMinorUnits is provided, search all months for that exact amount; otherwise use the requested month filter.',
         'read_home_expenses' => 'List household daily expenses with identifiers.',
         'read_debts' => 'List debts, counterparties, outstanding amounts, and identifiers.',
         'read_work_transfers' => 'List work-to-home transfers with amounts and dates.',
@@ -595,10 +664,16 @@ final class GemmaAssistantEngine implements AssistantEngine {
           'date': date,
           'note': note,
         },
-      'read_home_bills' || 'read_work_records' || 'read_home_expenses' || 'read_debts' || 'read_work_transfers' => {
+      'read_home_bills' || 'read_home_expenses' || 'read_debts' || 'read_work_transfers' => {
           'year': integer,
           'month': integer,
           'allRecords': {'type': 'boolean'},
+        },
+      'read_work_records' => {
+          'year': integer,
+          'month': integer,
+          'allRecords': {'type': 'boolean'},
+          'amountMinorUnits': integer,
         },
       'read_home_categories' => <String, Map<String, Object>>{},
       'save_home_category' => {'name': string, 'id': string},
@@ -706,6 +781,98 @@ final class GemmaAssistantEngine implements AssistantEngine {
       } else {
         result[key] = value;
       }
+    }
+    return result;
+  }
+
+  static bool _isAnswerToClarification(
+    String currentText,
+    String conversationContext,
+  ) {
+    if (currentText.trim().length > 60) return false;
+    final normalizedHistory = _input.normalize(conversationContext);
+    return _input.containsAny(normalizedHistory, const [
+      'اي شهر تقصد', 'ما الشهر المطلوب', 'ما الشهر',
+      'ما المبلغ', 'ما الاسم', 'ما التاريخ', 'ما الاتجاه',
+      'ما نوع', 'اذكر الشهر', 'اذكر التاريخ',
+    ]);
+  }
+
+  Map<String, Object?> _completeKnownArguments(
+    String actionName,
+    Map<String, Object?> arguments,
+    String currentText,
+    String conversationContext,
+  ) {
+    final result = Map<String, Object?>.from(arguments);
+    final isAnswer = _isAnswerToClarification(
+      currentText,
+      conversationContext,
+    );
+    final context = isAnswer
+        ? '$conversationContext\n$currentText'
+        : currentText;
+    if (actionName == 'save_work_entry') {
+      // Resolve relative and numeric months from the user's words on-device.
+      // A new current-turn month takes precedence over older chat context.
+      final resolvedMonth = _input.extractMonth(
+            currentText,
+            referenceDate: DateTime.now(),
+          ) ??
+          (isAnswer
+              ? _input.extractMonth(
+                  conversationContext,
+                  referenceDate: DateTime.now(),
+                )
+              : null);
+      if (resolvedMonth != null) {
+        result['year'] = resolvedMonth.$1;
+        result['month'] = resolvedMonth.$2;
+      }
+
+      if (result['amountMinorUnits'] == null) {
+        final amount = _input.extractAmount(currentText) ??
+            (isAnswer ? _input.extractAmount(conversationContext) : null);
+        if (amount != null) result['amountMinorUnits'] = amount;
+      }
+
+      final normalizedContext = _input.normalize(context);
+      if (result['kind'] == null) {
+        if (_input.containsAny(normalizedContext, const [
+          'راتب', 'معاش', 'مرتب', 'salary', 'paycheck',
+        ])) {
+          result['kind'] = 'salary';
+        } else if (_input.containsAny(normalizedContext, const [
+          'سلفة', 'سلفه', 'تسبيق', 'advance',
+        ])) {
+          result['kind'] = 'advance';
+        } else if (_input.containsAny(normalizedContext, const [
+          'دفعة راتب', 'دفعة الراتب', 'payment',
+        ])) {
+          result['kind'] = 'salaryPayment';
+        }
+      }
+
+      if (result['note'] == null) {
+        final noteMatch = RegExp(
+          r'(?:ملاحظة|ملاحظه|note)\\s*[:：]?\\s*(.+?)(?:[؛\\n]|$)',
+          caseSensitive: false,
+        ).firstMatch(context);
+        final note = noteMatch?.group(1)?.trim();
+        if (note != null && note.isNotEmpty) result['note'] = note;
+      }
+    } else if (actionName == 'read_work_records' &&
+        result['amountMinorUnits'] == null) {
+      final amount = _input.extractAmount(currentText) ??
+          (isAnswer ? _input.extractAmount(conversationContext) : null);
+      if (amount != null) result['amountMinorUnits'] = amount;
+    }
+
+    if (actionName == 'read_work_records' &&
+        result['amountMinorUnits'] is int &&
+        result['year'] == null &&
+        result['month'] == null) {
+      result['allRecords'] = true;
     }
     return result;
   }
