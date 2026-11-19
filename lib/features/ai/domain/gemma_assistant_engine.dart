@@ -303,7 +303,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
     final selected = <String>{};
     final work = has([
       'راتب', 'راتبي', 'رواتب', 'الرواتب', 'معاش', 'معاشي', 'مرتب', 'دخلي', 'سلفة', 'تسبيق',
-      'دفعة راتب', 'الباقي في العمل', 'المتبقي من الراتب',
+      'دفعة راتب', 'الباقي', 'المتبقي', 'الباقي في العمل', 'المتبقي من الراتب',
     ]);
     final homeExpenses = has([
       'مصروف', 'مصروفات', 'المصروفات', 'مصاريف', 'مصاريفي', 'مصروفاتي', 'نفقة', 'مشتريات', 'صرفت', 'انفقت', 'مصروف البيت',
@@ -372,18 +372,43 @@ final class GemmaAssistantEngine implements AssistantEngine {
     }
 
     final summary = has([
-      'ملخص', 'مجموع', 'اجمالي', 'الاجمالي', 'الرصيد',
+      'ملخص', 'ملخصا', 'ملخص الشهر', 'مجموع', 'اجمالي', 'الاجمالي', 'الرصيد',
       'رصيدي', 'كشف الحساب', 'كشف مالي',
     ]);
     if (summary) {
       selected.addAll({'read_dashboard_summary', 'read_month_total'});
     }
-    final navigation = has(['افتح', 'انتقل', 'اذهب', 'روح', 'خذني']) &&
-        has(['قسم', 'العمل', 'المنزل', 'البيت', 'الديون', 'الرئيسية']);
-    if (navigation) selected.add('navigate_to_section');
+    final navigationVerb = has(['افتح', 'انتقل', 'اذهب', 'روح', 'خذني']);
+    final navigationTarget = has([
+      'قسم', 'العمل', 'المنزل', 'البيت', 'الديون', 'الرئيسية',
+      'الاعدادات', 'الضبط', 'settings', 'home', 'dashboard',
+    ]);
+    if (navigationVerb && navigationTarget) {
+      selected.add('navigate_to_section');
+    }
+
+    // Resolve generic follow-ups through the chat's prior subject. Only attach
+    // deletion schemas for an unqualified delete request, never every finance
+    // tool; payment-history ambiguity exposes only the two read tools.
+    final genericDelete = has(['احذف', 'حذف', 'امسح', 'الغاء', 'إلغاء']);
+    if (genericDelete && selected.isEmpty) {
+      selected.addAll(
+        availableActions.where((name) => name.startsWith('delete_')),
+      );
+    }
+    final genericPaymentHistory = has([
+      'سجل الدفعات', 'سجل الدفعات', 'تاريخ الدفعات', 'حركة الدفعات',
+    ]);
+    if (genericPaymentHistory && selected.isEmpty) {
+      selected.addAll(
+        availableActions.where((name) =>
+            name == 'read_debt_payments' ||
+            name == 'read_home_bill_payments'),
+      );
+    }
 
     final vagueFinancialRequest = has([
-      'رصيد', 'حسابي', 'راتب', 'دين', 'فاتورة', 'مصروف',
+      'رصيد', 'حسابي', 'الباقي', 'المتبقي', 'كم ضل', 'راتب', 'دين', 'فاتورة', 'مصروف',
       'مبلغ', 'دينار', 'سجل مالي', 'بياناتي المالية',
     ]) || (RegExp(r'\d').hasMatch(text) &&
         has(['اضف', 'سجل', 'احفظ', 'عدل', 'احذف', 'ادفع', 'حول']));
