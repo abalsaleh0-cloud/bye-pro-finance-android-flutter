@@ -12,7 +12,7 @@ class AppSecurityGate extends StatefulWidget {
   State<AppSecurityGate> createState() => _AppSecurityGateState();
 }
 
-class _AppSecurityGateState extends State<AppSecurityGate> {
+class _AppSecurityGateState extends State<AppSecurityGate> with WidgetsBindingObserver {
   final AppSecurityService _security = AppSecurityService();
   final TextEditingController _pinController = TextEditingController();
 
@@ -22,6 +22,8 @@ class _AppSecurityGateState extends State<AppSecurityGate> {
   bool _biometricEnabled = false;
   bool _busy = false;
   String? _error;
+  DateTime? _backgroundedAt;
+  static const _backgroundRelockGracePeriod = Duration(seconds: 30);
 
   String _text(String ar, String en) =>
       Localizations.localeOf(context).languageCode == 'en' ? en : ar;
@@ -29,6 +31,7 @@ class _AppSecurityGateState extends State<AppSecurityGate> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // The PIN gate is enforced in profile/release builds. Debug sessions
     // (including Flutter widget tests) keep normal navigation accessible.
     if (!kDebugMode) {
@@ -38,8 +41,43 @@ class _AppSecurityGateState extends State<AppSecurityGate> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pinController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (kDebugMode || !_ready || !_pinEnabled) return;
+
+    if (state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.paused) {
+      _backgroundedAt ??= DateTime.now();
+      return;
+    }
+    if (state != AppLifecycleState.resumed) return;
+
+    final backgroundedAt = _backgroundedAt;
+    _backgroundedAt = null;
+    if (backgroundedAt == null ||
+        !shouldRelockAfterBackground(
+          backgroundedAt,
+          DateTime.now(),
+          gracePeriod: _backgroundRelockGracePeriod,
+        )) {
+      return;
+    }
+
+    setState(() {
+      _locked = true;
+      _error = null;
+      _pinController.clear();
+    });
+    if (_biometricEnabled) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _authenticateBiometrics();
+      });
+    }
   }
 
   Future<void> _loadSecurityState() async {
@@ -265,3 +303,10 @@ class _AppSecurityGateState extends State<AppSecurityGate> {
     );
   }
 }
+
+/// Returns true when the app stayed in the background for at least the grace period.
+bool shouldRelockAfterBackground(
+  DateTime backgroundedAt,
+  DateTime resumedAt, {
+  Duration gracePeriod = const Duration(seconds: 30),
+}) => !resumedAt.isBefore(backgroundedAt.add(gracePeriod));

@@ -43,6 +43,8 @@ void main() {
     expect(workRows, hasLength(1));
     expect(workRows.single.read<int>('amount_minor_units'), 125000);
     expect(await database.readSetting('theme_mode'), 'dark');
+    expect(await database.readSetting('home_expense_categories'), '[{"id":"custom_test","name":"Custom"}]');
+    expect(await database.readSetting('ai_chat_conversations_v2'), '{"conversations":[{"id":"chat-1"}]}');
   });
 
   test('invalid backup is rejected before replacing existing data', () async {
