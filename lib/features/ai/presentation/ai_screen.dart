@@ -757,6 +757,8 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         : '$text\\n[$attachmentLabel: ${_attachmentName ?? strings.aiAttachmentFallback}]';
     final conversationContext = buildAiConversationContext(
       ref.read(aiChatWorkspaceProvider).messages,
+      maxMessages: 5,
+      maxCharacters: 480,
     );
 
     setState(() {

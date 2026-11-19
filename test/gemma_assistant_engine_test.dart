@@ -27,6 +27,25 @@ class _ThrowingGemmaGenerator implements GemmaTurnGenerator {
   }
 }
 
+class _ContextLimitThenSuccessGenerator implements GemmaTurnGenerator {
+  int calls = 0;
+  final inputs = <String>[];
+
+  @override
+  Future<GemmaModelOutput> generate(
+    String userText,
+    List<GemmaFunctionSpec> functions, {
+    AssistantMedia? media,
+  }) async {
+    calls++;
+    inputs.add(userText);
+    if (calls == 1) {
+      throw StateError('ContextLimitException: context window is full');
+    }
+    return const GemmaModelOutput.text('سأتابع معك الآن.');
+  }
+}
+
 class _FakeGemmaGenerator implements GemmaTurnGenerator {
   _FakeGemmaGenerator(this.output);
   final GemmaModelOutput output;
@@ -64,7 +83,7 @@ void main() {
           .toList(growable: false);
 
       await GemmaAssistantEngine(generator).interpret(
-        'اعرض ملخص الشهر',
+        'اعرض ملخص الشهر والراتب ومصروفات المنزل والفواتير والديون والتحويلات والتصنيفات، وافتح قسم العمل',
         actionNames,
       );
 
@@ -473,6 +492,96 @@ void main() {
 
       expect(result.kind, AssistantResultKind.answer);
       expect(result.message, contains('3 خطوات'));
+    });
+
+    test('does not attach finance tools to a general writing request', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.text('تنظيم الوقت يساعد على إنجاز الأولويات بهدوء.'),
+      );
+      final result = await GemmaAssistantEngine(generator).interpret(
+        'اكتب فقرة عن أهمية تنظيم الوقت مع أمثلة عملية',
+        ActionRegistry.descriptors.map((item) => item.name).toList(),
+      );
+
+      expect(result.kind, AssistantResultKind.answer);
+      expect(generator.receivedFunctions, isEmpty);
+    });
+
+    test('sends only the relevant finance tool family for a salary request', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.text('هل تقصد الراتب لهذا الشهر؟'),
+      );
+      await GemmaAssistantEngine(generator).interpret(
+        'أضف راتب 1500',
+        ActionRegistry.descriptors.map((item) => item.name).toList(),
+      );
+
+      final names = generator.receivedFunctions!.map((item) => item.name).toSet();
+      expect(names, containsAll({
+        'save_work_entry',
+        'delete_work_entry',
+        'read_work_records',
+        'read_work_remaining',
+        'ask_clarification',
+      }));
+      expect(names, isNot(contains('save_debt')));
+      expect(names, isNot(contains('save_home_bill')));
+    });
+
+    test('keeps the prior finance tool available for a short clarification reply', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.text('تم فهم الشهر المقصود.'),
+      );
+      await GemmaAssistantEngine(generator).interpret(
+        'لهذا الشهر',
+        ActionRegistry.descriptors.map((item) => item.name).toList(),
+        conversationContext:
+            'المستخدم: أضف راتب 1500\nالمساعد: ما الشهر المستحق؟',
+      );
+
+      final names = generator.receivedFunctions!.map((item) => item.name);
+      expect(names, contains('save_work_entry'));
+      expect(names, contains('ask_clarification'));
+      expect(names, isNot(contains('save_debt')));
+    });
+
+    test('bounds long conversation context and preserves the current request', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.text('سأتابع معك.'),
+      );
+      final longContext = List<String>.filled(
+        80,
+        'المستخدم: هذه رسالة سابقة طويلة لفهم سياق المحادثة.',
+      ).join('\n');
+      await GemmaAssistantEngine(generator).interpret(
+        'تابع من فضلك',
+        actions,
+        conversationContext: longContext,
+      );
+
+      expect(generator.receivedInput!.length, lessThan(700));
+      expect(generator.receivedInput, endsWith('رسالة المستخدم الحالية:\nتابع من فضلك'));
+    });
+
+    test('retries once without old dialogue after a context-limit refusal', () async {
+      final generator = _ContextLimitThenSuccessGenerator();
+      const previousContext =
+          'المستخدم: سياق قديم جداً لا يلزم لإتمام الطلب الحالي.';
+
+      final result = await GemmaAssistantEngine(generator).interpret(
+        'تابع طلبي الحالي',
+        actions,
+        conversationContext: previousContext,
+      );
+
+      expect(result.kind, AssistantResultKind.answer);
+      expect(generator.calls, 2);
+      expect(generator.inputs.first, contains(previousContext));
+      expect(generator.inputs.last, isNot(contains(previousContext)));
+      expect(
+        generator.inputs.last,
+        'تابع طلبي الحالي',
+      );
     });
 
     test('does not allow a free-form answer to invent personal financial figures', () async {
