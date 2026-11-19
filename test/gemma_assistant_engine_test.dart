@@ -84,6 +84,30 @@ void main() {
       );
     });
 
+    test('falls back to a real salary command when Gemma only claims it saved', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.text('تمام، أضفت راتب 1500 لشهر أكتوبر.'),
+      );
+      final now = DateTime.now();
+      final previousMonth = DateTime(now.year, now.month - 1);
+      final result = await FallbackAssistantEngine(
+        primary: GemmaAssistantEngine(generator),
+        fallback: const LocalRuleAssistantEngine(),
+      ).interpret(
+        'أضف راتب 1500 لشهر الماضي ملاحظة راتب شهري',
+        ActionRegistry.descriptors.map((item) => item.name).toList(),
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'save_work_entry');
+      expect(result.command!.parameters['kind'], 'salary');
+      expect(result.command!.parameters['amountMinorUnits'], 1500);
+      expect(result.command!.parameters['year'], previousMonth.year);
+      expect(result.command!.parameters['month'], previousMonth.month);
+      expect(result.command!.parameters['note'], 'راتب شهري');
+      expect(result.usedGemmaFallback, isTrue);
+    });
+
     test('does not send any finance tools for ordinary general conversation', () async {
       final generator = _FakeGemmaGenerator(
         const GemmaModelOutput.text('إليك فقرة قصيرة عن تنظيم الوقت.'),
@@ -317,6 +341,43 @@ void main() {
       expect(names, isNot(contains('save_home_bill')));
     });
 
+    test('searches all work months when asked where a salary amount was added', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.call('read_work_records', {}),
+      );
+      final result = await GemmaAssistantEngine(generator).interpret(
+        'أين أضفت 1500؟',
+        ActionRegistry.descriptors.map((item) => item.name).toList(),
+        conversationContext:
+            'المستخدم: أضف راتب 1500 لشهر الماضي\\nالمساعد: تمت إضافة الراتب.',
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'read_work_records');
+      expect(result.command!.parameters['amountMinorUnits'], 1500);
+      expect(result.command!.parameters['kind'], 'salary');
+      expect(result.command!.parameters['allRecords'], isTrue);
+      expect(
+        generator.receivedFunctions!.map((item) => item.name),
+        contains('read_work_records'),
+      );
+    });
+
+    test('local rules resolve a salary lookup from the preceding conversation', () async {
+      final result = await const LocalRuleAssistantEngine().interpret(
+        'وين أضفت 1500؟',
+        ActionRegistry.descriptors.map((item) => item.name).toList(),
+        conversationContext:
+            'المستخدم: أضف راتب 1500 لشهر الماضي\\nالمساعد: تمت إضافة الراتب.',
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'read_work_records');
+      expect(result.command!.parameters['amountMinorUnits'], 1500);
+      expect(result.command!.parameters['kind'], 'salary');
+      expect(result.command!.parameters['allRecords'], isTrue);
+    });
+
     test('treats a question about paid bills as a read-only history lookup', () async {
       final generator = _FakeGemmaGenerator(
         const GemmaModelOutput.call('read_home_bill_payments', {
@@ -474,6 +535,35 @@ void main() {
           contains('ask_clarification'));
     });
 
+    test('removes a fabricated ID from a new salary record', () async {
+      final now = DateTime.now();
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.call('save_work_entry', {
+          'id': 'model-invented-record-id',
+          'kind': 'advance',
+          'amountMinorUnits': 1,
+          'year': 2020,
+          'month': 1,
+          'date': '2020-01-01',
+          'note': 'wrong note',
+        }),
+      );
+      final result = await GemmaAssistantEngine(generator).interpret(
+        'أضف راتب 1500 لشهر 11 ملاحظة راتب شهري',
+        ActionRegistry.descriptors.map((item) => item.name).toList(),
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'save_work_entry');
+      expect(result.command!.parameters.containsKey('id'), isFalse);
+      expect(result.command!.parameters['kind'], 'salary');
+      expect(result.command!.parameters['amountMinorUnits'], 1500);
+      expect(result.command!.parameters['year'], now.year);
+      expect(result.command!.parameters['month'], 11);
+      expect(result.command!.parameters.containsKey('date'), isFalse);
+      expect(result.command!.parameters['note'], 'راتب شهري');
+    });
+
     test('normalizes Arabic-Indic digits in numeric arguments', () async {
       final generator = _FakeGemmaGenerator(
         const GemmaModelOutput.call('save_work_entry', {
@@ -606,6 +696,53 @@ void main() {
     expect(await database.select(database.workEntries).get(), isEmpty);
     expect(await database.select(database.homeExpenses).get(), isEmpty);
     expect(await database.select(database.debts).get(), isEmpty);
+  });
+
+  test('saves and finds a salary record by exact amount across months', () async {
+    final database = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(database.close);
+    final registry = ActionRegistry(
+      work: WorkRepository(database),
+      home: HomeExpenseRepository(database),
+      bills: HomeBillRepository(database),
+      debts: DebtRepository(database),
+      categories: HomeExpenseCategoryRepository(database),
+    );
+    final now = DateTime.now();
+    final previousMonth = DateTime(now.year, now.month - 1);
+    final previousMonthKey = MonthKey(
+      year: previousMonth.year,
+      month: previousMonth.month,
+    );
+    final date = DateTime(previousMonth.year, previousMonth.month, 15);
+
+    await registry.execute('save_work_entry', {
+      'kind': 'salary',
+      'amountMinorUnits': 1500,
+      'year': previousMonth.year,
+      'month': previousMonth.month,
+      'date': date.toIso8601String().split('T').first,
+      'note': 'راتب شهري',
+    });
+    await registry.execute('save_work_entry', {
+      'kind': 'salary',
+      'amountMinorUnits': 2200,
+      'year': now.year,
+      'month': now.month,
+      'date': DateTime(now.year, now.month, 15).toIso8601String().split('T').first,
+    });
+
+    final result = await registry.execute('read_work_records', {
+      'amountMinorUnits': 1500,
+      'kind': 'salary',
+      'allRecords': true,
+    });
+
+    expect(result.message, contains('1500'));
+    expect(result.message, contains(previousMonthKey.toString()));
+    expect(result.message, contains('راتب'));
+    expect(result.message, contains('راتب شهري'));
+    expect(result.message, isNot(contains('2200')));
   });
 
   test('reads work remaining for the selected app month, not the device month', () async {
