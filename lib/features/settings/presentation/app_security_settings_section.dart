@@ -152,6 +152,7 @@ class _AppSecuritySettingsSectionState
 
     if (saved == true) {
       await _load();
+      if (!mounted) return;
       _message(AppLocalizations.of(context)!.securityPinSavedNotice);
     }
   }
@@ -189,6 +190,7 @@ class _AppSecuritySettingsSectionState
       try {
         await _security.removePin(controller.text);
         await _load();
+        if (!mounted) return;
         _message(strings.securityPinRemovedNotice);
       } catch (_) {
         _message(strings.securityInvalidPin, error: true);

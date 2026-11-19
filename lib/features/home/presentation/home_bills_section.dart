@@ -1,4 +1,5 @@
 import 'package:expense_app/core/money/money.dart';
+import 'package:expense_app/core/money/format_minor_units.dart';
 import 'package:expense_app/core/time/calendar_date.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/core/widgets/entry_tools.dart';
@@ -9,6 +10,12 @@ import 'package:expense_app/features/home/domain/home_bill.dart';
 import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
+
+bool _billIsDueAndVisible(HomeBill bill, MonthKey? month) {
+  if (month == null) return true;
+  return bill.dueMonth.compareTo(month) <= 0 &&
+      (bill.dueMonth == month || !bill.isSettled);
+}
 
 class HomeBillsSection extends ConsumerWidget {
   const HomeBillsSection({super.key, this.selectedMonth, this.kind, this.searchQuery = ''});
@@ -202,12 +209,7 @@ class HomeBillsSection extends ConsumerWidget {
         error: (error, stack) => Text(strings.dataError),
         data: (items) {
           final monthItems = items.where((bill) {
-            final dueBySelectedMonth = selectedMonth == null ||
-                bill.dueMonth.compareTo(selectedMonth) <= 0;
-            final isCurrentOrStillOutstanding = selectedMonth == null ||
-                bill.dueMonth == selectedMonth || !bill.isSettled;
-            return dueBySelectedMonth &&
-                isCurrentOrStillOutstanding &&
+            return _billIsDueAndVisible(bill, selectedMonth) &&
                 (kind == null || bill.kind == kind) &&
                 (searchQuery.trim().isEmpty ||
                     bill.title.toLowerCase().contains(searchQuery.trim().toLowerCase()) ||

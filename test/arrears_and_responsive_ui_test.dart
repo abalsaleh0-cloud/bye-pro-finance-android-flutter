@@ -117,8 +117,8 @@ void main() {
       expect(tester.takeException(), isNull, reason: 'Compact layout failed in $section');
     }
 
-    await tester.view.resetPhysicalSize();
-    await tester.view.resetDevicePixelRatio();
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 1));
   });
