@@ -19,9 +19,22 @@ final class WorkBalanceAllocation {
     return remaining > 0 ? remaining : 0;
   }
 
-  int outstandingBefore(MonthKey month) => 0;
+  Map<MonthKey, int> outstandingByMonthBefore(MonthKey month) {
+    final outstanding = _remainingByMonth.entries
+        .where((entry) => entry.key.compareTo(month) < 0 && entry.value > 0)
+        .toList()
+      ..sort((a, b) => b.key.compareTo(a.key));
+    return Map.unmodifiable({
+      for (final entry in outstanding) entry.key: entry.value,
+    });
+  }
 
-  int outstandingThrough(MonthKey month) => outstandingFor(month);
+  int outstandingBefore(MonthKey month) => outstandingByMonthBefore(
+        month,
+      ).values.fold<int>(0, (total, amount) => total + amount);
+
+  int outstandingThrough(MonthKey month) =>
+      outstandingBefore(month) + outstandingFor(month);
 
   factory WorkBalanceAllocation.calculate(Iterable<WorkEntry> entries) {
     final salaryByMonth = <MonthKey, int>{};
