@@ -528,6 +528,23 @@ void main() {
       expect(names, isNot(contains('save_home_bill')));
     });
 
+    test('keeps the prior finance tool available for a short clarification reply', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.text('تم فهم الشهر المقصود.'),
+      );
+      await GemmaAssistantEngine(generator).interpret(
+        'لهذا الشهر',
+        ActionRegistry.descriptors.map((item) => item.name).toList(),
+        conversationContext:
+            'المستخدم: أضف راتب 1500\\nالمساعد: ما الشهر المستحق؟',
+      );
+
+      final names = generator.receivedFunctions!.map((item) => item.name);
+      expect(names, contains('save_work_entry'));
+      expect(names, contains('ask_clarification'));
+      expect(names, isNot(contains('save_debt')));
+    });
+
     test('bounds long conversation context and preserves the current request', () async {
       final generator = _FakeGemmaGenerator(
         const GemmaModelOutput.text('سأتابع معك.'),
