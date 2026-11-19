@@ -31,7 +31,7 @@ class DashboardScreen extends ConsumerWidget {
     final month = ref.watch(selectedMonthProvider);
     final billPayments = ref.watch(homeBillPaymentsForMonthProvider(month));
     final billOutstandingAtMonthEnd =
-        ref.watch(homeBillOutstandingAsOfMonthProvider(month));
+        ref.watch(homeBillOutstandingThroughMonthAsOfMonthProvider(month));
     final allBillPayments = ref.watch(allHomeBillPaymentsProvider);
     final allDebtPayments = ref.watch(allDebtPaymentsProvider);
 

@@ -62,6 +62,7 @@ class HomeBillsSection extends ConsumerWidget {
               ref.invalidate(homeBillsProvider);
               ref.invalidate(homeBillPaymentsForMonthProvider);
               ref.invalidate(homeBillOutstandingAsOfMonthProvider);
+               ref.invalidate(homeBillOutstandingThroughMonthAsOfMonthProvider);
               if (dialogContext.mounted) Navigator.pop(dialogContext);
             } catch (_) {
               setState(() => error = strings.invalidRecord);
@@ -119,6 +120,7 @@ class HomeBillsSection extends ConsumerWidget {
                 ),
               );
               ref.invalidate(homeBillOutstandingAsOfMonthProvider);
+               ref.invalidate(homeBillOutstandingThroughMonthAsOfMonthProvider);
               ref.invalidate(allHomeBillPaymentsProvider);
               if (dialogContext.mounted) Navigator.pop(dialogContext);
             } on InsufficientBillPaymentBalanceException catch (exception) {
@@ -158,6 +160,7 @@ class HomeBillsSection extends ConsumerWidget {
       ref.invalidate(homeBillsProvider);
       ref.invalidate(homeBillPaymentsForMonthProvider);
       ref.invalidate(homeBillOutstandingAsOfMonthProvider);
+               ref.invalidate(homeBillOutstandingThroughMonthAsOfMonthProvider);
     } on BillHasPaymentHistoryException {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -197,10 +200,15 @@ class HomeBillsSection extends ConsumerWidget {
         loading: () => Text(strings.loading),
         error: (error, stack) => Text(strings.dataError),
         data: (items) {
-          final monthItems = items.where((bill) =>
-            (selectedMonth == null || bill.dueMonth == selectedMonth) &&
-            (kind == null || bill.kind == kind)
-          ).toList();
+          final monthItems = items.where((bill) {
+            final dueBySelectedMonth = selectedMonth == null ||
+                bill.dueMonth.compareTo(selectedMonth) <= 0;
+            final isCurrentOrStillOutstanding = selectedMonth == null ||
+                bill.dueMonth == selectedMonth || !bill.isSettled;
+            return dueBySelectedMonth &&
+                isCurrentOrStillOutstanding &&
+                (kind == null || bill.kind == kind);
+          }).toList();
           return monthItems.isEmpty
           ? Text(strings.noBills)
           : Column(children: monthItems.map((bill) {

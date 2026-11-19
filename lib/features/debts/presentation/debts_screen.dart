@@ -384,7 +384,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
             context,
             strings,
             (debts.value ?? const [])
-                .where((debt) => debt.dueMonth == selectedMonth)
+                .where((debt) => debt.dueMonth.compareTo(selectedMonth) <= 0)
                 .toList(),
           ),
           Expanded(child: debts.when(
@@ -393,7 +393,10 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
         data: (items) {
           final selectedDirection = _activeTab == 0 ? DebtDirection.creditor : DebtDirection.debtor;
           final visibleItems = items
-              .where((debt) => debt.direction == selectedDirection && debt.dueMonth == selectedMonth)
+              .where((debt) =>
+                 debt.direction == selectedDirection &&
+                 debt.dueMonth.compareTo(selectedMonth) <= 0 &&
+                 (debt.dueMonth == selectedMonth || !debt.isSettled))
               .toList();
           return visibleItems.isEmpty
               ? Center(child: Text(strings.noRecords))
