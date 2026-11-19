@@ -565,7 +565,7 @@ class GemmaModelManager extends Notifier<GemmaModelState>
         chat = await model.openChat(
           systemInstruction: systemInstruction,
           tools: tools,
-          supportsFunctionCalls: true,
+          supportsFunctionCalls: tools.isNotEmpty,
           supportImage: supportImage,
           supportAudio: supportAudio,
           toolChoice: ToolChoice.auto,
