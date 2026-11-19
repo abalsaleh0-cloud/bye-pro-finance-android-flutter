@@ -1108,10 +1108,13 @@ final class ActionRegistry {
       'billId': String, 'billTitle': String, 'amountMinorUnits': int,
       'date': String, 'note': String,
     },
-    'read_home_bills' || 'read_work_records' || 'read_home_expenses' ||
-    'read_debts' || 'read_work_transfers' => const {
+    'read_work_records' => const {
       'year': int, 'month': int, 'allRecords': bool,
       'amountMinorUnits': int, 'kind': String,
+    },
+    'read_home_bills' || 'read_home_expenses' ||
+    'read_debts' || 'read_work_transfers' => const {
+      'year': int, 'month': int, 'allRecords': bool,
     },
     'read_home_categories' => const {},
     'read_debt_payments' => const {
