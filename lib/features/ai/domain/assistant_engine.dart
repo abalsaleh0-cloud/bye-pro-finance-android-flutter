@@ -919,7 +919,9 @@ final class LocalRuleAssistantEngine implements AssistantEngine {
       if (!can('save_home_bill')) {
         return const AssistantResult.notUnderstood();
       }
-      final title = isRent ? 'الإيجار' : _billTitle(text);
+      // Parse the title from the original user wording so Arabic letters
+      // such as hamza are preserved in the saved financial record.
+      final title = isRent ? 'الإيجار' : _billTitle(effectiveInput);
       if (title == null || title.trim().isEmpty) {
         return const AssistantResult.clarification(
           'ما اسم الفاتورة أو الاشتراك؟',
