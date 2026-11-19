@@ -589,22 +589,25 @@ void main() {
       expect(result.command!.parameters['note'], 'راتب شهري');
     });
 
-    test('normalizes Arabic-Indic digits in numeric arguments', () async {
+    test('normalizes Arabic-Indic digits while preserving the explicit salary month', () async {
+      final now = DateTime.now();
       final generator = _FakeGemmaGenerator(
-        const GemmaModelOutput.call('save_work_entry', {
+        GemmaModelOutput.call('save_work_entry', {
           'kind': 'salary',
           'amountMinorUnits': '٢٥٠',
-          'year': '٢٠٢٦',
-          'month': '١١',
+          'year': 2020,
+          'month': 1,
         }),
       );
-      final result = await GemmaAssistantEngine(generator)
-          .interpret('سجل راتب ٢٥٠', actions);
+      final result = await GemmaAssistantEngine(generator).interpret(
+        'سجل راتب ٢٥٠ لشهر ${now.month}',
+        actions,
+      );
 
       expect(result.kind, AssistantResultKind.command);
       expect(result.command!.parameters['amountMinorUnits'], 250);
-      expect(result.command!.parameters['year'], 2026);
-      expect(result.command!.parameters['month'], 11);
+      expect(result.command!.parameters['year'], now.year);
+      expect(result.command!.parameters['month'], now.month);
     });
 
     test('asks for missing required parameters and never guesses', () async {
@@ -658,14 +661,18 @@ void main() {
       expect(result.command, isNull);
     });
 
-    test('returns a short clarification question from the model', () async {
+    test('uses the local parser for a missing salary amount clarification', () async {
       final generator = _FakeGemmaGenerator(
         const GemmaModelOutput.text('ما الشهر المستحق؟'),
       );
-      final result = await GemmaAssistantEngine(generator)
-          .interpret('سجل راتب', actions);
+      final result = await FallbackAssistantEngine(
+        primary: GemmaAssistantEngine(generator),
+        fallback: const LocalRuleAssistantEngine(),
+      ).interpret('سجل راتب', actions);
 
       expect(result.kind, AssistantResultKind.clarification);
+      expect(result.message, contains('المبلغ'));
+      expect(result.usedGemmaFallback, isTrue);
     });
 
     test('allows natural general conversation replies containing numbers', () async {
