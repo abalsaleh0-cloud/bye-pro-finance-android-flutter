@@ -55,7 +55,7 @@ void main() {
   ];
 
   group('Gemma action coverage and partial updates', () {
-    test('exposes every registered finance action with a matching schema', () async {
+    test('routes a finance request with only its relevant tool schema', () async {
       final generator = _FakeGemmaGenerator(
         const GemmaModelOutput.text(''),
       );
@@ -71,27 +71,65 @@ void main() {
       final functions = generator.receivedFunctions!;
       expect(
         functions.map((function) => function.name),
-        containsAll([...actionNames, 'ask_clarification']),
+        unorderedEquals(['read_dashboard_summary', 'ask_clarification']),
       );
-      for (final descriptor in ActionRegistry.descriptors) {
-        final function = functions.singleWhere(
-          (item) => item.name == descriptor.name,
-        );
-        expect(
-          function.properties.keys,
-          containsAll(descriptor.requiredParameters),
-          reason: 'Schema for ${descriptor.name} must expose every ActionRegistry required parameter',
-        );
-        expect(
-          function.required.every(function.properties.containsKey),
-          isTrue,
-          reason: 'Required fields for ${function.name} must exist in its schema',
-        );
-      }
-      final transfer = functions.singleWhere(
-        (item) => item.name == 'save_work_home_transfer',
+      final summary = functions.singleWhere(
+        (function) => function.name == 'read_dashboard_summary',
       );
-      expect(transfer.properties.keys, containsAll(['year', 'month', 'date']));
+      expect(summary.properties.keys, containsAll(['year', 'month']));
+      expect(summary.required, isEmpty);
+      expect(
+        summary.required.every(summary.properties.containsKey),
+        isTrue,
+      );
+    });
+
+    test('does not send any finance tools for ordinary general conversation', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.text('إليك فقرة قصيرة عن تنظيم الوقت.'),
+      );
+      final result = await GemmaAssistantEngine(generator).interpret(
+        'اكتب لي فقرة قصيرة عن أهمية تنظيم الوقت، ثم أعطني ثلاثة أمثلة عملية.',
+        ActionRegistry.descriptors.map((item) => item.name).toList(),
+      );
+
+      expect(result.kind, AssistantResultKind.answer);
+      expect(generator.receivedFunctions, isEmpty);
+    });
+
+    test('rejects a tool call that was not exposed for this general turn', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.call('save_debt', {
+          'amountMinorUnits': 500,
+          'direction': 'debtor',
+          'counterparty': 'سامر',
+          'year': 2026,
+          'month': 11,
+        }),
+      );
+      final result = await GemmaAssistantEngine(generator).interpret(
+        'اكتب فقرة عن تنظيم الوقت',
+        ActionRegistry.descriptors.map((item) => item.name).toList(),
+      );
+
+      expect(generator.receivedFunctions, isEmpty);
+      expect(result.kind, AssistantResultKind.notUnderstood);
+      expect(result.command, isNull);
+    });
+
+    test('routes a personal home-spending question to read-only tools', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.text(''),
+      );
+      await GemmaAssistantEngine(generator).interpret(
+        'كم صرفت على المنزل؟',
+        ActionRegistry.descriptors.map((item) => item.name).toList(),
+      );
+
+      final names = generator.receivedFunctions!.map((item) => item.name);
+      expect(names, contains('read_home_expenses'));
+      expect(names, contains('ask_clarification'));
+      expect(names, isNot(contains('save_home_expense')));
     });
 
     test('passes the requested year and month for a new household transfer', () async {
@@ -229,6 +267,23 @@ void main() {
       expect(generator.receivedInput, endsWith('رسالة المستخدم الحالية:\nلهذا الشهر'));
     });
 
+    test('trims old transcript text while preserving the current user message', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.text('تابع.'),
+      );
+      final oldContext = List.filled(200, 'نص قديم لم يعد مهماً').join('؛ ');
+      await GemmaAssistantEngine(generator).interpret(
+        'تابع',
+        const [],
+        conversationContext: '$oldContext\nنهاية السياق السابق',
+      );
+
+      expect(generator.receivedInput, contains('نهاية السياق السابق'));
+      expect(generator.receivedInput, endsWith('رسالة المستخدم الحالية:\nتابع'));
+      expect(generator.receivedInput!.length, lessThan(1300));
+      expect(generator.receivedFunctions, isEmpty);
+    });
+
     test('returns a natural-language answer for multimodal input', () async {
       final generator = _FakeGemmaGenerator(
         const GemmaModelOutput.text('تظهر في الصورة فاتورة بقيمة 250 ديناراً.'),
@@ -241,6 +296,43 @@ void main() {
 
       expect(result.kind, AssistantResultKind.answer);
       expect(result.message, 'تظهر في الصورة فاتورة بقيمة 250 ديناراً.');
+    });
+
+    test('routes an imperative bill-payment request to the payment tool', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.call('record_home_bill_payment', {
+          'billTitle': 'الكهرباء',
+          'amountMinorUnits': 100,
+        }),
+      );
+      final result = await GemmaAssistantEngine(generator).interpret(
+        'ادفع فاتورة الكهرباء بقيمة 100',
+        ActionRegistry.descriptors.map((item) => item.name).toList(),
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'record_home_bill_payment');
+      final names = generator.receivedFunctions!.map((item) => item.name);
+      expect(names, contains('record_home_bill_payment'));
+      expect(names, isNot(contains('save_home_bill')));
+    });
+
+    test('treats a question about paid bills as a read-only history lookup', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.call('read_home_bill_payments', {
+          'billTitle': 'الكهرباء',
+        }),
+      );
+      final result = await GemmaAssistantEngine(generator).interpret(
+        'كم دفعت فاتورة الكهرباء؟',
+        ActionRegistry.descriptors.map((item) => item.name).toList(),
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'read_home_bill_payments');
+      final names = generator.receivedFunctions!.map((item) => item.name);
+      expect(names, contains('read_home_bill_payments'));
+      expect(names, isNot(contains('record_home_bill_payment')));
     });
 
     test('exposes required identifiers in payment-history tool schemas', () async {
@@ -473,6 +565,7 @@ void main() {
 
       expect(result.kind, AssistantResultKind.answer);
       expect(result.message, contains('3 خطوات'));
+      expect(generator.receivedFunctions, isEmpty);
     });
 
     test('does not allow a free-form answer to invent personal financial figures', () async {

@@ -46,7 +46,7 @@ abstract interface class GemmaTurnGenerator {
 final class GemmaAssistantEngine implements AssistantEngine {
   GemmaAssistantEngine(
     this.generator, {
-    this.timeout = const Duration(seconds: 30),
+    this.timeout = const Duration(seconds: 100),
   });
 
   final GemmaTurnGenerator generator;
@@ -73,24 +73,27 @@ final class GemmaAssistantEngine implements AssistantEngine {
     if (text.isEmpty) return const AssistantResult.notUnderstood();
 
     try {
-      final functions = ActionRegistry.descriptors
-          .where((descriptor) => availableActions.contains(descriptor.name))
-          .map(_functionFor)
-          .toList(growable: true);
-      functions.add(const GemmaFunctionSpec(
-        name: 'ask_clarification',
-        description: 'Ask one short Arabic clarification question. Do not guess.',
-        properties: {
-          'question': {
-            'type': 'string',
-            'description': 'A short question in Arabic.',
-          },
-        },
-        required: ['question'],
-      ));
-
-      final prompt = _composePrompt(text, conversationContext, expenseCategories);
-      final output = await generator.generate(prompt, functions, media: media).timeout(timeout);
+      final functions = _functionsFor(
+        text,
+        availableActions,
+        conversationContext,
+      );
+      final needsCategoryCatalog = functions.any(
+        (function) =>
+            function.name == 'save_home_expense' ||
+            function.name == 'save_home_category',
+      );
+      final prompt = _composePrompt(
+        text,
+        conversationContext,
+        needsCategoryCatalog ? expenseCategories : const <String, String>{},
+      );
+      final output = await generator
+          .generate(prompt, functions, media: media)
+          .timeout(timeout);
+      final exposedFunctionNames = functions
+          .map((function) => function.name)
+          .toSet();
       if (output.parallelCalls) return const AssistantResult.notUnderstood();
 
       if (output.name == null) {
@@ -125,6 +128,9 @@ final class GemmaAssistantEngine implements AssistantEngine {
       final arguments = output.arguments;
       if (arguments == null) return const AssistantResult.notUnderstood();
       if (output.name == 'ask_clarification') {
+        if (!exposedFunctionNames.contains('ask_clarification')) {
+          return const AssistantResult.notUnderstood();
+        }
         final question = arguments['question'];
         if (question is String &&
             question.trim().isNotEmpty &&
@@ -139,7 +145,9 @@ final class GemmaAssistantEngine implements AssistantEngine {
       for (final item in ActionRegistry.descriptors) {
         if (item.name == output.name) descriptor = item;
       }
-      if (descriptor == null || !availableActions.contains(output.name)) {
+      if (descriptor == null ||
+          !availableActions.contains(output.name) ||
+          !exposedFunctionNames.contains(output.name)) {
         return const AssistantResult.notUnderstood();
       }
 
@@ -242,13 +250,222 @@ final class GemmaAssistantEngine implements AssistantEngine {
     ]);
   }
 
+  List<GemmaFunctionSpec> _functionsFor(
+    String currentText,
+    List<String> availableActions,
+    String conversationContext,
+  ) {
+    // A general conversation must not carry twenty-plus finance schemas.
+    // Route finance requests to the smallest safe set of app actions instead.
+    final normalizedCurrent = _input.normalize(currentText);
+    final normalizedHistory = _input.normalize(conversationContext);
+    final isAnswerToClarification = currentText.trim().length <= 60 &&
+        _input.containsAny(normalizedHistory, const [
+          'اي شهر تقصد', 'ما الشهر المطلوب', 'ما الشهر',
+          'ما المبلغ', 'ما الاسم', 'ما التاريخ', 'ما الاتجاه',
+          'ما نوع', 'اذكر الشهر', 'اذكر التاريخ',
+        ]);
+    final isFollowUp = isAnswerToClarification ||
+        _input.containsAny(normalizedCurrent, const [
+          'هذا', 'هذه', 'لهذا', 'لذلك', 'نفسه', 'نفسها',
+          'نفس المبلغ', 'نفس الشهر', 'نعم', 'لا', 'الشهر الحالي',
+          'هالشهر', 'الشهر الماضي', 'الشهر القادم',
+        ]);
+    final routingText = _input.normalize(
+      isFollowUp ? '$conversationContext\n$currentText' : currentText,
+    );
+    bool has(Iterable<String> phrases) =>
+        _input.containsAny(routingText, phrases);
+
+    final work = has(const [
+      'راتب', 'راتبا', 'راتبي', 'معاش', 'مرتب', 'سلفة', 'سلفه', 'تسبيق',
+      'سجلات العمل', 'قسم العمل', 'الباقي', 'المتبقي',
+      'قبضت', 'استلمت', 'salary', 'advance', 'remaining', 'paycheck',
+    ]);
+    final bill = has(const [
+      'فاتورة', 'الفاتورة', 'فواتير', 'الفواتير', 'ايجار', 'اجار',
+      'الإيجار', 'الايجار', 'rent', 'اشتراك', 'bill', 'invoice',
+    ]);
+    final home = has(const [
+      'مصروف', 'مصاريف', 'المصاريف', 'مشتريات',
+      'صرفت', 'صرف', 'انفقت', 'أنفقت', 'expenses', 'household', 'home expense',
+    ]);
+    final debt = has(const [
+      'دين', 'الديون', 'ديون', 'دائن', 'مدين',
+      'سداد الدين', 'دين علي', 'كم علي', 'لي عند', 'debt', 'loan',
+    ]);
+    final transfer = has(const [
+      'تحويل', 'تحويلات', 'حولت', 'حوّل', 'نقلت',
+      'نقل للبيت', 'نقل للمنزل', 'transferred',
+    ]);
+    final category = has(const [
+      'تصنيف', 'تصنيفات', 'فئة المصروف', 'فئات المصروف', 'category',
+    ]);
+    final dashboard = has(const [
+      'ملخص', 'ملخصا', 'الوضع المالي', 'الرصيد', 'الميزانية',
+      'كم معي', 'قديش معي', 'كم علي', 'كم لي',
+      'summary', 'balance',
+    ]);
+    final financeIntent =
+        work || bill || home || debt || transfer || category || dashboard;
+
+    final navigation = has(const [
+      'افتح', 'وافتح', 'افتح قسم', 'وافتح قسم',
+      'انتقل', 'وانتقل', 'اذهب الى', 'واذهب الى',
+      'روح الى', 'وروح الى', 'وديني', 'خذني',
+      'open section', 'navigate',
+    ]);
+    final deletion = has(const [
+      'احذف', 'حذف', 'امسح', 'الغ', 'إزالة', 'delete', 'remove',
+    ]);
+    final history = has(const [
+      'سجل الدفعات', 'تاريخ الدفعات', 'الدفعات السابقة',
+      'سجل الدفع', 'payment history',
+    ]);
+    final payment = has(const [
+      'دفعة', 'دفعات', 'دفعت', 'دفع', 'ادفع', 'سداد',
+      'سدد', 'سددت', 'تسديد', 'دفعة جزئية', 'payment', 'paid',
+    ]);
+    final read = history || has(const [
+      'اعرض', 'وريني', 'فرجيني', 'هات', 'جيب', 'طلع',
+      'اعطني', 'اعطيني', 'ارني', 'كم', 'قديش', 'شكد',
+      'شو عندي', 'تفاصيل', 'قائمة', 'المجموع', 'اجمالي',
+      'إجمالي', 'ما هو', 'ما هي', 'هل استلمت', 'كم دفعت',
+      'قديش دفعت', 'كم سددت', 'قديش سددت', 'متى دفعت',
+      'هل وصلني', 'هل دفعت', 'هل سددت', 'هل تم الدفع',
+      'متى سددت', 'متى دفعت', 'show', 'list', 'how much',
+    ]);
+    final write = !history && has(const [
+      'اضف', 'أضف', 'إضافة', 'اضافة', 'ضيف', 'سجل', 'سجّل', 'اعمل',
+      'أنشئ', 'انشئ', 'حط', 'حطلي', 'دفع', 'ادفع', 'سداد', 'دفعت',
+      'سدد', 'سددت', 'استلمت', 'حول', 'حوّل', 'صرف',
+      'اشتريت', 'عدّل', 'عدل', 'غيّر', 'غير',
+      'add', 'create', 'record', 'pay', 'transfer', 'edit', 'update',
+    ]);
+
+    final selected = <String>{};
+    final allowed = availableActions.toSet();
+    void include(String name) {
+      if (allowed.contains(name)) selected.add(name);
+    }
+
+    if (navigation) {
+      include('navigate_to_section');
+    }
+
+    if (deletion) {
+      if (work) include('delete_work_entry');
+      if (bill) include('delete_home_bill');
+      if (home && !bill) include('delete_home_expense');
+      if (debt) include('delete_debt');
+      if (transfer) include('delete_work_home_transfer');
+      if (category) include('delete_home_category');
+      // "احذف السجل المحدد" has no section. Keep all safe delete choices
+      // available so the model can identify the record type or ask.
+      if (selected.isEmpty || (!work && !bill && !home && !debt && !transfer && !category)) {
+        for (final name in availableActions.where((name) => name.startsWith('delete_'))) {
+          include(name);
+        }
+      }
+    } else if (write && !read) {
+      if (bill && payment) {
+        include('record_home_bill_payment');
+      } else if (debt && payment) {
+        include('record_debt_payment');
+      } else {
+        if (transfer) include('save_work_home_transfer');
+        if (bill) include('save_home_bill');
+        if (debt) include('save_debt');
+        if (work) include('save_work_entry');
+        if (home && !bill) include('save_home_expense');
+        if (category) include('save_home_category');
+      }
+    } else if (read || (financeIntent && !navigation)) {
+      if (dashboard) {
+        include('read_dashboard_summary');
+        if (has(const ['مجموع', 'المجموع', 'اجمالي', 'إجمالي', 'total'])) {
+          include('read_month_total');
+        }
+      }
+      if (work) {
+        include('read_work_records');
+        if (has(const ['الباقي', 'المتبقي', 'شو ضل', 'كم ضل', 'قديش ضل', 'remaining'])) {
+          include('read_work_remaining');
+        }
+      }
+      if (bill) {
+        include('read_home_bills');
+        if (payment || history) include('read_home_bill_payments');
+      }
+      if (home && !bill) include('read_home_expenses');
+      if (debt) {
+        include('read_debts');
+        if (payment || history) include('read_debt_payments');
+      }
+      if (transfer) include('read_work_transfers');
+      if (category) include('read_home_categories');
+
+      // An unqualified payment-history question may refer to either bills
+      // or debts; expose only those two read-only tools and let Gemma clarify.
+      if (history && !bill && !debt) {
+        include('read_home_bill_payments');
+        include('read_debt_payments');
+      }
+    }
+
+    if (financeIntent && selected.isEmpty && !navigation) {
+      // Do not dump the whole schema catalogue into the context for an
+      // underspecified finance question.
+      selected.add('ask_clarification');
+    }
+
+    final functions = ActionRegistry.descriptors
+        .where((descriptor) => selected.contains(descriptor.name))
+        .map(_functionFor)
+        .toList(growable: true);
+    if (selected.isNotEmpty && !selected.contains('ask_clarification')) {
+      functions.add(const GemmaFunctionSpec(
+        name: 'ask_clarification',
+        description: 'Ask one short Arabic clarification question. Do not guess.',
+        properties: {
+          'question': {
+            'type': 'string',
+            'description': 'A short question in Arabic.',
+          },
+        },
+        required: ['question'],
+      ));
+    }
+    if (selected.contains('ask_clarification') &&
+        !functions.any((function) => function.name == 'ask_clarification')) {
+      functions.add(const GemmaFunctionSpec(
+        name: 'ask_clarification',
+        description: 'Ask one short Arabic clarification question. Do not guess.',
+        properties: {
+          'question': {
+            'type': 'string',
+            'description': 'A short question in Arabic.',
+          },
+        },
+        required: ['question'],
+      ));
+    }
+    return functions;
+  }
+
   static String _composePrompt(
     String currentText,
     String conversationContext,
     Map<String, String> expenseCategories,
   ) {
-    final context = conversationContext.trim();
+    final rawContext = conversationContext.trim();
+    // Keep only recent dialogue. The complete chat stays saved in the UI;
+    // Gemma receives a compact window so long chats cannot consume its KV cache.
+    final context = rawContext.length <= 900
+        ? rawContext
+        : '…${rawContext.substring(rawContext.length - 900)}';
     final categoryCatalog = expenseCategories.entries
+        .take(40)
         .map((entry) => '${entry.key} = ${entry.value}')
         .join('؛ ');
     final categoryInstruction = categoryCatalog.isEmpty
