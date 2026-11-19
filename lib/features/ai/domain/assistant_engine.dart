@@ -402,10 +402,15 @@ final class LocalRuleAssistantEngine implements AssistantEngine {
     ]);
     final lookupAmount =
         _input.extractAmount(input) ?? _input.extractAmount(effectiveInput);
+    final historyText = _input.normalize(conversationContext);
+    final historyHasWorkSalary = _input.containsAny(historyText, const [
+      'راتب', 'راتبي', 'معاش', 'مرتب', 'salary', 'paycheck',
+    ]);
     if (isQuestion &&
         isRecordLookupQuestion &&
         lookupAmount != null &&
-        has(const ['راتب', 'راتبي', 'معاش', 'مرتب', 'salary', 'paycheck']) &&
+        (has(const ['راتب', 'راتبي', 'معاش', 'مرتب', 'salary', 'paycheck']) ||
+            historyHasWorkSalary) &&
         can('read_work_records')) {
       return AssistantResult.command(
         AssistantCommand(
