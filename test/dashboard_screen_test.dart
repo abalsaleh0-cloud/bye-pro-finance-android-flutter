@@ -134,7 +134,11 @@ void main() {
     final previousDetails = find.byKey(
       const Key('previous-work-outstanding-details'),
     );
-    await tester.ensureVisible(previousDetails);
+    await tester.scrollUntilVisible(
+      previousDetails,
+      500,
+      scrollable: find.byKey(const Key('dashboard-content')),
+    );
     await tester.pumpAndSettle();
     expect(previousDetails, findsOneWidget);
     await tester.tap(previousDetails);
