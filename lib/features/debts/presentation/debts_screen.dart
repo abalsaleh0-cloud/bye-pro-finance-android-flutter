@@ -416,7 +416,9 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                  (debt.dueMonth == selectedMonth || !debt.isSettled) &&
                  (debt.counterparty.toLowerCase().contains(_searchQuery.trim().toLowerCase()) ||
                   (debt.note ?? '').toLowerCase().contains(_searchQuery.trim().toLowerCase()) ||
-                  debt.originalAmount.minorUnits.toString().contains(_searchQuery.trim())))
+                  (debt.originalAmount.minorUnits.toString().contains(_searchQuery.trim()) ||
+                   formatMinorUnits(context, debt.originalAmount.minorUnits).contains(_searchQuery.trim()) ||
+                   formatMinorUnits(context, debt.outstandingAmount.minorUnits).contains(_searchQuery.trim()))))
               .toList();
           return visibleItems.isEmpty
               ? Center(child: Text(strings.noRecords))

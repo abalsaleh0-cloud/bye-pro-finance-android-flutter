@@ -69,7 +69,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }) {
     final query = _searchQuery.trim().toLowerCase();
     if (query.isEmpty) return true;
-    final searchable = '$title ${note ?? ''} $amount ${date.toIso8601String()}';
+    final searchable = '$title ${note ?? ''} $amount ${formatMinorUnits(context, amount)} ${date.toIso8601String()}';
     return searchable.toLowerCase().contains(query);
   }
 

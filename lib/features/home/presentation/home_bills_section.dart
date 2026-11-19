@@ -212,7 +212,8 @@ class HomeBillsSection extends ConsumerWidget {
                 (searchQuery.trim().isEmpty ||
                     bill.title.toLowerCase().contains(searchQuery.trim().toLowerCase()) ||
                     (bill.note ?? '').toLowerCase().contains(searchQuery.trim().toLowerCase()) ||
-                    bill.amount.minorUnits.toString().contains(searchQuery.trim()));
+                    (bill.amount.minorUnits.toString().contains(searchQuery.trim()) ||
+                     formatMinorUnits(context, bill.amount.minorUnits).contains(searchQuery.trim())));
           }).toList();
           return monthItems.isEmpty
           ? Text(strings.noBills)

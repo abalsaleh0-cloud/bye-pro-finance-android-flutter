@@ -188,7 +188,7 @@ class _AppSecurityGateState extends State<AppSecurityGate> with WidgetsBindingOb
 
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+    final strings = AppLocalizations.of(context)!;
 
     return Scaffold(
       backgroundColor: scheme.surface,
