@@ -73,7 +73,11 @@ final class GemmaAssistantEngine implements AssistantEngine {
     if (text.isEmpty) return const AssistantResult.notUnderstood();
 
     try {
-      final functions = _functionsForRequest(text, availableActions);
+      final functions = _functionsForRequest(
+        text,
+        availableActions,
+        conversationContext: conversationContext,
+      );
 
       final needsCategoryCatalog = functions.any((function) =>
           const {
@@ -295,9 +299,24 @@ final class GemmaAssistantEngine implements AssistantEngine {
 
   List<GemmaFunctionSpec> _functionsForRequest(
     String text,
-    List<String> availableActions,
-  ) {
-    final normalized = _input.normalize(text);
+    List<String> availableActions, {
+    String conversationContext = '',
+  }) {
+    final currentNormalized = _input.normalize(text);
+    final isFollowUp = currentNormalized.length <= 40 &&
+        _input.containsAny(currentNormalized, const [
+          'لهذا الشهر', 'هذا الشهر', 'الشهر الحالي', 'نفسه', 'نفسها',
+          'نفس السجل', 'هذا السجل', 'هذه الفاتورة', 'هذا الراتب',
+          'تابع', 'اكمل', 'تمام', 'نعم', 'لا', 'كم المبلغ',
+          'ما المبلغ', 'تاريخها', 'تاريخه', 'أي شهر', 'اي شهر',
+        ]);
+    // A short clarification reply inherits only the prior turn's domain so
+    // the relevant action schema remains available; a new full request does
+    // not inherit stale finance intent from an older topic.
+    final intentText = isFollowUp && conversationContext.trim().isNotEmpty
+        ? '$conversationContext\\n$text'
+        : text;
+    final normalized = _input.normalize(intentText);
     bool has(List<String> phrases) => phrases.any((phrase) {
       final candidate = _input.normalize(phrase);
       // Arabic definite articles and attached conjunctions are common in
