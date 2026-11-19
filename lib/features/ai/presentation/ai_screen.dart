@@ -94,6 +94,14 @@ class _AiScreenState extends ConsumerState<AiScreen> {
 
   void _refreshAfterAssistantAction(String? actionName) {
     if (actionName == null) return;
+    if (actionName == 'save_work_entry' ||
+        actionName == 'delete_work_entry') {
+      ref.invalidate(workEntriesProvider);
+    }
+    if (actionName == 'save_work_home_transfer' ||
+        actionName == 'delete_work_home_transfer') {
+      ref.invalidate(workTransfersProvider);
+    }
     if (actionName == 'save_home_category' ||
         actionName == 'delete_home_category') {
       ref.invalidate(homeExpenseCategoriesProvider);

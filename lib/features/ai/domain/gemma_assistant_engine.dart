@@ -98,6 +98,12 @@ final class GemmaAssistantEngine implements AssistantEngine {
 
       if (output.name == null) {
         final response = output.text?.trim() ?? '';
+        // A natural-language success claim is not a financial write. Return
+        // not-understood so FallbackAssistantEngine can build a real,
+        // repository-backed command and ask the user to confirm it.
+        if (media == null && _isWriteIntent(text)) {
+          return const AssistantResult.notUnderstood();
+        }
         if (media != null &&
             response.isNotEmpty &&
             response.length <= 4000 &&
@@ -128,6 +134,9 @@ final class GemmaAssistantEngine implements AssistantEngine {
       final arguments = output.arguments;
       if (arguments == null) return const AssistantResult.notUnderstood();
       if (output.name == 'ask_clarification') {
+        if (media == null && _isWriteIntent(text)) {
+          return const AssistantResult.notUnderstood();
+        }
         if (!exposedFunctionNames.contains('ask_clarification')) {
           return const AssistantResult.notUnderstood();
         }
@@ -151,8 +160,75 @@ final class GemmaAssistantEngine implements AssistantEngine {
         return const AssistantResult.notUnderstood();
       }
 
-      final normalized = _normalizeArguments(arguments);
-      if (normalized == null) return const AssistantResult.notUnderstood();
+      final parsedArguments = _normalizeArguments(arguments);
+      if (parsedArguments == null) return const AssistantResult.notUnderstood();
+      final normalized = Map<String, Object?>.from(parsedArguments);
+
+      if (output.name == 'save_work_entry' &&
+          _isWriteIntent(text) &&
+          !_hasExplicitRecordId(text) &&
+          !_hasExplicitEditIntent(text)) {
+        // Gemma may hallucinate an ID when it is trying to create a new
+        // salary record. IDs are only valid when the user explicitly names
+        // a record for editing; a new record always receives an app-owned ID.
+        normalized.remove('id');
+
+        final amount = _input.extractAmount(text);
+        if (amount == null) {
+          normalized.remove('amountMinorUnits');
+        } else {
+          normalized['amountMinorUnits'] = amount;
+        }
+
+        final requestedMonth = _input.extractMonth(text);
+        if (requestedMonth == null) {
+          normalized.remove('year');
+          normalized.remove('month');
+        } else {
+          normalized['year'] = requestedMonth.$1;
+          normalized['month'] = requestedMonth.$2;
+        }
+
+        final normalizedText = _input.normalize(text);
+        if (_input.containsAny(normalizedText, const [
+          'راتب', 'راتبي', 'معاش', 'معاشي', 'مرتب', 'salary', 'paycheck',
+        ])) {
+          normalized['kind'] = 'salary';
+        } else if (_input.containsAny(normalizedText, const [
+          'سلفه', 'سلفه', 'تسبيق', 'advance',
+        ])) {
+          normalized['kind'] = 'advance';
+        } else if (_input.containsAny(normalizedText, const [
+          'دفعة', 'دفعات', 'قسط', 'payment',
+        ])) {
+          normalized['kind'] = 'payment';
+        }
+
+        final explicitDate = _input.extractDate(text);
+        if (explicitDate == null) {
+          // Keep the record's allocation month independent from the
+          // recording timestamp. Do not let a model-invented date conflict.
+          normalized.remove('date');
+        } else {
+          normalized['date'] = explicitDate.toIso8601String().split('T').first;
+        }
+
+        final note = _extractExplicitNote(text);
+        if (note != null) normalized['note'] = note;
+      }
+
+      if (output.name == 'read_work_records' &&
+          _isRecordLookupQuestion(text)) {
+        final amount = _input.extractAmount(text);
+        if (amount != null) normalized['amountMinorUnits'] = amount;
+        normalized['allRecords'] = true;
+        if (_input.containsAny(
+          _input.normalize('$conversationContext $text'),
+          const ['راتب', 'راتبي', 'معاش', 'مرتب', 'salary'],
+        )) {
+          normalized['kind'] = 'salary';
+        }
+      }
 
       final allowed = _propertiesFor(output.name!).keys.toSet();
       if (normalized.keys.any((key) => !allowed.contains(key))) {
@@ -193,6 +269,50 @@ final class GemmaAssistantEngine implements AssistantEngine {
     } catch (_) {
       return const AssistantResult.notUnderstood();
     }
+  }
+
+  static bool _isWriteIntent(String text) {
+    final normalized = _input.normalize(text);
+    final question = _input.containsAny(normalized, const [
+      'هل', 'كم', 'قديش', 'شكد', 'متى', 'وين', 'اين',
+      'شو', 'ما هو', 'ما هي', 'what', 'when', 'where', 'how',
+    ]) || text.contains('؟') || text.contains('?');
+    return !question && _input.containsAny(normalized, const [
+      'اضف', 'اضيف', 'اضيفلي', 'ضيف', 'زيد',
+      'سجل', 'سجل لي', 'حط', 'حطلي', 'انشئ',
+      'احفظ', 'ادخل', 'دخل', 'قيد', 'نزل', 'اعمل',
+      'تسجيل', 'اضافة', 'add', 'create', 'record', 'save',
+    ]);
+  }
+
+  static bool _isRecordLookupQuestion(String text) =>
+      _input.extractAmount(text) != null &&
+      _input.containsAny(_input.normalize(text), const [
+        'وين اضفت', 'اين اضفت', 'وين سجلت', 'اين سجلت',
+        'وين نزلت', 'اين نزلت', 'في اي قسم', 'بأي قسم',
+        'في اي سجل', 'where did you add', 'where did you record',
+        'which section',
+      ]);
+
+  static bool _hasExplicitEditIntent(String text) =>
+      _input.containsAny(_input.normalize(text), const [
+        'عدل', 'تعديل', 'غير', 'تغيير', 'edit', 'update',
+      ]);
+
+  static bool _hasExplicitRecordId(String text) => RegExp(
+        r'(?:معرّف|معرف|رقم\s+(?:السجل|الراتب)|id)\s*[:#：]?\s*[A-Za-z0-9_-]{2,64}',
+        caseSensitive: false,
+        unicode: true,
+      ).hasMatch(text);
+
+  static String? _extractExplicitNote(String text) {
+    final match = RegExp(
+      r'(?:ملاحظة|ملاحظات|note|notes)\s*(?::|هي|أنها|انه)?\s*(.+)$',
+      caseSensitive: false,
+      unicode: true,
+    ).firstMatch(text);
+    final value = match?.group(1)?.trim();
+    return value == null || value.isEmpty ? null : value;
   }
 
   static bool _looksLikePersonalRecordQuestion(String text) {
@@ -239,6 +359,14 @@ final class GemmaAssistantEngine implements AssistantEngine {
       'اعرض التحويلات',
       'اعرض الرواتب',
       'سجلات العمل',
+      'وين اضفت',
+      'اين اضفت',
+      'وين سجلت',
+      'اين سجلت',
+      'في اي قسم',
+      'بأي قسم',
+      'where did you add',
+      'where did you record',
       'مصروفاتي',
       'ديوني',
       'فواتيري',
@@ -259,6 +387,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
     // Route finance requests to the smallest safe set of app actions instead.
     final normalizedCurrent = _input.normalize(currentText);
     final normalizedHistory = _input.normalize(conversationContext);
+    final isRecordLookupQuestion = _isRecordLookupQuestion(currentText);
     final isAnswerToClarification = currentText.trim().length <= 60 &&
         _input.containsAny(normalizedHistory, const [
           'اي شهر تقصد', 'ما الشهر المطلوب', 'ما الشهر',
@@ -266,6 +395,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
           'ما نوع', 'اذكر الشهر', 'اذكر التاريخ',
         ]);
     final isFollowUp = isAnswerToClarification ||
+        isRecordLookupQuestion ||
         _input.containsAny(normalizedCurrent, const [
           'هذا', 'هذه', 'لهذا', 'لذلك', 'نفسه', 'نفسها',
           'نفس المبلغ', 'نفس الشهر', 'نعم', 'لا', 'الشهر الحالي',
@@ -329,6 +459,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
     final read = history || has(const [
       'اعرض', 'وريني', 'فرجيني', 'هات', 'جيب', 'طلع',
       'اعطني', 'اعطيني', 'ارني', 'كم', 'قديش', 'شكد',
+      'وين', 'اين', 'في اي قسم', 'بأي قسم',
       'شو عندي', 'تفاصيل', 'قائمة', 'المجموع', 'اجمالي',
       'إجمالي', 'ما هو', 'ما هي', 'هل استلمت', 'كم دفعت',
       'قديش دفعت', 'كم سددت', 'قديش سددت', 'متى دفعت',
@@ -387,7 +518,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
           include('read_month_total');
         }
       }
-      if (work) {
+      if (work || isRecordLookupQuestion) {
         include('read_work_records');
         if (has(const ['الباقي', 'المتبقي', 'شو ضل', 'كم ضل', 'قديش ضل', 'remaining'])) {
           include('read_work_remaining');
@@ -502,7 +633,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
         'delete_home_bill' => 'Delete a household bill or rent by identifier or exact unique bill title.',
         'record_home_bill_payment' => 'Record a payment or partial payment for an existing household bill or rent.',
         'read_home_bills' => 'List household bills and rent with their remaining unpaid amounts.',
-        'read_work_records' => 'List saved work salary, advance, and payment records with identifiers.',
+        'read_work_records' => 'Search saved work salary, advance, and payment records. Optional filters: exact amount, kind, month, or all records.',
         'read_home_expenses' => 'List household daily expenses with identifiers.',
         'read_debts' => 'List debts, counterparties, outstanding amounts, and identifiers.',
         'read_work_transfers' => 'List work-to-home transfers with amounts and dates.',
@@ -595,7 +726,17 @@ final class GemmaAssistantEngine implements AssistantEngine {
           'date': date,
           'note': note,
         },
-      'read_home_bills' || 'read_work_records' || 'read_home_expenses' || 'read_debts' || 'read_work_transfers' => {
+      'read_work_records' => {
+          'year': integer,
+          'month': integer,
+          'allRecords': {'type': 'boolean'},
+          'amountMinorUnits': integer,
+          'kind': {
+            'type': 'string',
+            'enum': ['salary', 'advance', 'payment', 'salaryPayment'],
+          },
+        },
+      'read_home_bills' || 'read_home_expenses' || 'read_debts' || 'read_work_transfers' => {
           'year': integer,
           'month': integer,
           'allRecords': {'type': 'boolean'},

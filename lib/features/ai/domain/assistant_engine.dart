@@ -394,6 +394,35 @@ final class LocalRuleAssistantEngine implements AssistantEngine {
       'how',
     ]) || input.contains('؟') || input.contains('?');
     final isWriteIntent = !isQuestion && (writeVerb || receiptVerb);
+    final isRecordLookupQuestion = hasCurrent(const [
+      'وين اضفت', 'اين اضفت', 'وين سجلت', 'اين سجلت',
+      'وين نزلت', 'اين نزلت', 'في اي قسم', 'باي قسم',
+      'في اي سجل', 'بأي سجل', 'where did you add',
+      'where did you record', 'which section',
+    ]);
+    final lookupAmount =
+        _input.extractAmount(input) ?? _input.extractAmount(effectiveInput);
+    final historyText = _input.normalize(conversationContext);
+    final historyHasWorkSalary = _input.containsAny(historyText, const [
+      'راتب', 'راتبي', 'معاش', 'مرتب', 'salary', 'paycheck',
+    ]);
+    if (isQuestion &&
+        isRecordLookupQuestion &&
+        lookupAmount != null &&
+        (has(const ['راتب', 'راتبي', 'معاش', 'مرتب', 'salary', 'paycheck']) ||
+            historyHasWorkSalary) &&
+        can('read_work_records')) {
+      return AssistantResult.command(
+        AssistantCommand(
+          name: 'read_work_records',
+          parameters: {
+            'amountMinorUnits': lookupAmount,
+            'kind': 'salary',
+            'allRecords': true,
+          },
+        ),
+      );
+    }
 
     if (isQuestion &&
         receiptVerb &&
