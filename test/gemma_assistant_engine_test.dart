@@ -97,6 +97,41 @@ void main() {
       expect(generator.receivedFunctions, isEmpty);
     });
 
+    test('rejects a tool call that was not exposed for this general turn', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.call('save_debt', {
+          'amountMinorUnits': 500,
+          'direction': 'debtor',
+          'counterparty': 'سامر',
+          'year': 2026,
+          'month': 11,
+        }),
+      );
+      final result = await GemmaAssistantEngine(generator).interpret(
+        'اكتب فقرة عن تنظيم الوقت',
+        ActionRegistry.descriptors.map((item) => item.name).toList(),
+      );
+
+      expect(generator.receivedFunctions, isEmpty);
+      expect(result.kind, AssistantResultKind.notUnderstood);
+      expect(result.command, isNull);
+    });
+
+    test('routes a personal home-spending question to read-only tools', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.text(''),
+      );
+      await GemmaAssistantEngine(generator).interpret(
+        'كم صرفت على المنزل؟',
+        ActionRegistry.descriptors.map((item) => item.name).toList(),
+      );
+
+      final names = generator.receivedFunctions!.map((item) => item.name);
+      expect(names, contains('read_home_expenses'));
+      expect(names, contains('ask_clarification'));
+      expect(names, isNot(contains('save_home_expense')));
+    });
+
     test('passes the requested year and month for a new household transfer', () async {
       final generator = _FakeGemmaGenerator(
         const GemmaModelOutput.call('save_work_home_transfer', {
@@ -230,6 +265,23 @@ void main() {
       expect(generator.receivedInput, contains('أضف راتب 1500'));
       expect(generator.receivedInput, contains('أي شهر تقصد؟'));
       expect(generator.receivedInput, endsWith('رسالة المستخدم الحالية:\nلهذا الشهر'));
+    });
+
+    test('trims old transcript text while preserving the current user message', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.text('تابع.'),
+      );
+      final oldContext = List.filled(200, 'نص قديم لم يعد مهماً').join('؛ ');
+      await GemmaAssistantEngine(generator).interpret(
+        'تابع',
+        const [],
+        conversationContext: '$oldContext\nنهاية السياق السابق',
+      );
+
+      expect(generator.receivedInput, contains('نهاية السياق السابق'));
+      expect(generator.receivedInput, endsWith('رسالة المستخدم الحالية:\nتابع'));
+      expect(generator.receivedInput!.length, lessThan(1300));
+      expect(generator.receivedFunctions, isEmpty);
     });
 
     test('returns a natural-language answer for multimodal input', () async {
