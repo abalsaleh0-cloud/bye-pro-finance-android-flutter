@@ -166,6 +166,15 @@ final class GemmaAssistantEngine implements AssistantEngine {
 
       if (output.name == 'save_work_entry' &&
           _isWriteIntent(text) &&
+          _hasExplicitEditIntent(text) &&
+          !_hasExplicitRecordId(text)) {
+        // Never let a model-generated identifier turn an underspecified
+        // edit request into a lookup or mutation of an arbitrary record.
+        return const AssistantResult.notUnderstood();
+      }
+
+      if (output.name == 'save_work_entry' &&
+          _isWriteIntent(text) &&
           !_hasExplicitRecordId(text) &&
           !_hasExplicitEditIntent(text)) {
         // Gemma may hallucinate an ID when it is trying to create a new
@@ -221,6 +230,10 @@ final class GemmaAssistantEngine implements AssistantEngine {
           _isRecordLookupQuestion(text)) {
         final amount = _input.extractAmount(text);
         if (amount != null) normalized['amountMinorUnits'] = amount;
+        // A historical lookup spans every month. Remove any period inferred
+        // by Gemma so _listMonthFilter cannot silently narrow the search.
+        normalized.remove('year');
+        normalized.remove('month');
         normalized['allRecords'] = true;
         if (_input.containsAny(
           _input.normalize('$conversationContext $text'),
@@ -281,7 +294,12 @@ final class GemmaAssistantEngine implements AssistantEngine {
       'اضف', 'اضيف', 'اضيفلي', 'ضيف', 'زيد',
       'سجل', 'سجل لي', 'حط', 'حطلي', 'انشئ',
       'احفظ', 'ادخل', 'دخل', 'قيد', 'نزل', 'اعمل',
-      'تسجيل', 'اضافة', 'add', 'create', 'record', 'save',
+      'دفع', 'ادفع', 'دفعت', 'سداد', 'سدد', 'سددت',
+      'استلمت', 'استلم', 'قبضت', 'قبض', 'حول', 'حولت',
+      'صرف', 'صرفت', 'اشتريت',
+      'عدل', 'تعديل', 'غير', 'تغيير',
+      'تسجيل', 'اضافة', 'add', 'create', 'record',
+      'save', 'pay', 'paid', 'transfer', 'edit', 'update',
     ]);
   }
 
@@ -296,7 +314,8 @@ final class GemmaAssistantEngine implements AssistantEngine {
 
   static bool _hasExplicitEditIntent(String text) =>
       _input.containsAny(_input.normalize(text), const [
-        'عدل', 'تعديل', 'غير', 'تغيير', 'edit', 'update',
+        'عدل', 'تعديل', 'غير', 'تغيير', 'عدّل', 'غيّر',
+        'edit', 'update',
       ]);
 
   static bool _hasExplicitRecordId(String text) => RegExp(
