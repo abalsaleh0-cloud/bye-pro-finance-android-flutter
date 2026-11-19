@@ -314,7 +314,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
     // the relevant action schema remains available; a new full request does
     // not inherit stale finance intent from an older topic.
     final intentText = isFollowUp && conversationContext.trim().isNotEmpty
-        ? '$conversationContext\\n$text'
+        ? '$conversationContext\n$text'
         : text;
     final normalized = _input.normalize(intentText);
     bool has(List<String> phrases) => phrases.any((phrase) {
