@@ -164,22 +164,23 @@ final class GemmaAssistantEngine implements AssistantEngine {
       if (parsedArguments == null) return const AssistantResult.notUnderstood();
       final normalized = Map<String, Object?>.from(parsedArguments);
 
+      final userRecordIds = _explicitUserRecordIds(text, conversationContext);
       if (output.name == 'save_work_entry' &&
           _isWriteIntent(text) &&
-          _hasExplicitEditIntent(text) &&
-          !_hasExplicitRecordId(text)) {
-        // Never let a model-generated identifier turn an underspecified
-        // edit request into a lookup or mutation of an arbitrary record.
-        return const AssistantResult.notUnderstood();
+          _hasExplicitEditIntent(text)) {
+        final suppliedId = normalized['id'];
+        // An edit may reuse an identifier the user explicitly supplied in
+        // this turn or an earlier user turn, but never one invented by Gemma.
+        if (suppliedId is! String || !userRecordIds.contains(suppliedId)) {
+          return const AssistantResult.notUnderstood();
+        }
       }
 
       if (output.name == 'save_work_entry' &&
           _isWriteIntent(text) &&
-          !_hasExplicitRecordId(text) &&
           !_hasExplicitEditIntent(text)) {
         // Gemma may hallucinate an ID when it is trying to create a new
-        // salary record. IDs are only valid when the user explicitly names
-        // a record for editing; a new record always receives an app-owned ID.
+        // work record. A new record always receives an app-owned ID.
         normalized.remove('id');
 
         final amount = _input.extractAmount(text);
@@ -320,11 +321,30 @@ final class GemmaAssistantEngine implements AssistantEngine {
         'edit', 'update',
       ]);
 
-  static bool _hasExplicitRecordId(String text) => RegExp(
-        r'(?:معرّف|معرف|رقم\s+(?:السجل|الراتب)|id)\s*[:#：]?\s*[A-Za-z0-9_-]{2,64}',
+  static String? _explicitRecordId(String text) => RegExp(
+        r'(?:معرّف|معرف|رقم\s+(?:السجل|الراتب)|id)\s*[:#：]?\s*([A-Za-z0-9_-]{2,64})',
         caseSensitive: false,
         unicode: true,
-      ).hasMatch(text);
+      ).firstMatch(text)?.group(1);
+
+  static Set<String> _explicitUserRecordIds(
+    String currentText,
+    String conversationContext,
+  ) {
+    final ids = <String>{};
+    final currentId = _explicitRecordId(currentText);
+    if (currentId != null) ids.add(currentId);
+
+    for (final line in conversationContext.split(RegExp(r'[\r\n]+'))) {
+      final trimmed = line.trim();
+      final isUserMessage = trimmed.startsWith('المستخدم:') ||
+          trimmed.toLowerCase().startsWith('user:');
+      if (!isUserMessage) continue;
+      final id = _explicitRecordId(trimmed);
+      if (id != null) ids.add(id);
+    }
+    return ids;
+  }
 
   static String? _extractExplicitNote(String text) {
     final match = RegExp(
