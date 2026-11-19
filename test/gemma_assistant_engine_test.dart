@@ -55,7 +55,7 @@ void main() {
   ];
 
   group('Gemma action coverage and partial updates', () {
-    test('exposes every registered finance action with a matching schema', () async {
+    test('routes a finance request with only its relevant tool schema', () async {
       final generator = _FakeGemmaGenerator(
         const GemmaModelOutput.text(''),
       );
@@ -71,27 +71,30 @@ void main() {
       final functions = generator.receivedFunctions!;
       expect(
         functions.map((function) => function.name),
-        containsAll([...actionNames, 'ask_clarification']),
+        unorderedEquals(['read_dashboard_summary', 'ask_clarification']),
       );
-      for (final descriptor in ActionRegistry.descriptors) {
-        final function = functions.singleWhere(
-          (item) => item.name == descriptor.name,
-        );
-        expect(
-          function.properties.keys,
-          containsAll(descriptor.requiredParameters),
-          reason: 'Schema for ${descriptor.name} must expose every ActionRegistry required parameter',
-        );
-        expect(
-          function.required.every(function.properties.containsKey),
-          isTrue,
-          reason: 'Required fields for ${function.name} must exist in its schema',
-        );
-      }
-      final transfer = functions.singleWhere(
-        (item) => item.name == 'save_work_home_transfer',
+      final summary = functions.singleWhere(
+        (function) => function.name == 'read_dashboard_summary',
       );
-      expect(transfer.properties.keys, containsAll(['year', 'month', 'date']));
+      expect(summary.properties.keys, containsAll(['year', 'month']));
+      expect(summary.required, isEmpty);
+      expect(
+        summary.required.every(summary.properties.containsKey),
+        isTrue,
+      );
+    });
+
+    test('does not send any finance tools for ordinary general conversation', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.text('إليك فقرة قصيرة عن تنظيم الوقت.'),
+      );
+      final result = await GemmaAssistantEngine(generator).interpret(
+        'اكتب لي فقرة قصيرة عن أهمية تنظيم الوقت، ثم أعطني ثلاثة أمثلة عملية.',
+        ActionRegistry.descriptors.map((item) => item.name).toList(),
+      );
+
+      expect(result.kind, AssistantResultKind.answer);
+      expect(generator.receivedFunctions, isEmpty);
     });
 
     test('passes the requested year and month for a new household transfer', () async {
@@ -473,6 +476,7 @@ void main() {
 
       expect(result.kind, AssistantResultKind.answer);
       expect(result.message, contains('3 خطوات'));
+      expect(generator.receivedFunctions, isEmpty);
     });
 
     test('does not allow a free-form answer to invent personal financial figures', () async {
