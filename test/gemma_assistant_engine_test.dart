@@ -388,6 +388,32 @@ void main() {
       );
     });
 
+    test('removes Gemma-inferred month filters from a historical salary lookup', () async {
+      final now = DateTime.now();
+      final generator = _FakeGemmaGenerator(
+        GemmaModelOutput.call('read_work_records', {
+          'year': now.year,
+          'month': now.month,
+          'amountMinorUnits': 1500,
+          'kind': 'salary',
+        }),
+      );
+      final result = await GemmaAssistantEngine(generator).interpret(
+        'أين أضفت 1500؟',
+        ActionRegistry.descriptors.map((item) => item.name).toList(),
+        conversationContext:
+            'المستخدم: أضف راتب 1500 لشهر الماضي\\nالمساعد: تمت إضافة الراتب.',
+      );
+
+      expect(result.kind, AssistantResultKind.command);
+      expect(result.command!.name, 'read_work_records');
+      expect(result.command!.parameters['amountMinorUnits'], 1500);
+      expect(result.command!.parameters['kind'], 'salary');
+      expect(result.command!.parameters['allRecords'], isTrue);
+      expect(result.command!.parameters.containsKey('year'), isFalse);
+      expect(result.command!.parameters.containsKey('month'), isFalse);
+    });
+
     test('local rules resolve a salary lookup from the preceding conversation', () async {
       final result = await const LocalRuleAssistantEngine().interpret(
         'وين أضفت 1500؟',
@@ -538,6 +564,25 @@ void main() {
       expect(result.kind, AssistantResultKind.command);
       expect(result.command!.name, 'navigate_to_section');
       expect(result.command!.parameters['section'], 'settings');
+    });
+
+    test('rejects a fabricated record ID for an edit without an explicit user ID', () async {
+      final generator = _FakeGemmaGenerator(
+        const GemmaModelOutput.call('save_work_entry', {
+          'id': 'model-invented-record-id',
+          'amountMinorUnits': 1500,
+          'kind': 'salary',
+          'year': 2026,
+          'month': 11,
+        }),
+      );
+      final result = await GemmaAssistantEngine(generator).interpret(
+        'عدّل الراتب إلى 1500 لشهر 11',
+        ActionRegistry.descriptors.map((item) => item.name).toList(),
+      );
+
+      expect(result.kind, AssistantResultKind.notUnderstood);
+      expect(result.command, isNull);
     });
 
     test('converts a valid function call into a command', () async {
