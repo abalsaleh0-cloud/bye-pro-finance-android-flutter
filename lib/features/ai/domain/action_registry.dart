@@ -703,16 +703,43 @@ final class ActionRegistry {
         );
       case 'read_work_records': {
         final month = _listMonthFilter(p);
-        final entries = (await _work.watchEntries().first).where((entry) =>
-          month == null || entry.dueMonth == month
-        ).toList(growable: false);
+        final requestedAmount = p['amountMinorUnits'] as int?;
+        final requestedKind = p['kind'] as String?;
+        final entries = (await _work.watchEntries().first).where((entry) {
+          if (month != null && entry.dueMonth != month) return false;
+          if (requestedAmount != null &&
+              entry.amount.minorUnits != requestedAmount) {
+            return false;
+          }
+          if (requestedKind != null) {
+            final kindMatches = switch (requestedKind) {
+              'payment' || 'salaryPayment' =>
+                entry.kind == WorkEntryKind.salaryPayment,
+              'salary' => entry.kind == WorkEntryKind.salary,
+              'advance' => entry.kind == WorkEntryKind.advance,
+              _ => false,
+            };
+            if (!kindMatches) return false;
+          }
+          return true;
+        }).toList(growable: false);
         if (entries.isEmpty) {
-          return ActionExecution(message: month == null
-              ? 'لا توجد سجلات عمل.'
-              : 'لا توجد سجلات عمل لشهر $month.');
+          final filter = requestedAmount == null
+              ? ''
+              : ' بمبلغ $requestedAmount';
+          return ActionExecution(
+            message: month == null
+                ? 'لم أجد سجلاً في العمل$filter.'
+                : 'لا توجد سجلات عمل$filter لشهر $month.',
+          );
         }
+        String kindLabel(WorkEntryKind kind) => switch (kind) {
+          WorkEntryKind.salary => 'راتب',
+          WorkEntryKind.advance => 'سلفة',
+          WorkEntryKind.salaryPayment => 'دفعة راتب',
+        };
         return ActionExecution(message: entries.map((entry) =>
-          '${entry.id}: ${entry.kind.name}، ${entry.amount.minorUnits}، ${entry.dueMonth}، ${entry.recordedAt.toLocal().toIso8601String().split('T').first}${entry.note == null ? '' : '، ملاحظة: ${entry.note}'}'
+          '${entry.id}: ${kindLabel(entry.kind)}، ${entry.amount.minorUnits}، شهر ${entry.dueMonth}، تاريخ ${entry.recordedAt.toLocal().toIso8601String().split('T').first}${entry.note == null ? '' : '، ملاحظة: ${entry.note}'}'
         ).join('؛ '));
       }
       case 'read_home_expenses': {
@@ -1084,6 +1111,7 @@ final class ActionRegistry {
     'read_home_bills' || 'read_work_records' || 'read_home_expenses' ||
     'read_debts' || 'read_work_transfers' => const {
       'year': int, 'month': int, 'allRecords': bool,
+      'amountMinorUnits': int, 'kind': String,
     },
     'read_home_categories' => const {},
     'read_debt_payments' => const {
