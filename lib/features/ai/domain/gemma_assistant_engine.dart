@@ -273,7 +273,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
     ]);
     final homeExpenses = has([
       'مصروف', 'مصاريف', 'نفقة', 'مشتريات', 'مصروف البيت',
-      'مصروف المنزل', 'مصاريف البيت', 'مصاريف المنزل',
+      'مصروف المنزل', 'مصروفات المنزل', 'مصاريف البيت', 'مصاريف المنزل',
     ]);
     final bills = has([
       'فاتورة', 'فواتير', 'ايجار', 'ايجارات', 'كهرباء', 'ماء',
@@ -284,7 +284,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
       'اقرضت', 'استلفت', 'دفعة الدين', 'دفعات الدين',
     ]);
     final transfers = has([
-      'تحويل', 'حولت', 'حول', 'نقلت للبيت', 'نقلت للمنزل',
+      'تحويل', 'تحويلات', 'التحويلات', 'تحويلاتي', 'حولت', 'حول', 'نقلت للبيت', 'نقلت للمنزل',
       'من العمل للبيت', 'من العمل للمنزل',
     ]);
     final categories = has(['تصنيف', 'تصنيفات', 'فئة مصروف', 'فئات المصروف']);
@@ -351,7 +351,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
     final vagueFinancialRequest = has([
       'رصيد', 'حسابي', 'راتب', 'دين', 'فاتورة', 'مصروف',
       'مبلغ', 'دينار', 'سجل مالي', 'بياناتي المالية',
-    ]) || (RegExp(r'\\d').hasMatch(text) &&
+    ]) || (RegExp(r'\d').hasMatch(text) &&
         has(['اضف', 'سجل', 'احفظ', 'عدل', 'احذف', 'ادفع', 'حول']));
     if (vagueFinancialRequest && selected.isEmpty) {
       selected.add('read_dashboard_summary');
