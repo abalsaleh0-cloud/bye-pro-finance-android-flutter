@@ -72,7 +72,7 @@ void main() {
   test('keeps explicitly local app-side guard replies labelled as local',
       () async {
     final primary = _StubAssistantEngine(
-      const AssistantResult.clarification(
+      AssistantResult.clarification(
         'تحليل الصور يحتاج ذاكرة كافية على الجهاز.',
       ).withSource(AssistantResultSource.local),
     );
