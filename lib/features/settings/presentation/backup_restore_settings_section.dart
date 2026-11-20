@@ -117,6 +117,7 @@ class _BackupRestoreSettingsSectionState
       ref.invalidate(workEntriesProvider);
       ref.invalidate(workTransfersProvider);
       ref.invalidate(debtsProvider);
+      ref.invalidate(debtActivityProvider);
       ref.invalidate(homeBillsProvider);
       ref.invalidate(allHomeBillPaymentsProvider);
       ref.invalidate(allDebtPaymentsProvider);
