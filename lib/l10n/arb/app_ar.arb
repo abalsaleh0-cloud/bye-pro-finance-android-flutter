@@ -345,5 +345,8 @@
   "noDebtsToPay": "لا توجد ديون مستحقة عليك للتسديد.",
   "debtPaymentReversedEvent": "إلغاء دفعة",
   "debtHasPaymentHistory": "لا يمكن حذف هذا الدين لوجود دفعات مسجلة مرتبطة به.",
-  "debtRestoredEvent": "استعادة دين"
+  "debtRestoredEvent": "استعادة دين",
+  "undoDebtPayment": "إلغاء الدفعة",
+  "confirmUndoDebtPayment": "سيُعاد المبلغ إلى الدين ويُعكس مصروف المنزل المرتبط به. هل تريد المتابعة؟",
+  "debtRepaymentUndoFromHistory": "يجب إلغاء تسديد الدين من سجل دفعات الدين، وليس من المصروفات المنزلية."
 }
