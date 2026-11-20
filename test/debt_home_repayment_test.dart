@@ -65,6 +65,39 @@ void main() {
     expect(activity.where((item) => item.eventType == 'payment').single.counterparty, 'Test person');
   });
 
+  test('linked home repayment cannot be edited or deleted as a normal expense', () async {
+    final debt = await addDebtor();
+    await WorkRepository(database).saveTransfer(
+      WorkHomeTransfer(
+        id: 'protected-home-funding',
+        amount: Money.fromMinorUnits(1000),
+        transferredAt: DateTime(2026, 11, 1),
+      ),
+    );
+    final home = HomeExpenseRepository(database);
+    await home.saveDebtRepayment(
+      DebtPayment(
+        id: 'protected-repayment',
+        debtId: debt.id,
+        amount: Money.fromMinorUnits(100),
+        paidAt: DateTime(2026, 11, 10),
+      ),
+      counterparty: debt.counterparty,
+    );
+    final linkedExpense = (await database.select(database.homeExpenses).get()).single;
+
+    await expectLater(
+      home.save(linkedExpense),
+      throwsStateError,
+    );
+    await expectLater(
+      home.delete(linkedExpense.id),
+      throwsStateError,
+    );
+    expect(await database.select(database.debtPayments).get(), hasLength(1));
+    expect((await DebtRepository(database).watchAll().first).single.outstandingAmount.minorUnits, 500);
+  });
+
   test('insufficient home balance leaves the debt and payment history unchanged', () async {
     final debt = await addDebtor();
     await WorkRepository(database).saveTransfer(
