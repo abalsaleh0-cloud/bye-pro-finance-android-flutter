@@ -820,21 +820,25 @@ void main() {
         'month': 11,
       });
       final paymentDebtId = (await DebtRepository(database).watchAll().first).single.id;
-      final result = await WorkRepository(database).saveTransfer(
+      await WorkRepository(database).saveTransfer(
         WorkHomeTransfer(
           id: 'debt-payment-test-funding-2',
           amount: Money.fromMinorUnits(5000),
           transferredAt: DateTime(2026, 11, 1),
         ),
       );
-      await registry.execute('record_debt_payment', {
+      final result = await registry.execute('record_debt_payment', {
         'debtId': paymentDebtId,
         'amountMinorUnits': 200,
       });
+      final homeOutflows = await database.select(database.homeExpenses).get();
+      expect(homeOutflows, hasLength(1));
+      expect(homeOutflows.single.categoryId, 'debt_repayment');
       expect((await database.select(database.debts).get()).single.outstandingAmountMinorUnits, 500);
       await result.undo!();
       expect((await database.select(database.debts).get()).single.outstandingAmountMinorUnits, 700);
       expect(await database.select(database.debtPayments).get(), isEmpty);
+      expect(await database.select(database.homeExpenses).get(), isEmpty);
     });
 
     test('assistant can create, list, and record a household bill payment', () async {
