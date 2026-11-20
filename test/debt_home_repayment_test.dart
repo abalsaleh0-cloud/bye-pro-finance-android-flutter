@@ -91,8 +91,8 @@ void main() {
     );
     final linkedExpense = (await home.watchAll().first).single;
 
-    await expectLater(
-      home.save(linkedExpense),
+    expect(
+      () => home.save(linkedExpense),
       throwsA(isA<StateError>()),
     );
     await expectLater(
