@@ -37,6 +37,7 @@ class AppDatabase extends _$AppDatabase {
       await customStatement('DELETE FROM home_bill_payments');
       await customStatement('DELETE FROM home_bills');
       await delete(debtPayments).go();
+      await customStatement('DELETE FROM debt_activity');
       await delete(debts).go();
       await delete(homeExpenses).go();
       await delete(workHomeTransfers).go();
@@ -56,6 +57,18 @@ class AppDatabase extends _$AppDatabase {
       await customStatement('PRAGMA foreign_keys = ON');
       await customStatement("CREATE TABLE IF NOT EXISTS home_bills (id TEXT PRIMARY KEY NOT NULL, title TEXT NOT NULL, kind TEXT NOT NULL CHECK (kind IN ('monthly', 'rent')), amount_minor_units INTEGER NOT NULL CHECK (amount_minor_units > 0), due_year INTEGER NOT NULL, due_month INTEGER NOT NULL CHECK (due_month BETWEEN 1 AND 12), due_date_epoch_millis INTEGER NOT NULL DEFAULT 0, note TEXT)");
       await customStatement('CREATE TABLE IF NOT EXISTS home_bill_payments (id TEXT PRIMARY KEY NOT NULL, bill_id TEXT NOT NULL REFERENCES home_bills(id) ON DELETE CASCADE, amount_minor_units INTEGER NOT NULL CHECK (amount_minor_units > 0), paid_at_epoch_millis INTEGER NOT NULL, note TEXT)');
+      await customStatement('''
+        CREATE TABLE IF NOT EXISTS debt_activity (
+          id TEXT PRIMARY KEY NOT NULL,
+          debt_id TEXT NOT NULL,
+          event_type TEXT NOT NULL,
+          direction TEXT NOT NULL,
+          counterparty TEXT NOT NULL,
+          amount_minor_units INTEGER NOT NULL,
+          occurred_at_epoch_millis INTEGER NOT NULL,
+          note TEXT
+        )
+      ''');
       await customStatement('''
         CREATE TABLE IF NOT EXISTS app_settings (
           setting_key TEXT PRIMARY KEY NOT NULL,
