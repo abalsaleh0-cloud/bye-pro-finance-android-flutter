@@ -85,6 +85,9 @@ final class DebtRepository {
           previous.originalAmountMinorUnits != debt.originalAmount.minorUnits ||
           previous.outstandingAmountMinorUnits != debt.outstandingAmount.minorUnits ||
           previous.counterparty != debt.counterparty ||
+          previous.dueYear != debt.dueMonth.year ||
+          previous.dueMonth != debt.dueMonth.month ||
+          previous.createdAtEpochMillis != debt.createdAt.millisecondsSinceEpoch ||
           previous.note != debt.note) {
         await _writeActivity(
           id: 'activity-${DateTime.now().microsecondsSinceEpoch}',
@@ -221,6 +224,16 @@ final class DebtRepository {
           ),
         );
       }
+      await _writeActivity(
+        id: 'activity-restored-${DateTime.now().microsecondsSinceEpoch}',
+        debtId: debt.id,
+        eventType: 'restored',
+        direction: debt.direction.name,
+        counterparty: debt.counterparty,
+        amountMinorUnits: debt.originalAmount.minorUnits,
+        occurredAt: DateTime.now(),
+        note: debt.note,
+      );
     });
   }
 
