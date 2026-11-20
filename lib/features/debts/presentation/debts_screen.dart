@@ -330,6 +330,49 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
     }
   }
 
+  Future<void> _undoDebtPayment(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations strings,
+    DebtEntry debt,
+    DebtPayment payment,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(strings.undoDebtPayment),
+        content: Text(strings.confirmUndoDebtPayment),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(strings.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(strings.undoDebtPayment),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    try {
+      if (debt.direction == DebtDirection.debtor) {
+        await ref.read(homeExpenseRepositoryProvider).undoDebtRepayment(payment.id);
+      } else {
+        await ref.read(debtRepositoryProvider).undoPayment(payment.id);
+      }
+      ref.invalidate(debtsProvider);
+      ref.invalidate(debtActivityProvider);
+      ref.invalidate(homeExpensesProvider);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(strings.invalidRecord)),
+        );
+      }
+    }
+  }
+
   Future<void> _deleteDebt(
     BuildContext context,
     WidgetRef ref,
@@ -621,6 +664,17 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                                               '${strings.paidAt}: ${toAsciiDigits(MaterialLocalizations.of(context).formatFullDate(payment.paidAt))}'
                                               '\n${strings.time}: ${TimeOfDay.fromDateTime(payment.paidAt).format(context)}'
                                               '${payment.note == null ? '' : '\n${payment.note}'}',
+                                            ),
+                                            trailing: IconButton(
+                                              tooltip: strings.undoDebtPayment,
+                                              icon: const Icon(Icons.undo_rounded),
+                                              onPressed: () => _undoDebtPayment(
+                                                context,
+                                                ref,
+                                                strings,
+                                                debt,
+                                                payment,
+                                              ),
                                             ),
                                           ),
                                       ],
