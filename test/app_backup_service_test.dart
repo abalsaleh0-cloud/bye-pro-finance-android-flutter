@@ -58,7 +58,7 @@ void main() {
     expect(activity.single.read<String>('counterparty'), 'Ali');
   });
 
-  test('older backup without debt activity restores without deleting current data on validation', () async {
+  test('older backup without debt activity remains restorable', () async {
     final decoded = jsonDecode(await backupService.exportJson(database)) as Map<String, dynamic>;
     final tables = decoded['tables'] as Map<String, dynamic>;
     tables.remove('debt_activity');
