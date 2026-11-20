@@ -1,11 +1,12 @@
 import 'package:drift/drift.dart';
 import 'package:expense_app/core/database/app_database.dart'
-    show AppDatabase, HomeExpensesCompanion, HomeExpenseRow;
+    show AppDatabase, HomeExpensesCompanion, HomeExpenseRow, DebtPaymentsCompanion, DebtsCompanion;
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/features/home/domain/home_expense.dart';
 import 'package:expense_app/features/home/data/home_bill_repository.dart';
 import 'package:expense_app/features/debts/domain/debt_payment.dart';
+import 'package:expense_app/features/debts/data/debt_repository.dart';
 
 final class InsufficientHomeBalanceException implements Exception {
   const InsufficientHomeBalanceException({
@@ -101,8 +102,9 @@ final class HomeExpenseRepository {
   Future<void> saveDebtRepayment(
     DebtPayment payment, {
     required String counterparty,
-  }) {
-    return _database.transaction(() async {
+  }) async {
+    await DebtRepository(_database).getActivity();
+    await _database.transaction(() async {
       final debt = await (_database.select(_database.debts)
             ..where((row) => row.id.equals(payment.debtId)))
           .getSingleOrNull();
