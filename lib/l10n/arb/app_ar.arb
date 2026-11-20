@@ -342,5 +342,6 @@
   "debtRepaymentInHome": "التسديد من قسم المنزل",
   "debtRepaymentRecorded": "تم تسجيل تسديد الدين في المنزل وتحديث رصيده.",
   "homeBalanceInsufficient": "الرصيد المتاح في المنزل غير كافٍ لإتمام التسديد.",
-  "noDebtsToPay": "لا توجد ديون مستحقة عليك للتسديد."
+  "noDebtsToPay": "لا توجد ديون مستحقة عليك للتسديد.",
+  "debtPaymentReversedEvent": "إلغاء دفعة"
 }
