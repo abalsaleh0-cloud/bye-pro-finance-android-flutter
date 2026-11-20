@@ -93,11 +93,11 @@ void main() {
 
     await expectLater(
       home.save(linkedExpense),
-      throwsStateError,
+      throwsA(isA<StateError>()),
     );
     await expectLater(
       home.delete(linkedExpense.id),
-      throwsStateError,
+      throwsA(isA<StateError>()),
     );
     expect(await database.select(database.debtPayments).get(), hasLength(1));
     expect((await DebtRepository(database).watchAll().first).single.outstandingAmount.minorUnits, 500);
