@@ -1119,7 +1119,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 return Center(child: Text(strings.noRecords));
               }
               return Column(children: [
-                for (final item in logItems)
+                for (final item in filteredLogItems)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: FinancialRecordCard(
