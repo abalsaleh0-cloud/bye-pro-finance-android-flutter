@@ -718,6 +718,13 @@ void main() {
       expect(debt.originalAmountMinorUnits, 900);
       expect(debt.outstandingAmountMinorUnits, 900);
 
+      await WorkRepository(database).saveEntry(WorkEntry(
+        id: 'debt-payment-test-funding-0-salary',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(5000),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime(2026, 11, 1),
+      ));
       await WorkRepository(database).saveTransfer(
         WorkHomeTransfer(
           id: 'debt-payment-test-funding-0',
@@ -763,6 +770,13 @@ void main() {
         'month': 11,
       });
       final protectedDebtId = (await DebtRepository(database).watchAll().first).single.id;
+      await WorkRepository(database).saveEntry(WorkEntry(
+        id: 'debt-payment-test-funding-1-salary',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(5000),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime(2026, 11, 1),
+      ));
       await WorkRepository(database).saveTransfer(
         WorkHomeTransfer(
           id: 'debt-payment-test-funding-1',
@@ -820,6 +834,13 @@ void main() {
         'month': 11,
       });
       final paymentDebtId = (await DebtRepository(database).watchAll().first).single.id;
+      await WorkRepository(database).saveEntry(WorkEntry(
+        id: 'debt-payment-test-funding-2-salary',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(5000),
+        dueMonth: MonthKey(year: 2026, month: 11),
+        recordedAt: DateTime(2026, 11, 1),
+      ));
       await WorkRepository(database).saveTransfer(
         WorkHomeTransfer(
           id: 'debt-payment-test-funding-2',
@@ -996,7 +1017,14 @@ void main() {
         'year': DateTime.now().year,
         'month': DateTime.now().month,
       });
-      final payment = await WorkRepository(database).saveTransfer(
+      final payment = await WorkRepository(database).saveEntry(WorkEntry(
+        id: 'debt-history-funding-0-salary',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(2000),
+        dueMonth: MonthKey(year: DateTime.now().year, month: DateTime.now().month),
+        recordedAt: DateTime.now(),
+      ));
+      await WorkRepository(database).saveTransfer(
         WorkHomeTransfer(
           id: 'debt-history-funding-0',
           amount: Money.fromMinorUnits(2000),
@@ -1043,6 +1071,13 @@ void main() {
         'month': 11,
       });
       final historyDebtId = (await DebtRepository(database).watchAll().first).single.id;
+      await WorkRepository(database).saveEntry(WorkEntry(
+        id: 'debt-history-funding-1-salary',
+        kind: WorkEntryKind.salaryPayment,
+        amount: Money.fromMinorUnits(2000),
+        dueMonth: MonthKey(year: DateTime.now().year, month: DateTime.now().month),
+        recordedAt: DateTime.now(),
+      ));
       await WorkRepository(database).saveTransfer(
         WorkHomeTransfer(
           id: 'debt-history-funding-1',
