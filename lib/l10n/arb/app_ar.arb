@@ -343,5 +343,7 @@
   "debtRepaymentRecorded": "تم تسجيل تسديد الدين في المنزل وتحديث رصيده.",
   "homeBalanceInsufficient": "الرصيد المتاح في المنزل غير كافٍ لإتمام التسديد.",
   "noDebtsToPay": "لا توجد ديون مستحقة عليك للتسديد.",
-  "debtPaymentReversedEvent": "إلغاء دفعة"
+  "debtPaymentReversedEvent": "إلغاء دفعة",
+  "debtHasPaymentHistory": "لا يمكن حذف هذا الدين لوجود دفعات مسجلة مرتبطة به.",
+  "debtRestoredEvent": "استعادة دين"
 }
