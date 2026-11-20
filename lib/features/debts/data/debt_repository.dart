@@ -245,6 +245,16 @@ final class DebtRepository {
           debt.outstandingAmountMinorUnits + payment.amountMinorUnits,
         ),
       ));
+      await _writeActivity(
+        id: 'activity-reversed-${DateTime.now().microsecondsSinceEpoch}',
+        debtId: debt.id,
+        eventType: 'payment_reversed',
+        direction: debt.direction,
+        counterparty: debt.counterparty,
+        amountMinorUnits: payment.amountMinorUnits,
+        occurredAt: DateTime.now(),
+        note: payment.note,
+      );
     });
   }
 
