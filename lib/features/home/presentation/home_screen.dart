@@ -579,6 +579,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     AppLocalizations strings, {
     HomeExpense? existing,
   }) async {
+    if (existing?.categoryId == 'debt_repayment') return;
     final amount = TextEditingController(
       text: existing?.amount.minorUnits.toString() ?? '',
     );
@@ -735,6 +736,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     AppLocalizations strings,
     String id,
   ) async {
+    final existing = (await ref.read(homeExpensesProvider.future))
+        .where((expense) => expense.id == id)
+        .firstOrNull;
+    if (existing?.categoryId == 'debt_repayment') return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -1047,28 +1052,36 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           if (expense.note != null && expense.note!.isNotEmpty)
                             expense.note!,
                         ],
-                        actions: [
-                          IconButton(
-                            tooltip: strings.editRecord,
-                            icon: const Icon(Icons.edit_outlined),
-                            onPressed: () => _editExpense(
-                              context,
-                              ref,
-                              strings,
-                              existing: expense,
-                            ),
-                          ),
-                          IconButton(
-                            tooltip: strings.deleteRecord,
-                            icon: const Icon(Icons.delete_outline),
-                            onPressed: () => _deleteExpense(
-                              context,
-                              ref,
-                              strings,
-                              expense.id,
-                            ),
-                          ),
-                        ],
+                        actions: expense.categoryId == 'debt_repayment'
+                            ? [
+                                Chip(
+                                  avatar: const Icon(Icons.lock_outline, size: 16),
+                                  label: Text(strings.debtRepaymentInHome),
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                              ]
+                            : [
+                                IconButton(
+                                  tooltip: strings.editRecord,
+                                  icon: const Icon(Icons.edit_outlined),
+                                  onPressed: () => _editExpense(
+                                    context,
+                                    ref,
+                                    strings,
+                                    existing: expense,
+                                  ),
+                                ),
+                                IconButton(
+                                  tooltip: strings.deleteRecord,
+                                  icon: const Icon(Icons.delete_outline),
+                                  onPressed: () => _deleteExpense(
+                                    context,
+                                    ref,
+                                    strings,
+                                    expense.id,
+                                  ),
+                                ),
+                              ],
                       ),
                     ),
                 ],
