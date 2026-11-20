@@ -97,9 +97,7 @@ final class DebtRepository {
           counterparty: debt.counterparty,
           amountMinorUnits: debt.originalAmount.minorUnits,
           occurredAt: DateTime.now(),
-          note: eventType == 'updated'
-              ? 'Updated from ${previous!.originalAmountMinorUnits} to ${debt.originalAmount.minorUnits}'
-              : debt.note,
+          note: debt.note,
         );
       }
     });
