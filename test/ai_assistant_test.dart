@@ -996,7 +996,14 @@ void main() {
         'year': DateTime.now().year,
         'month': DateTime.now().month,
       });
-      final payment = await registry.execute('record_debt_payment', {
+      final payment = await WorkRepository(database).saveTransfer(
+        WorkHomeTransfer(
+          id: 'debt-history-funding-0',
+          amount: Money.fromMinorUnits(2000),
+          transferredAt: DateTime.now(),
+        ),
+      );
+      await registry.execute('record_debt_payment', {
         'counterparty': 'Samer',
         'direction': 'debtor',
         'amountMinorUnits': 125,
@@ -1036,6 +1043,13 @@ void main() {
         'month': 11,
       });
       final historyDebtId = (await DebtRepository(database).watchAll().first).single.id;
+      await WorkRepository(database).saveTransfer(
+        WorkHomeTransfer(
+          id: 'debt-history-funding-1',
+          amount: Money.fromMinorUnits(2000),
+          transferredAt: DateTime.now(),
+        ),
+      );
       await registry.execute('record_debt_payment', {
         'debtId': historyDebtId,
         'amountMinorUnits': 225,
