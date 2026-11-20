@@ -14,6 +14,7 @@ class AppBackupService {
     'work_home_transfers',
     'debts',
     'debt_payments',
+    'debt_activity',
     'home_bills',
     'home_bill_payments',
     'app_settings',
@@ -22,6 +23,7 @@ class AppBackupService {
   static const List<String> _deleteOrder = [
     'home_bill_payments',
     'debt_payments',
+    'debt_activity',
     'home_bills',
     'debts',
     'home_expenses',
@@ -77,7 +79,8 @@ class AppBackupService {
     }
 
     final rawTables = decoded['tables'] as Map<String, dynamic>;
-    if (_tables.any((table) => !rawTables.containsKey(table))) {
+    const optionalTables = {'debt_activity'};
+    if (_tables.any((table) => !optionalTables.contains(table) && !rawTables.containsKey(table))) {
       throw const FormatException(
         'ملف النسخة الاحتياطية لا يحتوي على جميع جداول البيانات المطلوبة.',
       );
