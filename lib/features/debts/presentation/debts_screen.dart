@@ -672,6 +672,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
               'created' => strings.debtCreatedEvent,
               'updated' => strings.debtUpdatedEvent,
               'payment' => strings.debtPaymentEvent,
+              'payment_reversed' => strings.debtPaymentReversedEvent,
               'deleted' => strings.debtDeletedEvent,
               _ => strings.debtActivity,
             };
@@ -682,6 +683,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
               'created' => Icons.add_circle_outline,
               'updated' => Icons.edit_note_outlined,
               'payment' => Icons.payments_outlined,
+              'payment_reversed' => Icons.undo_rounded,
               'deleted' => Icons.delete_outline,
               _ => Icons.history,
             };
