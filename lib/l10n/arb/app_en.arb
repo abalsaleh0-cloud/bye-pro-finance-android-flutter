@@ -347,6 +347,6 @@
   "debtHasPaymentHistory": "This debt cannot be deleted because it has recorded payments.",
   "debtRestoredEvent": "Debt restored",
   "undoDebtPayment": "Reverse payment",
-  "confirmUndoDebtPayment": "The payment will be restored to the debt balance and its linked Home expense will be reversed. Continue?",
+  "confirmUndoDebtPayment": "The amount will be restored to the debt, and any linked Home expense will be removed. Continue?",
   "debtRepaymentUndoFromHistory": "Reverse this repayment from the debt payment history, not from Home expenses."
 }
