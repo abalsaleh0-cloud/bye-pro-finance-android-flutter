@@ -354,8 +354,17 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
       ),
     );
     if (confirmed == true) {
-      await ref.read(debtRepositoryProvider).delete(id);
-      ref.invalidate(debtActivityProvider);
+      try {
+        await ref.read(debtRepositoryProvider).delete(id);
+        ref.invalidate(debtActivityProvider);
+        ref.invalidate(debtsProvider);
+      } on StateError {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(strings.debtHasPaymentHistory)),
+          );
+        }
+      }
     }
   }
 
@@ -674,6 +683,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
               'payment' => strings.debtPaymentEvent,
               'payment_reversed' => strings.debtPaymentReversedEvent,
               'deleted' => strings.debtDeletedEvent,
+              'restored' => strings.debtRestoredEvent,
               _ => strings.debtActivity,
             };
             final direction = event.direction == DebtDirection.creditor.name
@@ -685,6 +695,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
               'payment' => Icons.payments_outlined,
               'payment_reversed' => Icons.undo_rounded,
               'deleted' => Icons.delete_outline,
+              'restored' => Icons.restore_rounded,
               _ => Icons.history,
             };
             return Card(
