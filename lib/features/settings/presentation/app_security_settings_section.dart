@@ -1,4 +1,5 @@
 import 'package:expense_app/features/settings/data/app_security_service.dart';
+import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -17,11 +18,6 @@ class _AppSecuritySettingsSectionState
   bool _hasPin = false;
   bool _biometricEnabled = false;
   bool _busy = false;
-
-  bool get _isEnglish =>
-      Localizations.localeOf(context).languageCode == 'en';
-
-  String _text(String ar, String en) => _isEnglish ? en : ar;
 
   @override
   void initState() {
@@ -44,17 +40,18 @@ class _AppSecuritySettingsSectionState
     }
   }
 
-  void _message(String ar, String en, {bool error = false}) {
+  void _message(String message, {bool error = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(_text(ar, en)),
+        content: Text(message),
         backgroundColor: error ? Theme.of(context).colorScheme.error : null,
       ),
     );
   }
 
   Future<void> _setPin() async {
+    final strings = AppLocalizations.of(context)!;
     final oldPin = TextEditingController();
     final newPin = TextEditingController();
     final confirmPin = TextEditingController();
@@ -64,10 +61,7 @@ class _AppSecuritySettingsSectionState
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text(_text(
-            _hasPin ? 'تغيير رمز PIN' : 'تعيين رمز PIN',
-            _hasPin ? 'Change PIN' : 'Set PIN',
-          )),
+          title: Text(_hasPin ? strings.securityChangePin : strings.securitySetPin),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -79,7 +73,7 @@ class _AppSecuritySettingsSectionState
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     decoration: InputDecoration(
-                      labelText: _text('رمز PIN الحالي', 'Current PIN'),
+                      labelText: strings.securityCurrentPinLabel,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -91,10 +85,7 @@ class _AppSecuritySettingsSectionState
                   maxLength: 8,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   decoration: InputDecoration(
-                    labelText: _text(
-                      'رمز PIN الجديد (4 إلى 8 أرقام)',
-                      'New PIN (4–8 digits)',
-                    ),
+                    labelText: strings.securityNewPinLabel,
                     counterText: '',
                   ),
                 ),
@@ -106,7 +97,7 @@ class _AppSecuritySettingsSectionState
                   maxLength: 8,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   decoration: InputDecoration(
-                    labelText: _text('تأكيد رمز PIN', 'Confirm PIN'),
+                    labelText: strings.securityConfirmPinLabel,
                     counterText: '',
                   ),
                 ),
@@ -123,29 +114,20 @@ class _AppSecuritySettingsSectionState
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text(_text('إلغاء', 'Cancel')),
+              child: Text(strings.cancel),
             ),
             FilledButton(
               onPressed: () async {
                 if (_hasPin && !await _security.verifyPin(oldPin.text)) {
-                  setDialogState(() => dialogError = _text(
-                    'رمز PIN الحالي غير صحيح.',
-                    'Current PIN is incorrect.',
-                  ));
+                  setDialogState(() => dialogError = strings.securityCurrentPinIncorrect);
                   return;
                 }
                 if (!RegExp(r'^\d{4,8}$').hasMatch(newPin.text)) {
-                  setDialogState(() => dialogError = _text(
-                    'يجب أن يتكون الرمز من 4 إلى 8 أرقام.',
-                    'PIN must contain 4 to 8 digits.',
-                  ));
+                  setDialogState(() => dialogError = strings.securityPinLengthError);
                   return;
                 }
                 if (newPin.text != confirmPin.text) {
-                  setDialogState(() => dialogError = _text(
-                    'رمزا PIN غير متطابقين.',
-                    'PIN codes do not match.',
-                  ));
+                  setDialogState(() => dialogError = strings.securityPinMismatch);
                   return;
                 }
                 try {
@@ -154,13 +136,10 @@ class _AppSecuritySettingsSectionState
                     Navigator.pop(dialogContext, true);
                   }
                 } catch (_) {
-                  setDialogState(() => dialogError = _text(
-                    'تعذر حفظ رمز PIN.',
-                    'Could not save the PIN.',
-                  ));
+                  setDialogState(() => dialogError = strings.securityPinSaveFailed);
                 }
               },
-              child: Text(_text('حفظ', 'Save')),
+              child: Text(strings.save),
             ),
           ],
         ),
@@ -173,36 +152,35 @@ class _AppSecuritySettingsSectionState
 
     if (saved == true) {
       await _load();
-      _message(
-        'تم حفظ رمز PIN. سيُطلب عند فتح التطبيق.',
-        'PIN saved. It will be required when the app opens.',
-      );
+      if (!mounted) return;
+      _message(AppLocalizations.of(context)!.securityPinSavedNotice);
     }
   }
 
   Future<void> _removePin() async {
+    final strings = AppLocalizations.of(context)!;
     final controller = TextEditingController();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text(_text('إزالة رمز PIN', 'Remove PIN')),
+        title: Text(strings.securityRemovePinTitle),
         content: TextField(
           controller: controller,
           obscureText: true,
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           decoration: InputDecoration(
-            labelText: _text('أدخل رمز PIN الحالي', 'Enter current PIN'),
+            labelText: strings.securityCurrentPinLabel,
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(_text('إلغاء', 'Cancel')),
+            child: Text(strings.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(_text('إزالة', 'Remove')),
+            child: Text(strings.securityRemoveAction),
           ),
         ],
       ),
@@ -212,12 +190,10 @@ class _AppSecuritySettingsSectionState
       try {
         await _security.removePin(controller.text);
         await _load();
-        _message(
-          'تمت إزالة PIN والبصمة.',
-          'PIN and biometric protection were removed.',
-        );
+        if (!mounted) return;
+        _message(strings.securityPinRemovedNotice);
       } catch (_) {
-        _message('رمز PIN غير صحيح.', 'Incorrect PIN.', error: true);
+        _message(strings.securityInvalidPin, error: true);
       }
     }
     controller.dispose();
@@ -225,12 +201,9 @@ class _AppSecuritySettingsSectionState
 
   Future<void> _toggleBiometrics(bool enabled) async {
     if (_busy) return;
+    final strings = AppLocalizations.of(context)!;
     if (enabled && !_hasPin) {
-      _message(
-        'يجب تعيين رمز PIN أولاً ليكون بديلاً آمناً للبصمة.',
-        'Set a PIN first so it can be used as a secure fallback.',
-        error: true,
-      );
+      _message(strings.securityPinRequiredForBiometrics, error: true);
       return;
     }
 
@@ -239,16 +212,12 @@ class _AppSecuritySettingsSectionState
       if (enabled) {
         final available = await _security.isBiometricAvailable();
         if (!available) {
-          _message(
-            'لا توجد بصمة مسجلة أو أن الجهاز لا يدعم التحقق الحيوي.',
-            'No enrolled fingerprint or biometric authentication is available.',
-            error: true,
-          );
+          _message(strings.securityBiometricUnavailable, error: true);
           return;
         }
         final accepted = await _security.enableBiometrics();
         if (!accepted) {
-          _message('لم يتم تفعيل البصمة.', 'Biometric protection was not enabled.');
+          _message(strings.securityBiometricNotEnabled);
           return;
         }
       } else {
@@ -257,17 +226,10 @@ class _AppSecuritySettingsSectionState
 
       if (mounted) {
         setState(() => _biometricEnabled = enabled);
-        _message(
-          enabled ? 'تم تفعيل البصمة.' : 'تم إيقاف البصمة.',
-          enabled ? 'Biometric protection enabled.' : 'Biometric protection disabled.',
-        );
+        _message(enabled ? strings.securityBiometricEnabled : strings.securityBiometricDisabled);
       }
     } catch (_) {
-      _message(
-        'تعذر تغيير إعداد البصمة.',
-        'Could not change biometric settings.',
-        error: true,
-      );
+      _message(strings.securityBiometricChangeFailed, error: true);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -275,6 +237,7 @@ class _AppSecuritySettingsSectionState
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppLocalizations.of(context)!;
     final scheme = Theme.of(context).colorScheme;
 
     return Card(
@@ -290,7 +253,7 @@ class _AppSecuritySettingsSectionState
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    _text('قفل التطبيق', 'App lock'),
+                    strings.securityAppLockTitle,
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -300,10 +263,7 @@ class _AppSecuritySettingsSectionState
             ),
             const SizedBox(height: 8),
             Text(
-              _text(
-                'يحمي رمز PIN بياناتك عند فتح التطبيق، ويمكن استخدام البصمة لفتحه بسرعة. تحفظ بيانات الأمان في التخزين الآمن للهاتف.',
-                'Protect app access with a PIN and use biometrics for faster unlocking. Security credentials are stored in the phone secure storage.',
-              ),
+              strings.securitySettingsDescription,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: scheme.onSurfaceVariant,
                 height: 1.5,
@@ -319,12 +279,8 @@ class _AppSecuritySettingsSectionState
                   Icons.password_rounded,
                   color: scheme.onSurfaceVariant,
                 ),
-                title: Text(_hasPin
-                    ? _text('تغيير رمز PIN', 'Change PIN')
-                    : _text('تعيين رمز PIN', 'Set PIN')),
-                subtitle: Text(_hasPin
-                    ? _text('مفعّل — يُطلب عند فتح التطبيق', 'Enabled — required when the app opens')
-                    : _text('غير مفعّل', 'Not enabled')),
+                title: Text(_hasPin ? strings.securityChangePin : strings.securitySetPin),
+                subtitle: Text(_hasPin ? strings.securityPinEnabled : strings.securityNotEnabled),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: _busy ? null : _setPin,
               ),
@@ -334,10 +290,8 @@ class _AppSecuritySettingsSectionState
                   Icons.fingerprint_rounded,
                   color: scheme.onSurfaceVariant,
                 ),
-                title: Text(_text('فتح التطبيق بالبصمة', 'Unlock with biometrics')),
-                subtitle: Text(_biometricEnabled
-                    ? _text('مفعّلة', 'Enabled')
-                    : _text('استخدم البصمة مع وجود رمز PIN', 'Requires a PIN as fallback')),
+                title: Text(strings.securityBiometricTitle),
+                subtitle: Text(_biometricEnabled ? strings.securityBiometricEnabled : strings.securityPinRequiredForBiometrics),
                 value: _biometricEnabled,
                 onChanged: _busy ? null : _toggleBiometrics,
               ),
@@ -347,7 +301,7 @@ class _AppSecuritySettingsSectionState
                   child: TextButton.icon(
                     onPressed: _busy ? null : _removePin,
                     icon: const Icon(Icons.lock_open_rounded),
-                    label: Text(_text('إيقاف حماية PIN', 'Disable PIN protection')),
+                    label: Text(strings.securityDisablePinProtection),
                   ),
                 ),
             ],

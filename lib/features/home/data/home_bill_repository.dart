@@ -277,6 +277,32 @@ final class HomeBillRepository {
     return rows.single.read<int>('total');
   }
 
+  /// Returns unpaid bills due in [month] or any earlier month, using only
+  /// payments recorded by the end of [month]. Later payments do not rewrite
+  /// the historical arrears snapshot.
+  Future<int> outstandingThroughMonthAsOfEnd(MonthKey month) async {
+    await ensureTables();
+    final monthEndExclusive =
+        DateTime(month.year, month.month + 1).millisecondsSinceEpoch;
+    final rows = await _database.customSelect(
+      'SELECT COALESCE(SUM(b.amount_minor_units - COALESCE(p.paid_minor_units, 0)), 0) AS total '
+      'FROM home_bills b '
+      'LEFT JOIN ('
+      'SELECT bill_id, SUM(amount_minor_units) AS paid_minor_units '
+      'FROM home_bill_payments WHERE paid_at_epoch_millis < ? '
+      'GROUP BY bill_id'
+      ') p ON p.bill_id = b.id '
+      'WHERE b.due_year < ? OR (b.due_year = ? AND b.due_month <= ?)',
+      variables: [
+        Variable.withInt(monthEndExclusive),
+        Variable.withInt(month.year),
+        Variable.withInt(month.year),
+        Variable.withInt(month.month),
+      ],
+    ).get();
+    return rows.single.read<int>('total');
+  }
+
   Future<int> paymentsTotalForMonth(MonthKey month) async {
     await ensureTables();
     final start = DateTime(month.year, month.month).millisecondsSinceEpoch;

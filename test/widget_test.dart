@@ -300,7 +300,7 @@ void main() {
       ProviderScope(
         overrides: [
           appDatabaseProvider.overrideWithValue(testDatabase),
-          homeBillOutstandingAsOfMonthProvider.overrideWith(
+          homeBillOutstandingThroughMonthAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
           allHomeBillPaymentsProvider.overrideWith((ref) async => []),
@@ -387,7 +387,7 @@ void main() {
       ProviderScope(
         overrides: [
           appDatabaseProvider.overrideWithValue(testDatabase),
-          homeBillOutstandingAsOfMonthProvider.overrideWith(
+          homeBillOutstandingThroughMonthAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
           allHomeBillPaymentsProvider.overrideWith((ref) async => []),
@@ -468,7 +468,7 @@ void main() {
       ProviderScope(
         overrides: [
           appDatabaseProvider.overrideWithValue(testDatabase),
-          homeBillOutstandingAsOfMonthProvider.overrideWith((ref, selected) async => 0),
+          homeBillOutstandingThroughMonthAsOfMonthProvider.overrideWith((ref, selected) async => 0),
           allHomeBillPaymentsProvider.overrideWith((ref) async => []),
           allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
           workEntriesProvider.overrideWith((ref) => Stream.value([])),
@@ -534,7 +534,7 @@ void main() {
       ProviderScope(
         overrides: [
           appDatabaseProvider.overrideWithValue(testDatabase),
-          homeBillOutstandingAsOfMonthProvider.overrideWith(
+          homeBillOutstandingThroughMonthAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
           allHomeBillPaymentsProvider.overrideWith((ref) async => []),
@@ -589,7 +589,7 @@ void main() {
       ProviderScope(
         overrides: [
           appDatabaseProvider.overrideWithValue(testDatabase),
-          homeBillOutstandingAsOfMonthProvider.overrideWith(
+          homeBillOutstandingThroughMonthAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
           allHomeBillPaymentsProvider.overrideWith((ref) async => []),
@@ -651,7 +651,7 @@ void main() {
       ProviderScope(
         overrides: [
           appDatabaseProvider.overrideWithValue(testDatabase),
-          homeBillOutstandingAsOfMonthProvider.overrideWith(
+          homeBillOutstandingThroughMonthAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
           allHomeBillPaymentsProvider.overrideWith((ref) async => []),
@@ -708,7 +708,7 @@ void main() {
       ProviderScope(
         overrides: [
           appDatabaseProvider.overrideWithValue(testDatabase),
-          homeBillOutstandingAsOfMonthProvider.overrideWith(
+          homeBillOutstandingThroughMonthAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
           allHomeBillPaymentsProvider.overrideWith((ref) async => []),
@@ -761,6 +761,9 @@ void main() {
       ProviderScope(
         overrides: [
           appDatabaseProvider.overrideWithValue(testDatabase),
+          homeBillOutstandingThroughMonthAsOfMonthProvider.overrideWith(
+            (ref, selected) async => 580,
+          ),
           homeBillOutstandingAsOfMonthProvider.overrideWith(
             (ref, selected) async => 580,
           ),
@@ -812,7 +815,7 @@ void main() {
       ProviderScope(
         overrides: [
           appDatabaseProvider.overrideWithValue(testDatabase),
-          homeBillOutstandingAsOfMonthProvider.overrideWith(
+          homeBillOutstandingThroughMonthAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
           allHomeBillPaymentsProvider.overrideWith((ref) async => []),
@@ -870,7 +873,7 @@ void main() {
       ProviderScope(
         overrides: [
           appDatabaseProvider.overrideWithValue(testDatabase),
-          homeBillOutstandingAsOfMonthProvider.overrideWith(
+          homeBillOutstandingThroughMonthAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
           allHomeBillPaymentsProvider.overrideWith((ref) async => []),
@@ -916,7 +919,7 @@ void main() {
       ProviderScope(
         overrides: [
           appDatabaseProvider.overrideWithValue(testDatabase),
-          homeBillOutstandingAsOfMonthProvider.overrideWith(
+          homeBillOutstandingThroughMonthAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
           allHomeBillPaymentsProvider.overrideWith((ref) async => []),
@@ -1012,7 +1015,7 @@ void main() {
       ProviderScope(
         overrides: [
           appDatabaseProvider.overrideWithValue(testDatabase),
-          homeBillOutstandingAsOfMonthProvider.overrideWith(
+          homeBillOutstandingThroughMonthAsOfMonthProvider.overrideWith(
             (ref, selected) async => 0,
           ),
           allHomeBillPaymentsProvider.overrideWith((ref) async => []),

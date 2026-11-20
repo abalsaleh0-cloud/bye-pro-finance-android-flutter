@@ -36,6 +36,12 @@ final homeBillOutstandingAsOfMonthProvider = FutureProvider.family<int, MonthKey
   (ref, month) =>
       ref.watch(homeBillRepositoryProvider).outstandingForMonthAsOfEnd(month),
 );
+final homeBillOutstandingThroughMonthAsOfMonthProvider =
+    FutureProvider.family<int, MonthKey>(
+  (ref, month) => ref
+      .watch(homeBillRepositoryProvider)
+      .outstandingThroughMonthAsOfEnd(month),
+);
 final allHomeBillPaymentsProvider = FutureProvider<List<HomeBillPayment>>(
   (ref) => ref.watch(homeBillRepositoryProvider).getAllPayments(),
 );

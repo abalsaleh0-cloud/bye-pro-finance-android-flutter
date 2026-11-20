@@ -1,5 +1,6 @@
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/money/money.dart';
+import 'package:expense_app/core/money/format_minor_units.dart';
 import 'package:expense_app/core/time/calendar_date.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
@@ -35,6 +36,7 @@ class WorkScreen extends ConsumerStatefulWidget {
 class _WorkScreenState extends ConsumerState<WorkScreen> {
   bool _manualEntryOpened = false;
   int _activePage = 0;
+  String _searchQuery = '';
   final PageController _pageController = PageController();
 
   @override
@@ -55,6 +57,34 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
       });
     }
   }
+
+  bool _matchesSearch({
+    required String title,
+    required int amount,
+    required DateTime date,
+    String? note,
+  }) {
+    final query = _searchQuery.trim().toLowerCase();
+    if (query.isEmpty) return true;
+    final searchable = '$title ${note ?? ''} $amount ${formatMinorUnits(context, amount)} ${date.toIso8601String()}';
+    return searchable.toLowerCase().contains(query);
+  }
+
+  Widget _searchField(AppLocalizations strings) => TextField(
+        key: const Key('work-record-search'),
+        onChanged: (value) => setState(() => _searchQuery = value),
+        decoration: InputDecoration(
+          prefixIcon: const Icon(Icons.search_rounded),
+          hintText: strings.searchRecords,
+          suffixIcon: _searchQuery.isEmpty
+              ? null
+              : IconButton(
+                  tooltip: strings.clearSearch,
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () => setState(() => _searchQuery = ''),
+                ),
+        ),
+      );
 
   String _kindLabel(AppLocalizations strings, WorkEntryKind kind) =>
       switch (kind) {
@@ -604,6 +634,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                 ref.read(selectedMonthProvider.notifier).select(month),
           ),
         SizedBox(height: tokens.sectionSpacing * 0.67),
+        if (records || transferPage) _searchField(strings),
         if (overview) ...[
                     _workSummaryCard(
             context,
@@ -647,7 +678,10 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                       ),
                 ]..sort((left, right) => right.date.compareTo(left.date));
 
-                if (logItems.isEmpty) {
+                final filteredLogItems = logItems.where((item) => _matchesSearch(
+                  title: item.title, amount: item.amount, date: item.date, note: item.note,
+                )).toList();
+                if (filteredLogItems.isEmpty) {
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 20),
                     child: Center(child: Text(strings.noRecords)),
@@ -656,13 +690,13 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
 
                 return Column(
                   children: [
-                    for (final item in logItems)
+                    for (final item in filteredLogItems)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 10),
                         child: FinancialRecordCard(
                           icon: item.icon,
                           title: item.title,
-                          amount: item.amount.toString(),
+                          amount: formatMinorUnits(context, item.amount),
                           details: [
                             toAsciiDigits(MaterialLocalizations.of(context).formatFullDate(item.date)),
                             if (item.note != null && item.note!.isNotEmpty) item.note!,
@@ -717,7 +751,12 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                 final date = transfer.transferredAt.toLocal();
                 return date.year == selectedMonth.year &&
                     date.month == selectedMonth.month;
-              }).toList();
+              }).where((transfer) => _matchesSearch(
+                title: strings.transferredToHome,
+                amount: transfer.amount.minorUnits,
+                date: transfer.transferredAt,
+                note: transfer.note,
+              )).toList();
               if (monthItems.isEmpty) {
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 20),
@@ -732,7 +771,7 @@ class _WorkScreenState extends ConsumerState<WorkScreen> {
                       child: FinancialRecordCard(
                         icon: Icons.swap_horiz,
                         title: strings.transferredToHome,
-                        amount: transfer.amount.minorUnits.toString(),
+                        amount: formatMinorUnits(context, transfer.amount.minorUnits),
                         details: [
                           toAsciiDigits(MaterialLocalizations.of(context).formatFullDate(transfer.transferredAt)),
                           if (transfer.note != null && transfer.note!.isNotEmpty)

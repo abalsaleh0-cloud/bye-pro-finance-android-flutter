@@ -1,4 +1,5 @@
 import 'package:expense_app/core/database/database_providers.dart';
+import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
@@ -27,7 +28,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+    final strings = AppLocalizations.of(context)!;
 
     // This route is now reached only after the router confirms a first launch.
     // Returning users are routed directly to the dashboard before this widget
@@ -77,7 +78,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      isEnglish ? 'Welcome to your financial space' : 'مرحباً بك في مساحتك المالية',
+                      strings.welcomeTitle,
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w800,
@@ -88,9 +89,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                     ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 340),
                       child: Text(
-                        isEnglish
-                            ? 'A clearer view of your income, expenses and financial commitments — all in one place.'
-                            : 'رؤية أوضح لدخلك ومصروفاتك والتزاماتك المالية، وكل تفاصيلك في مكان واحد.',
+                        strings.welcomeDescription,
                         textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                               height: 1.8,
@@ -111,14 +110,14 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen> {
                                 child: CircularProgressIndicator(strokeWidth: 2),
                               )
                             : Text(
-                                isEnglish ? 'Get started' : 'ابدأ الآن',
+                                strings.welcomeStart,
                                 style: const TextStyle(fontWeight: FontWeight.w800),
                               ),
                       ),
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      isEnglish ? 'Your money. Your clarity.' : 'أموالك… بوضوح واطمئنان',
+                      strings.welcomeTagline,
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
                             color: scheme.onSurfaceVariant,
                             letterSpacing: .4,

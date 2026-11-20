@@ -4,6 +4,8 @@ import 'dart:typed_data';
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/providers/app_settings_provider.dart';
 import 'package:expense_app/features/settings/data/app_backup_service.dart';
+import 'package:expense_app/features/ai/presentation/ai_chat_state.dart';
+import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
@@ -102,11 +104,15 @@ class _BackupRestoreSettingsSectionState
       );
       if (confirmed != true || !mounted) return;
 
+      // Finish pending chat writes before replacing app_settings from backup.
+      await ref.read(aiChatWorkspaceProvider.notifier).flush();
       await _backupService.restoreJson(
         ref.read(appDatabaseProvider),
         contents,
       );
       ref.invalidate(appSettingsProvider);
+      ref.invalidate(homeExpenseCategoriesProvider);
+      ref.invalidate(aiChatWorkspaceProvider);
       ref.invalidate(homeExpensesProvider);
       ref.invalidate(workEntriesProvider);
       ref.invalidate(workTransfersProvider);
@@ -136,6 +142,7 @@ class _BackupRestoreSettingsSectionState
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final isEnglish = Localizations.localeOf(context).languageCode == 'en';
+    final strings = AppLocalizations.of(context)!;
 
     return Card(
       child: Padding(
@@ -159,10 +166,7 @@ class _BackupRestoreSettingsSectionState
             ),
             const SizedBox(height: 8),
             Text(
-              _text(
-                'احفظ بيانات العمل والمنزل والتحويلات والفواتير والديون في ملف JSON، أو استعدها لاحقاً. الملف غير مشفّر؛ احفظه في مكان خاص. لا يتضمن رمز PIN أو إعداد البصمة.',
-                'Save work, home, transfers, bills and debts to a JSON file, or restore them later. The file is not encrypted; keep it private. PIN and biometric credentials are not included.',
-              ),
+              strings.backupContentsNotice,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: scheme.onSurfaceVariant,
                 height: 1.5,

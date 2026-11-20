@@ -26,6 +26,8 @@ void main() {
       ['work-1', 'salary', 125000, 2026, 11, 1794960000000, 'test salary'],
     );
     await database.writeSetting('theme_mode', 'dark');
+    await database.writeSetting('home_expense_categories', '[{"id":"custom_test","name":"Custom"}]');
+    await database.writeSetting('ai_chat_conversations_v2', '{"conversations":[{"id":"chat-1"}]}');
 
     final backup = await backupService.exportJson(database);
 
@@ -43,6 +45,8 @@ void main() {
     expect(workRows, hasLength(1));
     expect(workRows.single.read<int>('amount_minor_units'), 125000);
     expect(await database.readSetting('theme_mode'), 'dark');
+    expect(await database.readSetting('home_expense_categories'), '[{"id":"custom_test","name":"Custom"}]');
+    expect(await database.readSetting('ai_chat_conversations_v2'), '{"conversations":[{"id":"chat-1"}]}');
   });
 
   test('invalid backup is rejected before replacing existing data', () async {

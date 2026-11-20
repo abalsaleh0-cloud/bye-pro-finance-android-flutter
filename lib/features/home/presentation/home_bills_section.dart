@@ -1,4 +1,5 @@
 import 'package:expense_app/core/money/money.dart';
+import 'package:expense_app/core/money/format_minor_units.dart';
 import 'package:expense_app/core/time/calendar_date.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/core/widgets/entry_tools.dart';
@@ -10,11 +11,18 @@ import 'package:expense_app/l10n/generated/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
+bool _billIsDueAndVisible(HomeBill bill, MonthKey? month) {
+  if (month == null) return true;
+  return bill.dueMonth.compareTo(month) <= 0 &&
+      (bill.dueMonth == month || !bill.isSettled);
+}
+
 class HomeBillsSection extends ConsumerWidget {
-  const HomeBillsSection({super.key, this.selectedMonth, this.kind});
+  const HomeBillsSection({super.key, this.selectedMonth, this.kind, this.searchQuery = ''});
 
   final MonthKey? selectedMonth;
   final HomeBillKind? kind;
+  final String searchQuery;
 
   DateTime _defaultSelectedDate() {
     final month = selectedMonth ?? MonthKey(year: DateTime.now().year, month: DateTime.now().month);
@@ -62,6 +70,7 @@ class HomeBillsSection extends ConsumerWidget {
               ref.invalidate(homeBillsProvider);
               ref.invalidate(homeBillPaymentsForMonthProvider);
               ref.invalidate(homeBillOutstandingAsOfMonthProvider);
+               ref.invalidate(homeBillOutstandingThroughMonthAsOfMonthProvider);
               if (dialogContext.mounted) Navigator.pop(dialogContext);
             } catch (_) {
               setState(() => error = strings.invalidRecord);
@@ -119,6 +128,7 @@ class HomeBillsSection extends ConsumerWidget {
                 ),
               );
               ref.invalidate(homeBillOutstandingAsOfMonthProvider);
+               ref.invalidate(homeBillOutstandingThroughMonthAsOfMonthProvider);
               ref.invalidate(allHomeBillPaymentsProvider);
               if (dialogContext.mounted) Navigator.pop(dialogContext);
             } on InsufficientBillPaymentBalanceException catch (exception) {
@@ -158,6 +168,7 @@ class HomeBillsSection extends ConsumerWidget {
       ref.invalidate(homeBillsProvider);
       ref.invalidate(homeBillPaymentsForMonthProvider);
       ref.invalidate(homeBillOutstandingAsOfMonthProvider);
+               ref.invalidate(homeBillOutstandingThroughMonthAsOfMonthProvider);
     } on BillHasPaymentHistoryException {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -176,7 +187,7 @@ class HomeBillsSection extends ConsumerWidget {
         content: SizedBox(width: double.maxFinite, child: payments.isEmpty
           ? Text(strings.noRecords)
           : ListView(shrinkWrap: true, children: payments.map((payment) => ListTile(
-              title: Text(payment.amount.minorUnits.toString()),
+              title: Text(formatMinorUnits(context, payment.amount.minorUnits)),
               subtitle: Text('${toAsciiDigits(MaterialLocalizations.of(context).formatFullDate(payment.paidAt))}${payment.note == null ? '' : '\n${payment.note}'}'),
             )).toList())),
         actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(strings.cancel))],
@@ -197,10 +208,15 @@ class HomeBillsSection extends ConsumerWidget {
         loading: () => Text(strings.loading),
         error: (error, stack) => Text(strings.dataError),
         data: (items) {
-          final monthItems = items.where((bill) =>
-            (selectedMonth == null || bill.dueMonth == selectedMonth) &&
-            (kind == null || bill.kind == kind)
-          ).toList();
+          final monthItems = items.where((bill) {
+            return _billIsDueAndVisible(bill, selectedMonth) &&
+                (kind == null || bill.kind == kind) &&
+                (searchQuery.trim().isEmpty ||
+                    bill.title.toLowerCase().contains(searchQuery.trim().toLowerCase()) ||
+                    (bill.note ?? '').toLowerCase().contains(searchQuery.trim().toLowerCase()) ||
+                    (bill.amount.minorUnits.toString().contains(searchQuery.trim()) ||
+                     formatMinorUnits(context, bill.amount.minorUnits).contains(searchQuery.trim())));
+          }).toList();
           return monthItems.isEmpty
           ? Text(strings.noBills)
           : Column(children: monthItems.map((bill) {
@@ -210,7 +226,7 @@ class HomeBillsSection extends ConsumerWidget {
                 title: Text(bill.title),
                 subtitle: Text([
                   '${toAsciiDigits(MaterialLocalizations.of(context).formatFullDate(bill.calendarDate))} • $status',
-                  '${strings.billPaid}: ${bill.paidMinorUnits} / ${bill.amount.minorUnits} • ${strings.billRemaining}: ${bill.remainingMinorUnits}',
+                  '${strings.billPaid}: ${formatMinorUnits(context, bill.paidMinorUnits)} / ${formatMinorUnits(context, bill.amount.minorUnits)} • ${strings.billRemaining}: ${formatMinorUnits(context, bill.remainingMinorUnits)}',
                   if (bill.note != null && bill.note!.trim().isNotEmpty) bill.note!.trim(),
                 ].join('\n')),
                 isThreeLine: true,

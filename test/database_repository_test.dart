@@ -760,6 +760,57 @@ void main() {
     expect(await bills.outstandingForMonth(MonthKey(year: 2026, month: 11)), 580);
   });
 
+  test('outstanding bills carry forward through the selected month without rewriting past payments', () async {
+    final repository = HomeBillRepository(database);
+    await repository.ensureTables();
+    await repository.saveBill(HomeBill(
+      id: 'arrears-october',
+      title: 'October bill',
+      kind: HomeBillKind.monthly,
+      amount: Money.fromMinorUnits(500),
+      dueMonth: MonthKey(year: 2026, month: 10),
+    ));
+    await repository.saveBill(HomeBill(
+      id: 'arrears-november',
+      title: 'November bill',
+      kind: HomeBillKind.monthly,
+      amount: Money.fromMinorUnits(300),
+      dueMonth: MonthKey(year: 2026, month: 11),
+    ));
+    await repository.saveBill(HomeBill(
+      id: 'arrears-december',
+      title: 'December bill',
+      kind: HomeBillKind.monthly,
+      amount: Money.fromMinorUnits(900),
+      dueMonth: MonthKey(year: 2026, month: 12),
+    ));
+    await database.customStatement(
+      'INSERT INTO home_bill_payments (id, bill_id, amount_minor_units, paid_at_epoch_millis, note) VALUES (?, ?, ?, ?, ?)',
+      ['october-first-payment', 'arrears-october', 100, DateTime.utc(2026, 10, 15).millisecondsSinceEpoch, null],
+    );
+    await database.customStatement(
+      'INSERT INTO home_bill_payments (id, bill_id, amount_minor_units, paid_at_epoch_millis, note) VALUES (?, ?, ?, ?, ?)',
+      ['october-later-payment', 'arrears-october', 200, DateTime.utc(2026, 11, 10).millisecondsSinceEpoch, null],
+    );
+    await database.customStatement(
+      'INSERT INTO home_bill_payments (id, bill_id, amount_minor_units, paid_at_epoch_millis, note) VALUES (?, ?, ?, ?, ?)',
+      ['november-payment', 'arrears-november', 50, DateTime.utc(2026, 11, 12).millisecondsSinceEpoch, null],
+    );
+
+    expect(
+      await repository.outstandingThroughMonthAsOfEnd(
+        MonthKey(year: 2026, month: 10),
+      ),
+      400,
+    );
+    expect(
+      await repository.outstandingThroughMonthAsOfEnd(
+        MonthKey(year: 2026, month: 11),
+      ),
+      450,
+    );
+  });
+
   test('monthly bills remain obligations until payments are made', () async {
     await WorkRepository(database).saveEntry(
       WorkEntry(

@@ -88,9 +88,28 @@ final class GemmaAssistantEngine implements AssistantEngine {
         conversationContext,
         needsCategoryCatalog ? expenseCategories : const <String, String>{},
       );
-      final output = await generator
-          .generate(prompt, functions, media: media)
-          .timeout(timeout);
+      GemmaModelOutput output;
+      try {
+        output = await generator
+            .generate(prompt, functions, media: media)
+            .timeout(timeout);
+      } catch (error) {
+        // Retry once without old dialogue when only the cached conversation
+        // makes the model context too large. Keep the current request and
+        // the exact same validated tool schemas.
+        if (conversationContext.trim().isEmpty ||
+            !error.toString().contains('ContextLimitException')) {
+          rethrow;
+        }
+        final retryPrompt = _composePrompt(
+          text,
+          '',
+          needsCategoryCatalog ? expenseCategories : const <String, String>{},
+        );
+        output = await generator
+            .generate(retryPrompt, functions, media: media)
+            .timeout(timeout);
+      }
       final exposedFunctionNames = functions
           .map((function) => function.name)
           .toSet();

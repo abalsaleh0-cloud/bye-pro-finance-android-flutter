@@ -1,5 +1,6 @@
 import 'package:expense_app/core/database/database_providers.dart';
 import 'package:expense_app/core/money/money.dart';
+import 'package:expense_app/core/money/format_minor_units.dart';
 import 'package:expense_app/core/time/calendar_date.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/core/time/selected_month_provider.dart';
@@ -27,6 +28,7 @@ class DebtsScreen extends ConsumerStatefulWidget {
 class _DebtsScreenState extends ConsumerState<DebtsScreen> {
   bool _manualEntryOpened = false;
   int _activeTab = 0;
+  String _searchQuery = '';
 
   @override
   void didChangeDependencies() {
@@ -380,11 +382,27 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                   ref.read(selectedMonthProvider.notifier).select(value),
             ),
           ),
+          Padding(
+            padding: tokens.pageInsets(bottom: 8),
+            child: TextField(
+              key: const Key('debt-record-search'),
+              onChanged: (value) => setState(() => _searchQuery = value),
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search_rounded),
+                hintText: strings.searchRecords,
+                suffixIcon: _searchQuery.isEmpty ? null : IconButton(
+                  tooltip: strings.clearSearch,
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () => setState(() => _searchQuery = ''),
+                ),
+              ),
+            ),
+          ),
           _debtSummaryCard(
             context,
             strings,
             (debts.value ?? const [])
-                .where((debt) => debt.dueMonth == selectedMonth)
+                .where((debt) => debt.dueMonth.compareTo(selectedMonth) <= 0)
                 .toList(),
           ),
           Expanded(child: debts.when(
@@ -393,7 +411,15 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
         data: (items) {
           final selectedDirection = _activeTab == 0 ? DebtDirection.creditor : DebtDirection.debtor;
           final visibleItems = items
-              .where((debt) => debt.direction == selectedDirection && debt.dueMonth == selectedMonth)
+              .where((debt) =>
+                 debt.direction == selectedDirection &&
+                 debt.dueMonth.compareTo(selectedMonth) <= 0 &&
+                 (debt.dueMonth == selectedMonth || !debt.isSettled) &&
+                 (debt.counterparty.toLowerCase().contains(_searchQuery.trim().toLowerCase()) ||
+                  (debt.note ?? '').toLowerCase().contains(_searchQuery.trim().toLowerCase()) ||
+                  (debt.originalAmount.minorUnits.toString().contains(_searchQuery.trim()) ||
+                   formatMinorUnits(context, debt.originalAmount.minorUnits).contains(_searchQuery.trim()) ||
+                   formatMinorUnits(context, debt.outstandingAmount.minorUnits).contains(_searchQuery.trim()))))
               .toList();
           return visibleItems.isEmpty
               ? Center(child: Text(strings.noRecords))
@@ -550,8 +576,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                                                           Icons.receipt_long_outlined,
                                                         ),
                                                         title: Text(
-                                                          payment.amount.minorUnits
-                                                              .toString(),
+                                                          formatMinorUnits(context, payment.amount.minorUnits),
                                                           style: Theme.of(context)
                                                               .textTheme
                                                               .titleSmall
