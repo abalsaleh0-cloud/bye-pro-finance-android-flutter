@@ -29,6 +29,13 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
   bool _manualEntryOpened = false;
   int _activeTab = 0;
   String _searchQuery = '';
+  final PageController _pageController = PageController();
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   void didChangeDependencies() {
@@ -165,6 +172,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                         note: note.text.trim().isEmpty ? null : note.text.trim(),
                       ),
                     );
+                    ref.invalidate(debtActivityProvider);
                     if (dialogContext.mounted) Navigator.pop(dialogContext);
                   } catch (_) {
                     setDialogState(() => error = strings.invalidRecord);
@@ -300,6 +308,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                                 : note.text.trim(),
                           ),
                         );
+                    ref.invalidate(debtActivityProvider);
                     if (dialogContext.mounted) Navigator.pop(dialogContext);
                   } catch (_) {
                     setDialogState(() => error = strings.invalidRecord);
@@ -318,6 +327,49 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
       paidAt.dispose();
       paidTime.dispose();
       note.dispose();
+    }
+  }
+
+  Future<void> _undoDebtPayment(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations strings,
+    DebtEntry debt,
+    DebtPayment payment,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(strings.undoDebtPayment),
+        content: Text(strings.confirmUndoDebtPayment),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(strings.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(strings.undoDebtPayment),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    try {
+      if (debt.direction == DebtDirection.debtor) {
+        await ref.read(homeExpenseRepositoryProvider).undoDebtRepayment(payment.id);
+      } else {
+        await ref.read(debtRepositoryProvider).undoPayment(payment.id);
+      }
+      ref.invalidate(debtsProvider);
+      ref.invalidate(debtActivityProvider);
+      ref.invalidate(homeExpensesProvider);
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(strings.invalidRecord)),
+        );
+      }
     }
   }
 
@@ -344,7 +396,19 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
         ],
       ),
     );
-    if (confirmed == true) await ref.read(debtRepositoryProvider).delete(id);
+    if (confirmed == true) {
+      try {
+        await ref.read(debtRepositoryProvider).delete(id);
+        ref.invalidate(debtActivityProvider);
+        ref.invalidate(debtsProvider);
+      } on StateError {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(strings.debtHasPaymentHistory)),
+          );
+        }
+      }
+    }
   }
 
   @override
@@ -364,9 +428,20 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
         children: [
           SectionPillTabs(
             keyPrefix: 'debts-tab',
-            labels: ['دين لك (${strings.creditor})', 'دين عليك (${strings.debtor})'],
+            labels: [
+              'دين لك (${strings.creditor})',
+              'دين عليك (${strings.debtor})',
+              strings.debtActivity,
+            ],
             selectedIndex: _activeTab,
-            onSelected: (index) => setState(() => _activeTab = index),
+            onSelected: (index) {
+              setState(() => _activeTab = index);
+              _pageController.animateToPage(
+                index,
+                duration: const Duration(milliseconds: 240),
+                curve: Curves.easeOutCubic,
+              );
+            },
           ),
           Padding(
             padding: tokens.pageInsets(bottom: 8),
@@ -398,228 +473,307 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
               ),
             ),
           ),
-          _debtSummaryCard(
-            context,
-            strings,
-            (debts.value ?? const [])
-                .where((debt) => debt.dueMonth.compareTo(selectedMonth) <= 0)
-                .toList(),
+          if (_activeTab < 2)
+            _debtSummaryCard(
+              context,
+              strings,
+              (debts.value ?? const [])
+                  .where((debt) => debt.dueMonth.compareTo(selectedMonth) <= 0)
+                  .toList(),
+              _activeTab == 0 ? DebtDirection.creditor : DebtDirection.debtor,
+            ),
+          Expanded(
+            child: debts.when(
+              loading: () => Center(child: Text(strings.loading)),
+              error: (error, stackTrace) => Center(child: Text(strings.dataError)),
+              data: (items) => PageView(
+                key: const Key('debts-section-pages'),
+                controller: _pageController,
+                onPageChanged: (index) => setState(() => _activeTab = index),
+                children: [
+                  _buildDebtDirectionPage(
+                    context, ref, strings, items, DebtDirection.creditor,
+                    selectedMonth, tokens,
+                  ),
+                  _buildDebtDirectionPage(
+                    context, ref, strings, items, DebtDirection.debtor,
+                    selectedMonth, tokens,
+                  ),
+                  _buildDebtActivityPage(context, ref, strings, selectedMonth, tokens),
+                ],
+              ),
+            ),
           ),
-          Expanded(child: debts.when(
-        loading: () => Center(child: Text(strings.loading)),
-        error: (error, stackTrace) => Center(child: Text(strings.dataError)),
-        data: (items) {
-          final selectedDirection = _activeTab == 0 ? DebtDirection.creditor : DebtDirection.debtor;
-          final visibleItems = items
-              .where((debt) =>
-                 debt.direction == selectedDirection &&
-                 debt.dueMonth.compareTo(selectedMonth) <= 0 &&
-                 (debt.dueMonth == selectedMonth || !debt.isSettled) &&
-                 (debt.counterparty.toLowerCase().contains(_searchQuery.trim().toLowerCase()) ||
-                  (debt.note ?? '').toLowerCase().contains(_searchQuery.trim().toLowerCase()) ||
-                  (debt.originalAmount.minorUnits.toString().contains(_searchQuery.trim()) ||
-                   formatMinorUnits(context, debt.originalAmount.minorUnits).contains(_searchQuery.trim()) ||
-                   formatMinorUnits(context, debt.outstandingAmount.minorUnits).contains(_searchQuery.trim()))))
-              .toList();
-          return visibleItems.isEmpty
-              ? Center(child: Text(strings.noRecords))
-              : ListView.separated(
-                padding: tokens.pageInsets(),
-                itemCount: visibleItems.length,
-                separatorBuilder: (context, index) => SizedBox(height: tokens.sectionSpacing / 2),
-                itemBuilder: (context, index) {
-                  final debt = visibleItems[index];
-                  final direction = debt.direction == DebtDirection.creditor
-                      ? strings.creditor
-                      : strings.debtor;
-                  final original = debt.originalAmount.minorUnits;
-                  final remaining = debt.outstandingAmount.minorUnits;
-                  final paid = original - remaining;
-                  final progress = original == 0
-                      ? 0.0
-                      : (paid / original).clamp(0.0, 1.0);
-                  final badge = Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
+        ],
+      ),
+    );
+  }
+
+
+  Widget _buildDebtDirectionPage(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations strings,
+    List<DebtEntry> items,
+    DebtDirection direction,
+    MonthKey selectedMonth,
+    AppDesignTokens tokens,
+  ) {
+    final query = _searchQuery.trim().toLowerCase();
+    final visibleItems = items.where((debt) =>
+      debt.direction == direction &&
+      debt.dueMonth.compareTo(selectedMonth) <= 0 &&
+      (debt.dueMonth == selectedMonth || !debt.isSettled) &&
+      (debt.counterparty.toLowerCase().contains(query) ||
+       (debt.note ?? '').toLowerCase().contains(query) ||
+       debt.originalAmount.minorUnits.toString().contains(query) ||
+       formatMinorUnits(context, debt.originalAmount.minorUnits).contains(query) ||
+       formatMinorUnits(context, debt.outstandingAmount.minorUnits).contains(query))
+    ).toList(growable: false);
+
+    if (visibleItems.isEmpty) return Center(child: Text(strings.noRecords));
+    return ListView.separated(
+      key: Key(direction == DebtDirection.creditor ? 'debt-creditor-page' : 'debt-debtor-page'),
+      padding: tokens.pageInsets(),
+      itemCount: visibleItems.length,
+      separatorBuilder: (context, index) => SizedBox(height: tokens.sectionSpacing / 2),
+      itemBuilder: (context, index) {
+        final debt = visibleItems[index];
+        final isCreditor = debt.direction == DebtDirection.creditor;
+        final original = debt.originalAmount.minorUnits;
+        final remaining = debt.outstandingAmount.minorUnits;
+        final paid = original - remaining;
+        final progress = original == 0 ? 0.0 : (paid / original).clamp(0.0, 1.0);
+        final badge = Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: isCreditor
+                ? Theme.of(context).colorScheme.tertiaryContainer
+                : Theme.of(context).colorScheme.secondaryContainer,
+            borderRadius: BorderRadius.circular(tokens.controlRadius),
+          ),
+          child: Text(
+            isCreditor ? strings.creditor : strings.debtor,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: isCreditor
+                  ? Theme.of(context).colorScheme.onTertiaryContainer
+                  : Theme.of(context).colorScheme.onSecondaryContainer,
+            ),
+          ),
+        );
+        return FinancialRecordCard(
+          icon: isCreditor ? Icons.call_received_outlined : Icons.call_made_outlined,
+          title: debt.counterparty,
+          amount: formatMinorUnits(context, remaining),
+          amountLabel: strings.outstandingAmount,
+          details: [
+            toAsciiDigits(MaterialLocalizations.of(context).formatFullDate(debt.createdAt)),
+            '${strings.originalAmount}: ${formatMinorUnits(context, original)}',
+          ],
+          badge: badge,
+          footer: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(tokens.controlRadius),
+                child: LinearProgressIndicator(
+                  value: progress,
+                  minHeight: 7,
+                  backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  color: Theme.of(context).colorScheme.tertiary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  if (!debt.isSettled && isCreditor)
+                    FilledButton.tonalIcon(
+                      onPressed: () => _recordPayment(context, ref, strings, debt),
+                      icon: const Icon(Icons.payments_outlined),
+                      label: Text(strings.recordDebtPayment),
                     ),
-                    decoration: BoxDecoration(
-                      color: debt.direction == DebtDirection.creditor
-                          ? Theme.of(context).colorScheme.tertiaryContainer
-                          : Theme.of(context).colorScheme.secondaryContainer,
-                      borderRadius: BorderRadius.circular(tokens.controlRadius),
+                  if (!debt.isSettled && !isCreditor)
+                    Chip(
+                      avatar: const Icon(Icons.home_outlined, size: 18),
+                      label: Text(strings.debtRepaymentInHome),
+                      visualDensity: VisualDensity.compact,
                     ),
-                    child: Text(
-                      direction,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color:
-                                debt.direction == DebtDirection.creditor
-                                    ? Theme.of(context)
-                                        .colorScheme
-                                        .onTertiaryContainer
-                                    : Theme.of(context)
-                                        .colorScheme
-                                        .onSecondaryContainer,
-                          ),
+                  if (debt.isSettled)
+                    Chip(
+                      avatar: const Icon(Icons.check_circle_outline, size: 18),
+                      label: Text(strings.settled),
+                      visualDensity: VisualDensity.compact,
                     ),
-                  );
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: FinancialRecordCard(
-                      icon: debt.direction == DebtDirection.creditor
-                          ? Icons.call_received_outlined
-                          : Icons.call_made_outlined,
-                      title: debt.counterparty,
-                      amount: debt.outstandingAmount.minorUnits.toString(),
-                      amountLabel: strings.outstandingAmount,
-                      details: [
-                        toAsciiDigits(MaterialLocalizations.of(context).formatFullDate(debt.createdAt)),
-                        '${strings.originalAmount}: ${debt.originalAmount.minorUnits}',
-                      ],
-                      badge: badge,
-                      footer: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(tokens.controlRadius),
-                            child: LinearProgressIndicator(
-                              value: progress,
-                              minHeight: 7,
-                              backgroundColor: Theme.of(context)
-                                  .colorScheme
-                                  .surfaceContainerHighest,
-                              color: Theme.of(context).colorScheme.tertiary,
+                  IconButton(
+                    tooltip: strings.editRecord,
+                    onPressed: () => _editDebt(context, ref, strings, existing: debt),
+                    icon: const Icon(Icons.edit_outlined),
+                  ),
+                  IconButton(
+                    tooltip: strings.deleteRecord,
+                    onPressed: () => _deleteDebt(context, ref, strings, debt.id),
+                    icon: const Icon(Icons.delete_outline),
+                  ),
+                ],
+              ),
+              TextButton.icon(
+                key: Key('debt-payment-history-${debt.id}'),
+                onPressed: () {
+                  showDialog<void>(
+                    context: context,
+                    builder: (dialogContext) => Consumer(
+                      builder: (context, ref, child) {
+                        final payments = ref.watch(debtPaymentsProvider(debt.id));
+                        return AlertDialog(
+                          scrollable: true,
+                          title: Text(strings.paymentHistory),
+                          content: SizedBox(
+                            width: double.maxFinite,
+                            child: payments.when(
+                              loading: () => Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Text(strings.loading),
+                              ),
+                              error: (error, stackTrace) => Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Text(strings.dataError),
+                              ),
+                              data: (history) => history.isEmpty
+                                  ? Padding(
+                                      padding: const EdgeInsets.all(12),
+                                      child: Text(strings.noRecords),
+                                    )
+                                  : Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        for (final payment in history)
+                                          ListTile(
+                                            dense: true,
+                                            contentPadding: EdgeInsets.zero,
+                                            leading: const Icon(Icons.receipt_long_outlined),
+                                            title: Text(
+                                              formatMinorUnits(context, payment.amount.minorUnits),
+                                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                            ),
+                                            subtitle: Text(
+                                              '${strings.paidAt}: ${toAsciiDigits(MaterialLocalizations.of(context).formatFullDate(payment.paidAt))}'
+                                              '\n${strings.time}: ${TimeOfDay.fromDateTime(payment.paidAt).format(context)}'
+                                              '${payment.note == null ? '' : '\n${payment.note}'}',
+                                            ),
+                                            trailing: IconButton(
+                                              tooltip: strings.undoDebtPayment,
+                                              icon: const Icon(Icons.undo_rounded),
+                                              onPressed: () => _undoDebtPayment(
+                                                context,
+                                                ref,
+                                                strings,
+                                                debt,
+                                                payment,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
                             ),
                           ),
-                          const SizedBox(height: 12),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 4,
-                            children: [
-                              if (!debt.isSettled)
-                                FilledButton.tonalIcon(
-                                  onPressed: () => _recordPayment(
-                                    context,
-                                    ref,
-                                    strings,
-                                    debt,
-                                  ),
-                                  icon: const Icon(Icons.payments_outlined),
-                                  label: Text(strings.recordDebtPayment),
-                                )
-                              else
-                                Chip(
-                                  avatar: const Icon(
-                                    Icons.check_circle_outline,
-                                    size: 18,
-                                  ),
-                                  label: Text(strings.settled),
-                                  visualDensity: VisualDensity.compact,
-                                ),
-                              IconButton(
-                                tooltip: strings.editRecord,
-                                onPressed: () => _editDebt(
-                                  context,
-                                  ref,
-                                  strings,
-                                  existing: debt,
-                                ),
-                                icon: const Icon(Icons.edit_outlined),
-                              ),
-                              IconButton(
-                                tooltip: strings.deleteRecord,
-                                onPressed: () =>
-                                    _deleteDebt(context, ref, strings, debt.id),
-                                icon: const Icon(Icons.delete_outline),
-                              ),
-                            ],
-                          ),
-                          TextButton.icon(
-                            key: Key('debt-payment-history-${debt.id}'),
-                            onPressed: () {
-                              showDialog<void>(
-                                context: context,
-                                builder: (dialogContext) => Consumer(
-                                  builder: (context, ref, child) {
-                                    final payments = ref.watch(
-                                      debtPaymentsProvider(debt.id),
-                                    );
-                                    return AlertDialog(
-                                      scrollable: true,
-                                      title: Text(strings.paymentHistory),
-                                      content: SizedBox(
-                                        width: double.maxFinite,
-                                        child: payments.when(
-                                          loading: () => Padding(
-                                            padding: const EdgeInsets.all(12),
-                                            child: Text(strings.loading),
-                                          ),
-                                          error: (error, stackTrace) => Padding(
-                                            padding: const EdgeInsets.all(12),
-                                            child: Text(strings.dataError),
-                                          ),
-                                          data: (history) => history.isEmpty
-                                              ? Padding(
-                                                  padding: const EdgeInsets.all(12),
-                                                  child: Text(strings.noRecords),
-                                                )
-                                              : Column(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    for (final payment in history)
-                                                      ListTile(
-                                                        dense: true,
-                                                        contentPadding:
-                                                            EdgeInsets.zero,
-                                                        leading: const Icon(
-                                                          Icons.receipt_long_outlined,
-                                                        ),
-                                                        title: Text(
-                                                          formatMinorUnits(context, payment.amount.minorUnits),
-                                                          style: Theme.of(context)
-                                                              .textTheme
-                                                              .titleSmall
-                                                              ?.copyWith(
-                                                                fontWeight:
-                                                                    FontWeight.w700,
-                                                              ),
-                                                        ),
-                                                        subtitle: Text(
-                                                          '${strings.paidAt}: ${toAsciiDigits(MaterialLocalizations.of(context).formatFullDate(payment.paidAt))}'
-                                                          '\n${strings.time}: ${TimeOfDay.fromDateTime(payment.paidAt).format(context)}'
-                                                          '${payment.note == null ? '' : '\n${payment.note}'}',
-                                                        ),
-                                                      ),
-                                                  ],
-                                                ),
-                                        ),
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(dialogContext),
-                                          child: Text(strings.cancel),
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                ),
-                              );
-                            },
-                            icon: const Icon(Icons.history),
-                            label: Text(strings.paymentHistory),
-                          ),
-                        ],
-                      ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(dialogContext),
+                              child: Text(strings.cancel),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   );
                 },
-              );
-        },
-      )),
-        ],
-      ),
+                icon: const Icon(Icons.history),
+                label: Text(strings.paymentHistory),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDebtActivityPage(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations strings,
+    MonthKey selectedMonth,
+    AppDesignTokens tokens,
+  ) {
+    final activity = ref.watch(debtActivityProvider);
+    return activity.when(
+      loading: () => Center(child: Text(strings.loading)),
+      error: (error, stackTrace) => Center(child: Text(strings.dataError)),
+      data: (events) {
+        final query = _searchQuery.trim().toLowerCase();
+        final visible = events.where((event) {
+          final date = event.occurredAt.toLocal();
+          final eventMonth = MonthKey(year: date.year, month: date.month);
+          return eventMonth.compareTo(selectedMonth) <= 0 &&
+              ('${event.counterparty} ${event.note ?? ''} ${event.amountMinorUnits} '
+                '${formatMinorUnits(context, event.amountMinorUnits)}')
+                .toLowerCase().contains(query);
+        }).toList(growable: false);
+        if (visible.isEmpty) return Center(child: Text(strings.noRecords));
+        return ListView.separated(
+          key: const Key('debt-activity-page'),
+          padding: tokens.pageInsets(),
+          itemCount: visible.length,
+          separatorBuilder: (context, index) => SizedBox(height: tokens.sectionSpacing / 2),
+          itemBuilder: (context, index) {
+            final event = visible[index];
+            final eventTitle = switch (event.eventType) {
+              'created' => strings.debtCreatedEvent,
+              'updated' => strings.debtUpdatedEvent,
+              'payment' => strings.debtPaymentEvent,
+              'payment_reversed' => strings.debtPaymentReversedEvent,
+              'deleted' => strings.debtDeletedEvent,
+              'restored' => strings.debtRestoredEvent,
+              _ => strings.debtActivity,
+            };
+            final direction = event.direction == DebtDirection.creditor.name
+                ? strings.creditor
+                : strings.debtor;
+            final icon = switch (event.eventType) {
+              'created' => Icons.add_circle_outline,
+              'updated' => Icons.edit_note_outlined,
+              'payment' => Icons.payments_outlined,
+              'payment_reversed' => Icons.undo_rounded,
+              'deleted' => Icons.delete_outline,
+              'restored' => Icons.restore_rounded,
+              _ => Icons.history,
+            };
+            return Card(
+              child: ListTile(
+                leading: Icon(icon),
+                title: Text(eventTitle),
+                subtitle: Text(
+                  '${event.counterparty} • $direction • '
+                  '${toAsciiDigits(MaterialLocalizations.of(context).formatFullDate(event.occurredAt))} • '
+                  '${strings.time}: ${TimeOfDay.fromDateTime(event.occurredAt).format(context)}'
+                  '${event.note == null || event.note!.isEmpty ? '' : '\n${event.note}'}',
+                ),
+                isThreeLine: event.note != null && event.note!.isNotEmpty,
+                trailing: Text(
+                  formatMinorUnits(context, event.amountMinorUnits),
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -627,28 +781,21 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
     BuildContext context,
     AppLocalizations strings,
     List<DebtEntry> items,
+    DebtDirection direction,
   ) {
-    final creditor = items
-        .where((item) => item.direction == DebtDirection.creditor)
+    final total = items
+        .where((item) => item.direction == direction)
         .fold<int>(0, (sum, item) => sum + item.outstandingAmount.minorUnits);
-    final debtor = items
-        .where((item) => item.direction == DebtDirection.debtor)
-        .fold<int>(0, (sum, item) => sum + item.outstandingAmount.minorUnits);
-
+    final isCreditor = direction == DebtDirection.creditor;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: SummaryMetricGrid(
         metrics: [
           SummaryMetricData(
-            title: strings.totalCreditor,
-            value: creditor.toString(),
-            icon: Icons.call_received_outlined,
-          ),
-          SummaryMetricData(
-            title: strings.totalDebtor,
-            value: debtor.toString(),
-            icon: Icons.call_made_outlined,
-            emphasized: true,
+            title: isCreditor ? strings.totalCreditor : strings.totalDebtor,
+            value: formatMinorUnits(context, total),
+            icon: isCreditor ? Icons.call_received_outlined : Icons.call_made_outlined,
+            emphasized: !isCreditor,
           ),
         ],
       ),

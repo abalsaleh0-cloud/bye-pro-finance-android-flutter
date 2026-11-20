@@ -997,7 +997,7 @@ void main() {
     final month = MonthKey(year: now.year, month: now.month);
     final debt = DebtEntry(
       id: 'widget-debt-payment-time',
-      direction: DebtDirection.debtor,
+      direction: DebtDirection.creditor,
       originalAmount: Money.fromMinorUnits(500),
       outstandingAmount: Money.fromMinorUnits(400),
       dueMonth: month,
@@ -1048,7 +1048,7 @@ void main() {
 
     await tester.tap(find.text('الديون').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('debts-tab-1')));
+    await tester.tap(find.byKey(const Key('debts-tab-0')));
     await tester.pumpAndSettle();
     expect(find.text('سجل الدفعات'), findsOneWidget);
     expect(find.textContaining('الوقت:'), findsNothing);

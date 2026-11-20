@@ -597,6 +597,9 @@ final class ActionRegistry {
           );
         }
         final deleted = matches.single;
+        if (deleted.categoryId == 'debt_repayment') {
+          throw const AssistantActionException('linked_debt_repayment');
+        }
         await _home.delete(deleted.id);
         return ActionExecution(
           message: 'تم حذف مصروف المنزل',
@@ -1000,14 +1003,29 @@ final class ActionRegistry {
           paidAt: p['date'] is String ? DateTime.parse(p['date']! as String) : DateTime.now(),
           note: p['note'] as String?,
         );
+        final selectedDebt = matchingDebts.single;
+        final fromHome = selectedDebt.direction == DebtDirection.debtor;
         try {
-          await _debts.recordPayment(payment);
+          if (fromHome) {
+            await _home.saveDebtRepayment(
+              payment,
+              counterparty: selectedDebt.counterparty,
+            );
+          } else {
+            await _debts.recordPayment(payment);
+          }
+        } on InsufficientHomeBalanceException {
+          throw const AssistantActionException('home_balance_insufficient');
         } on ArgumentError {
           throw const AssistantActionException('debt_payment_exceeds_balance');
         }
         return ActionExecution(
-          message: 'تم تسجيل دفعة الدين',
-          undo: () => _debts.undoPayment(payment.id),
+          message: fromHome
+              ? 'تم تسديد الدين من المنزل وتحديث رصيده'
+              : 'تم تسجيل دفعة الدين',
+          undo: () => fromHome
+              ? _home.undoDebtRepayment(payment.id)
+              : _debts.undoPayment(payment.id),
         );
       case 'read_work_remaining':
         final all = await _work.watchEntries().first;

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:expense_app/core/database/app_database.dart';
@@ -28,6 +30,10 @@ void main() {
     await database.writeSetting('theme_mode', 'dark');
     await database.writeSetting('home_expense_categories', '[{"id":"custom_test","name":"Custom"}]');
     await database.writeSetting('ai_chat_conversations_v2', '{"conversations":[{"id":"chat-1"}]}');
+    await database.customStatement(
+      'INSERT INTO debt_activity (id, debt_id, event_type, direction, counterparty, amount_minor_units, occurred_at_epoch_millis, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      ['activity-1', 'debt-1', 'created', 'debtor', 'Ali', 900, 1794960000000, 'note'],
+    );
 
     final backup = await backupService.exportJson(database);
 
@@ -47,6 +53,17 @@ void main() {
     expect(await database.readSetting('theme_mode'), 'dark');
     expect(await database.readSetting('home_expense_categories'), '[{"id":"custom_test","name":"Custom"}]');
     expect(await database.readSetting('ai_chat_conversations_v2'), '{"conversations":[{"id":"chat-1"}]}');
+    final activity = await database.customSelect('SELECT * FROM debt_activity').get();
+    expect(activity, hasLength(1));
+    expect(activity.single.read<String>('counterparty'), 'Ali');
+  });
+
+  test('older backup without debt activity remains restorable', () async {
+    final decoded = jsonDecode(await backupService.exportJson(database)) as Map<String, dynamic>;
+    final tables = decoded['tables'] as Map<String, dynamic>;
+    tables.remove('debt_activity');
+    await backupService.restoreJson(database, jsonEncode(decoded));
+    expect(await database.customSelect('SELECT * FROM debt_activity').get(), isEmpty);
   });
 
   test('invalid backup is rejected before replacing existing data', () async {

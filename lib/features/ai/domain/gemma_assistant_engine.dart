@@ -703,7 +703,7 @@ final class GemmaAssistantEngine implements AssistantEngine {
         'delete_work_home_transfer' => 'Delete one work-to-household transfer by identifier or a unique amount and date/month match.',
         'save_debt' => 'Create a debt record.',
         'delete_debt' => 'Delete one debt by identifier or exact unique counterparty and optional direction.',
-        'record_debt_payment' => 'Record a payment against an existing debt.',
+        'record_debt_payment' => 'Record a payment against an existing debt. For a debt payable by the user (debtor), charge the Home balance and record it as a Home expense; for money owed to the user (creditor), record an incoming debt payment without charging Home.',
         'read_work_remaining' => 'Request the remaining work balance from the app.',
         'read_month_total' => 'Request a section total for a specified month from the app.',
         'read_dashboard_summary' => 'Read the selected-month financial dashboard summary. All figures must be calculated by the app from its stored records; do not estimate or invent values.',

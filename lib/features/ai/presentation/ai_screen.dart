@@ -106,6 +106,13 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         actionName == 'delete_home_category') {
       ref.invalidate(homeExpenseCategoriesProvider);
     }
+    if (actionName == 'save_debt' ||
+        actionName == 'delete_debt' ||
+        actionName == 'record_debt_payment') {
+      ref.invalidate(debtActivityProvider);
+      ref.invalidate(debtsProvider);
+      ref.invalidate(homeExpensesProvider);
+    }
     if (actionName == 'save_home_bill' ||
         actionName == 'delete_home_bill' ||
         actionName == 'record_home_bill_payment') {
@@ -697,6 +704,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         'debt_amount_below_paid' => strings.assistantDebtAmountBelowPaid,
         'work_balance_insufficient' => strings.assistantWorkBalanceInsufficient,
         'home_balance_insufficient' => strings.assistantHomeBalanceInsufficient,
+        'linked_debt_repayment' => strings.debtRepaymentUndoFromHistory,
         'bill_commitment_not_available' => strings.assistantBillCommitmentNotAvailable,
         'home_commitment_not_covered' => strings.assistantHomeCommitmentNotCovered,
         _ => strings.assistantNotUnderstood,
@@ -1086,6 +1094,8 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       if (kind is String && _kindName(kind, strings) != null)
         _kindName(kind, strings)!,
       if (isDebt) '${strings.originalAmount}: $amount',
+      if (command.name == 'record_debt_payment' && isDebtor)
+        strings.debtRepaymentInHome,
       if (debtDirectionLabel != null && !isDebt) debtDirectionLabel,
       if (parameters['id'] is String) 'ID: ${parameters['id']}',
       if (note.isNotEmpty) note,
@@ -1127,7 +1137,9 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       'save_debt' || 'record_debt_payment' || 'delete_debt' =>
         isCreditor
             ? Icons.call_received_outlined
-            : Icons.call_made_outlined,
+            : command.name == 'record_debt_payment'
+                ? Icons.home_outlined
+                : Icons.call_made_outlined,
       'save_home_category' || 'delete_home_category' => Icons.sell_outlined,
       _ => Icons.receipt_long_outlined,
     };
