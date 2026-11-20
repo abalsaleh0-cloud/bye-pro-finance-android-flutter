@@ -12,6 +12,8 @@ import 'package:expense_app/core/widgets/entry_tools.dart';
 import 'package:expense_app/core/widgets/entry_form_dialog.dart';
 import 'package:expense_app/features/home/data/home_expense_repository.dart';
 import 'package:expense_app/features/home/domain/home_expense.dart';
+import 'package:expense_app/features/debts/domain/debt_entry.dart';
+import 'package:expense_app/features/debts/domain/debt_payment.dart';
 import 'package:expense_app/features/home/domain/home_expense_category.dart';
 import 'package:expense_app/features/home/domain/home_bill.dart';
 import 'package:expense_app/features/home/presentation/home_bills_section.dart';
@@ -23,7 +25,7 @@ import 'package:material_ui/material_ui.dart';
 
 enum HomeScreenMode { overview, transfers, monthlyBills, rent, dailyExpenses, history }
 
-enum _HomeAddAction { dailyExpense, monthlyBill, rent }
+enum _HomeAddAction { dailyExpense, monthlyBill, rent, debtRepayment }
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key, this.openManualEntry = false, this.mode = HomeScreenMode.overview, this.initialMonth, this.swipePage = false});
@@ -108,6 +110,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       'communication' => strings.homeCategoryCommunication,
       'subscriptions' => strings.homeCategorySubscriptions,
       'gifts' => strings.homeCategoryGifts,
+      'debt_repayment' => strings.debtRepayment,
       _ => category.id,
     };
   }
@@ -120,7 +123,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     for (final category in categories) {
       if (category.id == categoryId) return category;
     }
-    return HomeExpenseCategory(id: categoryId, name: categoryId);
+    return HomeExpenseCategory(id: categoryId);
   }
 
   Future<String?> _askCategoryName(
@@ -271,6 +274,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     'communication' => Icons.smartphone_outlined,
     'subscriptions' => Icons.subscriptions_outlined,
     'gifts' => Icons.card_giftcard_outlined,
+    'debt_repayment' => Icons.payments_outlined,
     _ => Icons.category_outlined,
   };
 
@@ -318,6 +322,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
               ListTile(
+                key: const Key('home-add-debt-repayment'),
+                leading: const Icon(Icons.payments_outlined),
+                title: Text(strings.debtRepayment),
+                onTap: () => Navigator.pop(
+                  sheetContext,
+                  _HomeAddAction.debtRepayment,
+                ),
+              ),
+              ListTile(
                 key: const Key('home-add-rent'),
                 leading: const Icon(Icons.home_work_outlined),
                 title: Text(strings.addMonthlyRent),
@@ -347,6 +360,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           HomeBillKind.monthly,
         );
         break;
+      case _HomeAddAction.debtRepayment:
+        await _recordDebtRepayment(context, ref, strings);
+        break;
       case _HomeAddAction.rent:
         await HomeBillsSection(
           selectedMonth: ref.read(selectedMonthProvider),
@@ -357,6 +373,203 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           HomeBillKind.rent,
         );
         break;
+    }
+  }
+
+
+  Future<void> _recordDebtRepayment(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations strings,
+  ) async {
+    final allDebts = await ref.read(debtsProvider.future);
+    if (!context.mounted) return;
+    final payable = allDebts
+        .where((debt) =>
+            debt.direction == DebtDirection.debtor &&
+            !debt.outstandingAmount.isZero)
+        .toList(growable: false);
+    if (payable.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(strings.noDebtsToPay)),
+      );
+      return;
+    }
+
+    final amount = TextEditingController();
+    final selectedDate = _defaultSelectedDate();
+    final paidAt = TextEditingController(text: formatCalendarDate(selectedDate));
+    var paidTimeOfDay = TimeOfDay.fromDateTime(DateTime.now());
+    final paidTime = TextEditingController(text: paidTimeOfDay.format(context));
+    final note = TextEditingController();
+    var selectedDebtId = payable.first.id;
+    String? error;
+    try {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (dialogContext, setDialogState) => AlertDialog(
+            title: Text(strings.debtRepayment),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    key: const Key('home-debt-repayment-debt'),
+                    initialValue: selectedDebtId,
+                    isExpanded: true,
+                    decoration: InputDecoration(labelText: strings.counterparty),
+                    items: [
+                      for (final debt in payable)
+                        DropdownMenuItem(
+                          value: debt.id,
+                          child: Text(
+                            '${debt.counterparty} — ${formatMinorUnits(context, debt.outstandingAmount.minorUnits)}',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setDialogState(() => selectedDebtId = value);
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    key: const Key('home-debt-repayment-amount'),
+                    controller: amount,
+                    autofocus: true,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      labelText: strings.paymentAmount,
+                      suffixIcon: calculatorSuffix(context, amount, strings),
+                    ),
+                  ),
+                  TextField(
+                    key: const Key('home-debt-repayment-date'),
+                    controller: paidAt,
+                    readOnly: true,
+                    decoration: InputDecoration(
+                      labelText: strings.paidAt,
+                      suffixIcon: calendarSuffix(
+                        context,
+                        paidAt,
+                        strings,
+                        monthOnly: false,
+                      ),
+                    ),
+                  ),
+                  TextField(
+                    controller: paidTime,
+                    readOnly: true,
+                    decoration: InputDecoration(
+                      labelText: strings.time,
+                      suffixIcon: IconButton(
+                        tooltip: strings.time,
+                        icon: const Icon(Icons.access_time),
+                        onPressed: () async {
+                          final selected = await showTimePicker(
+                            context: dialogContext,
+                            initialTime: paidTimeOfDay,
+                          );
+                          if (selected == null || !dialogContext.mounted) return;
+                          setDialogState(() {
+                            paidTimeOfDay = selected;
+                            paidTime.text = selected.format(dialogContext);
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                  TextField(
+                    controller: note,
+                    decoration: InputDecoration(labelText: strings.note),
+                  ),
+                  if (error != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        error!,
+                        style: TextStyle(
+                          color: Theme.of(dialogContext).colorScheme.error,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: Text(strings.cancel),
+              ),
+              FilledButton(
+                key: const Key('home-debt-repayment-save'),
+                onPressed: () async {
+                  final value = int.tryParse(amount.text.trim());
+                  final paymentDay = DateTime.tryParse(paidAt.text.trim());
+                  final debt = payable.firstWhere(
+                    (item) => item.id == selectedDebtId,
+                  );
+                  if (value == null ||
+                      value <= 0 ||
+                      value > debt.outstandingAmount.minorUnits ||
+                      paymentDay == null) {
+                    setDialogState(() => error = strings.invalidRecord);
+                    return;
+                  }
+                  final paidDateTime = DateTime(
+                    paymentDay.year,
+                    paymentDay.month,
+                    paymentDay.day,
+                    paidTimeOfDay.hour,
+                    paidTimeOfDay.minute,
+                  );
+                  try {
+                    await ref
+                        .read(homeExpenseRepositoryProvider)
+                        .saveDebtRepayment(
+                          DebtPayment(
+                            id: DateTime.now().microsecondsSinceEpoch.toString(),
+                            debtId: debt.id,
+                            amount: Money.fromMinorUnits(value),
+                            paidAt: paidDateTime,
+                            note: note.text.trim().isEmpty
+                                ? null
+                                : note.text.trim(),
+                          ),
+                          counterparty: debt.counterparty,
+                        );
+                    ref.invalidate(debtsProvider);
+                    ref.invalidate(homeExpensesProvider);
+                    ref.invalidate(debtActivityProvider);
+                    if (dialogContext.mounted) Navigator.pop(dialogContext);
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(strings.debtRepaymentRecorded)),
+                      );
+                    }
+                  } on InsufficientHomeBalanceException {
+                    setDialogState(
+                      () => error = strings.homeBalanceInsufficient,
+                    );
+                  } catch (_) {
+                    setDialogState(() => error = strings.invalidRecord);
+                  }
+                },
+                child: Text(strings.save),
+              ),
+            ],
+          ),
+        ),
+      );
+    } finally {
+      await WidgetsBinding.instance.endOfFrame;
+      amount.dispose();
+      paidAt.dispose();
+      paidTime.dispose();
+      note.dispose();
     }
   }
 
@@ -372,7 +585,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     var categories = await ref.read(homeExpenseCategoriesProvider.future);
     if (!context.mounted) return;
     if (existing != null && !categories.any((item) => item.id == existing.categoryId)) {
-      categories = [...categories, HomeExpenseCategory(id: existing.categoryId, name: existing.categoryId)];
+      categories = [...categories, HomeExpenseCategory(id: existing.categoryId)];
     }
     String selectedCategoryId = existing?.categoryId ?? categories.first.id;
     final date = TextEditingController(
