@@ -758,7 +758,8 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                 title: Text(eventTitle),
                 subtitle: Text(
                   '${event.counterparty} • $direction • '
-                  '${toAsciiDigits(MaterialLocalizations.of(context).formatFullDate(event.occurredAt))}'
+                  '${toAsciiDigits(MaterialLocalizations.of(context).formatFullDate(event.occurredAt))} • '
+                  '${strings.time}: ${TimeOfDay.fromDateTime(event.occurredAt).format(context)}'
                   '${event.note == null || event.note!.isEmpty ? '' : '\n${event.note}'}',
                 ),
                 isThreeLine: event.note != null && event.note!.isNotEmpty,
