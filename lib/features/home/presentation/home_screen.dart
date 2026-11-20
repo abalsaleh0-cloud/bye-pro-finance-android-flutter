@@ -473,7 +473,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             context: dialogContext,
                             initialTime: paidTimeOfDay,
                           );
-                          if (selected == null || !dialogContext.mounted) return;
+                          if (selected == null || !dialogContext.mounted) {
+                            return;
+                          }
                           setDialogState(() {
                             paidTimeOfDay = selected;
                             paidTime.text = selected.format(dialogContext);
@@ -739,7 +741,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final existing = (await ref.read(homeExpensesProvider.future))
         .where((expense) => expense.id == id)
         .firstOrNull;
-    if (existing?.categoryId == 'debt_repayment') return;
+    if (existing?.categoryId == 'debt_repayment') {
+      return;
+    }
+    if (!context.mounted) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
