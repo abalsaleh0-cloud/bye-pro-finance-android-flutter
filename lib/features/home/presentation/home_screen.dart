@@ -300,9 +300,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       builder: (sheetContext) => SafeArea(
         child: Padding(
           padding: const EdgeInsetsDirectional.fromSTEB(16, 12, 16, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
               ListTile(
                 key: const Key('home-add-daily-expense'),
                 leading: const Icon(Icons.shopping_bag_outlined),
@@ -339,7 +340,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   _HomeAddAction.rent,
                 ),
               ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
