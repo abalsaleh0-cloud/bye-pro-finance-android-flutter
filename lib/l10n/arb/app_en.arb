@@ -343,5 +343,7 @@
   "debtRepaymentRecorded": "Debt repayment was recorded in Home and the balance was updated.",
   "homeBalanceInsufficient": "The available Home balance is not enough to complete this repayment.",
   "noDebtsToPay": "There are no outstanding debts payable by you.",
-  "debtPaymentReversedEvent": "Payment reversed"
+  "debtPaymentReversedEvent": "Payment reversed",
+  "debtHasPaymentHistory": "This debt cannot be deleted because it has recorded payments.",
+  "debtRestoredEvent": "Debt restored"
 }
