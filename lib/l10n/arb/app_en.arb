@@ -332,5 +332,15 @@
   "securityBiometricUnavailable": "No enrolled fingerprint or biometric authentication is available.",
   "securityBiometricNotEnabled": "Biometric protection was not enabled.",
   "securityBiometricDisabled": "Biometric protection disabled.",
-  "securityBiometricChangeFailed": "Could not change biometric settings."
+  "securityBiometricChangeFailed": "Could not change biometric settings.",
+  "debtActivity": "Debt activity",
+  "debtCreatedEvent": "Debt added",
+  "debtUpdatedEvent": "Debt edited",
+  "debtPaymentEvent": "Payment recorded",
+  "debtDeletedEvent": "Debt deleted",
+  "debtRepayment": "Repay a debt",
+  "debtRepaymentInHome": "Repay from Home",
+  "debtRepaymentRecorded": "Debt repayment was recorded in Home and the balance was updated.",
+  "homeBalanceInsufficient": "The available Home balance is not enough to complete this repayment.",
+  "noDebtsToPay": "There are no outstanding debts payable by you."
 }
