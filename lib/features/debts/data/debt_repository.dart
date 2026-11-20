@@ -236,8 +236,9 @@ final class DebtRepository {
   }
 
   /// Reverts a recorded payment and restores its amount atomically.
-  Future<void> undoPayment(String paymentId) {
-    return _database.transaction(() async {
+  Future<void> undoPayment(String paymentId) async {
+    await getActivity();
+    await _database.transaction(() async {
       final payment = await (_database.select(_database.debtPayments)
             ..where((row) => row.id.equals(paymentId)))
           .getSingleOrNull();
