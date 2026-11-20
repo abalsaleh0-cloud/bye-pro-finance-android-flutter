@@ -597,6 +597,9 @@ final class ActionRegistry {
           );
         }
         final deleted = matches.single;
+        if (deleted.categoryId == 'debt_repayment') {
+          throw const AssistantActionException('linked_debt_repayment');
+        }
         await _home.delete(deleted.id);
         return ActionExecution(
           message: 'تم حذف مصروف المنزل',
