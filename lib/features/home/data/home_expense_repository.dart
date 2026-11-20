@@ -37,6 +37,9 @@ final class HomeExpenseRepository {
       final transfers = await _database.select(_database.workHomeTransfers).get();
       final expenses = await _database.select(_database.homeExpenses).get();
       final previous = expenses.where((row) => row.id == expense.id);
+      if (previous.isNotEmpty && previous.first.categoryId == 'debt_repayment') {
+        throw StateError('A linked debt repayment cannot be edited as a regular expense.');
+      }
       final previousAmount = previous.isEmpty
           ? 0
           : previous.first.amountMinorUnits;
@@ -160,8 +163,10 @@ final class HomeExpenseRepository {
       }
 
       final expenseId = 'debt-payment-${payment.id}';
-      final expenseNote = 'Debt repayment to $counterparty'
-          '${payment.note == null || payment.note!.trim().isEmpty ? '' : ' — ${payment.note!.trim()}'}';
+      final expenseNote = counterparty
+          + (payment.note == null || payment.note!.trim().isEmpty
+              ? ''
+              : ' — ${payment.note!.trim()}');
       await _database.into(_database.homeExpenses).insert(
         HomeExpensesCompanion.insert(
           id: expenseId,
@@ -253,10 +258,16 @@ final class HomeExpenseRepository {
     });
   }
 
-  Future<void> delete(String id) {
-    return (_database.delete(
-      _database.homeExpenses,
-    )..where((row) => row.id.equals(id))).go();
+  Future<void> delete(String id) async {
+    final existing = await (_database.select(_database.homeExpenses)
+          ..where((row) => row.id.equals(id)))
+        .getSingleOrNull();
+    if (existing?.categoryId == 'debt_repayment') {
+      throw StateError('A linked debt repayment must be reverted through its debt payment.');
+    }
+    await (_database.delete(_database.homeExpenses)
+          ..where((row) => row.id.equals(id)))
+        .go();
   }
 
   HomeExpense _toDomain(HomeExpenseRow row) => HomeExpense(
