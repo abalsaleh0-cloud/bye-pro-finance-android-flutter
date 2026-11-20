@@ -1093,6 +1093,8 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       if (kind is String && _kindName(kind, strings) != null)
         _kindName(kind, strings)!,
       if (isDebt) '${strings.originalAmount}: $amount',
+      if (command.name == 'record_debt_payment' && isDebtor)
+        strings.debtRepaymentInHome,
       if (debtDirectionLabel != null && !isDebt) debtDirectionLabel,
       if (parameters['id'] is String) 'ID: ${parameters['id']}',
       if (note.isNotEmpty) note,
@@ -1134,7 +1136,9 @@ class _AiScreenState extends ConsumerState<AiScreen> {
       'save_debt' || 'record_debt_payment' || 'delete_debt' =>
         isCreditor
             ? Icons.call_received_outlined
-            : Icons.call_made_outlined,
+            : command.name == 'record_debt_payment'
+                ? Icons.home_outlined
+                : Icons.call_made_outlined,
       'save_home_category' || 'delete_home_category' => Icons.sell_outlined,
       _ => Icons.receipt_long_outlined,
     };
