@@ -2,6 +2,7 @@ import 'package:expense_app/core/database/app_database.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/features/debts/data/debt_repository.dart';
 import 'package:expense_app/features/debts/domain/debt_entry.dart';
+import 'package:expense_app/features/debts/domain/debt_activity.dart';
 import 'package:expense_app/features/debts/domain/debt_payment.dart';
 import 'package:expense_app/features/home/data/home_expense_repository.dart';
 import 'package:expense_app/features/home/data/home_expense_category_repository.dart';
@@ -71,4 +72,7 @@ final debtPaymentsProvider = StreamProvider.family<List<DebtPayment>, String>((
 });
 final allDebtPaymentsProvider = StreamProvider<List<DebtPayment>>(
   (ref) => ref.watch(debtRepositoryProvider).watchAllPayments(),
+);
+final debtActivityProvider = FutureProvider<List<DebtActivity>>(
+  (ref) => ref.watch(debtRepositoryProvider).getActivity(),
 );
