@@ -764,6 +764,9 @@ void main() {
           homeBillOutstandingThroughMonthAsOfMonthProvider.overrideWith(
             (ref, selected) async => 580,
           ),
+          homeBillOutstandingAsOfMonthProvider.overrideWith(
+            (ref, selected) async => 580,
+          ),
           allHomeBillPaymentsProvider.overrideWith((ref) async => []),
           allDebtPaymentsProvider.overrideWith((ref) => Stream.value([])),
 

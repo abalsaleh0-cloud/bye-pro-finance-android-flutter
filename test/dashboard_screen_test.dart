@@ -88,7 +88,7 @@ void main() {
           homeBillPaymentsForMonthProvider.overrideWith(
             (ref, selected) async => 50,
           ),
-          homeBillOutstandingAsOfMonthProvider.overrideWith(
+          homeBillOutstandingThroughMonthAsOfMonthProvider.overrideWith(
             (ref, selected) async => 530,
           ),
           allHomeBillPaymentsProvider.overrideWith(

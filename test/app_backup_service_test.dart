@@ -26,6 +26,8 @@ void main() {
       ['work-1', 'salary', 125000, 2026, 11, 1794960000000, 'test salary'],
     );
     await database.writeSetting('theme_mode', 'dark');
+    await database.writeSetting('home_expense_categories', '[{"id":"custom_test","name":"Custom"}]');
+    await database.writeSetting('ai_chat_conversations_v2', '{"conversations":[{"id":"chat-1"}]}');
 
     final backup = await backupService.exportJson(database);
 
