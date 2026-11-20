@@ -345,5 +345,8 @@
   "noDebtsToPay": "There are no outstanding debts payable by you.",
   "debtPaymentReversedEvent": "Payment reversed",
   "debtHasPaymentHistory": "This debt cannot be deleted because it has recorded payments.",
-  "debtRestoredEvent": "Debt restored"
+  "debtRestoredEvent": "Debt restored",
+  "undoDebtPayment": "Reverse payment",
+  "confirmUndoDebtPayment": "The payment will be restored to the debt balance and its linked Home expense will be reversed. Continue?",
+  "debtRepaymentUndoFromHistory": "Reverse this repayment from the debt payment history, not from Home expenses."
 }
