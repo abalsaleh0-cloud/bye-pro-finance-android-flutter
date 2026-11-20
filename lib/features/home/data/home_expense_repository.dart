@@ -33,6 +33,9 @@ final class HomeExpenseRepository {
   /// Saves an expense only when cumulative work transfers cover all home
   /// expenses. The balance check and write share one transaction.
   Future<void> save(HomeExpense expense) {
+    if (expense.categoryId == 'debt_repayment') {
+      throw StateError('Debt repayments must be recorded through saveDebtRepayment.');
+    }
     return _database.transaction(() async {
       final transfers = await _database.select(_database.workHomeTransfers).get();
       final expenses = await _database.select(_database.homeExpenses).get();
