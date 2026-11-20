@@ -41,8 +41,9 @@ final class DebtRepository {
         .map((rows) => rows.map(_paymentToDomain).toList(growable: false));
   }
 
-  Future<void> save(DebtEntry debt) {
-    return _database.transaction(() async {
+  Future<void> save(DebtEntry debt) async {
+    await getActivity();
+    await _database.transaction(() async {
       final previous = await (_database.select(_database.debts)
             ..where((row) => row.id.equals(debt.id)))
           .getSingleOrNull();
@@ -102,8 +103,9 @@ final class DebtRepository {
   }
 
   /// Records a payment and reduces the outstanding balance atomically.
-  Future<void> recordPayment(DebtPayment payment) {
-    return _database.transaction(() async {
+  Future<void> recordPayment(DebtPayment payment) async {
+    await getActivity();
+    await _database.transaction(() async {
       final debt = await (_database.select(
         _database.debts,
       )..where((row) => row.id.equals(payment.debtId))).getSingleOrNull();
@@ -144,8 +146,9 @@ final class DebtRepository {
     });
   }
 
-  Future<void> delete(String id) {
-    return _database.transaction(() async {
+  Future<void> delete(String id) async {
+    await getActivity();
+    await _database.transaction(() async {
       final payments = await (_database.select(_database.debtPayments)
             ..where((row) => row.debtId.equals(id)))
           .get();
