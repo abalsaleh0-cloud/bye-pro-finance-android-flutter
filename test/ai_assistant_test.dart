@@ -1017,7 +1017,7 @@ void main() {
         'year': DateTime.now().year,
         'month': DateTime.now().month,
       });
-      final payment = await WorkRepository(database).saveEntry(WorkEntry(
+      await WorkRepository(database).saveEntry(WorkEntry(
         id: 'debt-history-funding-0-salary',
         kind: WorkEntryKind.salaryPayment,
         amount: Money.fromMinorUnits(2000),
@@ -1031,7 +1031,7 @@ void main() {
           transferredAt: DateTime.now(),
         ),
       );
-      await registry.execute('record_debt_payment', {
+      final payment = await registry.execute('record_debt_payment', {
         'counterparty': 'Samer',
         'direction': 'debtor',
         'amountMinorUnits': 125,
