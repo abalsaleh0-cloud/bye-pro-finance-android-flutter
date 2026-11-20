@@ -91,6 +91,9 @@ void main() {
           homeBillOutstandingThroughMonthAsOfMonthProvider.overrideWith(
             (ref, selected) async => 530,
           ),
+          homeBillOutstandingAsOfMonthProvider.overrideWith(
+            (ref, selected) async => 530,
+          ),
           allHomeBillPaymentsProvider.overrideWith(
             (ref) async => [billPayment],
           ),

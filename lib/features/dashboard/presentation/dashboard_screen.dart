@@ -31,6 +31,8 @@ class DashboardScreen extends ConsumerWidget {
     final month = ref.watch(selectedMonthProvider);
     final billPayments = ref.watch(homeBillPaymentsForMonthProvider(month));
     final billOutstandingAtMonthEnd =
+        ref.watch(homeBillOutstandingAsOfMonthProvider(month));
+    final billOutstandingThroughMonth =
         ref.watch(homeBillOutstandingThroughMonthAsOfMonthProvider(month));
     final allBillPayments = ref.watch(allHomeBillPaymentsProvider);
     final allDebtPayments = ref.watch(allDebtPaymentsProvider);
@@ -42,6 +44,7 @@ class DashboardScreen extends ConsumerWidget {
         bills.isLoading ||
         billPayments.isLoading ||
         billOutstandingAtMonthEnd.isLoading ||
+        billOutstandingThroughMonth.isLoading ||
         allBillPayments.isLoading ||
         allDebtPayments.isLoading) {
       return Scaffold(body: Center(child: Text(strings.loading)));
@@ -53,6 +56,7 @@ class DashboardScreen extends ConsumerWidget {
         bills.hasError ||
         billPayments.hasError ||
         billOutstandingAtMonthEnd.hasError ||
+        billOutstandingThroughMonth.hasError ||
         allBillPayments.hasError ||
         allDebtPayments.hasError) {
       return Scaffold(
@@ -86,8 +90,8 @@ class DashboardScreen extends ConsumerWidget {
       final date = item.transferredAt.toLocal();
       return date.year == month.year && date.month == month.month;
     }).fold<int>(0, (sum, item) => sum + item.amount.minorUnits);
-    final outstandingBillsAtMonthEnd =
-        billOutstandingAtMonthEnd.value ?? 0;
+    final outstandingBillsAtMonthEnd = billOutstandingAtMonthEnd.value ?? 0;
+    final outstandingBillsThroughMonth = billOutstandingThroughMonth.value ?? 0;
     final homeBalance = monthTransfers -
         monthExpenses -
         (billPayments.value ?? 0) -
@@ -263,7 +267,7 @@ class DashboardScreen extends ConsumerWidget {
             ),
             _MetricData(
               title: strings.totalBillsOutstanding,
-              amount: outstandingBillsAtMonthEnd,
+              amount: outstandingBillsThroughMonth,
               icon: Icons.receipt_outlined,
             ),
             _MetricData(
