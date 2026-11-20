@@ -62,7 +62,7 @@ void main() {
     expect(payments.single.amountMinorUnits, 200);
     final activity = await DebtRepository(database).getActivity();
     expect(activity.where((item) => item.eventType == 'payment'), hasLength(1));
-    expect(activity.single.counterparty, 'Test person');
+    expect(activity.where((item) => item.eventType == 'payment').single.counterparty, 'Test person');
   });
 
   test('insufficient home balance leaves the debt and payment history unchanged', () async {
