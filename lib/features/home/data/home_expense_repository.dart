@@ -114,7 +114,9 @@ final class HomeExpenseRepository {
       final debt = await (_database.select(_database.debts)
             ..where((row) => row.id.equals(payment.debtId)))
           .getSingleOrNull();
-      if (debt == null) throw StateError('Debt not found: ${payment.debtId}');
+      if (debt == null) {
+        throw StateError('Debt not found: ${payment.debtId}');
+      }
       if (debt.direction != 'debtor') {
         throw ArgumentError('Only a debt payable by the user can be settled from home.');
       }
@@ -224,11 +226,15 @@ final class HomeExpenseRepository {
       final payment = await (_database.select(_database.debtPayments)
             ..where((row) => row.id.equals(paymentId)))
           .getSingleOrNull();
-      if (payment == null) throw StateError('Debt payment not found: $paymentId');
+      if (payment == null) {
+        throw StateError('Debt payment not found: $paymentId');
+      }
       final debt = await (_database.select(_database.debts)
             ..where((row) => row.id.equals(payment.debtId)))
           .getSingleOrNull();
-      if (debt == null) throw StateError('Debt not found: ${payment.debtId}');
+      if (debt == null) {
+        throw StateError('Debt not found: ${payment.debtId}');
+      }
 
       await (_database.delete(_database.homeExpenses)
             ..where((row) => row.id.equals('debt-payment-$paymentId')))
