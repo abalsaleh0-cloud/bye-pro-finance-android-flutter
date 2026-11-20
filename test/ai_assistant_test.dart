@@ -718,6 +718,13 @@ void main() {
       expect(debt.originalAmountMinorUnits, 900);
       expect(debt.outstandingAmountMinorUnits, 900);
 
+      await WorkRepository(database).saveTransfer(
+        WorkHomeTransfer(
+          id: 'debt-payment-test-funding-0',
+          amount: Money.fromMinorUnits(5000),
+          transferredAt: DateTime(2026, 11, 1),
+        ),
+      );
       await registry.execute('record_debt_payment', {
         'debtId': editedDebtId,
         'amountMinorUnits': 200,
@@ -756,6 +763,13 @@ void main() {
         'month': 11,
       });
       final protectedDebtId = (await DebtRepository(database).watchAll().first).single.id;
+      await WorkRepository(database).saveTransfer(
+        WorkHomeTransfer(
+          id: 'debt-payment-test-funding-1',
+          amount: Money.fromMinorUnits(5000),
+          transferredAt: DateTime(2026, 11, 1),
+        ),
+      );
       await registry.execute('record_debt_payment', {
         'debtId': protectedDebtId,
         'amountMinorUnits': 200,
@@ -806,7 +820,14 @@ void main() {
         'month': 11,
       });
       final paymentDebtId = (await DebtRepository(database).watchAll().first).single.id;
-      final result = await registry.execute('record_debt_payment', {
+      final result = await WorkRepository(database).saveTransfer(
+        WorkHomeTransfer(
+          id: 'debt-payment-test-funding-2',
+          amount: Money.fromMinorUnits(5000),
+          transferredAt: DateTime(2026, 11, 1),
+        ),
+      );
+      await registry.execute('record_debt_payment', {
         'debtId': paymentDebtId,
         'amountMinorUnits': 200,
       });
