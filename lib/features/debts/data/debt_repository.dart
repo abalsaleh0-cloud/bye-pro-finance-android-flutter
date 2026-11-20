@@ -9,6 +9,7 @@ import 'package:expense_app/core/database/app_database.dart'
 import 'package:expense_app/core/money/money.dart';
 import 'package:expense_app/core/time/month_key.dart';
 import 'package:expense_app/features/debts/domain/debt_entry.dart';
+import 'package:expense_app/features/debts/domain/debt_activity.dart';
 import 'package:expense_app/features/debts/domain/debt_payment.dart';
 
 final class DebtRepository {
@@ -42,6 +43,9 @@ final class DebtRepository {
 
   Future<void> save(DebtEntry debt) {
     return _database.transaction(() async {
+      final previous = await (_database.select(_database.debts)
+            ..where((row) => row.id.equals(debt.id)))
+          .getSingleOrNull();
       final payments = await (_database.select(_database.debtPayments)
             ..where((row) => row.debtId.equals(debt.id)))
           .get();
@@ -74,6 +78,26 @@ final class DebtRepository {
           note: Value(debt.note),
         ),
       );
+      final eventType = previous == null ? 'created' : 'updated';
+      if (previous == null ||
+          previous.direction != debt.direction.name ||
+          previous.originalAmountMinorUnits != debt.originalAmount.minorUnits ||
+          previous.outstandingAmountMinorUnits != debt.outstandingAmount.minorUnits ||
+          previous.counterparty != debt.counterparty ||
+          previous.note != debt.note) {
+        await _writeActivity(
+          id: 'activity-${DateTime.now().microsecondsSinceEpoch}',
+          debtId: debt.id,
+          eventType: eventType,
+          direction: debt.direction.name,
+          counterparty: debt.counterparty,
+          amountMinorUnits: debt.originalAmount.minorUnits,
+          occurredAt: DateTime.now(),
+          note: eventType == 'updated'
+              ? 'Updated from ${previous!.originalAmountMinorUnits} to ${debt.originalAmount.minorUnits}'
+              : debt.note,
+        );
+      }
     });
   }
 
@@ -107,6 +131,16 @@ final class DebtRepository {
           ),
         ),
       );
+      await _writeActivity(
+        id: 'activity-${DateTime.now().microsecondsSinceEpoch}',
+        debtId: payment.debtId,
+        eventType: 'payment',
+        direction: debt.direction,
+        counterparty: debt.counterparty,
+        amountMinorUnits: payment.amount.minorUnits,
+        occurredAt: payment.paidAt,
+        note: payment.note,
+      );
     });
   }
 
@@ -118,6 +152,21 @@ final class DebtRepository {
       if (payments.isNotEmpty) {
         throw StateError(
           'Debt has payment history. Restore or archive it instead of deleting.',
+        );
+      }
+      final debt = await (_database.select(_database.debts)
+            ..where((row) => row.id.equals(id)))
+          .getSingleOrNull();
+      if (debt != null) {
+        await _writeActivity(
+          id: 'activity-${DateTime.now().microsecondsSinceEpoch}',
+          debtId: debt.id,
+          eventType: 'deleted',
+          direction: debt.direction,
+          counterparty: debt.counterparty,
+          amountMinorUnits: debt.originalAmountMinorUnits,
+          occurredAt: DateTime.now(),
+          note: debt.note,
         );
       }
       await (_database.delete(_database.debts)
@@ -194,6 +243,94 @@ final class DebtRepository {
         ),
       ));
     });
+  }
+
+
+  /// Returns a newest-first audit trail. Older installations are backfilled
+  /// once from their existing debt and payment records.
+  Future<List<DebtActivity>> getActivity() async {
+    if (await _database.readSetting('debt_activity_backfill_v1') != 'done') {
+      await _database.transaction(() async {
+        final existingDebts = await _database.select(_database.debts).get();
+        for (final debt in existingDebts) {
+          await _writeActivity(
+            id: 'legacy-created-${debt.id}',
+            debtId: debt.id,
+            eventType: 'created',
+            direction: debt.direction,
+            counterparty: debt.counterparty,
+            amountMinorUnits: debt.originalAmountMinorUnits,
+            occurredAt: DateTime.fromMillisecondsSinceEpoch(debt.createdAtEpochMillis),
+            note: debt.note,
+          );
+        }
+        final existingPayments = await _database.select(_database.debtPayments).get();
+        for (final payment in existingPayments) {
+          DebtRow? matchingDebt;
+          for (final candidate in existingDebts) {
+            if (candidate.id == payment.debtId) {
+              matchingDebt = candidate;
+              break;
+            }
+          }
+          if (matchingDebt == null) continue;
+          await _writeActivity(
+            id: 'legacy-payment-${payment.id}',
+            debtId: matchingDebt.id,
+            eventType: 'payment',
+            direction: matchingDebt.direction,
+            counterparty: matchingDebt.counterparty,
+            amountMinorUnits: payment.amountMinorUnits,
+            occurredAt: DateTime.fromMillisecondsSinceEpoch(payment.paidAtEpochMillis),
+            note: payment.note,
+          );
+        }
+        await _database.writeSetting('debt_activity_backfill_v1', 'done');
+      });
+    }
+
+    final rows = await _database.customSelect(
+      'SELECT * FROM debt_activity ORDER BY occurred_at_epoch_millis DESC, id DESC',
+    ).get();
+    return rows.map((row) => DebtActivity(
+      id: row.read<String>('id'),
+      debtId: row.read<String>('debt_id'),
+      eventType: row.read<String>('event_type'),
+      direction: row.read<String>('direction'),
+      counterparty: row.read<String>('counterparty'),
+      amountMinorUnits: row.read<int>('amount_minor_units'),
+      occurredAt: DateTime.fromMillisecondsSinceEpoch(
+        row.read<int>('occurred_at_epoch_millis'),
+      ),
+      note: row.read<String?>('note'),
+    )).toList(growable: false);
+  }
+
+  Future<void> _writeActivity({
+    required String id,
+    required String debtId,
+    required String eventType,
+    required String direction,
+    required String counterparty,
+    required int amountMinorUnits,
+    required DateTime occurredAt,
+    String? note,
+  }) {
+    return _database.customStatement(
+      'INSERT OR IGNORE INTO debt_activity '
+      '(id, debt_id, event_type, direction, counterparty, amount_minor_units, occurred_at_epoch_millis, note) '
+      'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [
+        id,
+        debtId,
+        eventType,
+        direction,
+        counterparty,
+        amountMinorUnits,
+        occurredAt.millisecondsSinceEpoch,
+        note,
+      ],
+    );
   }
 
   DebtEntry _toDomain(DebtRow row) => DebtEntry(
