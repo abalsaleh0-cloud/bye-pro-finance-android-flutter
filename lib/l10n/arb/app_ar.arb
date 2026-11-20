@@ -332,5 +332,15 @@
   "securityBiometricUnavailable": "لا توجد بصمة مسجلة أو أن الجهاز لا يدعم التحقق الحيوي.",
   "securityBiometricNotEnabled": "لم يتم تفعيل البصمة.",
   "securityBiometricDisabled": "تم إيقاف البصمة.",
-  "securityBiometricChangeFailed": "تعذر تغيير إعداد البصمة."
+  "securityBiometricChangeFailed": "تعذر تغيير إعداد البصمة.",
+  "debtActivity": "سجل الديون",
+  "debtCreatedEvent": "إضافة دين",
+  "debtUpdatedEvent": "تعديل دين",
+  "debtPaymentEvent": "تسجيل دفعة",
+  "debtDeletedEvent": "حذف دين",
+  "debtRepayment": "تسديد دين",
+  "debtRepaymentInHome": "التسديد من قسم المنزل",
+  "debtRepaymentRecorded": "تم تسجيل تسديد الدين في المنزل وتحديث رصيده.",
+  "homeBalanceInsufficient": "الرصيد المتاح في المنزل غير كافٍ لإتمام التسديد.",
+  "noDebtsToPay": "لا توجد ديون مستحقة عليك للتسديد."
 }
