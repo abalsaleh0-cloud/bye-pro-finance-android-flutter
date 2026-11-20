@@ -106,6 +106,13 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         actionName == 'delete_home_category') {
       ref.invalidate(homeExpenseCategoriesProvider);
     }
+    if (actionName == 'save_debt' ||
+        actionName == 'delete_debt' ||
+        actionName == 'record_debt_payment') {
+      ref.invalidate(debtActivityProvider);
+      ref.invalidate(debtsProvider);
+      ref.invalidate(homeExpensesProvider);
+    }
     if (actionName == 'save_home_bill' ||
         actionName == 'delete_home_bill' ||
         actionName == 'record_home_bill_payment') {
