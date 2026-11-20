@@ -38,6 +38,7 @@ class AppBackupService {
     'work_home_transfers',
     'debts',
     'debt_payments',
+    'debt_activity',
     'home_bills',
     'home_bill_payments',
     'app_settings',
