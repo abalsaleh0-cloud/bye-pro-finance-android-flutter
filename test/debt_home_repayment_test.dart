@@ -8,6 +8,7 @@ import 'package:expense_app/features/debts/domain/debt_payment.dart';
 import 'package:expense_app/features/home/data/home_expense_repository.dart';
 import 'package:expense_app/features/work/data/work_repository.dart';
 import 'package:expense_app/features/work/domain/work_home_transfer.dart';
+import 'package:expense_app/features/work/domain/work_entry.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -15,6 +16,22 @@ void main() {
 
   setUp(() => database = AppDatabase.forTesting(NativeDatabase.memory()));
   tearDown(() async => database.close());
+
+  Future<void> fundHome(String id, int amount) async {
+    final work = WorkRepository(database);
+    await work.saveEntry(WorkEntry(
+      id: '$id-salary',
+      kind: WorkEntryKind.salaryPayment,
+      amount: Money.fromMinorUnits(amount),
+      dueMonth: MonthKey(year: 2026, month: 11),
+      recordedAt: DateTime(2026, 11, 1),
+    ));
+    await work.saveTransfer(WorkHomeTransfer(
+      id: id,
+      amount: Money.fromMinorUnits(amount),
+      transferredAt: DateTime(2026, 11, 1),
+    ));
+  }
 
   Future<DebtEntry> addDebtor({int amount = 600}) async {
     final debt = DebtEntry(
@@ -32,13 +49,7 @@ void main() {
 
   test('home repayment updates debt and records one matching household outflow atomically', () async {
     final debt = await addDebtor();
-    await WorkRepository(database).saveTransfer(
-      WorkHomeTransfer(
-        id: 'home-funding',
-        amount: Money.fromMinorUnits(1000),
-        transferredAt: DateTime(2026, 11, 1),
-      ),
-    );
+    await fundHome('home-funding', 1000);
 
     await HomeExpenseRepository(database).saveDebtRepayment(
       DebtPayment(
@@ -67,13 +78,7 @@ void main() {
 
   test('linked home repayment cannot be edited or deleted as a normal expense', () async {
     final debt = await addDebtor();
-    await WorkRepository(database).saveTransfer(
-      WorkHomeTransfer(
-        id: 'protected-home-funding',
-        amount: Money.fromMinorUnits(1000),
-        transferredAt: DateTime(2026, 11, 1),
-      ),
-    );
+    await fundHome('protected-home-funding', 1000);
     final home = HomeExpenseRepository(database);
     await home.saveDebtRepayment(
       DebtPayment(
@@ -100,13 +105,7 @@ void main() {
 
   test('insufficient home balance leaves the debt and payment history unchanged', () async {
     final debt = await addDebtor();
-    await WorkRepository(database).saveTransfer(
-      WorkHomeTransfer(
-        id: 'small-home-funding',
-        amount: Money.fromMinorUnits(100),
-        transferredAt: DateTime(2026, 11, 1),
-      ),
-    );
+    await fundHome('small-home-funding', 100);
 
     await expectLater(
       HomeExpenseRepository(database).saveDebtRepayment(
@@ -138,13 +137,7 @@ void main() {
       counterparty: 'Owes me',
     );
     await DebtRepository(database).save(debt);
-    await WorkRepository(database).saveTransfer(
-      WorkHomeTransfer(
-        id: 'creditor-funding',
-        amount: Money.fromMinorUnits(1000),
-        transferredAt: DateTime(2026, 11, 1),
-      ),
-    );
+    await fundHome('creditor-funding', 1000);
 
     await expectLater(
       HomeExpenseRepository(database).saveDebtRepayment(
