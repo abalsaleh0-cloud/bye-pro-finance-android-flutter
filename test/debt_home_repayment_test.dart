@@ -89,7 +89,7 @@ void main() {
       ),
       counterparty: debt.counterparty,
     );
-    final linkedExpense = (await database.select(database.homeExpenses).get()).single;
+    final linkedExpense = (await home.watchAll().first).single;
 
     await expectLater(
       home.save(linkedExpense),
