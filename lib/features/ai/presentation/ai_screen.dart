@@ -704,6 +704,7 @@ class _AiScreenState extends ConsumerState<AiScreen> {
         'debt_amount_below_paid' => strings.assistantDebtAmountBelowPaid,
         'work_balance_insufficient' => strings.assistantWorkBalanceInsufficient,
         'home_balance_insufficient' => strings.assistantHomeBalanceInsufficient,
+        'linked_debt_repayment' => strings.debtRepaymentUndoFromHistory,
         'bill_commitment_not_available' => strings.assistantBillCommitmentNotAvailable,
         'home_commitment_not_covered' => strings.assistantHomeCommitmentNotCovered,
         _ => strings.assistantNotUnderstood,
