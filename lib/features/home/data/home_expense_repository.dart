@@ -207,6 +207,52 @@ final class HomeExpenseRepository {
     });
   }
 
+
+  /// Undo an assistant-recorded debtor settlement, restoring the amount and
+  /// removing the matching household outflow atomically.
+  Future<void> undoDebtRepayment(String paymentId) async {
+    await DebtRepository(_database).getActivity();
+    await _database.transaction(() async {
+      final payment = await (_database.select(_database.debtPayments)
+            ..where((row) => row.id.equals(paymentId)))
+          .getSingleOrNull();
+      if (payment == null) throw StateError('Debt payment not found: $paymentId');
+      final debt = await (_database.select(_database.debts)
+            ..where((row) => row.id.equals(payment.debtId)))
+          .getSingleOrNull();
+      if (debt == null) throw StateError('Debt not found: ${payment.debtId}');
+
+      await (_database.delete(_database.homeExpenses)
+            ..where((row) => row.id.equals('debt-payment-$paymentId')))
+          .go();
+      await (_database.delete(_database.debtPayments)
+            ..where((row) => row.id.equals(paymentId)))
+          .go();
+      await (_database.update(_database.debts)
+            ..where((row) => row.id.equals(payment.debtId)))
+          .write(DebtsCompanion(
+        outstandingAmountMinorUnits: Value(
+          debt.outstandingAmountMinorUnits + payment.amountMinorUnits,
+        ),
+      ));
+      await _database.customStatement(
+        'INSERT OR IGNORE INTO debt_activity '
+        '(id, debt_id, event_type, direction, counterparty, amount_minor_units, occurred_at_epoch_millis, note) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          'home-payment-reversed-$paymentId',
+          payment.debtId,
+          'payment_reversed',
+          debt.direction,
+          debt.counterparty,
+          payment.amountMinorUnits,
+          DateTime.now().millisecondsSinceEpoch,
+          payment.note,
+        ],
+      );
+    });
+  }
+
   Future<void> delete(String id) {
     return (_database.delete(
       _database.homeExpenses,
